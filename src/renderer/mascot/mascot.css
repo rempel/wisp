@@ -1,0 +1,347 @@
+/*
+ * Wisp: uma chama de luz com olhos. Tudo em SVG + CSS, sem assets externos.
+ *
+ * Todas as animações contínuas usam só transform e opacity em camadas HTML. O compositor as
+ * desenha sem acordar a thread principal da página e sem redesenhar o SVG, o que deixa o
+ * mascote quase de graça em CPU enquanto está ocioso.
+ */
+
+:root {
+  --wisp-core: #ccfbf1;
+  --wisp-teal: #5eead4;
+  --wisp-cyan: #22d3ee;
+  --wisp-eye: #083344;
+  --wisp-light: #f0fdfa;
+  --ease-sine: cubic-bezier(0.37, 0, 0.63, 1);
+  /* Centro das órbitas das faíscas (px, coordenadas da janela). */
+  --orbit-y: 70px;
+}
+
+html,
+body,
+#root {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: transparent;
+}
+
+body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.stage {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  cursor: pointer;
+  touch-action: none;
+}
+
+.stage.dragging {
+  cursor: grabbing;
+}
+
+.float,
+.wisp,
+.flame,
+.tongue,
+.tip,
+.eyes,
+.layer {
+  position: absolute;
+  inset: 0;
+}
+
+.layer {
+  width: 128px;
+  height: 128px;
+  overflow: visible;
+}
+
+/* ---- Flutuar ---------------------------------------------------------- */
+
+.float {
+  animation: float 3.6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(3px);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.wisp {
+  /* Base da chama: o "boop" amassa e estica a partir daqui. */
+  transform-origin: 64px 100px;
+}
+
+/* Reação ao clique: amassa, dá um pulinho e volta. */
+.wisp.boop {
+  animation: boop 0.5s ease-out;
+}
+
+@keyframes boop {
+  0% {
+    transform: none;
+  }
+  18% {
+    transform: scale(1.1, 0.88);
+  }
+  45% {
+    transform: translateY(-7px) scale(0.94, 1.08);
+  }
+  70% {
+    transform: translateY(0) scale(1.04, 0.97);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* ---- Glow ------------------------------------------------------------- */
+
+.glow {
+  position: absolute;
+  left: 16px;
+  top: 18px;
+  width: 96px;
+  height: 100px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(94 234 212 / 0.5),
+    rgb(34 211 238 / 0.18) 60%,
+    rgb(34 211 238 / 0)
+  );
+  animation: breathe 3.6s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%,
+  100% {
+    opacity: 0.7;
+    transform: scale(0.94);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.02);
+  }
+}
+
+/* ---- Chama ------------------------------------------------------------ */
+
+.flame {
+  filter: drop-shadow(0 0 3px rgb(94 234 212 / 0.85));
+}
+
+.fill-core {
+  stop-color: var(--wisp-core);
+}
+
+.fill-mid {
+  stop-color: var(--wisp-teal);
+}
+
+.fill-edge {
+  stop-color: var(--wisp-cyan);
+}
+
+.gloss {
+  fill: var(--wisp-light);
+  opacity: 0.45;
+}
+
+/*
+ * A ponta ondula em duas partes. A língua inclina (skewX) a partir do "pescoço" da chama e a
+ * pontinha, que está dentro dela, inclina um pouco mais e com atraso, como uma onda subindo.
+ * O skew não desloca nada na altura da sua origem, por isso as emendas entre as faixas não
+ * aparecem.
+ */
+.tongue {
+  transform-origin: 66px 46px;
+  animation: sway 3.2s ease-in-out infinite;
+}
+
+.tip {
+  transform-origin: 70px 31px;
+  animation: sway-tip 3.2s ease-in-out -0.45s infinite;
+}
+
+@keyframes sway {
+  0%,
+  100% {
+    transform: skewX(7deg);
+  }
+  50% {
+    transform: skewX(-8deg) scaleY(1.04);
+  }
+}
+
+@keyframes sway-tip {
+  0%,
+  100% {
+    transform: skewX(12deg);
+  }
+  50% {
+    transform: skewX(-14deg) scaleY(1.05);
+  }
+}
+
+/* ---- Olhos ------------------------------------------------------------ */
+
+.pupil {
+  fill: var(--wisp-eye);
+}
+
+.shine {
+  fill: var(--wisp-light);
+}
+
+.eyes {
+  transform-origin: 64px 78.5px;
+  animation: blink 6.5s infinite;
+}
+
+/* Uma piscada e, mais adiante, uma piscada dupla: o ritmo irregular parece mais natural. */
+@keyframes blink {
+  0%,
+  42%,
+  45.5%,
+  88%,
+  90.5%,
+  93%,
+  95.5%,
+  100% {
+    transform: scaleY(1);
+  }
+  43.7%,
+  89.2%,
+  94.2% {
+    transform: scaleY(0.1);
+  }
+}
+
+/* ---- Faíscas ---------------------------------------------------------- */
+
+/*
+ * Cada faísca percorre uma elipse inclinada ao redor da chama: o elemento externo faz o eixo
+ * X e o interno o eixo Y, defasado em meio ciclo; com easing senoidal, os dois desenham a
+ * elipse. Na metade de trás da órbita a faísca fica menor e mais apagada. As duas cópias
+ * (.back e .front, ver Mascot.tsx) são recortadas na linha do centro da órbita.
+ */
+.sparks {
+  position: absolute;
+  left: 0;
+  width: 128px;
+  overflow: hidden;
+}
+
+.sparks.back {
+  top: 0;
+  height: var(--orbit-y);
+  --spark-top: var(--orbit-y);
+}
+
+.sparks.front {
+  top: var(--orbit-y);
+  bottom: 0;
+  --spark-top: 0px;
+}
+
+.spark {
+  position: absolute;
+  left: 64px;
+  top: var(--spark-top);
+  width: 0;
+  height: 0;
+  rotate: var(--tilt);
+  animation: spark-x var(--dur) var(--ease-sine) var(--delay) infinite alternate;
+}
+
+.spark > i {
+  position: absolute;
+  left: calc(var(--size) / -2);
+  top: calc(var(--size) / -2);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: radial-gradient(
+    circle,
+    #fff 0 16%,
+    rgb(165 243 252 / 0.85) 34%,
+    rgb(34 211 238 / 0.25) 52%,
+    rgb(34 211 238 / 0) 72%
+  );
+  animation: spark-y var(--dur) var(--ease-sine) calc(var(--delay) - var(--dur) / 2) infinite
+    alternate;
+}
+
+@keyframes spark-x {
+  from {
+    transform: translateX(calc(var(--rx) * -1));
+  }
+  to {
+    transform: translateX(var(--rx));
+  }
+}
+
+@keyframes spark-y {
+  from {
+    transform: translateY(calc(var(--ry) * -1)) scale(0.5);
+    opacity: 0.35;
+  }
+  to {
+    transform: translateY(var(--ry)) scale(1);
+    opacity: 1;
+  }
+}
+
+.s1 {
+  --rx: 44px;
+  --ry: 11px;
+  --dur: 4.2s;
+  --delay: 0s;
+  --size: 11px;
+  --tilt: -10deg;
+}
+
+.s2 {
+  --rx: 38px;
+  --ry: 15px;
+  --dur: 5.3s;
+  --delay: -3.1s;
+  --size: 9px;
+  --tilt: 14deg;
+}
+
+.s3 {
+  --rx: 49px;
+  --ry: 9px;
+  --dur: 6.4s;
+  --delay: -5.2s;
+  --size: 8px;
+  --tilt: -4deg;
+}
+
+/* ---- Menos movimento -------------------------------------------------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .float,
+  .glow,
+  .tongue,
+  .tip,
+  .wisp.boop {
+    animation: none;
+  }
+
+  .sparks {
+    display: none;
+  }
+}
