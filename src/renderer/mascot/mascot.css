@@ -1,20 +1,37 @@
 /*
- * Wisp: uma chama de luz com olhos. Tudo em SVG + CSS, sem assets externos.
+ * Wisp: uma gotinha robô de luz. Tudo em SVG + CSS, sem assets externos.
  *
  * Todas as animações contínuas usam só transform e opacity em camadas HTML. O compositor as
  * desenha sem acordar a thread principal da página e sem redesenhar o SVG, o que deixa o
  * mascote quase de graça em CPU enquanto está ocioso.
+ *
+ * As cores ficam nas variáveis abaixo: os estados (pedindo permissão, erro...) só precisam
+ * trocá-las.
  */
 
 :root {
-  --wisp-core: #ccfbf1;
-  --wisp-teal: #5eead4;
-  --wisp-cyan: #22d3ee;
-  --wisp-eye: #083344;
-  --wisp-light: #f0fdfa;
+  /* Casco (gradiente do núcleo para a borda) */
+  --shell-0: #ccfbf1;
+  --shell-1: #5eead4;
+  --shell-2: #22d3ee;
+  --shell-3: #0ea5c6;
+  /* Partes de metal: contorno, juntas, parafusos, haste da antena */
+  --metal: #0e7490;
+  --metal-dark: #155e75;
+  --metal-light: #67e8f9;
+  /* Visor e LEDs (olhos e lâmpada da antena) */
+  --visor-0: #10303d;
+  --visor-1: #061219;
+  --led-0: #f0fdff;
+  --led-1: #a5f3fc;
+  --led-2: #22d3ee;
+  --led-halo: #67e8f9;
+  --glow-core: 94 234 212;
+  --glow: 34 211 238;
+  --highlight: #f0fdfa;
   --ease-sine: cubic-bezier(0.37, 0, 0.63, 1);
-  /* Centro das órbitas das faíscas (px, coordenadas da janela). */
-  --orbit-y: 70px;
+  /* Altura (px na janela) da linha que divide a órbita dos bits em frente e trás. */
+  --orbit-y: 86px;
 }
 
 html,
@@ -44,12 +61,20 @@ body {
   cursor: grabbing;
 }
 
+.defs {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
 .float,
 .wisp,
-.flame,
-.tongue,
-.tip,
+.antenna,
+.antenna-glow,
+.body,
 .eyes,
+.eyes-blink,
 .layer {
   position: absolute;
   inset: 0;
@@ -78,8 +103,8 @@ body {
 }
 
 .wisp {
-  /* Base da chama: o "boop" amassa e estica a partir daqui. */
-  transform-origin: 64px 100px;
+  /* Base da gota: o "boop" amassa e estica a partir daqui. */
+  transform-origin: 64px 104px;
 }
 
 /* Reação ao clique: amassa, dá um pulinho e volta. */
@@ -110,15 +135,15 @@ body {
 .glow {
   position: absolute;
   left: 16px;
-  top: 18px;
+  top: 22px;
   width: 96px;
-  height: 100px;
+  height: 96px;
   border-radius: 50%;
   background: radial-gradient(
     closest-side,
-    rgb(94 234 212 / 0.5),
-    rgb(34 211 238 / 0.18) 60%,
-    rgb(34 211 238 / 0)
+    rgb(var(--glow-core) / 0.45),
+    rgb(var(--glow) / 0.16) 60%,
+    rgb(var(--glow) / 0)
   );
   animation: breathe 3.6s ease-in-out infinite;
 }
@@ -135,81 +160,194 @@ body {
   }
 }
 
-/* ---- Chama ------------------------------------------------------------ */
+/* ---- Cores do SVG ----------------------------------------------------- */
 
-.flame {
-  filter: drop-shadow(0 0 3px rgb(94 234 212 / 0.85));
+.shell-0 {
+  stop-color: var(--shell-0);
 }
 
-.fill-core {
-  stop-color: var(--wisp-core);
+.shell-1 {
+  stop-color: var(--shell-1);
 }
 
-.fill-mid {
-  stop-color: var(--wisp-teal);
+.shell-2 {
+  stop-color: var(--shell-2);
 }
 
-.fill-edge {
-  stop-color: var(--wisp-cyan);
+.shell-3 {
+  stop-color: var(--shell-3);
+}
+
+.visor-0 {
+  stop-color: var(--visor-0);
+}
+
+.visor-1 {
+  stop-color: var(--visor-1);
+}
+
+.led-0 {
+  stop-color: var(--led-0);
+}
+
+.led-1 {
+  stop-color: var(--led-1);
+}
+
+.led-2 {
+  stop-color: var(--led-2);
+}
+
+.led {
+  fill: url(#wisp-led);
+}
+
+/* ---- Corpo ------------------------------------------------------------ */
+
+.body .layer {
+  filter: drop-shadow(0 0 2.5px rgb(var(--glow-core) / 0.8));
+}
+
+.shell {
+  fill: url(#wisp-shell);
+  stroke: var(--metal);
+  stroke-opacity: 0.55;
+  stroke-width: 1;
 }
 
 .gloss {
-  fill: var(--wisp-light);
-  opacity: 0.45;
+  fill: none;
+  stroke: var(--highlight);
+  stroke-width: 2.6;
+  stroke-linecap: round;
+  opacity: 0.75;
 }
 
-/*
- * A ponta ondula em duas partes. A língua inclina (skewX) a partir do "pescoço" da chama e a
- * pontinha, que está dentro dela, inclina um pouco mais e com atraso, como uma onda subindo.
- * O skew não desloca nada na altura da sua origem, por isso as emendas entre as faixas não
- * aparecem.
- */
-.tongue {
-  transform-origin: 66px 46px;
-  animation: sway 3.2s ease-in-out infinite;
+.gloss-dot {
+  fill: var(--highlight);
+  opacity: 0.7;
 }
 
-.tip {
-  transform-origin: 70px 31px;
-  animation: sway-tip 3.2s ease-in-out -0.45s infinite;
+/* Junta do casco: uma linha escura com um fio de luz logo abaixo, como um sulco. */
+.seam {
+  fill: none;
+  stroke: var(--metal);
+  stroke-opacity: 0.55;
+  stroke-width: 0.9;
+}
+
+.seam-light {
+  fill: none;
+  stroke: #ecfeff;
+  stroke-opacity: 0.45;
+  stroke-width: 0.7;
+}
+
+.visor {
+  fill: url(#wisp-visor);
+  stroke: var(--metal-dark);
+  stroke-width: 1;
+}
+
+.visor-glare {
+  stroke: #fff;
+  stroke-opacity: 0.16;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+}
+
+.bolt,
+.collar {
+  fill: var(--metal);
+}
+
+.bolt-cap {
+  fill: var(--metal-light);
+}
+
+.collar-light {
+  fill: var(--metal-light);
+  opacity: 0.7;
+}
+
+/* ---- Antena ----------------------------------------------------------- */
+
+/* Balança devagar a partir da base, presa no encaixe da ponta da gota. */
+.antenna {
+  transform-origin: 64px 31px;
+  animation: sway 3.6s ease-in-out -0.9s infinite;
 }
 
 @keyframes sway {
   0%,
   100% {
-    transform: skewX(7deg);
+    transform: rotate(-5deg);
   }
   50% {
-    transform: skewX(-8deg) scaleY(1.04);
+    transform: rotate(5deg);
   }
 }
 
-@keyframes sway-tip {
+.antenna-rod {
+  stroke: var(--metal);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+}
+
+/* A lâmpada da antena "respira", como o LED de um aparelho em repouso. */
+.antenna-glow {
+  animation: led-pulse 2.4s ease-in-out infinite;
+}
+
+@keyframes led-pulse {
   0%,
   100% {
-    transform: skewX(12deg);
+    opacity: 0.35;
   }
   50% {
-    transform: skewX(-14deg) scaleY(1.05);
+    opacity: 1;
   }
+}
+
+.led-halo {
+  fill: var(--led-halo);
+  filter: url(#wisp-blur);
 }
 
 /* ---- Olhos ------------------------------------------------------------ */
 
-.pupil {
-  fill: var(--wisp-eye);
+.eye-leds {
+  filter: url(#wisp-led-glow);
 }
 
-.shine {
-  fill: var(--wisp-light);
-}
-
+/* De vez em quando os olhos dão uma olhada para um lado e para o outro. */
 .eyes {
-  transform-origin: 64px 78.5px;
+  animation: glance 11s ease-in-out infinite;
+}
+
+@keyframes glance {
+  0%,
+  66%,
+  92%,
+  100% {
+    transform: translateX(0);
+  }
+  70%,
+  77% {
+    transform: translateX(-3px);
+  }
+  81%,
+  88% {
+    transform: translateX(3px);
+  }
+}
+
+/* Piscar: o LED encolhe até virar um traço. Uma piscada e, mais adiante, uma dupla. */
+.eyes-blink {
+  transform-origin: 64px 80px;
   animation: blink 6.5s infinite;
 }
 
-/* Uma piscada e, mais adiante, uma piscada dupla: o ritmo irregular parece mais natural. */
 @keyframes blink {
   0%,
   42%,
@@ -228,13 +366,13 @@ body {
   }
 }
 
-/* ---- Faíscas ---------------------------------------------------------- */
+/* ---- Bits em órbita --------------------------------------------------- */
 
 /*
- * Cada faísca percorre uma elipse inclinada ao redor da chama: o elemento externo faz o eixo
- * X e o interno o eixo Y, defasado em meio ciclo; com easing senoidal, os dois desenham a
- * elipse. Na metade de trás da órbita a faísca fica menor e mais apagada. As duas cópias
- * (.back e .front, ver Mascot.tsx) são recortadas na linha do centro da órbita.
+ * Cada bit percorre uma elipse inclinada em volta da parte de baixo do corpo: o elemento
+ * externo faz o eixo X e o interno o eixo Y, defasado em meio ciclo; com easing senoidal, os
+ * dois desenham a elipse. Na metade de trás da órbita o bit fica menor e mais apagado. As duas
+ * cópias (.back e .front, ver Mascot.tsx) são recortadas na linha do centro da órbita.
  */
 .sparks {
   position: absolute;
@@ -271,14 +409,9 @@ body {
   top: calc(var(--size) / -2);
   width: var(--size);
   height: var(--size);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    #fff 0 16%,
-    rgb(165 243 252 / 0.85) 34%,
-    rgb(34 211 238 / 0.25) 52%,
-    rgb(34 211 238 / 0) 72%
-  );
+  border-radius: 1px;
+  background: #cffafe;
+  box-shadow: 0 0 3px 1px rgb(var(--glow) / 0.75);
   animation: spark-y var(--dur) var(--ease-sine) calc(var(--delay) - var(--dur) / 2) infinite
     alternate;
 }
@@ -304,30 +437,30 @@ body {
 }
 
 .s1 {
-  --rx: 44px;
+  --rx: 46px;
   --ry: 11px;
   --dur: 4.2s;
   --delay: 0s;
-  --size: 11px;
-  --tilt: -10deg;
+  --size: 4.5px;
+  --tilt: -8deg;
 }
 
 .s2 {
-  --rx: 38px;
+  --rx: 40px;
   --ry: 15px;
   --dur: 5.3s;
   --delay: -3.1s;
-  --size: 9px;
-  --tilt: 14deg;
+  --size: 4px;
+  --tilt: 10deg;
 }
 
 .s3 {
-  --rx: 49px;
+  --rx: 51px;
   --ry: 9px;
   --dur: 6.4s;
   --delay: -5.2s;
-  --size: 8px;
-  --tilt: -4deg;
+  --size: 3.5px;
+  --tilt: -3deg;
 }
 
 /* ---- Menos movimento -------------------------------------------------- */
@@ -335,8 +468,9 @@ body {
 @media (prefers-reduced-motion: reduce) {
   .float,
   .glow,
-  .tongue,
-  .tip,
+  .antenna,
+  .antenna-glow,
+  .eyes,
   .wisp.boop {
     animation: none;
   }

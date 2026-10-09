@@ -42,13 +42,32 @@ projeto. Se você mover a pasta do projeto, rode de novo.
 ## Validando a Etapa 1
 
 - [ ] O mascote aparece no canto inferior direito, acima da barra/dock, com fundo transparente.
-- [ ] Ele flutua, a ponta da chama ondula, os olhos piscam e as faíscas orbitam.
+- [ ] Ele flutua, a antena balança com o LED da ponta "respirando", os olhos de LED piscam e
+      às vezes olham para os lados, e os bits orbitam em volta.
 - [ ] Ele fica por cima das outras janelas, inclusive de uma janela maximizada.
 - [ ] Arrastar move o mascote. Um clique sem arrastar faz ele "quicar" e aparece
       `[wisp] clique no mascote` no terminal (o painel de chat entra na Etapa 2).
 - [ ] Depois de fechar (Ctrl+C no terminal) e abrir de novo, ele volta para onde você deixou.
 - [ ] Ele não aparece na barra de tarefas, na dock nem no Alt+Tab, e acompanha a troca de
       workspace.
+
+## Visual do mascote
+
+O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
+contorno, junta e parafusos, um visor escuro com dois olhos de LED, uma antena com uma lâmpada
+de LED na ponta e "bits" quadradinhos em órbita, tudo com um glow suave. Os estados das próximas
+etapas seguem o mesmo estilo:
+
+| Estado            | Como fica                                                                 |
+| ----------------- | ------------------------------------------------------------------------- |
+| Ocioso            | Flutua, a antena balança, o LED respira, os olhos piscam e olham em volta |
+| Falando           | O brilho pulsa no ritmo do texto e os LEDs dos olhos se animam            |
+| Trabalhando       | Os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido |
+| Pedindo permissão | Casco e LEDs âmbar (`#FBBF24`), olhos virados para o chat e "?" no visor  |
+| Feliz             | Dá um pulinho, os olhos viram `^ ^` e solta bits                          |
+| Erro              | Fica coral (`#F87171`), treme e os olhos viram "x" no visor               |
+
+As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las.
 
 ## Configuração
 
@@ -116,4 +135,5 @@ src/
   move a janela seguindo a posição global do cursor. Usar as coordenadas dos eventos da página
   faria o mascote tremer, porque elas são relativas a uma janela que está se movendo.
 - **Animações:** tudo é `transform` e `opacity` em camadas HTML, que o compositor anima sem
-  redesenhar o SVG. A ponta da chama é uma camada separada que ondula com `skewX`.
+  redesenhar o SVG. O corpo é desenhado uma vez só; antena, LED da antena e olhos são camadas
+  separadas que se movem por cima dele.
