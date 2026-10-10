@@ -112,6 +112,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       onClick={() => void open(item)}
                       title={item.title}
                     >
+                      {item.project && <span className="history-project">{item.project}</span>}
                       <span className="history-title">{item.title}</span>
                       {item.current ? (
                         <span className="history-badge">aberta</span>

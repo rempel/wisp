@@ -138,3 +138,37 @@ export function diffFromResult(result: unknown): FileDiff | null {
   }
   return buildDiff(hunks)
 }
+
+/**
+ * Quebra um trecho com todas as linhas (como o de lineDiff) em trechos menores em volta das
+ * mudanças, com `context` linhas iguais antes e depois e os números das linhas. Serve para
+ * mostrar a mudança num arquivo grande.
+ */
+export function compactHunks(hunk: DiffHunk, context = 3): DiffHunk[] {
+  const lines = hunk.lines
+  const changed = lines.map((line) => !line.startsWith(' '))
+  const keep = lines.map((_, i) => {
+    for (let j = Math.max(0, i - context); j <= Math.min(lines.length - 1, i + context); j++) {
+      if (changed[j]) return true
+    }
+    return false
+  })
+  const hunks: DiffHunk[] = []
+  let oldLine = Math.max(1, hunk.oldStart)
+  let newLine = Math.max(1, hunk.newStart)
+  let current: DiffHunk | null = null
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    if (keep[i]) {
+      current ??= { oldStart: oldLine, newStart: newLine, lines: [] }
+      current.lines.push(line)
+    } else if (current) {
+      hunks.push(current)
+      current = null
+    }
+    if (!line.startsWith('+')) oldLine++
+    if (!line.startsWith('-')) newLine++
+  }
+  if (current) hunks.push(current)
+  return hunks
+}

@@ -50,7 +50,28 @@ export const IPC = {
   /** chat → main (invoke): reabre uma conversa do histórico. Arg: id. Devolve boolean. */
   historyOpen: 'history:open',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
-  historyDelete: 'history:delete'
+  historyDelete: 'history:delete',
+
+  /** chat → main (invoke): as sessões do Claude Code no terminal. Devolve SessionsSnapshot. */
+  sessionsGet: 'sessions:get',
+  /** main → chat: as sessões mudaram (a página pede de novo com sessionsGet). */
+  sessionsChanged: 'sessions:changed',
+  /** main → chat: mostrar a aba Sessões (chegou um pedido de uma sessão). */
+  sessionsShow: 'sessions:show',
+  /** chat → main: resposta a um pedido de uma sessão. Args: (sessão, pedido, SessionAnswer). */
+  sessionsAnswer: 'sessions:answer',
+  /** chat → main (invoke): trazer o terminal da sessão para a frente. Arg: sessão. */
+  sessionsFocus: 'sessions:focus',
+  /** chat → main: abrir a pasta da sessão no editor. Arg: sessão. */
+  sessionsFolder: 'sessions:folder',
+  /** chat → main: continuar a sessão no chat do Wisp. Arg: sessão. */
+  sessionsContinue: 'sessions:continue',
+  /** chat → main: tirar uma sessão encerrada da lista. Arg: sessão. */
+  sessionsForget: 'sessions:forget',
+  /** chat → main (invoke): o que instalar ou tirar os hooks muda. Arg: HooksAction. */
+  hooksPreview: 'hooks:preview',
+  /** chat → main (invoke): grava a mudança vista na prévia. Args: (HooksAction, impressão). */
+  hooksApply: 'hooks:apply'
 } as const
 
 /** Estados do mascote, ligados aos eventos da conversa (seção 5.3 da especificação). */
@@ -123,6 +144,90 @@ export interface FileDiff {
   truncated: boolean
 }
 
+/** Instalar ou tirar os hooks do Wisp do settings.json do Claude Code. */
+export type HooksAction = 'install' | 'uninstall'
+
+export interface HooksStatus {
+  installed: boolean
+  /** Há entradas do Wisp, mas diferentes das de agora (de outra versão): vale reinstalar. */
+  outdated: boolean
+  /** O settings.json (com ~ no lugar da pasta pessoal). */
+  settingsPath: string
+  /** Por que não dá para ler ou mexer no arquivo. */
+  problem?: string
+}
+
+/** A prévia da mudança no settings.json. */
+export interface HookPreview {
+  action: HooksAction
+  settingsPath: string
+  /** Onde fica o backup; null se o arquivo ainda não existe. */
+  backupPath: string | null
+  diff: DiffHunk[]
+  /** Impressão digital do arquivo lido: só ele pode ser gravado com esta prévia. */
+  fingerprint: string
+  /** Há o que mudar (instalar de novo algo já instalado não muda nada). */
+  changes: boolean
+}
+
+/** O estado de uma sessão do Claude Code que roda fora do Wisp (num terminal). */
+export type ExternalState = 'working' | 'waiting' | 'idle' | 'ended' | 'error'
+
+/** Um passo de uma sessão: uma chamada de ferramenta. */
+export interface ExternalStep {
+  id: string
+  tool: string
+  input?: unknown
+  status: 'running' | 'done' | 'error'
+  diff?: FileDiff
+  at: number
+  /** Feito por um subagente. */
+  subagent?: boolean
+}
+
+/** Um pedido de permissão (ou pergunta) de uma sessão, esperando resposta. */
+export interface ExternalRequest {
+  id: string
+  toolName: string
+  input: unknown
+  at: number
+}
+
+export interface ExternalSession {
+  id: string
+  /** A pasta onde a sessão roda. */
+  cwd: string
+  /** O nome curto do projeto (o fim do caminho). */
+  project: string
+  state: ExternalState
+  startedAt: number
+  updatedAt: number
+  /** A última mensagem do usuário. */
+  prompt?: string
+  /** A última resposta do Claude, quando o turno acaba. */
+  lastMessage?: string
+  error?: string
+  model?: string
+  /** Os últimos passos, do mais antigo para o mais novo. */
+  steps: ExternalStep[]
+  requests: ExternalRequest[]
+  /** O processo do Claude Code ainda está rodando. */
+  alive: boolean
+}
+
+/** O que a aba Sessões mostra. */
+export interface SessionsSnapshot {
+  hooks: HooksStatus
+  /** O Wisp está ouvindo os hooks. Se não, `problem` diz por quê. */
+  listening: boolean
+  problem?: string
+  sessions: ExternalSession[]
+}
+
+/** Resposta a um pedido de uma sessão: permissão (ou "responder no terminal") ou pergunta. */
+export type SessionAnswer =
+  { decision: PermissionDecision | 'terminal' } | { answers: Record<string, string> | null }
+
 /** Uma conversa guardada no histórico. */
 export interface ConversationSummary {
   id: string
@@ -133,6 +238,8 @@ export interface ConversationSummary {
   updatedAt: number
   /** É a conversa aberta no painel. */
   current: boolean
+  /** Projeto de uma sessão trazida do terminal. */
+  project?: string
 }
 
 /**
@@ -239,5 +346,24 @@ export interface WispApi {
     /** Reabre a conversa: ela chega pelo onEvent, depois de um 'reset'. */
     open(id: string): Promise<boolean>
     remove(id: string): Promise<boolean>
+  }
+  /** As sessões do Claude Code que rodam no terminal (aba Sessões). */
+  sessions: {
+    get(): Promise<SessionsSnapshot>
+    /** Avisa que algo mudou (chame get de novo); devolve a função que cancela. */
+    onChanged(listener: () => void): () => void
+    /** O main pede para mostrar a aba (chegou um pedido). */
+    onShow(listener: () => void): () => void
+    answer(sessionId: string, requestId: string, answer: SessionAnswer): void
+    /** Traz o terminal da sessão para a frente; false se não deu (o motivo vem em message). */
+    focus(sessionId: string): Promise<{ ok: boolean; message?: string }>
+    openFolder(sessionId: string): void
+    continueInChat(sessionId: string): void
+    forget(sessionId: string): void
+    previewHooks(action: HooksAction): Promise<HookPreview | { error: string }>
+    applyHooks(
+      action: HooksAction,
+      fingerprint: string
+    ): Promise<{ ok: true; backupPath: string | null } | { error: string }>
   }
 }

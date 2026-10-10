@@ -28,6 +28,8 @@ export class MascotMood {
   private talking = false
   private flash: 'happy' | 'error' | null = null
   private readonly pending = new Set<string>()
+  /** Pedidos de sessões do terminal esperando resposta. */
+  private externalPending = 0
   private current: MascotState = 'idle'
   private talkTimer: NodeJS.Timeout | null = null
   private flashTimer: NodeJS.Timeout | null = null
@@ -80,6 +82,19 @@ export class MascotMood {
     this.update()
   }
 
+  /** Quantos pedidos das sessões do terminal esperam resposta (o mascote pede atenção). */
+  setExternalRequests(count: number): void {
+    this.externalPending = count
+    this.update()
+  }
+
+  /** Uma sessão do terminal terminou (feliz) ou deu erro. A conversa do chat tem a vez. */
+  flashExternal(kind: 'happy' | 'error'): void {
+    if (this.busy) return
+    this.setFlash(kind, kind === 'happy' ? HAPPY_MS : ERROR_MS)
+    this.update()
+  }
+
   dispose(): void {
     if (this.talkTimer) clearTimeout(this.talkTimer)
     if (this.flashTimer) clearTimeout(this.flashTimer)
@@ -118,7 +133,7 @@ export class MascotMood {
 
   private update(): void {
     const next: MascotState =
-      this.pending.size > 0
+      this.pending.size > 0 || this.externalPending > 0
         ? 'permission'
         : (this.flash ?? (this.busy ? (this.talking ? 'talking' : 'working') : 'idle'))
     if (next === this.current) return

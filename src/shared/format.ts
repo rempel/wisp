@@ -44,3 +44,13 @@ export function formatDate(ms: number): string {
   const date = new Date(ms)
   return `${date.toLocaleDateString('pt-BR', { day: 'numeric', month: 'short' })}, ${time(date)}`
 }
+
+/** Há quanto tempo: "agora", "há 5 min", "há 2 h", "ontem", "08/10". */
+export function formatAgo(ms: number, now = Date.now()): string {
+  const minutes = Math.floor((now - ms) / 60_000)
+  if (minutes < 1) return 'agora'
+  if (minutes < 60) return `há ${minutes} min`
+  const hours = Math.floor(minutes / 60)
+  if (hours < 24) return `há ${hours} h`
+  return formatWhen(ms, new Date(now))
+}

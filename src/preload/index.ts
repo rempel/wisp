@@ -42,6 +42,19 @@ const api: WispApi = {
     list: () => ipcRenderer.invoke(IPC.historyList),
     open: (id) => ipcRenderer.invoke(IPC.historyOpen, id),
     remove: (id) => ipcRenderer.invoke(IPC.historyDelete, id)
+  },
+  sessions: {
+    get: () => ipcRenderer.invoke(IPC.sessionsGet),
+    onChanged: (listener) => subscribe<[]>(IPC.sessionsChanged, listener),
+    onShow: (listener) => subscribe<[]>(IPC.sessionsShow, listener),
+    answer: (sessionId, requestId, answer) =>
+      ipcRenderer.send(IPC.sessionsAnswer, sessionId, requestId, answer),
+    focus: (sessionId) => ipcRenderer.invoke(IPC.sessionsFocus, sessionId),
+    openFolder: (sessionId) => ipcRenderer.send(IPC.sessionsFolder, sessionId),
+    continueInChat: (sessionId) => ipcRenderer.send(IPC.sessionsContinue, sessionId),
+    forget: (sessionId) => ipcRenderer.send(IPC.sessionsForget, sessionId),
+    previewHooks: (action) => ipcRenderer.invoke(IPC.hooksPreview, action),
+    applyHooks: (action, fingerprint) => ipcRenderer.invoke(IPC.hooksApply, action, fingerprint)
   }
 }
 

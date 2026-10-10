@@ -349,6 +349,16 @@ export async function openProject(
         'Só abro projetos que estejam dentro delas.'
     }
   }
+  return openInEditor(target, editorCommand)
+}
+
+/**
+ * Abre uma pasta no editor (editorCommand). Sem a trava de projectRoots: é para o que o próprio
+ * usuário pede no painel, como a pasta de uma sessão do terminal.
+ */
+export async function openInEditor(path: string, editorCommand: string): Promise<Outcome> {
+  const target = realpathOrNull(resolve(expandHome(path.trim())))
+  if (!target || !isDir(target)) return { ok: false, message: `A pasta "${path}" não existe.` }
   const [command, ...args] = editorCommand.trim().split(/\s+/)
   if (!command) return { ok: false, message: 'editorCommand está vazio no config.json.' }
   const result = await launch(command, [...args, target], 5000)

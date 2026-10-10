@@ -148,7 +148,9 @@ cada mensagem briga com o gerenciador de janelas no X11 e no XWayland; a mola ao
 - Parar interrompe sem reiniciar o processo;
 - uma conversa de ontem reabre pelo histórico.
 
-### Fase 7: escutar e gerenciar as sessões do Claude Code
+### Fase 7: escutar e gerenciar as sessões do Claude Code ✅
+
+**Status:** pronta, esperando validação.
 
 O que você mais gostou no Coucou. O Wisp "escuta" as sessões do Claude Code que você roda no
 terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de janela.
@@ -156,30 +158,44 @@ terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de 
 - **Escutar (M):** hooks do Claude Code instalados com cuidado.
   - Só entram no `~/.claude/settings.json` com backup datado, diff na tela e confirmação.
     Desinstalar remove só o que é do Wisp.
-  - Um relay pequeno conversa com o app por um socket em `$XDG_RUNTIME_DIR`: pasta 0700,
-    socket 0600, conferindo o usuário do outro lado.
-  - O Claude Code nunca trava: o relay desiste em fração de segundo se o app não responde, e, sem
-    decisão, o Claude Code pergunta no próprio terminal.
-  - Os processos do próprio Wisp são marcados por uma variável de ambiente, para não aparecerem
-    duas vezes.
-- **Ver (M):** uma aba "Sessões" no painel, com cada sessão aberta:
+  - Um relay pequeno conversa com o app por um socket em `$XDG_RUNTIME_DIR`, numa pasta 0700, com
+    o socket 0600. O relay confere a pasta e o dono do socket antes de conectar.
+  - O relay roda com o próprio Electron em modo Node, então não depende de Node, Python nem
+    binário próprio.
+  - O Claude Code nunca trava. Só o pedido de permissão espera o relay; o resto roda em segundo
+    plano (`async`). Sem o Wisp, o relay sai na hora.
+  - Os processos do próprio Wisp são marcados por uma variável de ambiente (`WISP_INTERNAL`), para
+    não aparecerem duas vezes.
+- **Ver (M):** uma aba "Sessões" no painel, com cada sessão:
   - o projeto;
-  - o estado: trabalhando, esperando você ou terminou;
-  - o passo atual ("Editando src/app.ts") e os últimos passos, com a contagem +N −M e o diff das
-    edições.
+  - o estado: trabalhando, esperando você, terminou ou encerrada;
+  - a última mensagem e a última resposta;
+  - o passo atual ("editando src/app.ts…") e os passos anteriores, com a contagem +N −M e o diff
+    das edições.
 
   O mascote avisa quando uma sessão pede permissão, faz uma pergunta ou termina.
 
 - **Agir (M):**
-  - aprovar, negar e responder perguntas pelo mesmo card do chat;
-  - trazer o terminal da sessão para a frente: EWMH no X11 e script do KWin no KDE. No GNOME
-    Wayland não dá, então o Wisp abre a pasta do projeto no editor.
+  - aprovar, negar e responder perguntas pelo mesmo card do chat.
+    - Testado no 2.1.296: o diálogo do terminal aparece junto, e vale quem responder primeiro.
+    - Respondido no terminal, o card some sozinho.
+  - trazer o terminal da sessão para a frente: script do KWin pelo D-Bus no KDE (X11 e Wayland) e
+    `xdotool` no X11, inclusive com tmux. No GNOME Wayland não dá, então o Wisp abre a pasta do
+    projeto no editor.
 - **Gerenciar (G):**
-  - mandar a próxima instrução para uma sessão parada, retomando-a com `claude -p --resume <id>` na
-    pasta dela. Se a sessão ainda estiver aberta no terminal, o CLI cria uma cópia, e o Wisp precisa
-    avisar isso;
-  - trazer uma sessão do terminal para o chat do Wisp;
-  - listar as sessões recentes e retomar uma delas.
+  - continuar uma sessão no chat do Wisp, retomando-a com `--resume <id>` na pasta dela.
+    - **Correção do plano:** o CLI **não** cria uma cópia sozinho. Retomar uma sessão que ainda
+      está aberta no terminal faz os dois processos escreverem na mesma sessão (testado no
+      2.1.296). Por isso, com a sessão aberta, o Wisp usa `--fork-session` e avisa.
+  - listar as sessões recentes e retomar uma delas. A lista sobrevive ao app fechar
+    (`sessoes.json`), e a conversa trazida do terminal entra no histórico com o projeto.
+
+**Ficou para depois:**
+
+- **Mandar uma instrução para uma sessão parada sem abri-la no chat.** Um campo no card da sessão,
+  que retomaria a sessão em segundo plano. "Continuar no Wisp" já cobre o caso, com a conversa à
+  vista.
+- **Trazer o terminal no GNOME Wayland.** Só com uma extensão do GNOME Shell.
 
 **Aceite:**
 
@@ -284,11 +300,14 @@ nenhum áudio é gravado em disco.
 - **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder:
   - ícone e `.desktop`;
   - o .deb já instala o perfil do AppArmor;
-  - o AppImage é montado na versão mais antiga do Ubuntu suportada, por causa da glibc.
+  - o AppImage é montado na versão mais antiga do Ubuntu suportada, por causa da glibc;
+  - o relay dos hooks roda com o Electron em modo Node: o pacote precisa manter o fuse
+    `RunAsNode` ligado, ou levar o relay de outro jeito. No AppImage, o caminho muda a cada
+    montagem, então o relay precisa de um lugar fixo.
 - **CI no GitHub Actions (M):**
   - typecheck, lint e build a cada push;
   - testes de unidade com `node --test` para o leitor do stream, os anexos, as ferramentas do
-    desktop e o config;
+    desktop, o config, o instalador dos hooks e o relay;
   - os roteiros de ponta a ponta das etapas (Xvfb e DevTools) num job separado.
 - **Modo demonstração (M):** repete uma saída stream-json gravada, para quem ainda não fez login no
   Claude Code ver o Wisp funcionando. As mesmas gravações servem de teste de interface.

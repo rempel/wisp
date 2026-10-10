@@ -14,6 +14,7 @@ import {
   withAttachments
 } from './attachments'
 import type { CopiedAttachments } from './attachments'
+import { INTERNAL_ENV } from './hooks/protocol'
 import { expandHome } from './paths'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
@@ -99,6 +100,8 @@ export interface ClaudeOptions {
   mcpConfigPath?: string
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
+  /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */
+  onSessionId?: (id: string) => void
 }
 
 export const LOGIN_HINT =
@@ -199,6 +202,8 @@ function claudeEnv(bin: string): NodeJS.ProcessEnv {
   const env = { ...process.env }
   delete env.ANTHROPIC_API_KEY
   env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = '1'
+  // Marca os processos do Wisp: os hooks deles não viram sessões na aba Sessões.
+  env[INTERNAL_ENV] = '1'
   // O `claude` instalado pelo npm é um script `#!/usr/bin/env node`: a pasta dele (onde, no nvm,
   // fica o node da mesma versão) vai na frente do PATH.
   const dir = dirname(bin)
@@ -400,6 +405,10 @@ export class ClaudeSession {
   private sessionSaved = false
   /** A sessão veio do histórico e ainda não respondeu: pode não existir mais no Claude Code. */
   private restored = false
+  /** Pasta da sessão retomada de um terminal; null é o workspace do Wisp. */
+  private cwd: string | null = null
+  /** Retomar como cópia (--fork-session): a sessão continua aberta no terminal. */
+  private fork = false
   /** Caminho do CLI depois de uma checagem bem-sucedida; null força checar de novo. */
   private bin: string | null = null
   private busy = false
@@ -543,11 +552,13 @@ export class ClaudeSession {
    * Volta a uma conversa do histórico: encerra o processo atual, e a próxima mensagem sobe
    * outro com `--resume <sessionId>`.
    */
-  resume(sessionId: string): void {
+  resume(sessionId: string, options: { cwd?: string; fork?: boolean } = {}): void {
     this.clear()
     this.sessionId = sessionId
     this.sessionSaved = true
     this.restored = true
+    this.cwd = options.cwd ?? null
+    this.fork = options.fork ?? false
     this.emit({ type: 'reset' })
   }
 
@@ -566,6 +577,8 @@ export class ClaudeSession {
     this.sessionId = null
     this.sessionSaved = false
     this.restored = false
+    this.cwd = null
+    this.fork = false
     this.sentText = null
     this.clearStop()
     this.streamedMessages.clear()
@@ -654,9 +667,14 @@ export class ClaudeSession {
     if (this.model) args.push(`--model=${this.model}`)
     this.processModel = this.model
     if (this.sessionId) args.push(this.sessionSaved ? '--resume' : '--session-id', this.sessionId)
+    // A sessão do terminal continua aberta: o Wisp segue numa cópia, para as duas não se misturarem.
+    if (this.sessionId && this.sessionSaved && this.fork) args.push('--fork-session')
 
     ensureAttachmentsDir()
-    const proc = spawn(bin, args, { cwd: this.options.workspace(), env: claudeEnv(bin) })
+    const proc = spawn(bin, args, {
+      cwd: this.cwd ?? this.options.workspace(),
+      env: claudeEnv(bin)
+    })
     this.proc = proc
 
     // Eventos de um processo que já foi substituído (conversa nova) são ignorados.
@@ -805,8 +823,7 @@ export class ClaudeSession {
   private onSystem(event: CliEvent): void {
     if (event.subtype !== 'init') return
     if (event.session_id) {
-      this.sessionId = event.session_id
-      this.sessionSaved = true
+      this.adoptSessionId(event.session_id)
       this.restored = false
     }
     if (event.model && event.model !== this.activeModel) {
@@ -903,10 +920,7 @@ export class ClaudeSession {
   }
 
   private onResult(event: CliEvent): void {
-    if (event.session_id) {
-      this.sessionId = event.session_id
-      this.sessionSaved = true
-    }
+    if (event.session_id) this.adoptSessionId(event.session_id)
     // Pedimos a interrupção: o turno acaba como parado, seja qual for o resultado.
     if (this.stopping) {
       this.clearStop()
@@ -924,6 +938,19 @@ export class ClaudeSession {
       )
     }
     this.finishTurn('error')
+  }
+
+  /**
+   * O id que o CLI informou passa a ser o da conversa. Depois de uma cópia (--fork-session), é o
+   * da cópia, e os próximos processos a retomam sem copiar de novo.
+   */
+  private adoptSessionId(id: string): void {
+    const changed = id !== this.sessionId
+    this.sessionId = id
+    this.sessionSaved = true
+    if (!changed) return
+    this.fork = false
+    this.options.onSessionId?.(id)
   }
 
   private notice(level: NoticeLevel, text: string): void {
