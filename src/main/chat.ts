@@ -23,7 +23,9 @@ const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
 
 const APPEND_SYSTEM_PROMPT =
   'Você está respondendo dentro do Wisp, um painel de chat pequeno no desktop Linux do usuário. ' +
-  'Responda em português do Brasil, de forma breve.'
+  'Responda em português do Brasil, de forma breve. Quando o usuário anexa arquivos, a mensagem ' +
+  'termina com um bloco <anexos> com os caminhos deles: leia-os com a ferramenta Read (ela também ' +
+  'lê imagens e PDFs) antes de responder sobre eles.'
 
 /** Cria a pasta de trabalho do Claude Code e, na primeira vez, o CLAUDE.md com a persona. */
 function prepareWorkspace(): string {
@@ -110,8 +112,12 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
     pageReady = true
     for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
   })
-  ipcMain.on(IPC.chatSend, (event, text: unknown) => {
-    if (fromChat(event) && typeof text === 'string' && text.trim()) void session.send(text)
+  ipcMain.on(IPC.chatSend, (event, text: unknown, attachments: unknown) => {
+    if (!fromChat(event) || typeof text !== 'string') return
+    const paths = Array.isArray(attachments)
+      ? attachments.filter((path): path is string => typeof path === 'string' && path !== '')
+      : []
+    if (text.trim() || paths.length) void session.send(text, paths)
   })
   ipcMain.on(IPC.chatStop, (event) => {
     if (fromChat(event)) void session.stop()

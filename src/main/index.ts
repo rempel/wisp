@@ -1,5 +1,6 @@
 import { app, Notification } from 'electron'
 import { join } from 'path'
+import { cleanOldAttachments } from './attachments'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
 import { CONFIG_PATH, getConfig, loadConfig } from './config'
@@ -26,6 +27,7 @@ if (
 app.whenReady().then(async () => {
   loadConfig()
   console.log(`[wisp] config: ${CONFIG_PATH}`)
+  void cleanOldAttachments()
 
   // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
   // configuração do servidor; os pedidos só chegam depois que os dois existem.

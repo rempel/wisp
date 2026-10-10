@@ -9,11 +9,15 @@ type ToolItem = Extract<Item, { kind: 'tool' }>
 /** Campos que melhor resumem cada chamada, na ordem de preferência. */
 const SUMMARY_KEYS = ['command', 'file_path', 'path', 'pattern', 'url', 'query', 'description']
 
+/** Anexos ficam em ~/.cache/wisp/anexos/<sessão>/; no resumo, basta o nome do arquivo. */
+const ATTACHMENT_PATH = /\/wisp\/anexos\/[\w-]+\/([^/]+)$/
+
 function summarize(input: unknown): string {
   if (!input || typeof input !== 'object') return ''
   const fields = input as Record<string, unknown>
   const key = SUMMARY_KEYS.find((k) => typeof fields[k] === 'string' && fields[k])
-  return key ? String(fields[key]) : ''
+  const value = key ? String(fields[key]) : ''
+  return ATTACHMENT_PATH.exec(value)?.[1] ?? value
 }
 
 /** O Claude Code nega na hora o que precisa de aprovação e explica isso no resultado. */

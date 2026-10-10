@@ -1,4 +1,4 @@
-import { contextBridge, ipcRenderer } from 'electron'
+import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { ChatEvent, WispApi } from '../shared/ipc'
@@ -12,7 +12,8 @@ const api: WispApi = {
   },
   chat: {
     ready: () => ipcRenderer.send(IPC.chatReady),
-    send: (text) => ipcRenderer.send(IPC.chatSend, text),
+    send: (text, attachments) => ipcRenderer.send(IPC.chatSend, text, attachments),
+    pathForFile: (file) => webUtils.getPathForFile(file),
     stop: () => ipcRenderer.send(IPC.chatStop),
     newConversation: () => ipcRenderer.send(IPC.chatNew),
     hide: () => ipcRenderer.send(IPC.chatHide),
