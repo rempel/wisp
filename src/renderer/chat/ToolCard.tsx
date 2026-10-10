@@ -17,12 +17,14 @@ function summarize(input: unknown): string {
 }
 
 /** O Claude Code nega na hora o que precisa de aprovação e explica isso no resultado. */
-const DENIED = /needs approval|requires approval|permission|not allowed|denied/i
+const DENIED = /needs approval|requires approval|permission|not allowed|denied|negou/i
 
 function statusLabel(tool: ToolItem): string {
   switch (tool.status) {
     case 'running':
       return 'executando'
+    case 'waiting':
+      return 'aguardando você'
     case 'done':
       return 'feito'
     case 'stopped':
@@ -48,6 +50,8 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
         <span className="tool-icon">
           {tool.status === 'running' ? (
             <span className="spinner" />
+          ) : tool.status === 'waiting' ? (
+            <span className="waiting-dot" />
           ) : tool.status === 'done' ? (
             <CheckIcon />
           ) : (

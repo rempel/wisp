@@ -571,3 +571,115 @@ code {
   background: var(--danger-solid);
   color: #fff;
 }
+
+/* ---- Pedido de permissão ---------------------------------------------- */
+
+.waiting-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--warning-text);
+  animation: pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  50% {
+    opacity: 0.35;
+  }
+}
+
+.permission {
+  padding: 10px 12px 12px;
+  border: 1px solid var(--warning-border);
+  border-radius: 12px;
+  background: var(--warning-bg);
+  font-size: 13px;
+}
+
+.permission-title {
+  margin-bottom: 6px;
+  color: var(--warning-text);
+  font-weight: 600;
+}
+
+.permission-body p {
+  margin: 0 0 6px;
+}
+
+.permission-body pre {
+  max-height: 180px;
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  overflow: auto;
+  border-radius: 8px;
+  background: var(--code-bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.permission-path {
+  word-break: break-all;
+}
+
+.diff .del {
+  color: var(--danger-text);
+}
+
+.diff .add {
+  color: var(--ok);
+}
+
+.permission-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 10px;
+}
+
+.permission-actions button {
+  padding: 6px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.permission-actions button:hover {
+  filter: brightness(0.97);
+}
+
+.permission-actions .allow {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.permission-actions .deny {
+  border-color: var(--danger-border);
+  color: var(--danger-text);
+}
+
+.permission-actions .always {
+  color: var(--muted);
+}
+
+.permission-result {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.permission:not(.permission-pending) {
+  border-color: var(--border);
+  background: transparent;
+}
+
+.permission:not(.permission-pending) .permission-title {
+  color: var(--muted);
+}

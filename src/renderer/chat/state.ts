@@ -1,6 +1,9 @@
-import type { ChatEvent, NoticeLevel } from '../../shared/ipc'
+import type { ChatEvent, NoticeLevel, PermissionDecision } from '../../shared/ipc'
 
-export type ToolStatus = 'running' | 'done' | 'error' | 'stopped'
+/** "waiting": parada esperando o usuário responder o card de permissão. */
+export type ToolStatus = 'running' | 'waiting' | 'done' | 'error' | 'stopped'
+
+export type PermissionStatus = 'pending' | PermissionDecision | 'cancelled'
 
 /** Um item da conversa, na ordem em que aparece. */
 export type Item =
@@ -9,6 +12,14 @@ export type Item =
   | { kind: 'text'; id: string; text: string }
   | { kind: 'tool'; id: string; name: string; input?: unknown; status: ToolStatus; output?: string }
   | { kind: 'notice'; id: string; level: NoticeLevel; text: string }
+  | {
+      kind: 'permission'
+      id: string
+      toolName: string
+      input: unknown
+      toolUseId?: string
+      status: PermissionStatus
+    }
 
 export interface ChatState {
   items: Item[]
@@ -72,7 +83,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       if (event.outcome !== 'stopped') return state
       // Ferramentas que ficaram no meio do caminho não vão terminar.
       const items = state.items.map((item) =>
-        item.kind === 'tool' && item.status === 'running'
+        item.kind === 'tool' && (item.status === 'running' || item.status === 'waiting')
           ? { ...item, status: 'stopped' as const }
           : item
       )
@@ -80,6 +91,36 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     }
     case 'notice':
       return append(state, notice(state.items, event.level, event.text))
+    case 'permission-request': {
+      const { id, toolName, input, toolUseId } = event
+      const tool = toolUseId ? findItem(state, 'tool', toolUseId) : undefined
+      const waiting =
+        tool && tool.status === 'running'
+          ? replaceItem(state, tool, { ...tool, status: 'waiting' })
+          : state
+      return append(waiting, {
+        kind: 'permission',
+        id,
+        toolName,
+        input,
+        toolUseId,
+        status: 'pending'
+      })
+    }
+    case 'permission-resolved': {
+      const request = findItem(state, 'permission', event.id)
+      if (!request) return state
+      let next = replaceItem(state, request, { ...request, status: event.decision })
+      // Liberada, a ferramenta volta a rodar; negada, o resultado de erro chega em seguida.
+      const tool = request.toolUseId ? findItem(next, 'tool', request.toolUseId) : undefined
+      if (
+        tool?.status === 'waiting' &&
+        (event.decision === 'allow' || event.decision === 'allow-always')
+      ) {
+        next = replaceItem(next, tool, { ...tool, status: 'running' })
+      }
+      return next
+    }
   }
 }
 
@@ -113,9 +154,15 @@ export function toolLabel(name: string): string {
   return name.replace(/^mcp__[^_]+(?:_[^_]+)*__/, '')
 }
 
+/** Algum card de permissão esperando resposta? */
+export function awaitingPermission(state: ChatState): boolean {
+  return state.items.some((item) => item.kind === 'permission' && item.status === 'pending')
+}
+
 /** O que o cabeçalho mostra embaixo do nome. */
 export function statusText(state: ChatState): string {
   if (!state.busy) return 'pronto'
+  if (awaitingPermission(state)) return 'esperando sua permissão…'
   const last = state.items[state.items.length - 1]
   if (last?.kind === 'tool' && last.status === 'running') return `usando ${toolLabel(last.name)}…`
   if (last?.kind === 'text') return 'respondendo…'

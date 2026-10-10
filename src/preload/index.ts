@@ -16,6 +16,7 @@ const api: WispApi = {
     stop: () => ipcRenderer.send(IPC.chatStop),
     newConversation: () => ipcRenderer.send(IPC.chatNew),
     hide: () => ipcRenderer.send(IPC.chatHide),
+    answerPermission: (id, decision) => ipcRenderer.send(IPC.chatPermission, id, decision),
     onEvent: (listener) => {
       const handler = (_: IpcRendererEvent, event: ChatEvent): void => listener(event)
       ipcRenderer.on(IPC.chatEvent, handler)

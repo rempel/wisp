@@ -5,8 +5,8 @@
 Um assistente para Linux com um mascote animado que flutua na tela. O cérebro é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code) rodando em modo headless.
 
-**Status:** Etapa 2 de 5 (mascote + chat com o Claude Code). As ferramentas de desktop e o
-pedido de permissão entram na Etapa 3.
+**Status:** Etapa 3 de 5 (mascote + chat com o Claude Code + ferramentas de desktop com pedido
+de permissão). Os anexos entram na Etapa 4.
 
 ## Requisitos
 
@@ -14,6 +14,9 @@ pedido de permissão entram na Etapa 3.
 - Node.js 22.12 ou mais novo, e npm
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) instalado e logado com a sua
   assinatura: rode `claude` no terminal uma vez e faça o login
+- Para abrir apps: `gtk-launch` (pacote `libgtk-3-bin` no Ubuntu/Debian) ou `gio` (pacote
+  `libglib2.0-bin`, que já vem com o GNOME); no KDE, o `kioclient` também serve. Para abrir
+  links: `xdg-open` (pacote `xdg-utils`)
 
 ## Rodando
 
@@ -21,6 +24,9 @@ pedido de permissão entram na Etapa 3.
 npm install
 npm run dev
 ```
+
+Vindo de uma etapa anterior, rode `npm install` de novo: a Etapa 3 trouxe uma dependência nova
+(o SDK do MCP).
 
 Na primeira vez, o `npm run dev` baixa o binário do Electron (~120 MB). Desde o Electron 42
 o download não acontece mais no `npm install`.
@@ -69,9 +75,27 @@ projeto. Se você mover a pasta do projeto, rode de novo.
 - [ ] O **+** começa uma conversa nova, do zero.
 - [ ] Sem o Claude Code logado, o painel mostra "Rode `claude` no terminal e faça login".
 
-Por enquanto, ações que mudam algo na máquina (comandos `Bash`, criar ou editar arquivos)
-são negadas automaticamente e aparecem como **negado** no card. O pedido de permissão chega
-na Etapa 3.
+### Ferramentas de desktop e permissões (Etapa 3)
+
+Antes, aponte `projectRoots` para a pasta dos seus projetos e `editorCommand` para o seu editor
+no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
+
+- [ ] "abre o Firefox": aparece o card **Abrir um app** com o id do app. **Permitir** abre o
+      Firefox; **Negar** não abre, e o Wisp aceita sem tentar outro caminho.
+- [ ] "pesquisa fogo-fátuo": abre a busca no navegador padrão, sem pedir permissão.
+- [ ] "abre o projeto X": o Wisp lista os projetos, mostra o card **Abrir um projeto no
+      editor** com a pasta e, ao permitir, abre no seu editor.
+- [ ] "roda `ls` no terminal": aparece o card **Rodar um comando no terminal** com o comando,
+      e o cabeçalho mostra "esperando sua permissão…". Todo comando pede permissão, até os que
+      só leem.
+- [ ] **Permitir sempre nesta conversa** libera o mesmo comando (no `Bash`) ou a mesma
+      ferramenta (nas outras) até você clicar no **+**; depois disso, pede de novo.
+- [ ] Com o painel escondido (Esc), um pedido de permissão faz ele reaparecer, sem roubar o
+      foco da janela em que você está.
+- [ ] Parar com um card esperando marca o card como **Cancelado**.
+- [ ] "me manda uma notificação dizendo oi" mostra uma notificação do sistema.
+- [ ] Ler um arquivo de segredos (em `~/.ssh`, `~/.aws`, `.env`…) mostra o card **Ler um
+      arquivo protegido**; ler os outros arquivos continua direto.
 
 ## Visual do mascote
 
@@ -108,11 +132,23 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
 `mascotPosition` é atualizada sempre que você solta o mascote. Para ele voltar ao canto
 padrão, troque por `null`. Se um campo tiver um valor inválido, o Wisp avisa no terminal e usa
 o padrão daquele campo, sem apagar o que você escreveu. Se o arquivo não for um JSON válido,
-ele usa os padrões e não sobrescreve o arquivo até você corrigir.
+ele continua com a configuração anterior (ou com os padrões, se acabou de abrir) e não
+sobrescreve o arquivo até você corrigir.
+
+Dá para editar o arquivo com o Wisp aberto: `projectRoots` e `editorCommand` valem na hora;
+`claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
 
 `claudePath` é o comando do Claude Code. Um nome simples é procurado no `PATH` e também em
-`~/.local/bin` e `~/.claude/local`, onde os instaladores costumam colocá-lo. Ferramentas em
-`extraAllowedTools` passam a ser usadas sem pedir permissão, além das já liberadas.
+`~/.local/bin` e `~/.claude/local`, onde os instaladores costumam colocá-lo.
+
+`projectRoots` são as pastas onde o Wisp procura projetos: pastas com `.git` até dois níveis
+abaixo delas (pulando pastas ocultas, `node_modules`, `build` etc.). Só projetos dentro delas
+podem ser abertos. `editorCommand` é o comando do editor, com argumentos se precisar (`code -n`,
+`codium`, `flatpak run com.visualstudio.code`); a pasta do projeto vai como último argumento.
+
+Ferramentas em `extraAllowedTools` passam a rodar sem o card, além das já liberadas. Por
+exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar. Comandos `Bash` são a
+exceção: sempre pedem permissão, mesmo listados aqui.
 
 Os dados internos do Chromium (cache etc.) ficam em `~/.cache/wisp/electron`, fora da pasta
 de configuração. O Claude Code roda em `~/.local/share/wisp/workspace/`, cujo `CLAUDE.md` define
@@ -120,14 +156,18 @@ a persona do Wisp. Ele é criado na primeira vez e depois você pode editá-lo �
 
 ## Problemas comuns
 
-| Sintoma                                  | O que fazer                                                                                                    |
-| ---------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Fecha na hora com `No usable sandbox!`   | `npm run setup:apparmor` (veja acima)                                                                          |
-| Rodando como root, recusa abrir          | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
-| Quadrado preto em vez de transparência   | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
-| Não fica no topo ou não se move          | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
-| "Não encontrei o Claude Code"            | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
-| Aviso de "chave de API, cobrada por uso" | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
+| Sintoma                                    | O que fazer                                                                                                    |
+| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
+| Fecha na hora com `No usable sandbox!`     | `npm run setup:apparmor` (veja acima)                                                                          |
+| Rodando como root, recusa abrir            | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
+| Quadrado preto em vez de transparência     | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
+| Não fica no topo ou não se move            | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
+| "Não encontrei o Claude Code"              | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
+| Aviso de "chave de API, cobrada por uso"   | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
+| "Não achei um lançador de apps"            | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                              |
+| "Não achei o editor"                       | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
+| O projeto não aparece ou não abre          | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
+| "As ferramentas do desktop não conectaram" | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -150,15 +190,17 @@ src/
 ├─ main/
 │  ├─ index.ts      # ciclo de vida do app
 │  ├─ mascot.ts     # janela do mascote e arraste
-│  ├─ chat.ts       # janela do chat, workspace e IPC da conversa
+│  ├─ chat.ts       # janela do chat, workspace, IPC da conversa e pedidos de permissão
 │  ├─ claude.ts     # processo `claude -p` + leitura do stream-json
+│  ├─ mcp-server.ts # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
+│  ├─ desktop.ts    # apps (.desktop), links, projetos: o que as ferramentas fazem
 │  ├─ config.ts     # ~/.config/wisp/config.json
 │  └─ paths.ts      # pastas XDG (~/.config, ~/.local/share, ~/.cache)
 ├─ preload/         # expõe window.wisp (só funções específicas)
 ├─ shared/ipc.ts    # canais de IPC, eventos da conversa e o tipo da API
 └─ renderer/
    ├─ mascot/       # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/         # Chat.tsx, Markdown, cards de ferramenta, chat.css
+   └─ chat/         # Chat.tsx, Markdown, cards de ferramenta e de permissão, chat.css
 resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
 ```
 
@@ -184,7 +226,35 @@ resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
 - **Parar e nova conversa:** parar encerra o processo, e a próxima mensagem sobe outro com
   `--resume <session_id>`, continuando a mesma conversa. Nova conversa encerra o processo e
   esquece a sessão.
-- **Permissões:** só `Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch` (e, na Etapa 3, as
-  ferramentas de leitura do desktop) rodam direto. O resto é negado até a Etapa 3 trazer o
-  pedido de permissão. O Claude Code ainda executa sozinho alguns comandos de shell que só
-  leem, como `ls`.
+- **Servidor MCP `desktop`:** roda dentro do app, em HTTP (Streamable HTTP, sem sessões),
+  só em `127.0.0.1` e numa porta aleatória. Cada execução gera um token novo, exigido no header
+  `Authorization`; o `Host` também é conferido, contra DNS rebinding. O endereço e o token vão
+  para `$XDG_RUNTIME_DIR/wisp/mcp-<pid>.json` (ou `~/.cache/wisp`, sem essa variável), com
+  permissão 0600. Esse arquivo é passado ao Claude Code com `--mcp-config` e apagado quando o
+  app fecha. Com `--strict-mcp-config`, os servidores MCP que você configurou no seu Claude Code
+  ficam de fora da conversa do Wisp.
+- **Ferramentas:** `list_apps`, `open_app`, `open_url`, `list_projects`, `open_project` e
+  `notify`. Nenhuma passa por shell: os programas rodam com `spawn` e uma lista de argumentos.
+  `open_app` só aceita ids que estão na lista de apps, `open_url` só aceita http e https, e
+  `open_project` só abre pastas dentro de `projectRoots` (depois de resolver links simbólicos).
+  As ferramentas vão direto no prompt (`_meta` `anthropic/alwaysLoad`), em vez de ficarem atrás
+  do ToolSearch, o que economiza uma ida ao modelo por pedido.
+- **Permissões:** `Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`, `open_url`, `list_apps`,
+  `list_projects` e `notify` rodam direto (`--allowedTools`). Todo o resto (`Bash`, `Write`,
+  `Edit`, `open_app`, `open_project`…) passa pela ferramenta `approve` do servidor
+  (`--permission-prompt-tool mcp__desktop__approve`), que mostra o card e espera o clique:
+  **Permitir** responde `{"behavior":"allow","updatedInput":…}` e **Negar** responde
+  `{"behavior":"deny","message":"Usuário negou"}`. **Permitir sempre nesta conversa** fica só
+  na memória do app e vale até a conversa recomeçar; no `Bash`, só para o mesmo comando exato.
+  Três detalhes fecham as brechas:
+  - `--permission-mode default`: numa instalação nova, o Claude Code pode começar no modo
+    `auto`, em que um classificador aprova sozinho o que parece pedido pelo usuário (abrir um
+    app passava sem card), e o `settings.json` do usuário pode definir outro modo. Se mesmo
+    assim o Claude Code informar outro modo, a conversa avisa.
+  - Um hook `PreToolUse` (via `--settings`) manda todo `Bash` para o card; sem ele, o Claude
+    Code roda sozinho comandos que considera só de leitura, como `ls` e `whoami`.
+  - Regras `ask` para `Read` em arquivos de segredos (`~/.ssh`, `~/.gnupg`, `~/.aws`,
+    `~/.kube`, chaveiros, perfis de navegador, `.env`…): sem elas, um texto malicioso numa
+    página lida pelo `WebFetch` poderia levar o Claude a ler uma chave sem ninguém ver.
+- **Painel e pedidos:** um pedido que chega com o painel escondido faz ele reaparecer sem
+  roubar o foco. Parar a resposta ou começar outra conversa cancela os pedidos abertos.
