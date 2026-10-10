@@ -4,7 +4,9 @@ import { randomUUID } from 'crypto'
 import { accessSync, constants, readdirSync, statSync } from 'fs'
 import { homedir } from 'os'
 import { delimiter, dirname, join } from 'path'
-import type { ChatEvent, NoticeLevel } from '../shared/ipc'
+import { diffFromResult } from '../shared/diff'
+import { formatReset } from '../shared/format'
+import type { ChatEvent, NoticeLevel, PlanUsage, UsageWindow } from '../shared/ipc'
 import {
   ATTACHMENTS_DIR,
   copyAttachments,
@@ -95,6 +97,8 @@ export interface ClaudeOptions {
    * conversa funciona sem as ferramentas de desktop, e o que pediria permissão é negado.
    */
   mcpConfigPath?: string
+  /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
+  model: string | null
 }
 
 export const LOGIN_HINT =
@@ -114,6 +118,8 @@ const MAX_TOOL_OUTPUT = 4000
 const STDERR_TAIL = 2000
 const KILL_TIMEOUT_MS = 3000
 const AUTH_TIMEOUT_MS = 15000
+/** Se o turno não acabar até lá depois do pedido de interrupção, o processo é encerrado. */
+const INTERRUPT_TIMEOUT_MS = 4000
 
 // ---------------------------------------------------------------------------
 // Localização, ambiente e checagem do CLI
@@ -182,12 +188,17 @@ function isExecutableFile(path: string): boolean {
 }
 
 /**
- * Ambiente do CLI: o do app, sem ANTHROPIC_API_KEY. Com essa variável definida, o Claude Code
- * cobra o uso pela API em vez de usar a assinatura.
+ * Ambiente do CLI: o do app, com dois ajustes.
+ * - Sem ANTHROPIC_API_KEY: com essa variável definida, o Claude Code cobra o uso pela API em vez
+ *   de usar a assinatura.
+ * - Sem a memória automática do Claude Code: ela grava arquivos em ~/.claude/projects/…/memory
+ *   sem passar pelo card de permissão e os carrega em toda conversa, o que deixaria um texto
+ *   malicioso (lido pelo WebFetch, por exemplo) plantar instruções que ficam para sempre.
  */
 function claudeEnv(bin: string): NodeJS.ProcessEnv {
   const env = { ...process.env }
   delete env.ANTHROPIC_API_KEY
+  env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = '1'
   // O `claude` instalado pelo npm é um script `#!/usr/bin/env node`: a pasta dele (onde, no nvm,
   // fica o node da mesma versão) vai na frente do PATH.
   const dir = dirname(bin)
@@ -243,15 +254,29 @@ interface ContentBlock {
   is_error?: boolean
 }
 
+interface CliWindow {
+  utilization?: unknown
+  resetsAt?: unknown
+}
+
 interface CliEvent {
   type: string
   subtype?: string
   session_id?: string
+  model?: string
   apiKeySource?: string
   permissionMode?: string
   mcp_servers?: { name: string; status: string }[]
-  rate_limit_info?: { status?: string; resetsAt?: number }
+  rate_limit_info?: {
+    status?: string
+    resetsAt?: number
+    unifiedWindows?: { five_hour?: CliWindow; seven_day?: CliWindow }
+  }
+  /** Resposta a um control_request nosso. */
+  response?: { subtype?: string; request_id?: string; error?: string }
   parent_tool_use_id?: string | null
+  /** Detalhes estruturados do resultado de uma ferramenta (o diff do Edit e do Write). */
+  tool_use_result?: unknown
   error?: string
   is_error?: boolean
   result?: string
@@ -294,19 +319,12 @@ function describeError(event: CliEvent): string {
 }
 
 const LOGIN_ERROR = /not logged in|\/login|log in|authenticat|oauth token/i
+const MODEL_ERROR =
+  /issue with the selected model|model_not_found|model .{0,60}not (?:found|available)/i
 const PLAN_LIMIT = /usage limit|limit reached|rate.?limit/i
 const OVERLOADED = /overloaded|\b529\b/i
 const NETWORK =
   /connection error|fetch failed|network|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up/i
-
-/** Quando o limite libera, do jeito que se fala: "às 15:40" hoje, "em 12/10 às 09:00" depois. */
-export function formatReset(resetsAt: number, now = new Date()): string {
-  const date = new Date(resetsAt * 1000)
-  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
-  if (date.toDateString() === now.toDateString()) return `às ${time}`
-  const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
-  return `em ${day} às ${time}`
-}
 
 /**
  * Explica os erros mais comuns em português, com o texto original como detalhe. `resetsAt` vem
@@ -319,6 +337,13 @@ export function friendlyError(text: string, limited: boolean, resetsAt: number |
     const when = resetsAt ?? Number(/\|(\d{10})\b/.exec(text)?.[1] ?? NaN)
     const free = Number.isFinite(when) ? ` Ele libera de novo ${formatReset(when)}.` : ''
     return `Você chegou ao limite de uso do seu plano do Claude.${free}`
+  }
+  if (MODEL_ERROR.test(text)) {
+    return (
+      'O modelo escolhido não existe ou não está liberado no seu plano. Troque de modelo na ' +
+      'pílula acima da caixa de texto e mande a mensagem de novo.' +
+      detail
+    )
   }
   if (OVERLOADED.test(text)) {
     return (
@@ -338,13 +363,34 @@ export function friendlyError(text: string, limited: boolean, resetsAt: number |
 // ---------------------------------------------------------------------------
 // Sessão
 
+/** Uma janela de uso do rate_limit_event, ou null se ela não veio (CLI antigo, outro plano). */
+function usageWindow(window: CliWindow | undefined): UsageWindow | null {
+  const used = window?.utilization
+  if (typeof used !== 'number' || !Number.isFinite(used)) return null
+  const resetsAt = window?.resetsAt
+  return {
+    used: Math.min(Math.max(used, 0), 1),
+    resetsAt: typeof resetsAt === 'number' && Number.isFinite(resetsAt) ? resetsAt : null
+  }
+}
+
+/** A mensagem do usuário no formato do --input-format stream-json. */
+function userMessage(text: string): string {
+  return JSON.stringify({
+    type: 'user',
+    message: { role: 'user', content: [{ type: 'text', text }] }
+  })
+}
+
 /**
  * Uma conversa com o Claude Code: um processo `claude -p` de longa duração, que recebe as
  * mensagens pelo stdin e responde em stream-json pelo stdout. Converte essa saída em ChatEvents.
  *
  * - O session_id é gerado aqui e passado com `--session-id`, para a pasta dos anexos da conversa
  *   existir antes de o CLI responder pela primeira vez.
- * - Parar encerra o processo; a próxima mensagem sobe outro com `--resume <session_id>`.
+ * - Parar pede ao CLI, pelo stdin, que interrompa o turno; o processo continua vivo. Se ele não
+ *   obedecer a tempo, é encerrado, e a próxima mensagem sobe outro com `--resume <session_id>`.
+ * - Trocar o modelo também vai pelo stdin, antes da próxima mensagem; o contexto continua.
  * - Nova conversa encerra o processo e esquece o session_id.
  */
 export class ClaudeSession {
@@ -352,10 +398,17 @@ export class ClaudeSession {
   private sessionId: string | null = null
   /** O CLI já registrou a sessão: os próximos processos a retomam com --resume. */
   private sessionSaved = false
+  /** A sessão veio do histórico e ainda não respondeu: pode não existir mais no Claude Code. */
+  private restored = false
   /** Caminho do CLI depois de uma checagem bem-sucedida; null força checar de novo. */
   private bin: string | null = null
   private busy = false
+  /** O texto do turno atual já foi escrito no processo (ainda não, enquanto copia os anexos). */
+  private sentText: string | null = null
+  /** O turno atual já foi mandado de novo depois de o processo cair na largada. */
+  private retried = false
   private stopping = false
+  private stopTimer: NodeJS.Timeout | null = null
   /** Muda a cada envio, parada ou conversa nova; descarta envios que ficaram para trás. */
   private turn = 0
   private messageId = ''
@@ -368,15 +421,41 @@ export class ClaudeSession {
   private warnedMode = false
   /** O CLI avisou (rate_limit_event) que o limite do plano foi atingido; até quando, se disse. */
   private planLimit: { resetsAt: number | null } | null = null
+  /** Modelo escolhido na pílula; null é o padrão do Claude Code. */
+  private model: string | null
+  /** O modelo com que o processo atual está (do --model ou do último set_model). */
+  private processModel: string | null = null
+  /** O modelo que respondeu por último, como o CLI o chama ("claude-sonnet-5-5"). */
+  private activeModel: string | null = null
+  /** Modelo que o CLI recusou; pedir o mesmo de novo (ao reabrir o painel) não adianta. */
+  private rejectedModel: string | null = null
+  private controlSeq = 0
+  /** Pedidos de troca de modelo esperando resposta: o modelo pedido e o que havia antes. */
+  private readonly modelRequests = new Map<
+    string,
+    { requested: string | null; previous: string | null }
+  >()
 
   constructor(
     private readonly options: ClaudeOptions,
     private readonly emit: (event: ChatEvent) => void
-  ) {}
+  ) {
+    this.model = options.model
+  }
 
   /** Se há uma resposta em andamento (do envio até o fim do turno). */
   isBusy(): boolean {
     return this.busy
+  }
+
+  /** O modelo escolhido e o que respondeu por último, como o evento que o chat recebe. */
+  modelEvent(): Extract<ChatEvent, { type: 'model' }> {
+    return { type: 'model', choice: this.model, active: this.activeModel }
+  }
+
+  /** O id da conversa no Claude Code; gerado aqui na primeira vez. */
+  ensureSessionId(): string {
+    return (this.sessionId ??= randomUUID())
   }
 
   /** Checa o CLI de antemão (ao abrir o chat) e avisa na conversa se faltar algo. */
@@ -391,12 +470,13 @@ export class ClaudeSession {
   async send(text: string, attachments: string[] = []): Promise<void> {
     if (this.busy) return
     const turn = ++this.turn
+    this.retried = false
     this.setBusy(true)
     const bin = await this.check()
     if (turn !== this.turn) return
     if (!bin) return this.finishTurn('error')
 
-    const sessionId = (this.sessionId ??= randomUUID())
+    const sessionId = this.ensureSessionId()
     // O aviso de limite vale para o turno em que chegou; cada turno traz o seu.
     this.planLimit = null
     let content = text
@@ -416,43 +496,89 @@ export class ClaudeSession {
     // Só anexos, e nenhum deu certo: não há o que mandar (os avisos já explicam).
     if (!content.trim()) return this.finishTurn('error')
 
-    const proc = this.proc ?? this.start(bin)
-    const message = {
-      type: 'user',
-      message: { role: 'user', content: [{ type: 'text', text: content }] }
-    }
-    proc.stdin.write(JSON.stringify(message) + '\n')
+    this.write(this.proc ?? this.start(bin), content)
   }
 
-  /** Para a resposta em andamento. A conversa continua na próxima mensagem. */
-  async stop(): Promise<void> {
+  /**
+   * Para a resposta em andamento: pede ao CLI que interrompa o turno, e o processo continua
+   * vivo para a próxima mensagem. A conversa continua.
+   */
+  stop(): void {
     this.turn++
     if (!this.busy) return
-    if (!this.proc) return this.finishTurn('stopped')
+    const proc = this.proc
+    // A mensagem ainda nem chegou ao CLI (checando o CLI, copiando anexos): basta encerrar.
+    if (!proc || this.sentText === null) return this.finishTurn('stopped')
+    if (this.stopping) return
     this.stopping = true
-    await killProcess(this.proc)
+    this.control(proc, { subtype: 'interrupt' })
+    // Se o CLI não encerrar o turno a tempo, o processo vai embora; a conversa continua com
+    // --resume na próxima mensagem.
+    this.stopTimer = setTimeout(() => {
+      this.stopTimer = null
+      if (this.stopping && proc === this.proc) void killProcess(proc)
+    }, INTERRUPT_TIMEOUT_MS)
+  }
+
+  /**
+   * Troca o modelo. Vale a partir da próxima mensagem: com o processo vivo, o pedido vai pelo
+   * stdin logo antes dela; senão, o próximo processo já sobe com o --model.
+   */
+  setModel(model: string | null): void {
+    if (model === this.model || model === this.rejectedModel) return
+    this.rejectedModel = null
+    this.model = model
+    // Quem vai responder agora só se sabe na próxima mensagem.
+    this.activeModel = null
+    this.emit(this.modelEvent())
   }
 
   /** Começa uma conversa nova: encerra o processo atual e esquece a sessão. */
-  async reset(): Promise<void> {
-    this.turn++
-    const proc = this.proc
-    this.proc = null
-    this.sessionId = null
-    this.sessionSaved = false
-    this.stopping = false
-    this.streamedMessages.clear()
-    this.hiddenToolUses.clear()
-    this.setBusy(false)
+  reset(): void {
+    this.clear()
     this.emit({ type: 'reset' })
-    if (proc) await killProcess(proc)
+  }
+
+  /**
+   * Volta a uma conversa do histórico: encerra o processo atual, e a próxima mensagem sobe
+   * outro com `--resume <sessionId>`.
+   */
+  resume(sessionId: string): void {
+    this.clear()
+    this.sessionId = sessionId
+    this.sessionSaved = true
+    this.restored = true
+    this.emit({ type: 'reset' })
   }
 
   /** Encerra o processo sem esperar (o app está fechando). */
   dispose(): void {
     this.turn++
+    this.clearStop()
     this.proc?.kill('SIGTERM')
     this.proc = null
+  }
+
+  private clear(): void {
+    this.turn++
+    const proc = this.proc
+    this.proc = null
+    this.sessionId = null
+    this.sessionSaved = false
+    this.restored = false
+    this.sentText = null
+    this.clearStop()
+    this.streamedMessages.clear()
+    this.hiddenToolUses.clear()
+    this.modelRequests.clear()
+    this.setBusy(false)
+    if (proc) void killProcess(proc)
+  }
+
+  private clearStop(): void {
+    this.stopping = false
+    if (this.stopTimer) clearTimeout(this.stopTimer)
+    this.stopTimer = null
   }
 
   private async check(): Promise<string | null> {
@@ -464,6 +590,28 @@ export class ClaudeSession {
     }
     this.bin = result.bin
     return this.bin
+  }
+
+  /** Escreve a mensagem do turno no processo, trocando antes o modelo se ele mudou. */
+  private write(proc: ChildProcessWithoutNullStreams, text: string): void {
+    if (this.processModel !== this.model) {
+      // Sem `model`, o CLI volta ao padrão (é o que o SDK manda).
+      const request = this.model
+        ? { subtype: 'set_model', model: this.model }
+        : { subtype: 'set_model' }
+      const previous = this.processModel
+      this.modelRequests.set(this.control(proc, request), { requested: this.model, previous })
+      this.processModel = this.model
+    }
+    this.sentText = text
+    proc.stdin.write(userMessage(text) + '\n')
+  }
+
+  /** Manda um pedido de controle ao CLI pelo stdin. Devolve o id do pedido. */
+  private control(proc: ChildProcessWithoutNullStreams, request: Record<string, unknown>): string {
+    const id = `wisp-${++this.controlSeq}`
+    proc.stdin.write(JSON.stringify({ type: 'control_request', request_id: id, request }) + '\n')
+    return id
   }
 
   private start(bin: string): ChildProcessWithoutNullStreams {
@@ -502,6 +650,9 @@ export class ClaudeSession {
         PERMISSION_TOOL
       )
     }
+    // Com "=", o valor nunca vira outra opção, mesmo se começar com "-".
+    if (this.model) args.push(`--model=${this.model}`)
+    this.processModel = this.model
     if (this.sessionId) args.push(this.sessionSaved ? '--resume' : '--session-id', this.sessionId)
 
     ensureAttachmentsDir()
@@ -539,26 +690,53 @@ export class ClaudeSession {
       )
       this.finishTurn('error')
     })
-    proc.on('exit', (code, signal) => {
-      if (!current()) return
-      this.proc = null
-      // Uma parada bem no começo do primeiro envio pode deixar o --session-id/--resume trocado
-      // em relação ao que o CLI gravou; o erro diz qual, e a próxima mensagem usa o outro.
-      if (/already in use/i.test(stderrTail)) this.sessionSaved = true
-      else if (/no conversation found/i.test(stderrTail)) this.sessionSaved = false
-      const stopped = this.stopping
-      this.stopping = false
-      if (!this.busy) return
-      if (stopped) return this.finishTurn('stopped')
-      const detail = stderrTail.trim()
-      this.notice(
-        'error',
-        `O Claude Code encerrou no meio da resposta (${signal ?? `código ${code}`}).` +
-          (detail ? `\n\n\`\`\`\n${detail}\n\`\`\`` : '')
-      )
-      this.finishTurn('error')
-    })
+    proc.on('exit', (code, signal) => this.onExit(proc, code, signal, stderrTail))
     return proc
+  }
+
+  private onExit(
+    proc: ChildProcessWithoutNullStreams,
+    code: number | null,
+    signal: NodeJS.Signals | null,
+    stderrTail: string
+  ): void {
+    if (proc !== this.proc) return
+    this.proc = null
+    // O --session-id/--resume não bateu com o que o CLI tem gravado: uma parada bem no começo
+    // do primeiro envio, ou uma conversa do histórico que o Claude Code já apagou. O erro diz
+    // qual, e o próximo processo usa o outro.
+    const inUse = /already in use/i.test(stderrTail)
+    const notFound = /no conversation found/i.test(stderrTail)
+    if (inUse) this.sessionSaved = true
+    else if (notFound) this.sessionSaved = false
+    const stopped = this.stopping
+    this.clearStop()
+    if (!this.busy) return
+    if (stopped) return this.finishTurn('stopped')
+
+    // Caiu na largada por causa disso: manda a mesma mensagem de novo, uma vez.
+    const text = this.sentText
+    if ((inUse || notFound) && text !== null && this.bin && !this.retried) {
+      this.retried = true
+      if (notFound && this.restored) {
+        this.notice(
+          'warning',
+          'O Claude Code não tem mais esta conversa (ele apaga as antigas depois de um tempo). ' +
+            'Continuei numa sessão nova: o Claude não lembra do que foi dito antes.'
+        )
+      }
+      this.restored = false
+      this.write(this.start(this.bin), text)
+      return
+    }
+
+    const detail = stderrTail.trim()
+    this.notice(
+      'error',
+      `O Claude Code encerrou no meio da resposta (${signal ?? `código ${code}`}).` +
+        (detail ? `\n\n\`\`\`\n${detail}\n\`\`\`` : '')
+    )
+    this.finishTurn('error')
   }
 
   private handleLine(line: string): void {
@@ -585,16 +763,43 @@ export class ClaudeSession {
         return this.onResult(event)
       case 'rate_limit_event':
         return this.onRateLimit(event)
+      case 'control_response':
+        return this.onControlResponse(event)
     }
+  }
+
+  private onControlResponse(event: CliEvent): void {
+    const response = event.response
+    const id = response?.request_id
+    const request = id ? this.modelRequests.get(id) : undefined
+    if (!id || !request) return
+    this.modelRequests.delete(id)
+    if (response.subtype !== 'error') return
+    // O processo continua com o modelo de antes, e a pílula volta para ele.
+    this.rejectedModel = request.requested
+    this.model = request.previous
+    this.processModel = request.previous
+    this.emit(this.modelEvent())
+    this.notice(
+      'warning',
+      `Não consegui trocar para o modelo \`${request.requested ?? 'padrão'}\`` +
+        (response.error ? ` (${response.error.replace(/`/g, "'")})` : '') +
+        '. A resposta vem do modelo anterior.'
+    )
   }
 
   private onRateLimit(event: CliEvent): void {
     const info = event.rate_limit_info
     if (!info) return
-    this.planLimit =
-      info.status === 'rejected'
-        ? { resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt : null }
-        : null
+    const limited = info.status === 'rejected'
+    this.planLimit = limited
+      ? { resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt : null }
+      : null
+    const session = usageWindow(info.unifiedWindows?.five_hour)
+    const week = usageWindow(info.unifiedWindows?.seven_day)
+    if (!session && !week) return
+    const usage: PlanUsage = { session, week, limited, at: Date.now() }
+    this.emit({ type: 'usage', usage })
   }
 
   private onSystem(event: CliEvent): void {
@@ -602,6 +807,11 @@ export class ClaudeSession {
     if (event.session_id) {
       this.sessionId = event.session_id
       this.sessionSaved = true
+      this.restored = false
+    }
+    if (event.model && event.model !== this.activeModel) {
+      this.activeModel = event.model
+      this.emit(this.modelEvent())
     }
     const desktop = event.mcp_servers?.find((server) => server.name === 'desktop')
     if (this.options.mcpConfigPath && desktop?.status !== 'connected' && !this.warnedMcp) {
@@ -676,14 +886,18 @@ export class ClaudeSession {
   private onUser(event: CliEvent): void {
     const content = event.message?.content
     if (!Array.isArray(content)) return
-    for (const block of content) {
-      if (block.type !== 'tool_result' || !block.tool_use_id) continue
-      if (this.hiddenToolUses.delete(block.tool_use_id)) continue
+    const results = content.filter((block) => block.type === 'tool_result' && block.tool_use_id)
+    for (const block of results) {
+      const id = block.tool_use_id as string
+      if (this.hiddenToolUses.delete(id)) continue
+      // O tool_use_result vale para a mensagem toda; só dá para atribuí-lo com um resultado só.
+      const diff = results.length === 1 ? diffFromResult(event.tool_use_result) : null
       this.emit({
         type: 'tool-result',
-        id: block.tool_use_id,
+        id,
         isError: block.is_error === true,
-        output: truncate(toolOutputText(block.content), MAX_TOOL_OUTPUT)
+        output: truncate(toolOutputText(block.content), MAX_TOOL_OUTPUT),
+        ...(diff && !block.is_error ? { diff } : {})
       })
     }
   }
@@ -692,6 +906,11 @@ export class ClaudeSession {
     if (event.session_id) {
       this.sessionId = event.session_id
       this.sessionSaved = true
+    }
+    // Pedimos a interrupção: o turno acaba como parado, seja qual for o resultado.
+    if (this.stopping) {
+      this.clearStop()
+      return this.finishTurn('stopped')
     }
     if (!event.is_error) return this.finishTurn('done')
     const text = describeError(event)
@@ -719,6 +938,7 @@ export class ClaudeSession {
 
   private finishTurn(outcome: 'done' | 'error' | 'stopped'): void {
     if (!this.busy) return
+    this.sentText = null
     this.emit({ type: 'turn-end', outcome })
     this.setBusy(false)
   }
