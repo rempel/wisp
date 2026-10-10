@@ -5,8 +5,8 @@
 Um assistente para Linux com um mascote animado que flutua na tela. O cérebro é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code) rodando em modo headless.
 
-**Status:** Etapa 3 de 5 (mascote + chat com o Claude Code + ferramentas de desktop com pedido
-de permissão). Os anexos entram na Etapa 4.
+**Status:** Etapa 4 de 5 (mascote + chat com o Claude Code + ferramentas de desktop com pedido
+de permissão + anexos). Os estados do mascote e o ícone na bandeja entram na Etapa 5.
 
 ## Requisitos
 
@@ -97,6 +97,20 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] Ler um arquivo de segredos (em `~/.ssh`, `~/.aws`, `.env`…) mostra o card **Ler um
       arquivo protegido**; ler os outros arquivos continua direto.
 
+### Anexos (Etapa 4)
+
+- [ ] O clipe ao lado da caixa de texto abre o seletor de arquivos, e dá para escolher vários.
+      Imagens aparecem como miniatura; os outros arquivos, como um chip com nome e tamanho.
+- [ ] Arrastar arquivos do gerenciador de arquivos para o painel mostra **Solte para anexar**,
+      e soltar anexa.
+- [ ] Com uma imagem anexada, "o que tem nessa imagem?" é respondido: o Wisp lê a imagem (card
+      **Read** com o nome do arquivo) e descreve o que tem nela.
+- [ ] Um PDF ou um texto anexado também é lido ("resume esse PDF").
+- [ ] O × remove um anexo antes do envio, e dá para mandar só anexos, sem texto.
+- [ ] Pastas e arquivos acima de 50 MB são recusados com um aviso em vermelho acima da caixa.
+- [ ] As cópias ficam em `~/.cache/wisp/anexos/<id da conversa>/`, e uma conversa nova usa outra
+      pasta.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -154,6 +168,9 @@ Os dados internos do Chromium (cache etc.) ficam em `~/.cache/wisp/electron`, fo
 de configuração. O Claude Code roda em `~/.local/share/wisp/workspace/`, cujo `CLAUDE.md` define
 a persona do Wisp. Ele é criado na primeira vez e depois você pode editá-lo à vontade.
 
+Os anexos são copiados para `~/.cache/wisp/anexos/<id da conversa>/`. Quando o app abre, ele
+apaga as pastas de conversas com mais de 7 dias.
+
 ## Problemas comuns
 
 | Sintoma                                    | O que fazer                                                                                                    |
@@ -168,6 +185,7 @@ a persona do Wisp. Ele é criado na primeira vez e depois você pode editá-lo �
 | "Não achei o editor"                       | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
 | O projeto não aparece ou não abre          | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
 | "As ferramentas do desktop não conectaram" | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
+| "… não veio de uma pasta do computador"    | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o     |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -188,19 +206,20 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 ```
 src/
 ├─ main/
-│  ├─ index.ts      # ciclo de vida do app
-│  ├─ mascot.ts     # janela do mascote e arraste
-│  ├─ chat.ts       # janela do chat, workspace, IPC da conversa e pedidos de permissão
-│  ├─ claude.ts     # processo `claude -p` + leitura do stream-json
-│  ├─ mcp-server.ts # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
-│  ├─ desktop.ts    # apps (.desktop), links, projetos: o que as ferramentas fazem
-│  ├─ config.ts     # ~/.config/wisp/config.json
-│  └─ paths.ts      # pastas XDG (~/.config, ~/.local/share, ~/.cache)
-├─ preload/         # expõe window.wisp (só funções específicas)
-├─ shared/ipc.ts    # canais de IPC, eventos da conversa e o tipo da API
+│  ├─ index.ts       # ciclo de vida do app
+│  ├─ mascot.ts      # janela do mascote e arraste
+│  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
+│  ├─ claude.ts      # processo `claude -p` + leitura do stream-json
+│  ├─ mcp-server.ts  # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
+│  ├─ desktop.ts     # apps (.desktop), links, projetos: o que as ferramentas fazem
+│  ├─ attachments.ts # cópia dos anexos para ~/.cache/wisp/anexos e limpeza das antigas
+│  ├─ config.ts      # ~/.config/wisp/config.json
+│  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
+├─ preload/          # expõe window.wisp (só funções específicas)
+├─ shared/ipc.ts     # canais de IPC, eventos da conversa e o tipo da API
 └─ renderer/
-   ├─ mascot/       # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/         # Chat.tsx, Markdown, cards de ferramenta e de permissão, chat.css
+   ├─ mascot/        # Mascot.tsx (SVG) + mascot.css (animações)
+   └─ chat/          # Chat.tsx, Markdown, cards de ferramenta e de permissão, anexos, chat.css
 resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
 ```
 
@@ -223,9 +242,10 @@ resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
 - **Assinatura, não API:** o processo roda sem `ANTHROPIC_API_KEY` no ambiente. Antes de
   começar, o Wisp confere a instalação e o login com `claude auth status`. Se mesmo assim o
   Claude Code usar uma chave de API, a conversa avisa.
-- **Parar e nova conversa:** parar encerra o processo, e a próxima mensagem sobe outro com
+- **Parar e nova conversa:** o id da conversa é gerado pelo Wisp e passado no primeiro processo
+  com `--session-id`. Parar encerra o processo, e a próxima mensagem sobe outro com
   `--resume <session_id>`, continuando a mesma conversa. Nova conversa encerra o processo e
-  esquece a sessão.
+  começa outra, com outro id.
 - **Servidor MCP `desktop`:** roda dentro do app, em HTTP (Streamable HTTP, sem sessões),
   só em `127.0.0.1` e numa porta aleatória. Cada execução gera um token novo, exigido no header
   `Authorization`; o `Host` também é conferido, contra DNS rebinding. O endereço e o token vão
@@ -258,3 +278,12 @@ resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
     página lida pelo `WebFetch` poderia levar o Claude a ler uma chave sem ninguém ver.
 - **Painel e pedidos:** um pedido que chega com o painel escondido faz ele reaparecer sem
   roubar o foco. Parar a resposta ou começar outra conversa cancela os pedidos abertos.
+- **Anexos:** o preload descobre o caminho de cada arquivo escolhido ou arrastado
+  (`webUtils.getPathForFile`), e o renderer gera as miniaturas num canvas, como data URLs
+  pequenos (o CSP do chat só aceita imagens `data:`). Ao enviar, o main copia os arquivos para
+  `~/.cache/wisp/anexos/<session_id>/`, sem sobrescrever nada e com os nomes limpos de caracteres
+  de controle e de `<` `>`, e acrescenta à mensagem um bloco `<anexos>` com os caminhos das
+  cópias. O Claude lê com o `Read`, que também lê imagens e PDFs; a pasta dos anexos entra no
+  espaço de trabalho dele com `--add-dir`. Os limites são 20 arquivos por mensagem e 50 MB por
+  arquivo, conferidos ao anexar e de novo ao copiar. Como o id da conversa já existe antes da
+  primeira resposta, a pasta dos anexos tem o mesmo id da sessão do Claude Code.

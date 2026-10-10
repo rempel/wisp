@@ -59,6 +59,19 @@ export const StopIcon = (): JSX.Element => (
   </Icon>
 )
 
+export const PaperclipIcon = (): JSX.Element => (
+  <Icon>
+    <path d="m13 7.6-5.1 5.1a3.1 3.1 0 0 1-4.4-4.4l5.6-5.6a2 2 0 0 1 2.9 2.9l-5.5 5.5a1 1 0 0 1-1.4-1.4l5-5" />
+  </Icon>
+)
+
+export const FileIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M9 2.5H5.2a1.4 1.4 0 0 0-1.4 1.4v8.2a1.4 1.4 0 0 0 1.4 1.4h5.6a1.4 1.4 0 0 0 1.4-1.4V5.7Z" />
+    <path d="M9 2.5v3.2h3.2" />
+  </Icon>
+)
+
 export const ChevronIcon = ({ open }: { open: boolean }): JSX.Element => (
   <Icon className={`chevron${open ? ' open' : ''}`}>
     <path d="m6 4 4 4-4 4" />

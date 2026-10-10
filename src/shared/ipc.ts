@@ -10,7 +10,7 @@ export const IPC = {
 
   /** chat → main: a página carregou e já ouve eventos (o main manda os que guardou). */
   chatReady: 'chat:ready',
-  /** chat → main: mensagem do usuário. Arg: texto. */
+  /** chat → main: mensagem do usuário. Args: (texto, caminhos dos arquivos anexados). */
   chatSend: 'chat:send',
   /** chat → main: parar a resposta em andamento. */
   chatStop: 'chat:stop',
@@ -23,6 +23,9 @@ export const IPC = {
   /** main → chat: um ChatEvent. */
   chatEvent: 'chat:event'
 } as const
+
+/** Limites dos anexos de uma mensagem. O chat confere ao anexar; o main, de novo, ao copiar. */
+export const ATTACHMENT_LIMITS = { maxFiles: 20, maxBytes: 50 * 1024 * 1024 } as const
 
 /**
  * O que o main conta ao chat sobre a conversa. É uma versão enxuta da saída stream-json do
@@ -72,7 +75,10 @@ export interface WispApi {
   chat: {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
     ready(): void
-    send(text: string): void
+    /** Manda uma mensagem; `attachments` são caminhos de arquivos (veja pathForFile). */
+    send(text: string, attachments: string[]): void
+    /** Caminho no disco de um File vindo de um arraste ou do seletor de arquivos ('' se não houver). */
+    pathForFile(file: File): string
     stop(): void
     newConversation(): void
     hide(): void

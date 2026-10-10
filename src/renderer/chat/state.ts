@@ -5,9 +5,17 @@ export type ToolStatus = 'running' | 'waiting' | 'done' | 'error' | 'stopped'
 
 export type PermissionStatus = 'pending' | PermissionDecision | 'cancelled'
 
+/** Como um anexo aparece na conversa. */
+export interface AttachmentPreview {
+  name: string
+  size: number
+  /** Miniatura (data URL) quando é uma imagem que dá para mostrar. */
+  thumbnail?: string
+}
+
 /** Um item da conversa, na ordem em que aparece. */
 export type Item =
-  | { kind: 'user'; id: string; text: string }
+  | { kind: 'user'; id: string; text: string; attachments: AttachmentPreview[] }
   /** Bloco de texto da resposta (Markdown), que cresce enquanto chega. */
   | { kind: 'text'; id: string; text: string }
   | { kind: 'tool'; id: string; name: string; input?: unknown; status: ToolStatus; output?: string }
@@ -28,7 +36,8 @@ export interface ChatState {
 
 export type Action =
   /** Eventos do main, aplicados em lote (no máximo um render por quadro). */
-  { type: 'events'; events: ChatEvent[] } | { type: 'user-message'; text: string }
+  | { type: 'events'; events: ChatEvent[] }
+  | { type: 'user-message'; text: string; attachments: AttachmentPreview[] }
 
 export const initialState: ChatState = { items: [], busy: false }
 
@@ -39,7 +48,12 @@ export function reducer(state: ChatState, action: Action): ChatState {
       return {
         items: [
           ...state.items,
-          { kind: 'user', id: `user-${state.items.length}`, text: action.text }
+          {
+            kind: 'user',
+            id: `user-${state.items.length}`,
+            text: action.text,
+            attachments: action.attachments
+          }
         ],
         busy: true
       }

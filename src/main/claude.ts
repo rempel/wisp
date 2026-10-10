@@ -1,9 +1,17 @@
 import { spawn } from 'child_process'
 import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
+import { randomUUID } from 'crypto'
 import { accessSync, constants, statSync } from 'fs'
 import { homedir } from 'os'
 import { delimiter, join } from 'path'
 import type { ChatEvent, NoticeLevel } from '../shared/ipc'
+import {
+  ATTACHMENTS_DIR,
+  copyAttachments,
+  ensureAttachmentsDir,
+  withAttachments
+} from './attachments'
+import type { CopiedAttachments } from './attachments'
 import { expandHome } from './paths'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
@@ -249,12 +257,16 @@ const LOGIN_ERROR = /not logged in|\/login|log in|authenticat|oauth token/i
  * Uma conversa com o Claude Code: um processo `claude -p` de longa duração, que recebe as
  * mensagens pelo stdin e responde em stream-json pelo stdout. Converte essa saída em ChatEvents.
  *
+ * - O session_id é gerado aqui e passado com `--session-id`, para a pasta dos anexos da conversa
+ *   existir antes de o CLI responder pela primeira vez.
  * - Parar encerra o processo; a próxima mensagem sobe outro com `--resume <session_id>`.
  * - Nova conversa encerra o processo e esquece o session_id.
  */
 export class ClaudeSession {
   private proc: ChildProcessWithoutNullStreams | null = null
   private sessionId: string | null = null
+  /** O CLI já registrou a sessão: os próximos processos a retomam com --resume. */
+  private sessionSaved = false
   /** Caminho do CLI depois de uma checagem bem-sucedida; null força checar de novo. */
   private bin: string | null = null
   private busy = false
@@ -280,7 +292,11 @@ export class ClaudeSession {
     await this.check()
   }
 
-  async send(text: string): Promise<void> {
+  /**
+   * Manda uma mensagem. `attachments` são caminhos de arquivos: viram cópias na pasta da
+   * conversa, listadas no fim da mensagem para o Claude ler com o Read.
+   */
+  async send(text: string, attachments: string[] = []): Promise<void> {
     if (this.busy) return
     const turn = ++this.turn
     this.setBusy(true)
@@ -288,8 +304,29 @@ export class ClaudeSession {
     if (turn !== this.turn) return
     if (!bin) return this.finishTurn('error')
 
+    const sessionId = (this.sessionId ??= randomUUID())
+    let content = text
+    if (attachments.length) {
+      let copied: CopiedAttachments
+      try {
+        copied = await copyAttachments(attachments, sessionId)
+      } catch (err) {
+        if (turn !== this.turn) return
+        this.notice('error', `Não consegui preparar os anexos: ${(err as Error).message}`)
+        return this.finishTurn('error')
+      }
+      if (turn !== this.turn) return
+      for (const problem of copied.problems) this.notice('warning', problem)
+      content = withAttachments(text, copied.paths)
+    }
+    // Só anexos, e nenhum deu certo: não há o que mandar (os avisos já explicam).
+    if (!content.trim()) return this.finishTurn('error')
+
     const proc = this.proc ?? this.start(bin)
-    const message = { type: 'user', message: { role: 'user', content: [{ type: 'text', text }] } }
+    const message = {
+      type: 'user',
+      message: { role: 'user', content: [{ type: 'text', text: content }] }
+    }
     proc.stdin.write(JSON.stringify(message) + '\n')
   }
 
@@ -308,6 +345,7 @@ export class ClaudeSession {
     const proc = this.proc
     this.proc = null
     this.sessionId = null
+    this.sessionSaved = false
     this.stopping = false
     this.streamedMessages.clear()
     this.hiddenToolUses.clear()
@@ -345,6 +383,9 @@ export class ClaudeSession {
       '--include-partial-messages',
       '--allowedTools',
       this.options.allowedTools.join(','),
+      // Os anexos ficam fora do workspace; a pasta deles entra no espaço de trabalho do Claude.
+      '--add-dir',
+      ATTACHMENTS_DIR,
       // O modo padrão do CLI nem sempre é o "default": numa instalação nova ele pode começar no
       // "auto", em que um classificador aprova sozinho o que parece pedido pelo usuário (abrir
       // apps e projetos passava sem o card), e o settings.json do usuário pode definir outro
@@ -367,8 +408,9 @@ export class ClaudeSession {
         PERMISSION_TOOL
       )
     }
-    if (this.sessionId) args.push('--resume', this.sessionId)
+    if (this.sessionId) args.push(this.sessionSaved ? '--resume' : '--session-id', this.sessionId)
 
+    ensureAttachmentsDir()
     const proc = spawn(bin, args, { cwd: this.options.workspace(), env: claudeEnv() })
     this.proc = proc
 
@@ -406,6 +448,10 @@ export class ClaudeSession {
     proc.on('exit', (code, signal) => {
       if (!current()) return
       this.proc = null
+      // Uma parada bem no começo do primeiro envio pode deixar o --session-id/--resume trocado
+      // em relação ao que o CLI gravou; o erro diz qual, e a próxima mensagem usa o outro.
+      if (/already in use/i.test(stderrTail)) this.sessionSaved = true
+      else if (/no conversation found/i.test(stderrTail)) this.sessionSaved = false
       const stopped = this.stopping
       this.stopping = false
       if (!this.busy) return
@@ -448,7 +494,10 @@ export class ClaudeSession {
 
   private onSystem(event: CliEvent): void {
     if (event.subtype !== 'init') return
-    if (event.session_id) this.sessionId = event.session_id
+    if (event.session_id) {
+      this.sessionId = event.session_id
+      this.sessionSaved = true
+    }
     const desktop = event.mcp_servers?.find((server) => server.name === 'desktop')
     if (this.options.mcpConfigPath && desktop?.status !== 'connected' && !this.warnedMcp) {
       this.warnedMcp = true
@@ -532,7 +581,10 @@ export class ClaudeSession {
   }
 
   private onResult(event: CliEvent): void {
-    if (event.session_id) this.sessionId = event.session_id
+    if (event.session_id) {
+      this.sessionId = event.session_id
+      this.sessionSaved = true
+    }
     if (!event.is_error) return this.finishTurn('done')
     const text = describeError(event)
     if (LOGIN_ERROR.test(text)) {
