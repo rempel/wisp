@@ -6,7 +6,8 @@ Um assistente para Linux com um mascote animado que flutua na tela. O cérebro �
 [Claude Code](https://docs.claude.com/en/docs/claude-code) rodando em modo headless.
 
 **Status:** Etapa 4 de 5 (mascote + chat com o Claude Code + ferramentas de desktop com pedido
-de permissão + anexos). Os estados do mascote e o ícone na bandeja entram na Etapa 5.
+de permissão + anexos). Os estados do mascote e o ícone na bandeja entram na Etapa 5. O que vem
+depois do MVP está no [ROADMAP.md](ROADMAP.md).
 
 ## Requisitos
 
