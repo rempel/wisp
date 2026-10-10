@@ -9,7 +9,8 @@ import {
   statSync,
   unlinkSync
 } from 'fs'
-import { join } from 'path'
+import { randomUUID } from 'crypto'
+import { basename, join } from 'path'
 import type { AttachmentPreview, ChatEvent, ConversationSummary } from '../shared/ipc'
 import { DATA_DIR } from './paths'
 
@@ -35,6 +36,8 @@ interface Header {
   id: string
   createdAt: number
   title: string
+  /** Pasta de uma sessão trazida do terminal (sem ela, o workspace do Wisp). */
+  cwd?: string
 }
 
 /** O Claude Code passou a usar outro session_id (raro); o --resume usa o último. */
@@ -117,7 +120,15 @@ export interface SavedConversation {
   /** Com que session_id retomar no Claude Code. */
   sessionId: string
   createdAt: number
+  /** Pasta onde retomar (uma sessão trazida do terminal). */
+  cwd?: string
   events: ChatEvent[]
+}
+
+/** A próxima conversa vem de uma sessão do terminal: pasta e o que mostrar antes das mensagens. */
+export interface ConversationSeed {
+  cwd: string
+  preface: ChatEvent[]
 }
 
 /**
@@ -128,6 +139,7 @@ export class History {
   private current: { id: string; sessionId: string; file: string } | null = null
   private text: { blockId: string; delta: string } | null = null
   private warned = false
+  private seed: ConversationSeed | null = null
 
   constructor(private readonly dir = HISTORY_DIR) {}
 
@@ -138,13 +150,24 @@ export class History {
 
   /** Uma mensagem do usuário. A primeira de uma conversa cria o arquivo dela. */
   user(sessionId: string, text: string, attachments: AttachmentPreview[]): void {
-    if (!this.current) {
-      this.start(sessionId, titleOf(text, attachments))
-    } else if (this.current.sessionId !== sessionId) {
-      this.current.sessionId = sessionId
-      this.append({ type: 'sessao', sessionId } satisfies SessionLine)
-    }
+    if (!this.current) this.start(sessionId, titleOf(text, attachments))
+    else this.setSession(sessionId)
     this.record({ type: 'user', text, attachments })
+  }
+
+  /** A conversa aberta passou a usar outro session_id (uma cópia feita pelo Claude Code). */
+  setSession(sessionId: string): void {
+    if (!this.current || this.current.sessionId === sessionId) return
+    this.current.sessionId = sessionId
+    this.append({ type: 'sessao', sessionId } satisfies SessionLine)
+  }
+
+  /**
+   * A próxima conversa continua uma sessão do terminal: ela grava a pasta e começa com o
+   * resumo do que veio de lá. Vale até a primeira mensagem ou até uma conversa nova.
+   */
+  prepare(seed: ConversationSeed): void {
+    this.seed = seed
   }
 
   /** Um evento da conversa aberta. Uma conversa nova ('reset') fecha a atual. */
@@ -152,6 +175,7 @@ export class History {
     if (event.type === 'reset') {
       this.flush()
       this.current = null
+      this.seed = null
       return
     }
     if (!this.current || !KEPT.has(event.type)) return
@@ -204,7 +228,8 @@ export class History {
         title: header.title,
         createdAt: header.createdAt,
         updatedAt,
-        current: id === this.current?.id
+        current: id === this.current?.id,
+        ...(header.cwd ? { project: basename(header.cwd) } : {})
       })
     }
     return conversations.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -239,7 +264,13 @@ export class History {
       } else if (validEvent(value)) events.push(value)
     }
     if (!header || header.id !== id) return null
-    return { id, sessionId, createdAt: header.createdAt, events }
+    return {
+      id,
+      sessionId,
+      createdAt: header.createdAt,
+      ...(typeof header.cwd === 'string' && header.cwd ? { cwd: header.cwd } : {}),
+      events
+    }
   }
 
   /** Continua gravando numa conversa reaberta do histórico. */
@@ -267,9 +298,22 @@ export class History {
     return join(this.dir, `${id}.jsonl`)
   }
 
-  private start(id: string, title: string): void {
-    this.current = { id, sessionId: id, file: this.file(id) }
-    this.append({ type: 'conversa', v: 1, id, createdAt: Date.now(), title } satisfies Header)
+  private start(sessionId: string, title: string): void {
+    const seed = this.seed
+    this.seed = null
+    // Uma sessão do terminal ganha um id de conversa próprio: o dela pode já ter outra conversa.
+    const id = seed ? randomUUID() : sessionId
+    this.current = { id, sessionId, file: this.file(id) }
+    this.append({
+      type: 'conversa',
+      v: 1,
+      id,
+      createdAt: Date.now(),
+      title,
+      ...(seed ? { cwd: seed.cwd } : {})
+    } satisfies Header)
+    if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)
+    for (const event of seed?.preface ?? []) this.append(event)
   }
 
   private append(line: Header | SessionLine | ChatEvent): void {

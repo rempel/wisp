@@ -1,5 +1,5 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
-import type { IpcMainEvent, IpcMainInvokeEvent, Rectangle } from 'electron'
+import type { IpcMainEvent, IpcMainInvokeEvent, Rectangle, WebContents } from 'electron'
 import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
@@ -110,8 +110,27 @@ export interface Chat {
   side(): 'left' | 'right'
   /** Mostra o card de permissão e resolve com a decisão do usuário. */
   requestApproval(request: ApprovalRequest): Promise<Approval>
+  /** O IPC veio da página do painel? */
+  isSender(sender: WebContents): boolean
+  /** As sessões do terminal mudaram: a aba Sessões busca de novo. */
+  notifySessions(): void
+  /** Uma sessão do terminal pede algo: o painel aparece (sem roubar o foco) na aba Sessões. */
+  showSessions(): void
+  /** Continua no chat uma sessão do terminal. */
+  continueSession(seed: SessionSeed): void
   /** Encerra o processo do Claude Code (o app está fechando). */
   dispose(): void
+}
+
+/** Uma sessão do terminal para continuar no chat. */
+export interface SessionSeed {
+  sessionId: string
+  cwd: string
+  project: string
+  /** A sessão ainda roda no terminal: o chat segue numa cópia dela. */
+  alive: boolean
+  prompt?: string
+  lastMessage?: string
 }
 
 export interface ChatOptions {
@@ -134,6 +153,8 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
   const queued: ChatEvent[] = []
   let quitting = false
   let mood: MascotState = 'idle'
+  // Mostrar a aba Sessões assim que a página carregar (o pedido chegou antes).
+  let showSessionsOnReady = false
   // O último uso do plano, para mostrar de novo se a página recarregar.
   let lastUsage: Extract<ChatEvent, { type: 'usage' }> | null = null
   const history = new History()
@@ -207,7 +228,8 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
       appendSystemPrompt: APPEND_SYSTEM_PROMPT,
       mcpConfigPath,
-      model: config.model
+      model: config.model,
+      onSessionId: (id) => history.setSession(id)
     },
     deliver
   )
@@ -220,6 +242,8 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     pageReady = true
     win.webContents.send(IPC.chatMood, mood)
     for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
+    if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
+    showSessionsOnReady = false
   })
   ipcMain.on(IPC.chatSend, (event, text: unknown, attachments: unknown) => {
     if (!fromChat(event) || typeof text !== 'string' || session.isBusy()) return
@@ -265,7 +289,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     if (!saved) return false
     // A conversa atual fecha (o 'reset' passa pelo histórico e pelos cards) e a guardada volta:
     // primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
-    session.resume(saved.sessionId)
+    session.resume(saved.sessionId, { cwd: saved.cwd })
     history.continue(saved)
     for (const replayed of saved.events) toPage(replayed)
     toPage({ type: 'restored', createdAt: saved.createdAt })
@@ -348,7 +372,8 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     if (appearing && pageReady) chat.webContents.send(IPC.chatShown)
   }
 
-  function createWindow(): BrowserWindow {
+  /** Cria o painel. `inactive`: aparece sem roubar o foco (um pedido de uma sessão do terminal). */
+  function createWindow(inactive = false): BrowserWindow {
     const chat = new BrowserWindow({
       width: CHAT_WIDTH,
       height: CHAT_HEIGHT,
@@ -367,7 +392,11 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       }
     })
 
-    chat.once('ready-to-show', () => show(chat))
+    chat.once('ready-to-show', () => {
+      if (!inactive) return show(chat)
+      placeNextToMascot(chat)
+      chat.showInactive()
+    })
     // Fechar (Alt+F4, botão do gerenciador de janelas) só esconde; a conversa continua.
     chat.on('close', (event) => {
       if (quitting) return
@@ -464,6 +493,51 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     setMood(state) {
       mood = state
       if (win && pageReady) win.webContents.send(IPC.chatMood, state)
+    },
+    isSender(sender) {
+      return win !== null && sender === win.webContents
+    },
+    notifySessions() {
+      if (win && pageReady) win.webContents.send(IPC.sessionsChanged)
+    },
+    showSessions() {
+      if (!win) {
+        showSessionsOnReady = true
+        win = createWindow(true)
+        return
+      }
+      // Quem está usando o painel não perde o que faz: o contador e o mascote já avisam.
+      if (win.isVisible() && win.isFocused()) return
+      if (!win.isVisible()) {
+        placeNextToMascot(win)
+        win.showInactive()
+      }
+      if (pageReady) win.webContents.send(IPC.sessionsShow)
+      else showSessionsOnReady = true
+    },
+    continueSession(seed) {
+      session.resume(seed.sessionId, { cwd: seed.cwd, fork: seed.alive })
+      // O que se viu por último no terminal, para a conversa não começar do nada.
+      const preface: ChatEvent[] = []
+      if (seed.prompt) preface.push({ type: 'user', text: seed.prompt, attachments: [] })
+      if (seed.lastMessage) {
+        preface.push({
+          type: 'text',
+          blockId: `terminal:${seed.sessionId}`,
+          delta: seed.lastMessage
+        })
+      }
+      preface.push({
+        type: 'notice',
+        level: 'info',
+        text: seed.alive
+          ? `Sessão do terminal em ${seed.project}. Ela continua aberta lá, então o Wisp segue numa cópia: as duas não se misturam.`
+          : `Sessão do terminal em ${seed.project}. O Claude continua de onde parou.`
+      })
+      history.prepare({ cwd: seed.cwd, preface })
+      for (const event of preface) toPage(event)
+      if (!win) win = createWindow()
+      else show(win)
     },
     newConversation() {
       session.reset()

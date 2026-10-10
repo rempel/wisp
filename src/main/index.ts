@@ -5,6 +5,10 @@ import { cleanOldAttachments } from './attachments'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
 import { CONFIG_PATH, getConfig, loadConfig } from './config'
+import { openInEditor } from './desktop'
+import { deployRelay } from './hooks/install'
+import { startHookServer } from './hooks/server'
+import type { HookServer } from './hooks/server'
 import {
   getMascotBounds,
   isMascotVisible,
@@ -17,6 +21,8 @@ import { startDesktopServer } from './mcp-server'
 import type { DesktopServer } from './mcp-server'
 import { MascotMood } from './mood'
 import { CACHE_DIR } from './paths'
+import { ExternalSessions } from './sessions'
+import { setupSessionsIpc } from './sessions-ipc'
 import { setupTray } from './tray'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
@@ -77,6 +83,51 @@ app.whenReady().then(async () => {
     mcpConfigPath: desktop?.configPath,
     onEvent: (event) => mood.onEvent(event)
   })
+
+  // As sessões do Claude Code no terminal, pelos hooks (aba Sessões). O relay é reescrito a cada
+  // abertura, para acompanhar o lugar do app.
+  deployRelay()
+  const sessions = new ExternalSessions({
+    onChange: () => {
+      mood.setExternalRequests(sessions.pendingCount())
+      chat?.notifySessions()
+    },
+    onAttention: (kind) => {
+      if (kind === 'request') chat?.showSessions()
+      else mood.flashExternal(kind === 'done' ? 'happy' : 'error')
+    }
+  })
+  let hooks: HookServer | null = null
+  let listening: { ok: boolean; problem?: string } = { ok: false, problem: 'abrindo…' }
+  void startHookServer((event, pending) => sessions.handle(event, pending)).then((started) => {
+    if (started.ok) {
+      hooks = started.server
+      listening = { ok: true }
+    } else {
+      listening = { ok: false, problem: started.problem }
+      console.warn('[wisp] não vou ouvir as sessões do Claude Code:', started.problem)
+    }
+    chat?.notifySessions()
+  })
+  setupSessionsIpc({
+    sessions,
+    isChat: (sender) => chat?.isSender(sender) ?? false,
+    listening: () => listening,
+    changed: () => chat?.notifySessions(),
+    openFolder: (cwd) => void openInEditor(cwd, getConfig().editorCommand),
+    continueInChat: (id) => {
+      const session = sessions.get(id)
+      if (!session || !chat) return
+      chat.continueSession({
+        sessionId: session.id,
+        cwd: session.cwd,
+        project: session.project,
+        alive: session.alive,
+        prompt: session.prompt,
+        lastMessage: session.lastMessage
+      })
+    }
+  })
   setupMascot(() => chat?.toggle())
   setupTray({
     mascotVisible: isMascotVisible,
@@ -93,6 +144,8 @@ app.whenReady().then(async () => {
 
   app.on('before-quit', () => {
     mood.dispose()
+    sessions.dispose()
+    hooks?.close()
     chat?.dispose()
     desktop?.close()
   })

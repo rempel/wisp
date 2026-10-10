@@ -13,9 +13,15 @@ Um assistente para Linux com um mascote animado que flutua na tela. O cérebro �
 4. anexos;
 5. estados do mascote, bandeja e acabamento.
 
-Depois do MVP, a Fase 6 do roadmap (conversa) está pronta para validação: troca de modelo, uso
-do plano, Parar na hora, histórico de conversas, diff das edições, colar imagem e um painel
-mais vivo. O que vem depois está no [ROADMAP.md](ROADMAP.md).
+Depois do MVP, vieram as fases do roadmap:
+
+- **Fase 6 (conversa):** troca de modelo, uso do plano, Parar na hora, histórico de conversas,
+  diff das edições, colar imagem e um painel mais vivo.
+- **Fase 7 (sessões do terminal), pronta para validação:** o Wisp acompanha as sessões do Claude
+  Code que você roda no terminal, avisa quando uma precisa de você, deixa aprovar e responder
+  pelo card e continuar uma sessão no chat.
+
+O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
 ## Requisitos
 
@@ -28,6 +34,9 @@ mais vivo. O que vem depois está no [ROADMAP.md](ROADMAP.md).
   links: `xdg-open` (pacote `xdg-utils`)
 - Para o ícone na bandeja: no Ubuntu e no KDE já funciona. Em outros GNOME, instale a extensão
   "AppIndicator and KStatusNotifierItem Support". O mascote e o chat funcionam sem ela
+- Para a aba Sessões: Claude Code 2.1 ou mais novo. Para trazer o terminal de uma sessão para a
+  frente: no KDE já funciona; no X11, instale o `xdotool`. No GNOME com Wayland não há como, e o
+  Wisp oferece abrir a pasta no editor
 
 ## Rodando
 
@@ -171,6 +180,29 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
     quando a resposta termina;
   - Ctrl+K começa uma conversa nova.
 
+### Sessões do terminal (Fase 7)
+
+- [ ] **Instalar:** no cabeçalho, o botão do terminal abre a aba Sessões. **Ver o que muda**
+      mostra o diff do `~/.claude/settings.json`; **Instalar** grava, com um backup datado do
+      arquivo anterior ao lado dele.
+- [ ] **Acompanhar:** rode `claude` num terminal e peça algo. A sessão aparece na aba com o
+      projeto, o estado (trabalhando, esperando você, terminou), a última mensagem, o passo atual
+      e os passos anteriores, com `+N −M` e o diff das edições.
+- [ ] **Pedido de permissão:** peça para criar um arquivo.
+  - O terminal mostra o diálogo dele, e o Wisp mostra o card, com o mascote âmbar e um contador
+    no botão da aba. Responder em qualquer um dos dois vale.
+  - Se você responder no terminal, o card some sozinho.
+  - **Responder no terminal** devolve a decisão para o terminal.
+- [ ] **Pergunta:** peça "use o AskUserQuestion para me perguntar uma cor". O card de pergunta
+      aparece no Wisp, e a resposta chega à sessão do terminal.
+- [ ] **Terminou:** quando o Claude termina no terminal, o mascote dá o pulinho.
+- [ ] **Terminal:** o botão traz a janela do terminal para a frente (KDE, ou X11 com `xdotool`).
+- [ ] **Continuar no Wisp:** numa sessão parada, o botão abre a sessão no chat, com a última
+      mensagem dela, e o Claude continua de onde parou. Se a sessão ainda estiver aberta no
+      terminal, o Wisp segue numa cópia dela, e as duas não se misturam.
+- [ ] **Wisp fechado:** feche o Wisp e use o Claude Code no terminal: tudo segue normal.
+- [ ] **Tirar:** no fim da aba, **Tirar** mostra o diff e devolve o `settings.json` ao que era.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -245,6 +277,17 @@ Os anexos são copiados para `~/.cache/wisp/anexos/<id da conversa>/`. Quando o 
 apaga as pastas de conversas com mais de 7 dias. Imagens coladas com Ctrl+V esperam o envio em
 `~/.cache/wisp/anexos/colados/`; as que nunca foram enviadas somem depois de um dia.
 
+As sessões do terminal usam:
+
+- os hooks no `~/.claude/settings.json` (ou no `$CLAUDE_CONFIG_DIR`, se você o usa), que só
+  entram e saem pela aba Sessões, com prévia e backup;
+- o relay `~/.local/share/wisp/bin/wisp-hook`, que o Wisp reescreve sempre que abre;
+- o socket `$XDG_RUNTIME_DIR/wisp/hooks.sock`, numa pasta só do seu usuário;
+- a lista das sessões recentes, em `~/.local/share/wisp/sessoes.json`.
+
+Uma sessão que já estava aberta quando os hooks foram instalados aparece a partir da próxima
+mensagem dela.
+
 O histórico fica em `~/.local/share/wisp/conversas/`, um arquivo por conversa, que só o seu
 usuário lê. Ele guarda o que o painel mostrou; o contexto do Claude volta pelo próprio Claude
 Code, que apaga as conversas antigas depois de um tempo (30 dias, por padrão, pelo
@@ -272,6 +315,10 @@ do Claude Code segue a regra dele.
 | "O modelo escolhido não existe…"            | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula   |
 | "O Claude Code não tem mais esta conversa"  | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                       |
 | A pílula de uso não aparece                 | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
+| "O Wisp não está ouvindo as sessões"        | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões       |
+| A sessão do terminal não aparece            | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
+| O botão Terminal não traz a janela          | No X11, instale o `xdotool`. No GNOME com Wayland não há como: use o botão **Pasta**                           |
+| Um card ficou parado na aba Sessões         | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba      |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -299,6 +346,14 @@ src/
 │  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
 │  ├─ claude.ts      # processo `claude -p`, leitura do stream-json e pedidos de controle
 │  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
+│  ├─ hooks/
+│  │  ├─ protocol.ts # contrato relay ↔ app: socket, eventos, respostas
+│  │  ├─ relay.ts    # o wisp-hook que o Claude Code roda a cada hook (Electron em modo Node)
+│  │  ├─ server.ts   # o socket que recebe os hooks no app
+│  │  └─ install.ts  # hooks no ~/.claude/settings.json: prévia, backup, gravação
+│  ├─ sessions.ts    # as sessões do terminal: estado, passos, pedidos
+│  ├─ sessions-ipc.ts # IPC da aba Sessões
+│  ├─ terminal.ts    # trazer o terminal de uma sessão para a frente (KWin, xdotool, tmux)
 │  ├─ mcp-server.ts  # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
 │  ├─ questions.ts   # perguntas do Claude (AskUserQuestion): leitura e conferência das respostas
 │  ├─ desktop.ts     # apps (.desktop), links, projetos: o que as ferramentas fazem
@@ -313,7 +368,7 @@ src/
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas de modelo e uso, histórico
+   └─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas, histórico, aba Sessões
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
 └─ workspace/CLAUDE.md # persona, copiada para o workspace na 1ª vez
@@ -444,6 +499,39 @@ resources/
     resposta em andamento e os cards pendentes.
 - **Tema:** o painel segue o tema do sistema na hora (`prefers-color-scheme`), e o fundo da janela
   acompanha pelo `nativeTheme`.
+- **Sessões do terminal, escutar:** o Wisp põe no `settings.json` do Claude Code um hook por
+  evento (início e fim da sessão, mensagem, antes e depois de cada ferramenta, pedido de
+  permissão, fim do turno). Todos chamam o relay `wisp-hook`, que lê o JSON do hook e o passa ao
+  app por um socket Unix em `$XDG_RUNTIME_DIR/wisp/hooks.sock` (pasta 0700, socket 0600; o relay
+  confere a pasta e o dono do socket antes de conectar).
+  - O relay roda com o próprio Electron em modo Node (`ELECTRON_RUN_AS_NODE=1`), então não
+    depende de nada instalado.
+  - O Claude Code nunca trava por causa do Wisp. Só o pedido de permissão espera o relay; os
+    outros hooks rodam em segundo plano (`async`). Sem o Wisp aberto, o relay sai na hora, sem
+    imprimir nada. Ele também tem prazo para conectar (300 ms) e para mandar (2 s).
+  - Nada é liberado sem um clique: sem decisão, o relay não imprime nada, e quem decide é o
+    diálogo do terminal, que o Claude Code mostra junto com o card.
+  - Os processos do próprio Wisp levam `WISP_INTERNAL=1`, e os hooks deles são ignorados.
+  - Os hooks em segundo plano podem chegar fora de ordem. Cada evento leva a hora em que o hook
+    disparou, e um evento mais velho não muda o estado da sessão.
+- **Sessões do terminal, agir:**
+  - **Card:** um pedido vira o mesmo card do chat. **Permitir** e **Negar** voltam pelo socket, e
+    o relay imprime a decisão no formato do hook `PermissionRequest`. **Permitir sempre nesta
+    sessão** fica na memória do Wisp, enquanto o mesmo processo do Claude Code estiver aberto. A
+    resposta de uma pergunta volta como `updatedInput.answers`, conferida no app e no relay.
+  - **Resposta dada no terminal:** o Claude Code não avisa o hook, então o Wisp percebe sozinho.
+    - O resultado da mesma chamada chega (o relay manda um hash da entrada para casar os dois).
+    - Ou o transcript da sessão cresce. Enquanto o diálogo espera, ele fica parado, e o Wisp só
+      olha o tamanho do arquivo, sem ler o formato interno dele.
+    - Ou o turno acaba, ou o processo some.
+  - **Trazer o terminal para a frente:** o Wisp acha os processos pais do Claude Code pelo
+    `/proc`, e numa sessão no tmux, os clientes conectados. No KDE, um script do KWin carregado
+    pelo D-Bus ativa a janela do primeiro processo com janela (vale no X11 e no Wayland). No
+    X11, o `xdotool` ativa a janela anunciada pelo terminal (`WINDOWID`) ou a do processo.
+- **Continuar no Wisp:** o chat retoma a sessão na pasta dela, com `--resume`. Se ela ainda
+  estiver aberta no terminal, o chat usa `--fork-session` e segue numa cópia. Sem isso, os dois
+  processos escreveriam na mesma sessão (testado no 2.1.296: o CLI não copia sozinho). A
+  conversa guarda a pasta no histórico, para reabrir no lugar certo.
 - **Painel vivo:** o humor do mascote também vai para o painel (`chat:mood`): o avatar do
   cabeçalho muda os olhos e a antena, e o alto do painel ganha um degradê na cor do estado (uma
   propriedade CSS registrada com `@property`, para a cor poder animar). O status traduz a

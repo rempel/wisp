@@ -3,7 +3,18 @@ import { defineConfig } from 'electron-vite'
 import react from '@vitejs/plugin-react'
 
 export default defineConfig({
-  main: {},
+  main: {
+    build: {
+      rollupOptions: {
+        // O relay dos hooks do Claude Code é um programa à parte, rodado com o Electron em modo
+        // Node (src/main/hooks/relay.ts).
+        input: {
+          index: resolve('src/main/index.ts'),
+          'wisp-hook': resolve('src/main/hooks/relay.ts')
+        }
+      }
+    }
+  },
   preload: {},
   renderer: {
     plugins: [react()],

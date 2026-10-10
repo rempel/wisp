@@ -114,6 +114,34 @@ export const ModelIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Um terminal, para a aba Sessões. */
+export const TerminalIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="2" y="3" width="12" height="10" rx="1.8" />
+    <path d="m4.8 6.3 2 1.7-2 1.7M8.4 10.2h2.8" />
+  </Icon>
+)
+
+export const FolderIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.5 4.6a1.1 1.1 0 0 1 1.1-1.1h2.6l1.4 1.5h4.8a1.1 1.1 0 0 1 1.1 1.1v5.7a1.1 1.1 0 0 1-1.1 1.1H3.6a1.1 1.1 0 0 1-1.1-1.1Z" />
+  </Icon>
+)
+
+/** Uma janela com uma seta saindo: trazer outra janela para a frente. */
+export const FocusIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M9.5 2.5h4v4M13.5 2.5 8 8M11.5 9.5v3a1 1 0 0 1-1 1h-7a1 1 0 0 1-1-1v-7a1 1 0 0 1 1-1h3" />
+  </Icon>
+)
+
+/** Balão de conversa: continuar no chat. */
+export const ChatIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M3.2 3h9.6a1.2 1.2 0 0 1 1.2 1.2v5.6a1.2 1.2 0 0 1-1.2 1.2H7l-3 2.5V11h-.8A1.2 1.2 0 0 1 2 9.8V4.2A1.2 1.2 0 0 1 3.2 3Z" />
+  </Icon>
+)
+
 export const ChevronDownIcon = (): JSX.Element => (
   <Icon className="chevron-down">
     <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />

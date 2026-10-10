@@ -12,17 +12,20 @@ import {
   PaperclipIcon,
   PlusIcon,
   SendIcon,
-  StopIcon
+  StopIcon,
+  TerminalIcon
 } from './icons'
 import { Markdown } from './Markdown'
 import { ModelPill } from './ModelPill'
 import { PermissionCard } from './PermissionCard'
 import { QuestionCard } from './QuestionCard'
+import { SessionsView } from './SessionsView'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
 import type { Item } from './state'
 import { ToolCard } from './ToolCard'
 import { UsagePill } from './UsagePill'
 import { useAttachments } from './useAttachments'
+import { useSessions } from './useSessions'
 
 /** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
 const STICK_DISTANCE = 48
@@ -74,7 +77,9 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
 export default function Chat(): JSX.Element {
   const [state, dispatch] = useReducer(reducer, initialState)
   const [draft, setDraft] = useState('')
-  const [view, setView] = useState<'chat' | 'history'>('chat')
+  const [view, setView] = useState<'chat' | 'history' | 'sessions'>('chat')
+  const sessions = useSessions()
+  const requests = sessions?.sessions.reduce((sum, item) => sum + item.requests.length, 0) ?? 0
   const [mood, setMood] = useState<MascotState>('idle')
   const attachments = useAttachments()
   const [dragging, setDragging] = useState(false)
@@ -94,6 +99,7 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offMood = window.wisp.chat.onMood(setMood)
+    const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
         root.current?.animate(SHOW_KEYFRAMES, {
@@ -105,6 +111,7 @@ export default function Chat(): JSX.Element {
     return () => {
       offMood()
       offShown()
+      offSessions()
     }
   }, [])
 
@@ -134,7 +141,7 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       if (event.key === 'Escape') {
-        if (viewRef.current === 'history') setView('chat')
+        if (viewRef.current !== 'chat') setView('chat')
         else window.wisp.chat.hide()
       } else if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -281,7 +288,7 @@ export default function Chat(): JSX.Element {
         </div>
       )}
       <header className="header">
-        {view === 'history' ? (
+        {view !== 'chat' ? (
           <>
             <button
               type="button"
@@ -293,8 +300,10 @@ export default function Chat(): JSX.Element {
               <BackIcon />
             </button>
             <div className="title">
-              <strong>Conversas</strong>
-              <span className="status">guardadas neste computador</span>
+              <strong>{view === 'history' ? 'Conversas' : 'Sessões'}</strong>
+              <span className="status">
+                {view === 'history' ? 'guardadas neste computador' : 'do Claude Code no terminal'}
+              </span>
             </div>
           </>
         ) : (
@@ -307,6 +316,21 @@ export default function Chat(): JSX.Element {
           </>
         )}
         {state.usage && <UsagePill usage={state.usage} />}
+        <button
+          type="button"
+          className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
+          onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
+          title={
+            requests
+              ? `Sessões do terminal (${requests} ${requests === 1 ? 'pedido' : 'pedidos'})`
+              : 'Sessões do Claude Code no terminal'
+          }
+          aria-label="Sessões do terminal"
+          aria-pressed={view === 'sessions'}
+        >
+          <TerminalIcon />
+          {requests > 0 && <span className="badge">{requests}</span>}
+        </button>
         <button
           type="button"
           className={`icon-button${view === 'history' ? ' active' : ''}`}
@@ -339,6 +363,8 @@ export default function Chat(): JSX.Element {
 
       {view === 'history' ? (
         <HistoryView onClose={() => setView('chat')} />
+      ) : view === 'sessions' ? (
+        <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
       ) : (
         <>
           <div className="messages" ref={list} onScroll={onScroll}>

@@ -20,10 +20,22 @@ function str(input: unknown, key: string): string {
 }
 
 /** Título e detalhes do pedido, no idioma do usuário em vez do JSON cru. */
-function describe(toolName: string, input: unknown): { title: string; body: ReactNode } {
-  const path = (key: string): JSX.Element => (
-    <code className="permission-path">{str(input, key)}</code>
-  )
+function describe(
+  toolName: string,
+  input: unknown,
+  baseDir?: string
+): { title: string; body: ReactNode } {
+  // Dentro da pasta da sessão, o caminho aparece relativo a ela.
+  const path = (key: string): JSX.Element => {
+    const full = str(input, key)
+    const relative =
+      baseDir && full.startsWith(`${baseDir}/`) ? full.slice(baseDir.length + 1) : full
+    return (
+      <code className="permission-path" title={full}>
+        {relative}
+      </code>
+    )
+  }
   switch (toolName) {
     case 'Bash':
       return {
@@ -91,20 +103,30 @@ const RESULT: Record<Exclude<PermissionStatus, 'pending'>, string> = {
 /** Card de "posso fazer isso?" com Permitir, Negar e Permitir sempre nesta conversa. */
 export function PermissionCard({
   request,
-  onAnswer
+  onAnswer,
+  scope = 'conversa',
+  baseDir
 }: {
   request: PermissionItem
   onAnswer: (decision: PermissionDecision) => void
+  /** Até onde vale o "Permitir sempre": a conversa do chat ou uma sessão do terminal. */
+  scope?: 'conversa' | 'sessão'
+  /** Pasta da sessão: os caminhos dentro dela aparecem relativos. */
+  baseDir?: string
 }): JSX.Element {
   const armed = useArmed()
   const answer = (decision: PermissionDecision) => () => {
     if (armed()) onAnswer(decision)
   }
-  const { title, body } = describe(request.toolName, request.input)
+  const { title, body } = describe(request.toolName, request.input, baseDir)
+  const until =
+    scope === 'sessão'
+      ? 'enquanto esta sessão estiver aberta'
+      : 'até você começar uma conversa nova'
   const alwaysHint =
     request.toolName === 'Bash'
-      ? 'Libera este mesmo comando até você começar uma conversa nova.'
-      : `Libera ${toolLabel(request.toolName)} até você começar uma conversa nova.`
+      ? `Libera este mesmo comando ${until}.`
+      : `Libera ${toolLabel(request.toolName)} ${until}.`
 
   return (
     <div className={`permission permission-${request.status}`}>
@@ -124,7 +146,7 @@ export function PermissionCard({
             onClick={answer('allow-always')}
             title={alwaysHint}
           >
-            Permitir sempre nesta conversa
+            Permitir sempre nesta {scope}
           </button>
         </div>
       ) : (

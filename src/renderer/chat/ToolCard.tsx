@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { JSX } from 'react'
 import { diffFromInput } from '../../shared/diff'
-import type { FileDiff } from '../../shared/ipc'
+import { DiffCount, DiffView } from './DiffView'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { toolLabel } from './state'
 import type { Item } from './state'
@@ -41,43 +41,6 @@ function statusLabel(tool: ToolItem): string {
       if (INTERRUPTED.test(tool.output ?? '')) return 'interrompido'
       return DENIED.test(tool.output ?? '') ? 'negado' : 'erro'
   }
-}
-
-/** As linhas de um diff, coloridas, com o número da linha no arquivo quando se sabe. */
-function DiffView({ diff }: { diff: FileDiff }): JSX.Element {
-  return (
-    <pre className="diff-view">
-      {diff.hunks.map((hunk, index) => (
-        <div key={index} className="diff-hunk">
-          {hunk.newStart > 0 && <div className="diff-at">linha {hunk.newStart}</div>}
-          {hunk.lines.map((line, n) => {
-            const kind = line[0] === '+' ? 'add' : line[0] === '-' ? 'del' : 'ctx'
-            return (
-              <div key={n} className={`diff-line ${kind}`}>
-                <span className="diff-sign">{kind === 'ctx' ? ' ' : line[0]}</span>
-                {line.slice(1) || ' '}
-              </div>
-            )
-          })}
-        </div>
-      ))}
-      {diff.truncated && <div className="diff-at">… (mais linhas)</div>}
-    </pre>
-  )
-}
-
-/** "+3 −1" no cabeçalho do card. */
-function DiffCount({ diff }: { diff: FileDiff }): JSX.Element | null {
-  if (!diff.added && !diff.removed) return null
-  return (
-    <span
-      className="diff-count"
-      aria-label={`${diff.added} linhas a mais, ${diff.removed} a menos`}
-    >
-      {diff.added > 0 && <span className="add">+{diff.added}</span>}
-      {diff.removed > 0 && <span className="del">−{diff.removed}</span>}
-    </span>
-  )
 }
 
 /** Uma chamada de ferramenta: uma linha com o resumo, que abre para mostrar entrada e saída. */

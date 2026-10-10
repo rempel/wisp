@@ -291,6 +291,58 @@ export function toolActivity(name: string, input: unknown): string {
   }
 }
 
+const clip = (text: string, max: number): string =>
+  text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
+
+/** Um passo de uma sessão do terminal, numa linha: "Editar app.ts", "Rodar npm test". */
+export function stepLabel(name: string, input: unknown): string {
+  const file = fileName(field(input, 'file_path'))
+  switch (name) {
+    case 'Read':
+      return file ? `Ler ${file}` : 'Ler um arquivo'
+    case 'Write':
+      return file ? `Escrever ${file}` : 'Escrever um arquivo'
+    case 'Edit':
+    case 'MultiEdit':
+      return file ? `Editar ${file}` : 'Editar um arquivo'
+    case 'NotebookEdit':
+      return 'Editar um notebook'
+    case 'Bash': {
+      const command = field(input, 'command').split('\n')[0]
+      return command ? `Rodar ${clip(command, 60)}` : 'Rodar um comando'
+    }
+    case 'Glob':
+      return field(input, 'pattern')
+        ? `Procurar ${clip(field(input, 'pattern'), 40)}`
+        : 'Procurar arquivos'
+    case 'Grep': {
+      const pattern = field(input, 'pattern')
+      return pattern ? `Buscar ${quote(pattern)}` : 'Buscar nos arquivos'
+    }
+    case 'WebSearch': {
+      const query = field(input, 'query')
+      return query ? `Pesquisar ${quote(query)}` : 'Pesquisar na web'
+    }
+    case 'WebFetch':
+      try {
+        return `Abrir ${new URL(field(input, 'url')).host}`
+      } catch {
+        return 'Abrir uma página'
+      }
+    case 'Task':
+    case 'Agent': {
+      const description = field(input, 'description')
+      return description ? `Delegar: ${clip(description, 50)}` : 'Delegar uma tarefa'
+    }
+    case 'TodoWrite':
+      return 'Atualizar as tarefas'
+    case 'AskUserQuestion':
+      return 'Perguntar'
+    default:
+      return toolLabel(name)
+  }
+}
+
 /** O que o cabeçalho mostra embaixo do nome. */
 export function statusText(state: ChatState): string {
   if (!state.busy) return 'pronto'
