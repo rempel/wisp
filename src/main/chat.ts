@@ -1,10 +1,12 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
 import type { IpcMainEvent, Rectangle } from 'electron'
+import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
 import { ClaudeSession, SAFE_TOOLS } from './claude'
 import { getConfig } from './config'
+import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD } from './page'
 import { DATA_DIR } from './paths'
 import { IPC } from '../shared/ipc'
@@ -35,27 +37,57 @@ function openExternal(url: string): void {
   if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
 }
 
+/**
+ * Até onde vai o "Permitir sempre nesta conversa": no Bash, o mesmo comando exato (liberar todo
+ * Bash por causa de um `ls` seria perigoso); nas outras ferramentas, a ferramenta toda.
+ */
+function permissionScope({ toolName, input }: ApprovalRequest): string {
+  const command = (input as { command?: unknown } | null)?.command
+  return toolName === 'Bash' && typeof command === 'string' ? `Bash:${command}` : toolName
+}
+
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
   toggle(): void
+  /** Mostra o card de permissão e resolve com a decisão do usuário. */
+  requestApproval(request: ApprovalRequest): Promise<Approval>
   /** Encerra o processo do Claude Code (o app está fechando). */
   dispose(): void
 }
 
 /**
  * Painel de chat: uma janela que nasce na primeira vez que é aberta e depois só é escondida,
- * para a conversa continuar lá. `anchor` diz onde está o mascote.
+ * para a conversa continuar lá. `anchor` diz onde está o mascote; `mcpConfigPath` liga o
+ * servidor `desktop` (sem ele, a conversa roda sem as ferramentas de desktop).
  */
-export function setupChat(anchor: () => Rectangle | null): Chat {
+export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string): Chat {
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
   let pageReady = false
-  const pending: ChatEvent[] = []
+  const queued: ChatEvent[] = []
   let quitting = false
+  // Pedidos de permissão esperando o clique no card, e o que já foi liberado "sempre".
+  const approvals = new Map<string, { scope: string; resolve: (approval: Approval) => void }>()
+  const alwaysAllowed = new Set<string>()
+
+  const send = (event: ChatEvent): void => {
+    if (win && pageReady) win.webContents.send(IPC.chatEvent, event)
+    else queued.push(event)
+  }
 
   const deliver = (event: ChatEvent): void => {
-    if (win && pageReady) win.webContents.send(IPC.chatEvent, event)
-    else pending.push(event)
+    // Turno encerrado (parado, com erro) ou conversa nova: nenhum pedido aberto vai ser usado.
+    if (event.type === 'turn-end' || event.type === 'reset') cancelApprovals()
+    if (event.type === 'reset') alwaysAllowed.clear()
+    send(event)
+  }
+
+  function cancelApprovals(): void {
+    for (const [id, approval] of approvals) {
+      approval.resolve({ allow: false, message: 'O usuário parou a resposta.' })
+      send({ type: 'permission-resolved', id, decision: 'cancelled' })
+    }
+    approvals.clear()
   }
 
   const config = getConfig()
@@ -64,7 +96,8 @@ export function setupChat(anchor: () => Rectangle | null): Chat {
       claudePath: config.claudePath,
       workspace: prepareWorkspace,
       allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
-      appendSystemPrompt: APPEND_SYSTEM_PROMPT
+      appendSystemPrompt: APPEND_SYSTEM_PROMPT,
+      mcpConfigPath
     },
     deliver
   )
@@ -75,7 +108,7 @@ export function setupChat(anchor: () => Rectangle | null): Chat {
   ipcMain.on(IPC.chatReady, (event) => {
     if (!fromChat(event) || !win) return
     pageReady = true
-    for (const queued of pending.splice(0)) win.webContents.send(IPC.chatEvent, queued)
+    for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
   })
   ipcMain.on(IPC.chatSend, (event, text: unknown) => {
     if (fromChat(event) && typeof text === 'string' && text.trim()) void session.send(text)
@@ -88,6 +121,18 @@ export function setupChat(anchor: () => Rectangle | null): Chat {
   })
   ipcMain.on(IPC.chatHide, (event) => {
     if (fromChat(event)) win?.hide()
+  })
+  ipcMain.on(IPC.chatPermission, (event, id: unknown, decision: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return
+    if (decision !== 'allow' && decision !== 'allow-always' && decision !== 'deny') return
+    const approval = approvals.get(id)
+    if (!approval) return
+    approvals.delete(id)
+    if (decision === 'allow-always') alwaysAllowed.add(approval.scope)
+    approval.resolve(
+      decision === 'deny' ? { allow: false, message: 'Usuário negou' } : { allow: true }
+    )
+    send({ type: 'permission-resolved', id, decision })
   })
   app.on('before-quit', () => {
     quitting = true
@@ -170,6 +215,25 @@ export function setupChat(anchor: () => Rectangle | null): Chat {
   }
 
   return {
+    requestApproval(request) {
+      if (alwaysAllowed.has(permissionScope(request))) return Promise.resolve({ allow: true })
+      const id = randomUUID()
+      return new Promise<Approval>((resolve) => {
+        approvals.set(id, { scope: permissionScope(request), resolve })
+        send({
+          type: 'permission-request',
+          id,
+          toolName: request.toolName,
+          input: request.input,
+          toolUseId: request.toolUseId
+        })
+        // O Claude fica parado esperando: com o painel escondido, ele aparece, sem roubar o foco.
+        if (win && !win.isVisible()) {
+          placeNextToMascot(win)
+          win.showInactive()
+        }
+      })
+    },
     toggle() {
       if (!win) {
         win = createWindow()

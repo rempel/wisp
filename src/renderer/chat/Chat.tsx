@@ -3,7 +3,8 @@ import type { JSX, KeyboardEvent } from 'react'
 import type { ChatEvent } from '../../shared/ipc'
 import { Avatar, CloseIcon, PlusIcon, SendIcon, StopIcon } from './icons'
 import { Markdown } from './Markdown'
-import { initialState, reducer, statusText } from './state'
+import { PermissionCard } from './PermissionCard'
+import { awaitingPermission, initialState, reducer, statusText } from './state'
 import type { Item } from './state'
 import { ToolCard } from './ToolCard'
 
@@ -27,6 +28,13 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
         <div className={`notice notice-${item.level}`}>
           <Markdown text={item.text} />
         </div>
+      )
+    case 'permission':
+      return (
+        <PermissionCard
+          request={item}
+          onAnswer={(decision) => window.wisp.chat.answerPermission(item.id, decision)}
+        />
       )
   }
 }
@@ -107,9 +115,12 @@ export default function Chat(): JSX.Element {
   }
 
   const last = state.items[state.items.length - 1]
-  // "Pensando" enquanto ainda não há texto nem ferramenta rodando para mostrar.
+  // "Pensando" enquanto ainda não há texto, ferramenta rodando ou pedido de permissão na tela.
   const thinking =
-    state.busy && last?.kind !== 'text' && !(last?.kind === 'tool' && last.status === 'running')
+    state.busy &&
+    last?.kind !== 'text' &&
+    !(last?.kind === 'tool' && last.status === 'running') &&
+    !awaitingPermission(state)
 
   return (
     <div className="chat">

@@ -19,6 +19,59 @@ export const SAFE_TOOLS = [
   'mcp__desktop__notify'
 ]
 
+/** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
+export const PERMISSION_TOOL = 'mcp__desktop__approve'
+
+/**
+ * Arquivos de segredos (chaves, tokens, senhas de navegador). O Read continua liberado no
+ * resto da máquina, mas ler estes pede aprovação: sem isso, um texto malicioso numa página
+ * lida pelo WebFetch poderia levar o Claude a ler uma chave e mandá-la para fora sem ninguém ver.
+ */
+const SENSITIVE_PATHS = [
+  '~/.ssh/**',
+  '~/.gnupg/**',
+  '~/.aws/**',
+  '~/.azure/**',
+  '~/.config/gcloud/**',
+  '~/.kube/**',
+  '~/.docker/config.json',
+  '~/.netrc',
+  '~/.pgpass',
+  '~/.git-credentials',
+  '~/.config/gh/**',
+  '~/.claude/.credentials.json',
+  '~/.local/share/keyrings/**',
+  '~/.password-store/**',
+  '~/.mozilla/**',
+  '~/.config/google-chrome/**',
+  '~/.config/chromium/**',
+  '~/.config/BraveSoftware/**',
+  '//**/.env',
+  '//**/.env.*'
+]
+
+/**
+ * Configurações extras da sessão (--settings):
+ * - um hook que manda todo comando Bash para a aprovação. Sem ele o Claude Code roda sozinho
+ *   comandos que considera só de leitura (ps, whoami, ls na pasta de trabalho).
+ * - as regras "ask" dos arquivos de segredos.
+ */
+const ASK_FOR_BASH = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'ask',
+    permissionDecisionReason: 'O Wisp pede aprovação para todo comando.'
+  }
+})
+const SESSION_SETTINGS = JSON.stringify({
+  permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+  hooks: {
+    PreToolUse: [
+      { matcher: 'Bash', hooks: [{ type: 'command', command: `printf %s '${ASK_FOR_BASH}'` }] }
+    ]
+  }
+})
+
 export interface ClaudeOptions {
   /** Comando ou caminho do CLI (config.claudePath). */
   claudePath: string
@@ -29,6 +82,11 @@ export interface ClaudeOptions {
   workspace: () => string
   allowedTools: string[]
   appendSystemPrompt: string
+  /**
+   * Arquivo do --mcp-config com o servidor `desktop`. Sem ele (o servidor não subiu), a
+   * conversa funciona sem as ferramentas de desktop, e o que pediria permissão é negado.
+   */
+  mcpConfigPath?: string
 }
 
 export const LOGIN_HINT =
@@ -37,6 +95,9 @@ export const INSTALL_HINT =
   'Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ' +
   'login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ' +
   'caminho em `claudePath` no `~/.config/wisp/config.json`.'
+
+/** Ferramentas internas que não viram card: o ToolSearch só carrega outras ferramentas. */
+const HIDDEN_TOOLS = new Set(['ToolSearch'])
 
 const MAX_TOOL_OUTPUT = 4000
 const STDERR_TAIL = 2000
@@ -135,6 +196,8 @@ interface CliEvent {
   subtype?: string
   session_id?: string
   apiKeySource?: string
+  permissionMode?: string
+  mcp_servers?: { name: string; status: string }[]
   parent_tool_use_id?: string | null
   error?: string
   is_error?: boolean
@@ -201,7 +264,11 @@ export class ClaudeSession {
   private messageId = ''
   private fallbackBlocks = 0
   private readonly streamedMessages = new Set<string>()
+  /** Chamadas de HIDDEN_TOOLS em andamento, para descartar os resultados delas também. */
+  private readonly hiddenToolUses = new Set<string>()
   private warnedApiKey = false
+  private warnedMcp = false
+  private warnedMode = false
 
   constructor(
     private readonly options: ClaudeOptions,
@@ -243,6 +310,7 @@ export class ClaudeSession {
     this.sessionId = null
     this.stopping = false
     this.streamedMessages.clear()
+    this.hiddenToolUses.clear()
     this.setBusy(false)
     this.emit({ type: 'reset' })
     if (proc) await killProcess(proc)
@@ -277,9 +345,28 @@ export class ClaudeSession {
       '--include-partial-messages',
       '--allowedTools',
       this.options.allowedTools.join(','),
+      // O modo padrão do CLI nem sempre é o "default": numa instalação nova ele pode começar no
+      // "auto", em que um classificador aprova sozinho o que parece pedido pelo usuário (abrir
+      // apps e projetos passava sem o card), e o settings.json do usuário pode definir outro
+      // defaultMode. Fixado aqui, tudo fora da lista segura passa pelo card.
+      '--permission-mode',
+      'default',
       '--append-system-prompt',
-      this.options.appendSystemPrompt
+      this.options.appendSystemPrompt,
+      '--settings',
+      SESSION_SETTINGS
     ]
+    if (this.options.mcpConfigPath) {
+      args.push(
+        '--mcp-config',
+        this.options.mcpConfigPath,
+        // Só o servidor do Wisp: os servidores MCP configurados no Claude Code do usuário ficam
+        // de fora, para o Wisp não depender deles.
+        '--strict-mcp-config',
+        '--permission-prompt-tool',
+        PERMISSION_TOOL
+      )
+    }
     if (this.sessionId) args.push('--resume', this.sessionId)
 
     const proc = spawn(bin, args, { cwd: this.options.workspace(), env: claudeEnv() })
@@ -362,6 +449,25 @@ export class ClaudeSession {
   private onSystem(event: CliEvent): void {
     if (event.subtype !== 'init') return
     if (event.session_id) this.sessionId = event.session_id
+    const desktop = event.mcp_servers?.find((server) => server.name === 'desktop')
+    if (this.options.mcpConfigPath && desktop?.status !== 'connected' && !this.warnedMcp) {
+      this.warnedMcp = true
+      this.notice(
+        'warning',
+        'As ferramentas do desktop não conectaram: abrir apps, links e projetos não vai ' +
+          `funcionar nesta conversa (${desktop?.status ?? 'servidor ausente'}).`
+      )
+    }
+    // Uma política gerenciada pode impor outro modo, mesmo com o --permission-mode.
+    const mode = event.permissionMode
+    if (mode && mode !== 'default' && mode !== 'manual' && !this.warnedMode) {
+      this.warnedMode = true
+      this.notice(
+        'warning',
+        `O Claude Code está no modo de permissão "${mode}": algumas ações podem rodar sem ` +
+          'pedir a sua aprovação.'
+      )
+    }
     // "none" é o login da assinatura; qualquer outra origem é uma chave de API.
     if (event.apiKeySource && event.apiKeySource !== 'none' && !this.warnedApiKey) {
       this.warnedApiKey = true
@@ -379,8 +485,10 @@ export class ClaudeSession {
     if (ev.type === 'message_start' && ev.message) {
       this.messageId = ev.message.id
     } else if (ev.type === 'content_block_start' && ev.content_block?.type === 'tool_use') {
-      const { id, name } = ev.content_block
-      if (id) this.emit({ type: 'tool-start', id, name: name ?? '?' })
+      const { id, name = '?' } = ev.content_block
+      if (!id) return
+      if (HIDDEN_TOOLS.has(name)) this.hiddenToolUses.add(id)
+      else this.emit({ type: 'tool-start', id, name })
     } else if (ev.type === 'content_block_delta' && ev.delta?.type === 'text_delta') {
       if (!ev.delta.text) return
       this.streamedMessages.add(this.messageId)
@@ -397,7 +505,9 @@ export class ClaudeSession {
     if (!message?.id || !Array.isArray(message.content)) return
     for (const block of message.content) {
       if (block.type === 'tool_use' && block.id) {
-        this.emit({ type: 'tool-input', id: block.id, name: block.name ?? '?', input: block.input })
+        const { id, name = '?' } = block
+        if (HIDDEN_TOOLS.has(name)) this.hiddenToolUses.add(id)
+        else this.emit({ type: 'tool-input', id, name, input: block.input })
       } else if (block.type === 'text' && block.text && !this.streamedMessages.has(message.id)) {
         // Sem os eventos parciais, o texto só chega aqui, já inteiro.
         const blockId = `${message.id}:full${this.fallbackBlocks++}`
@@ -411,6 +521,7 @@ export class ClaudeSession {
     if (!Array.isArray(content)) return
     for (const block of content) {
       if (block.type !== 'tool_result' || !block.tool_use_id) continue
+      if (this.hiddenToolUses.delete(block.tool_use_id)) continue
       this.emit({
         type: 'tool-result',
         id: block.tool_use_id,

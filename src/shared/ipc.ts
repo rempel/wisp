@@ -18,6 +18,8 @@ export const IPC = {
   chatNew: 'chat:new',
   /** chat → main: esconder o painel. */
   chatHide: 'chat:hide',
+  /** chat → main: resposta a um card de permissão. Args: (id, PermissionDecision). */
+  chatPermission: 'chat:permission',
   /** main → chat: um ChatEvent. */
   chatEvent: 'chat:event'
 } as const
@@ -42,10 +44,20 @@ export type ChatEvent =
   /** Aviso para mostrar na conversa (texto em Markdown). */
   | { type: 'notice'; level: NoticeLevel; text: string }
   /**
+   * O Claude quer usar uma ferramenta que precisa de aprovação. `toolUseId` liga o pedido ao
+   * card da ferramenta.
+   */
+  | { type: 'permission-request'; id: string; toolName: string; input: unknown; toolUseId?: string }
+  /** O pedido foi respondido, ou cancelado porque o turno acabou. */
+  | { type: 'permission-resolved'; id: string; decision: PermissionDecision | 'cancelled' }
+  /**
    * A conversa recomeçou. Vem pelo mesmo canal dos outros eventos, então nada da conversa
    * anterior chega depois dele.
    */
   | { type: 'reset' }
+
+/** "allow-always" vale até a conversa recomeçar (Permitir sempre nesta conversa). */
+export type PermissionDecision = 'allow' | 'allow-always' | 'deny'
 
 export type NoticeLevel = 'info' | 'warning' | 'error'
 
@@ -64,6 +76,7 @@ export interface WispApi {
     stop(): void
     newConversation(): void
     hide(): void
+    answerPermission(id: string, decision: PermissionDecision): void
     /** Registra quem recebe os eventos da conversa; devolve a função que cancela. */
     onEvent(listener: (event: ChatEvent) => void): () => void
   }
