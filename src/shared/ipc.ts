@@ -7,6 +7,12 @@ export const IPC = {
   mascotDragEnd: 'mascot:drag-end',
   /** renderer → main: clique sem arraste no mascote. */
   mascotClick: 'mascot:click',
+  /** mascote → main: a página carregou e já ouve o estado (o main manda o atual). */
+  mascotReady: 'mascot:ready',
+  /** main → mascote: o estado mudou. Arg: MascotView. */
+  mascotState: 'mascot:state',
+  /** main → mascote: chegou um pedaço de texto da resposta (o brilho pulsa no ritmo). */
+  mascotPulse: 'mascot:pulse',
 
   /** chat → main: a página carregou e já ouve eventos (o main manda os que guardou). */
   chatReady: 'chat:ready',
@@ -20,9 +26,23 @@ export const IPC = {
   chatHide: 'chat:hide',
   /** chat → main: resposta a um card de permissão. Args: (id, PermissionDecision). */
   chatPermission: 'chat:permission',
+  /**
+   * chat → main: respostas a uma pergunta do Claude. Args: (id, mapa pergunta → resposta, ou
+   * null para pular).
+   */
+  chatAnswer: 'chat:answer',
   /** main → chat: um ChatEvent. */
   chatEvent: 'chat:event'
 } as const
+
+/** Estados do mascote, ligados aos eventos da conversa (seção 5.3 da especificação). */
+export type MascotState = 'idle' | 'talking' | 'working' | 'permission' | 'happy' | 'error'
+
+/** O que o mascote mostra: o estado e para que lado fica o painel de chat. */
+export interface MascotView {
+  state: MascotState
+  look: 'left' | 'right'
+}
 
 /** Limites dos anexos de uma mensagem. O chat confere ao anexar; o main, de novo, ao copiar. */
 export const ATTACHMENT_LIMITS = { maxFiles: 20, maxBytes: 50 * 1024 * 1024 } as const
@@ -51,8 +71,16 @@ export type ChatEvent =
    * card da ferramenta.
    */
   | { type: 'permission-request'; id: string; toolName: string; input: unknown; toolUseId?: string }
-  /** O pedido foi respondido, ou cancelado porque o turno acabou. */
-  | { type: 'permission-resolved'; id: string; decision: PermissionDecision | 'cancelled' }
+  /**
+   * O pedido foi respondido, ou cancelado (o turno acabou ou o Claude desistiu). Perguntas
+   * respondidas trazem as respostas.
+   */
+  | {
+      type: 'permission-resolved'
+      id: string
+      decision: PermissionDecision | 'answered' | 'cancelled'
+      answers?: Record<string, string>
+    }
   /**
    * A conversa recomeçou. Vem pelo mesmo canal dos outros eventos, então nada da conversa
    * anterior chega depois dele.
@@ -71,6 +99,11 @@ export interface WispApi {
     dragStart(offsetX: number, offsetY: number): void
     dragEnd(): void
     click(): void
+    /** Avisa que a página está pronta. Chame depois de registrar o onState. */
+    ready(): void
+    /** Registra quem recebe as mudanças de estado; devolve a função que cancela. */
+    onState(listener: (view: MascotView) => void): () => void
+    onPulse(listener: () => void): () => void
   }
   chat: {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
@@ -83,6 +116,8 @@ export interface WispApi {
     newConversation(): void
     hide(): void
     answerPermission(id: string, decision: PermissionDecision): void
+    /** Responde uma pergunta do Claude (texto da pergunta → resposta); null pula. */
+    answerQuestion(id: string, answers: Record<string, string> | null): void
     /** Registra quem recebe os eventos da conversa; devolve a função que cancela. */
     onEvent(listener: (event: ChatEvent) => void): () => void
   }

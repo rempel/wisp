@@ -29,6 +29,7 @@
   --glow-core: 94 234 212;
   --glow: 34 211 238;
   --highlight: #f0fdfa;
+  --spark: #cffafe;
   --ease-sine: cubic-bezier(0.37, 0, 0.63, 1);
   /* Altura (px na janela) da linha que divide a órbita dos bits em frente e trás. */
   --orbit-y: 86px;
@@ -69,6 +70,7 @@ body {
 }
 
 .float,
+.mood,
 .wisp,
 .antenna,
 .antenna-glow,
@@ -92,18 +94,20 @@ body {
   animation: float 3.6s ease-in-out infinite;
 }
 
+/* Oscila de -1 a +5 px: centrado 2 px abaixo do meio, para os pulinhos não baterem no topo. */
 @keyframes float {
   0%,
   100% {
-    transform: translateY(3px);
+    transform: translateY(5px);
   }
   50% {
-    transform: translateY(-3px);
+    transform: translateY(-1px);
   }
 }
 
+.mood,
 .wisp {
-  /* Base da gota: o "boop" amassa e estica a partir daqui. */
+  /* Base da gota: pulos, tremidas e o "boop" amassam e esticam a partir daqui. */
   transform-origin: 64px 104px;
 }
 
@@ -410,7 +414,7 @@ body {
   width: var(--size);
   height: var(--size);
   border-radius: 1px;
-  background: #cffafe;
+  background: var(--spark);
   box-shadow: 0 0 3px 1px rgb(var(--glow) / 0.75);
   animation: spark-y var(--dur) var(--ease-sine) calc(var(--delay) - var(--dur) / 2) infinite
     alternate;
@@ -463,6 +467,301 @@ body {
   --tilt: -3deg;
 }
 
+/* ---- Camadas dos estados --------------------------------------------- */
+
+/* Brilho extra que pisca a cada pedaço de texto (animado pelo Mascot.tsx). */
+.pulse {
+  position: absolute;
+  left: 16px;
+  top: 22px;
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    rgb(var(--glow-core) / 0.55),
+    rgb(var(--glow) / 0.22) 60%,
+    rgb(var(--glow) / 0)
+  );
+  opacity: 0;
+}
+
+/* Olhos alternativos: ^ ^ (feliz) e x x (erro), no lugar dos LEDs. */
+.eye-leds,
+.eye-glyph {
+  transition: opacity 0.15s;
+}
+
+.eye-glyph {
+  fill: none;
+  stroke: var(--led-1);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  filter: url(#wisp-led-glow);
+  opacity: 0;
+}
+
+/* Bits que saltam do corpo quando ele fica feliz. */
+.burst {
+  position: absolute;
+  left: 64px;
+  top: 74px;
+}
+
+.burst i {
+  position: absolute;
+  left: -2px;
+  top: -2px;
+  width: 4px;
+  height: 4px;
+  border-radius: 1px;
+  background: var(--spark);
+  box-shadow: 0 0 3px 1px rgb(var(--glow) / 0.75);
+  opacity: 0;
+}
+
+@keyframes burst {
+  0% {
+    transform: translate(0, 0) scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(var(--bx), var(--by)) scale(1);
+    opacity: 0;
+  }
+}
+
+/* "?" do pedido de permissão, do lado do painel. */
+.ask {
+  position: absolute;
+  top: 24px;
+  left: 20px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: #fbbf24;
+  color: #451a03;
+  font:
+    800 13px/1 system-ui,
+    sans-serif;
+  box-shadow: 0 0 8px 2px rgb(251 191 36 / 0.55);
+  opacity: 0;
+  transform: scale(0.4);
+}
+
+.look-right .ask {
+  left: auto;
+  right: 20px;
+}
+
+/* ---- Estados (seção 5.3) ---------------------------------------------- */
+
+/* Falando: o brilho pulsa no ritmo do texto e os LEDs dos olhos se animam. */
+.state-talking .glow {
+  animation-duration: 1.2s;
+}
+
+.state-talking .eyes-blink {
+  animation: chatter 0.32s ease-in-out infinite alternate;
+}
+
+@keyframes chatter {
+  from {
+    transform: scaleY(1);
+  }
+  to {
+    transform: scaleY(0.7);
+  }
+}
+
+/* Trabalhando: os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido. */
+.state-working .s1 {
+  --dur: 1.7s;
+}
+
+.state-working .s2 {
+  --dur: 2.1s;
+}
+
+.state-working .s3 {
+  --dur: 2.6s;
+}
+
+.state-working .antenna {
+  scale: 1 1.2;
+  animation-duration: 1.4s;
+}
+
+.state-working .antenna-glow {
+  animation-duration: 0.5s;
+}
+
+.state-working .eyes {
+  animation: scan 2.6s ease-in-out infinite;
+}
+
+@keyframes scan {
+  0%,
+  100% {
+    transform: translate(-2.5px, -1.5px);
+  }
+  50% {
+    transform: translate(2.5px, -1.5px);
+  }
+}
+
+/* Pedindo permissão: âmbar, olhando para o painel, com um "?". */
+.state-permission {
+  --shell-0: #fff7d6;
+  --shell-1: #fcd34d;
+  --shell-2: #fbbf24;
+  --shell-3: #d97706;
+  --metal: #b45309;
+  --metal-dark: #92400e;
+  --metal-light: #fde68a;
+  --led-0: #fffbeb;
+  --led-1: #fde68a;
+  --led-2: #fbbf24;
+  --led-halo: #fcd34d;
+  --glow-core: 252 211 77;
+  --glow: 251 191 36;
+  --highlight: #fffbeb;
+  --spark: #fef3c7;
+}
+
+.state-permission .eyes {
+  animation: none;
+  transform: translateX(-3.5px);
+}
+
+.state-permission.look-right .eyes {
+  transform: translateX(3.5px);
+}
+
+.state-permission .antenna-glow {
+  animation-duration: 1.1s;
+}
+
+.state-permission .ask {
+  opacity: 1;
+  transform: none;
+  animation:
+    ask-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+    ask-bob 1.8s ease-in-out 0.35s infinite;
+}
+
+@keyframes ask-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes ask-bob {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+/* Feliz: dá um pulinho, os olhos viram ^ ^ e solta bits. */
+.state-happy .mood {
+  animation: hop 0.8s ease-out 2;
+}
+
+@keyframes hop {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: scale(1.06, 0.92);
+  }
+  45% {
+    transform: translateY(-6px) scale(0.97, 1.03);
+  }
+  70% {
+    transform: translateY(0) scale(1.03, 0.97);
+  }
+}
+
+.state-happy .eyes,
+.state-happy .eyes-blink,
+.state-error .eyes,
+.state-error .eyes-blink {
+  animation: none;
+}
+
+.state-happy .eye-leds,
+.state-error .eye-leds {
+  opacity: 0;
+}
+
+.state-happy .eye-happy,
+.state-error .eye-x {
+  opacity: 1;
+}
+
+.state-happy .burst i {
+  animation: burst 0.9s ease-out var(--bd) forwards;
+}
+
+/* Erro: fica coral, treme e os olhos viram x x. */
+.state-error {
+  --shell-0: #fee2e2;
+  --shell-1: #fca5a5;
+  --shell-2: #f87171;
+  --shell-3: #dc2626;
+  --metal: #b91c1c;
+  --metal-dark: #991b1b;
+  --metal-light: #fecaca;
+  --led-0: #fff1f2;
+  --led-1: #fecaca;
+  --led-2: #f87171;
+  --led-halo: #fca5a5;
+  --glow-core: 252 165 165;
+  --glow: 248 113 113;
+  --highlight: #fff1f2;
+  --spark: #fee2e2;
+}
+
+.state-error .mood {
+  animation: shake 0.42s linear 2;
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  15% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+  35% {
+    transform: translateX(3px) rotate(2deg);
+  }
+  55% {
+    transform: translateX(-2.5px) rotate(-1.5deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(1deg);
+  }
+}
+
+.state-error .antenna-glow {
+  animation-duration: 0.8s;
+}
+
 /* ---- Menos movimento -------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -471,11 +770,15 @@ body {
   .antenna,
   .antenna-glow,
   .eyes,
-  .wisp.boop {
+  .eyes-blink,
+  .wisp.boop,
+  .stage .mood,
+  .stage .ask {
     animation: none;
   }
 
-  .sparks {
+  .sparks,
+  .burst {
     display: none;
   }
 }

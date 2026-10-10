@@ -1,14 +1,27 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
-import type { ChatEvent, WispApi } from '../shared/ipc'
+import type { ChatEvent, MascotView, WispApi } from '../shared/ipc'
+
+/** Liga um listener a um canal do main e devolve a função que o desliga. */
+function subscribe<T extends unknown[]>(
+  channel: string,
+  listener: (...args: T) => void
+): () => void {
+  const handler = (_: IpcRendererEvent, ...args: unknown[]): void => listener(...(args as T))
+  ipcRenderer.on(channel, handler)
+  return () => ipcRenderer.removeListener(channel, handler)
+}
 
 // API mínima exposta ao renderer: só funções específicas, nunca o ipcRenderer cru.
 const api: WispApi = {
   mascot: {
     dragStart: (offsetX, offsetY) => ipcRenderer.send(IPC.mascotDragStart, offsetX, offsetY),
     dragEnd: () => ipcRenderer.send(IPC.mascotDragEnd),
-    click: () => ipcRenderer.send(IPC.mascotClick)
+    click: () => ipcRenderer.send(IPC.mascotClick),
+    ready: () => ipcRenderer.send(IPC.mascotReady),
+    onState: (listener) => subscribe<[MascotView]>(IPC.mascotState, listener),
+    onPulse: (listener) => subscribe<[]>(IPC.mascotPulse, listener)
   },
   chat: {
     ready: () => ipcRenderer.send(IPC.chatReady),
@@ -18,11 +31,8 @@ const api: WispApi = {
     newConversation: () => ipcRenderer.send(IPC.chatNew),
     hide: () => ipcRenderer.send(IPC.chatHide),
     answerPermission: (id, decision) => ipcRenderer.send(IPC.chatPermission, id, decision),
-    onEvent: (listener) => {
-      const handler = (_: IpcRendererEvent, event: ChatEvent): void => listener(event)
-      ipcRenderer.on(IPC.chatEvent, handler)
-      return () => ipcRenderer.removeListener(IPC.chatEvent, handler)
-    }
+    answerQuestion: (id, answers) => ipcRenderer.send(IPC.chatAnswer, id, answers),
+    onEvent: (listener) => subscribe<[ChatEvent]>(IPC.chatEvent, listener)
   }
 }
 

@@ -2,14 +2,19 @@ import { BrowserWindow, ipcMain, screen } from 'electron'
 import type { IpcMainEvent, Rectangle } from 'electron'
 import { getConfig, updateConfig } from './config'
 import type { Point } from './config'
-import { loadPage, PRELOAD } from './page'
+import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { IPC } from '../shared/ipc'
+import type { MascotView } from '../shared/ipc'
 
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
 const DRAG_TICK_MS = 16
 
 let mascotWin: BrowserWindow | null = null
+/** O estado atual, reenviado quando a página (re)carrega. */
+let view: MascotView = { state: 'idle', look: 'left' }
+/** O usuário escondeu o mascote pelo menu da bandeja (só nesta execução). */
+let hiddenByUser = false
 
 /** Cria a janela do mascote e liga o arraste. `onClick` roda a cada clique sem arraste. */
 export function setupMascot(onClick: () => void): void {
@@ -17,6 +22,9 @@ export function setupMascot(onClick: () => void): void {
   ipcMain.on(IPC.mascotDragEnd, onDragEnd)
   ipcMain.on(IPC.mascotClick, (event) => {
     if (fromMascot(event)) onClick()
+  })
+  ipcMain.on(IPC.mascotReady, (event) => {
+    if (fromMascot(event)) event.sender.send(IPC.mascotState, view)
   })
 
   screen.on('display-removed', keepMascotOnScreen)
@@ -28,6 +36,34 @@ export function setupMascot(onClick: () => void): void {
 /** Onde o mascote está agora (para ancorar o chat ao lado dele). */
 export function getMascotBounds(): Rectangle | null {
   return mascotWin?.getBounds() ?? null
+}
+
+/** Mostra um estado no mascote (seção 5.3). */
+export function setMascotView(next: MascotView): void {
+  if (next.state === view.state && next.look === view.look) return
+  view = next
+  mascotWin?.webContents.send(IPC.mascotState, view)
+}
+
+/** Faz o brilho pulsar uma vez (no ritmo do texto que chega). */
+export function pulseMascot(): void {
+  mascotWin?.webContents.send(IPC.mascotPulse)
+}
+
+/** Se o mascote deve aparecer (a janela pode ainda estar carregando). */
+export function isMascotVisible(): boolean {
+  return !hiddenByUser
+}
+
+/** Esconde ou mostra o mascote (menu da bandeja). Mostrar não rouba o foco. */
+export function setMascotVisible(visible: boolean): void {
+  hiddenByUser = !visible
+  if (!mascotWin) return
+  if (visible) mascotWin.showInactive()
+  else {
+    stopDrag()
+    mascotWin.hide()
+  }
 }
 
 function createMascotWindow(): BrowserWindow {
@@ -64,13 +100,16 @@ function createMascotWindow(): BrowserWindow {
     }
   })
 
-  win.once('ready-to-show', () => win.showInactive())
+  win.once('ready-to-show', () => {
+    if (!hiddenByUser) win.showInactive()
+  })
   win.on('closed', () => {
     stopDrag()
     mascotWin = null
   })
   // Sem o renderer ninguém avisa o fim do arraste; sem isso o mascote seguiria o cursor.
   win.webContents.on('render-process-gone', () => stopDrag())
+  reloadOnCrash(win)
 
   // A janela só mostra conteúdo local: nada de abrir popups ou navegar para fora.
   win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))

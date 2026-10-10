@@ -2,6 +2,7 @@ import type { JSX, ReactNode } from 'react'
 import type { PermissionDecision } from '../../shared/ipc'
 import { toolLabel } from './state'
 import type { Item, PermissionStatus } from './state'
+import { useArmed } from './useArmed'
 
 type PermissionItem = Extract<Item, { kind: 'permission' }>
 
@@ -83,6 +84,7 @@ const RESULT: Record<Exclude<PermissionStatus, 'pending'>, string> = {
   allow: 'Permitido',
   'allow-always': 'Permitido nesta conversa',
   deny: 'Negado',
+  answered: 'Respondido',
   cancelled: 'Cancelado'
 }
 
@@ -94,6 +96,10 @@ export function PermissionCard({
   request: PermissionItem
   onAnswer: (decision: PermissionDecision) => void
 }): JSX.Element {
+  const armed = useArmed()
+  const answer = (decision: PermissionDecision) => () => {
+    if (armed()) onAnswer(decision)
+  }
   const { title, body } = describe(request.toolName, request.input)
   const alwaysHint =
     request.toolName === 'Bash'
@@ -106,16 +112,16 @@ export function PermissionCard({
       <div className="permission-body">{body}</div>
       {request.status === 'pending' ? (
         <div className="permission-actions">
-          <button type="button" className="allow" onClick={() => onAnswer('allow')}>
+          <button type="button" className="allow" onClick={answer('allow')}>
             Permitir
           </button>
-          <button type="button" className="deny" onClick={() => onAnswer('deny')}>
+          <button type="button" className="deny" onClick={answer('deny')}>
             Negar
           </button>
           <button
             type="button"
             className="always"
-            onClick={() => onAnswer('allow-always')}
+            onClick={answer('allow-always')}
             title={alwaysHint}
           >
             Permitir sempre nesta conversa

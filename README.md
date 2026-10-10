@@ -5,9 +5,15 @@
 Um assistente para Linux com um mascote animado que flutua na tela. O cérebro é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code) rodando em modo headless.
 
-**Status:** Etapa 4 de 5 (mascote + chat com o Claude Code + ferramentas de desktop com pedido
-de permissão + anexos). Os estados do mascote e o ícone na bandeja entram na Etapa 5. O que vem
-depois do MVP está no [ROADMAP.md](ROADMAP.md).
+**Status:** MVP completo. As cinco etapas da especificação estão prontas:
+
+1. mascote;
+2. chat com o Claude Code;
+3. ferramentas de desktop com pedido de permissão;
+4. anexos;
+5. estados do mascote, bandeja e acabamento.
+
+O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
 ## Requisitos
 
@@ -18,6 +24,8 @@ depois do MVP está no [ROADMAP.md](ROADMAP.md).
 - Para abrir apps: `gtk-launch` (pacote `libgtk-3-bin` no Ubuntu/Debian) ou `gio` (pacote
   `libglib2.0-bin`, que já vem com o GNOME); no KDE, o `kioclient` também serve. Para abrir
   links: `xdg-open` (pacote `xdg-utils`)
+- Para o ícone na bandeja: no Ubuntu e no KDE já funciona. Em outros GNOME, instale a extensão
+  "AppIndicator and KStatusNotifierItem Support". O mascote e o chat funcionam sem ela
 
 ## Rodando
 
@@ -112,21 +120,44 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] As cópias ficam em `~/.cache/wisp/anexos/<id da conversa>/`, e uma conversa nova usa outra
       pasta.
 
+### Estados, bandeja e acabamento (Etapa 5)
+
+- [ ] **Mensagem normal:**
+  - enquanto o Claude pensa, o mascote trabalha: bits mais rápidos e antena esticada;
+  - enquanto o texto chega, ele fala, com o brilho pulsando;
+  - no fim, dá um pulinho com os olhos `^ ^`.
+- [ ] **Card de permissão na tela:** o mascote fica âmbar, olha para o painel e mostra um "?".
+- [ ] **Erro** (por exemplo, sem internet):
+  - o mascote fica coral, treme e os olhos viram `x x`;
+  - o chat explica o erro em português;
+  - no limite do plano, o aviso diz a que horas ele libera.
+- [ ] **Bandeja:** o ícone do Wisp aparece, com **Ocultar mascote** (e **Mostrar mascote**),
+      **Nova conversa**, **Abrir config** e **Sair**.
+- [ ] **Tema:** trocar o tema do sistema entre claro e escuro troca o painel na hora.
+- [ ] **Pergunta com opções:** peça "me pergunte qual cor eu prefiro, com opções".
+  - Aparece um card com um botão por opção, e a resposta chega ao Claude.
+  - Dá para escrever outra resposta ou pular.
+- [ ] **Clique acidental:** nos primeiros meio segundo, os botões de um card que acabou de
+      aparecer ignoram cliques.
+- [ ] **Config inválido:** um valor inválido no `config.json` (por exemplo, `"editorCommand": 42`)
+      vira um aviso no chat quando você abre o painel.
+- [ ] **Claude instalado pelo npm ou nvm:** o Wisp o encontra mesmo aberto pelo menu do sistema.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
 contorno, junta e parafusos, um visor escuro com dois olhos de LED, uma antena com uma lâmpada
-de LED na ponta e "bits" quadradinhos em órbita, tudo com um glow suave. Os estados das próximas
-etapas seguem o mesmo estilo:
+de LED na ponta e "bits" quadradinhos em órbita, tudo com um glow suave. Ele acompanha a conversa
+(seção 5.3 da especificação):
 
-| Estado            | Como fica                                                                 |
-| ----------------- | ------------------------------------------------------------------------- |
-| Ocioso            | Flutua, a antena balança, o LED respira, os olhos piscam e olham em volta |
-| Falando           | O brilho pulsa no ritmo do texto e os LEDs dos olhos se animam            |
-| Trabalhando       | Os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido |
-| Pedindo permissão | Casco e LEDs âmbar (`#FBBF24`), olhos virados para o chat e "?" no visor  |
-| Feliz             | Dá um pulinho, os olhos viram `^ ^` e solta bits                          |
-| Erro              | Fica coral (`#F87171`), treme e os olhos viram "x" no visor               |
+| Estado            | Como fica                                                                                                 |
+| ----------------- | --------------------------------------------------------------------------------------------------------- |
+| Ocioso            | Flutua, a antena balança, o LED respira, os olhos piscam e olham em volta                                 |
+| Falando           | O brilho pulsa no ritmo do texto e os LEDs dos olhos se animam                                            |
+| Trabalhando       | Os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido                                 |
+| Pedindo permissão | Casco e LEDs âmbar (`#FBBF24`), olhos virados para o painel e um "?" ao lado da cabeça, do lado do painel |
+| Feliz             | Dá dois pulinhos, os olhos viram `^ ^` e solta bits (por uns 2 s, no fim de uma resposta)                 |
+| Erro              | Fica coral (`#F87171`), treme e os olhos viram `x x` (por uns 5 s)                                        |
 
 As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las.
 
@@ -145,16 +176,24 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
 ```
 
 `mascotPosition` é atualizada sempre que você solta o mascote. Para ele voltar ao canto
-padrão, troque por `null`. Se um campo tiver um valor inválido, o Wisp avisa no terminal e usa
-o padrão daquele campo, sem apagar o que você escreveu. Se o arquivo não for um JSON válido,
+padrão, troque por `null`. Se um campo tiver um valor inválido, o Wisp avisa no chat (e no
+terminal) e usa o padrão daquele campo, sem apagar o que você escreveu. Se o arquivo não for um JSON válido,
 ele continua com a configuração anterior (ou com os padrões, se acabou de abrir) e não
 sobrescreve o arquivo até você corrigir.
 
 Dá para editar o arquivo com o Wisp aberto: `projectRoots` e `editorCommand` valem na hora;
 `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
 
-`claudePath` é o comando do Claude Code. Um nome simples é procurado no `PATH` e também em
-`~/.local/bin` e `~/.claude/local`, onde os instaladores costumam colocá-lo.
+`claudePath` é o comando do Claude Code. Um app aberto pelo menu do sistema recebe um `PATH` curto,
+então um nome simples é procurado em vários lugares:
+
+- no `PATH`;
+- em `~/.local/bin` e `~/.claude/local`, onde fica o instalador oficial;
+- nas pastas do npm global, Volta, Bun, pnpm, Yarn, asdf e mise;
+- nas versões do nvm e do fnm, da mais nova para a mais antiga.
+
+Se o `config.json` for um link simbólico (comum em quem versiona os dotfiles), o Wisp grava no
+arquivo de destino e mantém as permissões dele.
 
 `projectRoots` são as pastas onde o Wisp procura projetos: pastas com `.git` até dois níveis
 abaixo delas (pulando pastas ocultas, `node_modules`, `build` etc.). Só projetos dentro delas
@@ -174,19 +213,22 @@ apaga as pastas de conversas com mais de 7 dias.
 
 ## Problemas comuns
 
-| Sintoma                                    | O que fazer                                                                                                    |
-| ------------------------------------------ | -------------------------------------------------------------------------------------------------------------- |
-| Fecha na hora com `No usable sandbox!`     | `npm run setup:apparmor` (veja acima)                                                                          |
-| Rodando como root, recusa abrir            | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
-| Quadrado preto em vez de transparência     | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
-| Não fica no topo ou não se move            | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
-| "Não encontrei o Claude Code"              | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
-| Aviso de "chave de API, cobrada por uso"   | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
-| "Não achei um lançador de apps"            | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                              |
-| "Não achei o editor"                       | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
-| O projeto não aparece ou não abre          | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
-| "As ferramentas do desktop não conectaram" | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
-| "… não veio de uma pasta do computador"    | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o     |
+| Sintoma                                     | O que fazer                                                                                                    |
+| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Fecha na hora com `No usable sandbox!`      | `npm run setup:apparmor` (veja acima)                                                                          |
+| Rodando como root, recusa abrir             | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
+| Quadrado preto em vez de transparência      | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
+| Não fica no topo ou não se move             | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
+| "Não encontrei o Claude Code"               | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
+| Aviso de "chave de API, cobrada por uso"    | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
+| "Não achei um lançador de apps"             | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                              |
+| "Não achei o editor"                        | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
+| O projeto não aparece ou não abre           | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
+| "As ferramentas do desktop não conectaram"  | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
+| "… não veio de uma pasta do computador"     | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o     |
+| Sem ícone na bandeja                        | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                     |
+| O mascote sumiu                             | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                    |
+| "Você chegou ao limite de uso do seu plano" | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                     |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -208,20 +250,26 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 src/
 ├─ main/
 │  ├─ index.ts       # ciclo de vida do app
-│  ├─ mascot.ts      # janela do mascote e arraste
+│  ├─ mascot.ts      # janela do mascote, arraste e estado mostrado
+│  ├─ mood.ts        # estado do mascote a partir dos eventos da conversa
+│  ├─ tray.ts        # ícone e menu da bandeja
 │  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
 │  ├─ claude.ts      # processo `claude -p` + leitura do stream-json
 │  ├─ mcp-server.ts  # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
+│  ├─ questions.ts   # perguntas do Claude (AskUserQuestion): leitura e conferência das respostas
 │  ├─ desktop.ts     # apps (.desktop), links, projetos: o que as ferramentas fazem
 │  ├─ attachments.ts # cópia dos anexos para ~/.cache/wisp/anexos e limpeza das antigas
 │  ├─ config.ts      # ~/.config/wisp/config.json
+│  ├─ page.ts        # carregar as páginas e recarregá-las se caírem
 │  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
 ├─ preload/          # expõe window.wisp (só funções específicas)
 ├─ shared/ipc.ts     # canais de IPC, eventos da conversa e o tipo da API
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/          # Chat.tsx, Markdown, cards de ferramenta e de permissão, anexos, chat.css
-resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
+   └─ chat/          # Chat.tsx, Markdown, cards de ferramenta, permissão e pergunta, anexos
+resources/
+├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
+└─ workspace/CLAUDE.md # persona, copiada para o workspace na 1ª vez
 ```
 
 - **Janela do mascote:** 128×128, transparente, sem moldura e sempre no topo. O Electron
@@ -288,3 +336,38 @@ resources/workspace/CLAUDE.md   # persona, copiada para o workspace na 1ª vez
   espaço de trabalho dele com `--add-dir`. Os limites são 20 arquivos por mensagem e 50 MB por
   arquivo, conferidos ao anexar e de novo ao copiar. Como o id da conversa já existe antes da
   primeira resposta, a pasta dos anexos tem o mesmo id da sessão do Claude Code.
+- **Estados do mascote:** o `mood.ts` acompanha os eventos da conversa e escolhe o estado, nesta
+  ordem de prioridade:
+  1. pedindo permissão, enquanto há um card esperando;
+  2. feliz (uns 2 s) ou erro (uns 5 s) quando o turno acaba;
+  3. falando, enquanto o texto chega, ou trabalhando, no resto do turno;
+  4. ocioso.
+
+  O mascote recebe o estado por IPC e troca uma classe CSS. O brilho pulsa a cada pedaço de texto,
+  no máximo umas 7 vezes por segundo, e as animações continuam em `transform` e `opacity`.
+
+- **Bandeja:** o ícone usa o protocolo StatusNotifierItem pelo D-Bus (a extensão AppIndicator no
+  GNOME, nativo no KDE). Todas as ações ficam no menu, porque muitos painéis não repassam o clique
+  no ícone. Esconder o mascote vale só até o app fechar: sem a bandeja, não haveria como trazê-lo
+  de volta.
+- **Perguntas do Claude:** quando o Claude usa o `AskUserQuestion`, o pedido chega ao `approve`, e
+  o chat mostra um card com um botão por opção.
+  - **Responder:** a resposta volta como `allow` com `updatedInput.answers`, um mapa do texto da
+    pergunta para a resposta, conferido no main contra as perguntas feitas. Opções de múltipla
+    escolha vão juntas, separadas por vírgula, o formato que todas as versões do CLI aceitam.
+  - **Pular:** nega o pedido com "O usuário preferiu não responder.".
+- **Cards seguros:**
+  - os botões ignoram cliques nos primeiros 600 ms, porque o card pode surgir embaixo do cursor;
+  - se o Claude Code desistir do pedido (o SDK do MCP avisa a ferramenta), o card vira
+    **Cancelado**.
+- **Erros:**
+  - limite do plano, servidores sobrecarregados e falta de rede viram avisos em português. No
+    limite, o horário vem do `rate_limit_event`;
+  - se o processo cai, o aviso mostra o fim do stderr;
+  - a mensagem de erro crua do CLI não aparece como resposta, porque o aviso já cobre o erro;
+  - problemas no `config.json` aparecem no chat;
+  - se a página do painel ou do mascote cair, ela recarrega sozinha. Se cair de novo logo depois,
+    o Wisp desiste, para não entrar num laço. No painel, a resposta em andamento e os cards
+    pendentes voltam para a tela.
+- **Tema:** o painel segue o tema do sistema na hora (`prefers-color-scheme`), e o fundo da janela
+  acompanha pelo `nativeTheme`.

@@ -1,9 +1,9 @@
 import { spawn } from 'child_process'
 import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
 import { randomUUID } from 'crypto'
-import { accessSync, constants, statSync } from 'fs'
+import { accessSync, constants, readdirSync, statSync } from 'fs'
 import { homedir } from 'os'
-import { delimiter, join } from 'path'
+import { delimiter, dirname, join } from 'path'
 import type { ChatEvent, NoticeLevel } from '../shared/ipc'
 import {
   ATTACHMENTS_DIR,
@@ -104,8 +104,11 @@ export const INSTALL_HINT =
   'login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ' +
   'caminho em `claudePath` no `~/.config/wisp/config.json`.'
 
-/** Ferramentas internas que não viram card: o ToolSearch só carrega outras ferramentas. */
-const HIDDEN_TOOLS = new Set(['ToolSearch'])
+/**
+ * Ferramentas que não viram card de ferramenta: o ToolSearch só carrega outras ferramentas, e as
+ * perguntas (AskUserQuestion) já aparecem no card de pergunta.
+ */
+const HIDDEN_TOOLS = new Set(['ToolSearch', 'AskUserQuestion'])
 
 const MAX_TOOL_OUTPUT = 4000
 const STDERR_TAIL = 2000
@@ -123,14 +126,50 @@ const AUTH_TIMEOUT_MS = 15000
 export function resolveCommand(command: string): string | null {
   const candidates = command.includes('/')
     ? [expandHome(command)]
-    : [
-        ...(process.env.PATH ?? '').split(delimiter),
-        join(homedir(), '.local/bin'),
-        join(homedir(), '.claude/local')
-      ]
+    : [...(process.env.PATH ?? '').split(delimiter), ...installDirs()]
         .filter(Boolean)
         .map((dir) => join(dir, command))
   return candidates.find(isExecutableFile) ?? null
+}
+
+/**
+ * Onde o instalador do Claude Code e os gerenciadores de Node deixam o `claude`. Um app aberto
+ * pelo menu do sistema ou no login recebe um PATH curto, sem essas pastas.
+ */
+function installDirs(): string[] {
+  const home = homedir()
+  return [
+    join(home, '.local/bin'),
+    join(home, '.claude/local'),
+    join(home, '.npm-global/bin'),
+    join(home, '.volta/bin'),
+    join(home, '.bun/bin'),
+    join(home, '.local/share/pnpm'),
+    join(home, '.yarn/bin'),
+    join(home, '.asdf/shims'),
+    join(home, '.local/share/mise/shims'),
+    ...nodeVersionDirs(join(home, '.nvm/versions/node'), 'bin'),
+    ...nodeVersionDirs(join(home, '.local/share/fnm/node-versions'), 'installation/bin')
+  ]
+}
+
+/** A pasta bin de cada versão do Node instalada (nvm, fnm), da mais nova para a mais velha. */
+function nodeVersionDirs(root: string, bin: string): string[] {
+  let names: string[]
+  try {
+    names = readdirSync(root)
+  } catch {
+    return []
+  }
+  const parts = (name: string): number[] => name.replace(/^v/, '').split('.').map(Number)
+  const newerFirst = (a: string, b: string): number => {
+    const [x, y] = [parts(a), parts(b)]
+    return y[0] - x[0] || y[1] - x[1] || y[2] - x[2]
+  }
+  return names
+    .filter((name) => /^v?\d+\.\d+\.\d+$/.test(name))
+    .sort(newerFirst)
+    .map((name) => join(root, name, bin))
 }
 
 function isExecutableFile(path: string): boolean {
@@ -146,9 +185,14 @@ function isExecutableFile(path: string): boolean {
  * Ambiente do CLI: o do app, sem ANTHROPIC_API_KEY. Com essa variável definida, o Claude Code
  * cobra o uso pela API em vez de usar a assinatura.
  */
-function claudeEnv(): NodeJS.ProcessEnv {
+function claudeEnv(bin: string): NodeJS.ProcessEnv {
   const env = { ...process.env }
   delete env.ANTHROPIC_API_KEY
+  // O `claude` instalado pelo npm é um script `#!/usr/bin/env node`: a pasta dele (onde, no nvm,
+  // fica o node da mesma versão) vai na frente do PATH.
+  const dir = dirname(bin)
+  const path = (env.PATH ?? '').split(delimiter).filter(Boolean)
+  if (!path.includes(dir)) env.PATH = [dir, ...path].join(delimiter)
   return env
 }
 
@@ -162,7 +206,7 @@ export async function checkClaude(command: string): Promise<CheckResult> {
   const status = await new Promise<{ code: number | null; stdout: string; failed: boolean }>(
     (resolve) => {
       const child = spawn(bin, ['auth', 'status', '--json'], {
-        env: claudeEnv(),
+        env: claudeEnv(bin),
         stdio: ['ignore', 'pipe', 'ignore'],
         timeout: AUTH_TIMEOUT_MS
       })
@@ -206,6 +250,7 @@ interface CliEvent {
   apiKeySource?: string
   permissionMode?: string
   mcp_servers?: { name: string; status: string }[]
+  rate_limit_info?: { status?: string; resetsAt?: number }
   parent_tool_use_id?: string | null
   error?: string
   is_error?: boolean
@@ -249,6 +294,46 @@ function describeError(event: CliEvent): string {
 }
 
 const LOGIN_ERROR = /not logged in|\/login|log in|authenticat|oauth token/i
+const PLAN_LIMIT = /usage limit|limit reached|rate.?limit/i
+const OVERLOADED = /overloaded|\b529\b/i
+const NETWORK =
+  /connection error|fetch failed|network|ENOTFOUND|ECONNREFUSED|ECONNRESET|ETIMEDOUT|EAI_AGAIN|socket hang up/i
+
+/** Quando o limite libera, do jeito que se fala: "às 15:40" hoje, "em 12/10 às 09:00" depois. */
+export function formatReset(resetsAt: number, now = new Date()): string {
+  const date = new Date(resetsAt * 1000)
+  const time = date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+  if (date.toDateString() === now.toDateString()) return `às ${time}`
+  const day = date.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
+  return `em ${day} às ${time}`
+}
+
+/**
+ * Explica os erros mais comuns em português, com o texto original como detalhe. `resetsAt` vem
+ * do rate_limit_event, quando o CLI avisou que o limite do plano foi atingido.
+ */
+export function friendlyError(text: string, limited: boolean, resetsAt: number | null): string {
+  const detail = `\n\nDetalhe: \`${text.replace(/`/g, "'").slice(0, 300)}\``
+  if (limited || PLAN_LIMIT.test(text)) {
+    // Versões antigas do CLI mandam o horário no próprio texto: "...limit reached|1791613800".
+    const when = resetsAt ?? Number(/\|(\d{10})\b/.exec(text)?.[1] ?? NaN)
+    const free = Number.isFinite(when) ? ` Ele libera de novo ${formatReset(when)}.` : ''
+    return `Você chegou ao limite de uso do seu plano do Claude.${free}`
+  }
+  if (OVERLOADED.test(text)) {
+    return (
+      'Os servidores do Claude estão sobrecarregados agora. Tente de novo daqui a pouco.' + detail
+    )
+  }
+  if (NETWORK.test(text)) {
+    return (
+      'Não consegui falar com os servidores do Claude. Confira sua conexão com a internet e ' +
+      'tente de novo.' +
+      detail
+    )
+  }
+  return text
+}
 
 // ---------------------------------------------------------------------------
 // Sessão
@@ -281,11 +366,18 @@ export class ClaudeSession {
   private warnedApiKey = false
   private warnedMcp = false
   private warnedMode = false
+  /** O CLI avisou (rate_limit_event) que o limite do plano foi atingido; até quando, se disse. */
+  private planLimit: { resetsAt: number | null } | null = null
 
   constructor(
     private readonly options: ClaudeOptions,
     private readonly emit: (event: ChatEvent) => void
   ) {}
+
+  /** Se há uma resposta em andamento (do envio até o fim do turno). */
+  isBusy(): boolean {
+    return this.busy
+  }
 
   /** Checa o CLI de antemão (ao abrir o chat) e avisa na conversa se faltar algo. */
   async preflight(): Promise<void> {
@@ -305,6 +397,8 @@ export class ClaudeSession {
     if (!bin) return this.finishTurn('error')
 
     const sessionId = (this.sessionId ??= randomUUID())
+    // O aviso de limite vale para o turno em que chegou; cada turno traz o seu.
+    this.planLimit = null
     let content = text
     if (attachments.length) {
       let copied: CopiedAttachments
@@ -411,7 +505,7 @@ export class ClaudeSession {
     if (this.sessionId) args.push(this.sessionSaved ? '--resume' : '--session-id', this.sessionId)
 
     ensureAttachmentsDir()
-    const proc = spawn(bin, args, { cwd: this.options.workspace(), env: claudeEnv() })
+    const proc = spawn(bin, args, { cwd: this.options.workspace(), env: claudeEnv(bin) })
     this.proc = proc
 
     // Eventos de um processo que já foi substituído (conversa nova) são ignorados.
@@ -489,7 +583,18 @@ export class ClaudeSession {
         return this.onUser(event)
       case 'result':
         return this.onResult(event)
+      case 'rate_limit_event':
+        return this.onRateLimit(event)
     }
+  }
+
+  private onRateLimit(event: CliEvent): void {
+    const info = event.rate_limit_info
+    if (!info) return
+    this.planLimit =
+      info.status === 'rejected'
+        ? { resetsAt: typeof info.resetsAt === 'number' ? info.resetsAt : null }
+        : null
   }
 
   private onSystem(event: CliEvent): void {
@@ -551,6 +656,9 @@ export class ClaudeSession {
       this.bin = null
       this.notice('warning', LOGIN_HINT)
     }
+    // Uma mensagem de erro (falha da API, limite) vem só com o texto cru do erro; o fim do turno
+    // traz o mesmo erro, explicado no aviso.
+    if (event.error) return
     if (!message?.id || !Array.isArray(message.content)) return
     for (const block of message.content) {
       if (block.type === 'tool_use' && block.id) {
@@ -591,7 +699,10 @@ export class ClaudeSession {
       this.bin = null
       this.notice('warning', LOGIN_HINT)
     } else {
-      this.notice('error', text)
+      this.notice(
+        'error',
+        friendlyError(text, this.planLimit !== null, this.planLimit?.resetsAt ?? null)
+      )
     }
     this.finishTurn('error')
   }
