@@ -16,9 +16,13 @@ export interface ApprovalRequest {
   toolName: string
   input: unknown
   toolUseId?: string
+  /** Disparado se o Claude Code desistir do pedido (turno interrompido, conexão fechada). */
+  signal?: AbortSignal
 }
 
-export type Approval = { allow: true } | { allow: false; message: string }
+/** A decisão. `updatedInput` troca a entrada da ferramenta (as respostas de uma pergunta). */
+export type Approval =
+  { allow: true; updatedInput?: Record<string, unknown> } | { allow: false; message: string }
 
 export interface DesktopServerOptions {
   /** Mostra o card de permissão no chat e resolve quando o usuário decidir. */
@@ -164,14 +168,15 @@ function buildMcpServer(options: DesktopServerOptions): McpServer {
         tool_use_id: z.string().optional()
       }
     },
-    async ({ tool_name, input, tool_use_id }) => {
+    async ({ tool_name, input, tool_use_id }, extra) => {
       const approval = await options.requestApproval({
         toolName: tool_name,
         input,
-        toolUseId: tool_use_id
+        toolUseId: tool_use_id,
+        signal: extra.signal
       })
       const decision = approval.allow
-        ? { behavior: 'allow', updatedInput: input }
+        ? { behavior: 'allow', updatedInput: approval.updatedInput ?? input }
         : { behavior: 'deny', message: approval.message }
       return text(JSON.stringify(decision))
     }

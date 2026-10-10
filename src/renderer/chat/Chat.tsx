@@ -6,6 +6,7 @@ import { AttachmentList } from './AttachmentList'
 import { Avatar, CloseIcon, PaperclipIcon, PlusIcon, SendIcon, StopIcon } from './icons'
 import { Markdown } from './Markdown'
 import { PermissionCard } from './PermissionCard'
+import { QuestionCard } from './QuestionCard'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
 import type { Item } from './state'
 import { ToolCard } from './ToolCard'
@@ -38,7 +39,12 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
         </div>
       )
     case 'permission':
-      return (
+      return item.toolName === 'AskUserQuestion' ? (
+        <QuestionCard
+          request={item}
+          onAnswer={(answers) => window.wisp.chat.answerQuestion(item.id, answers)}
+        />
+      ) : (
         <PermissionCard
           request={item}
           onAnswer={(decision) => window.wisp.chat.answerPermission(item.id, decision)}

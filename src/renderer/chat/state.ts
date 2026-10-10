@@ -3,7 +3,8 @@ import type { ChatEvent, NoticeLevel, PermissionDecision } from '../../shared/ip
 /** "waiting": parada esperando o usuário responder o card de permissão. */
 export type ToolStatus = 'running' | 'waiting' | 'done' | 'error' | 'stopped'
 
-export type PermissionStatus = 'pending' | PermissionDecision | 'cancelled'
+/** 'answered': uma pergunta do Claude respondida; 'deny' numa pergunta é "pulada". */
+export type PermissionStatus = 'pending' | PermissionDecision | 'answered' | 'cancelled'
 
 /** Como um anexo aparece na conversa. */
 export interface AttachmentPreview {
@@ -27,6 +28,8 @@ export type Item =
       input: unknown
       toolUseId?: string
       status: PermissionStatus
+      /** Respostas dadas, quando é uma pergunta do Claude. */
+      answers?: Record<string, string>
     }
 
 export interface ChatState {
@@ -124,12 +127,18 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'permission-resolved': {
       const request = findItem(state, 'permission', event.id)
       if (!request) return state
-      let next = replaceItem(state, request, { ...request, status: event.decision })
+      let next = replaceItem(state, request, {
+        ...request,
+        status: event.decision,
+        answers: event.answers
+      })
       // Liberada, a ferramenta volta a rodar; negada, o resultado de erro chega em seguida.
       const tool = request.toolUseId ? findItem(next, 'tool', request.toolUseId) : undefined
       if (
         tool?.status === 'waiting' &&
-        (event.decision === 'allow' || event.decision === 'allow-always')
+        (event.decision === 'allow' ||
+          event.decision === 'allow-always' ||
+          event.decision === 'answered')
       ) {
         next = replaceItem(next, tool, { ...tool, status: 'running' })
       }
@@ -168,15 +177,28 @@ export function toolLabel(name: string): string {
   return name.replace(/^mcp__[^_]+(?:_[^_]+)*__/, '')
 }
 
+/** O card de permissão (ou pergunta) esperando resposta, se houver. */
+function pendingRequest(state: ChatState): Extract<Item, { kind: 'permission' }> | undefined {
+  return state.items.find(
+    (item): item is Extract<Item, { kind: 'permission' }> =>
+      item.kind === 'permission' && item.status === 'pending'
+  )
+}
+
 /** Algum card de permissão esperando resposta? */
 export function awaitingPermission(state: ChatState): boolean {
-  return state.items.some((item) => item.kind === 'permission' && item.status === 'pending')
+  return pendingRequest(state) !== undefined
 }
 
 /** O que o cabeçalho mostra embaixo do nome. */
 export function statusText(state: ChatState): string {
   if (!state.busy) return 'pronto'
-  if (awaitingPermission(state)) return 'esperando sua permissão…'
+  const pending = pendingRequest(state)
+  if (pending) {
+    return pending.toolName === 'AskUserQuestion'
+      ? 'esperando sua resposta…'
+      : 'esperando sua permissão…'
+  }
   const last = state.items[state.items.length - 1]
   if (last?.kind === 'tool' && last.status === 'running') return `usando ${toolLabel(last.name)}…`
   if (last?.kind === 'text') return 'respondendo…'

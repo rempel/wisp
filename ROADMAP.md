@@ -81,38 +81,20 @@ Mecânicas, tempos e soluções técnicas, sim; arte, expressões e sons, não. 
 - **Abas no topo:** início (estado geral), chat e "+" (área para soltar arquivos).
 
 Como trazer isso para o Wisp sem perder a identidade dele (mascote flutuante com o painel ao lado)
-está nas Fases 6 e 7.
-
-## Lacunas do MVP (candidatas à Etapa 5)
-
-Coisas pequenas que apareceram agora e cabem no polimento da Etapa 5:
-
-1. **Perguntas com opções (P).**
-   - **Hoje:** quando o Claude usa o `AskUserQuestion`, o pedido chega à ferramenta `approve` com as
-     perguntas e as opções. O Wisp mostraria um card genérico com JSON, e "Permitir" faz o Claude
-     entender que você não respondeu.
-   - **O certo:** um card com um botão por opção, que responde `allow` com
-     `updatedInput.answers` (`{"texto da pergunta": "opção escolhida"}`). Testado no CLI 2.1.296.
-   - **Cuidados:** conferir as respostas contra as opções oferecidas. Na multisseleção, a resposta é
-     uma lista desde o 2.1.136.
-2. **Trava contra clique acidental (P).** Ignorar cliques nos botões do card de permissão nos
-   primeiros 600 ms, porque o card pode surgir embaixo do cursor. A ideia vem do Coucou.
-3. **`config.json` como link simbólico (P).**
-   - **O problema:** quem guarda dotfiles num repositório costuma ter o `~/.config/wisp/config.json`
-     como link. A gravação atual (arquivo temporário seguido de rename) troca o link por um arquivo
-     comum.
-   - **O certo:** gravar no destino do link.
-4. **Claude instalado pelo npm (P).** Aberto pelo menu do sistema ou no login, o app recebe um
-   `PATH` curto. Hoje o Wisp procura o `claude` no `PATH`, em `~/.local/bin` e em `~/.claude/local`.
-   Dá para procurar também nas pastas do nvm, Volta, Bun e pnpm e no global do npm. Isso pesa quando
-   entrar o autostart.
-5. **Escala de texto do GNOME (P).** Conferir o mascote e o painel numa máquina com a escala de
-   texto diferente de 100%.
+está nas Fases 6 e 8.
 
 ## Fases depois do MVP
 
 A Etapa 5 já liga os estados do mascote à conversa (falando, trabalhando, pedindo permissão, feliz,
 erro). O que está aqui vai além dela.
+
+As lacunas que apareceram no fim da Etapa 4 também entraram na Etapa 5:
+
+- perguntas com opções;
+- trava contra clique acidental;
+- `config.json` como link simbólico;
+- `claude` instalado pelo npm;
+- escala de texto do GNOME.
 
 ### Fase 6: conversa
 
@@ -157,7 +139,46 @@ O painel ganha a cara e os recursos que fazem falta no uso diário.
 - Parar interrompe sem reiniciar o processo;
 - uma conversa de ontem reabre pelo histórico.
 
-### Fase 7: personalidade
+### Fase 7: escutar e gerenciar as sessões do Claude Code
+
+O que você mais gostou no Coucou. O Wisp "escuta" as sessões do Claude Code que você roda no
+terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de janela.
+
+- **Escutar (M):** hooks do Claude Code instalados com cuidado.
+  - Só entram no `~/.claude/settings.json` com backup datado, diff na tela e confirmação.
+    Desinstalar remove só o que é do Wisp.
+  - Um relay pequeno conversa com o app por um socket em `$XDG_RUNTIME_DIR`: pasta 0700,
+    socket 0600, conferindo o usuário do outro lado.
+  - O Claude Code nunca trava: o relay desiste em fração de segundo se o app não responde, e, sem
+    decisão, o Claude Code pergunta no próprio terminal.
+  - Os processos do próprio Wisp são marcados por uma variável de ambiente, para não aparecerem
+    duas vezes.
+- **Ver (M):** uma aba "Sessões" no painel, com cada sessão aberta:
+  - o projeto;
+  - o estado: trabalhando, esperando você ou terminou;
+  - o passo atual ("Editando src/app.ts") e os últimos passos, com a contagem +N −M e o diff das
+    edições.
+
+  O mascote avisa quando uma sessão pede permissão, faz uma pergunta ou termina.
+
+- **Agir (M):**
+  - aprovar, negar e responder perguntas pelo mesmo card do chat;
+  - trazer o terminal da sessão para a frente: EWMH no X11 e script do KWin no KDE. No GNOME
+    Wayland não dá, então o Wisp abre a pasta do projeto no editor.
+- **Gerenciar (G):**
+  - mandar a próxima instrução para uma sessão parada, retomando-a com `claude -p --resume <id>` na
+    pasta dela. Se a sessão ainda estiver aberta no terminal, o CLI cria uma cópia, e o Wisp precisa
+    avisar isso;
+  - trazer uma sessão do terminal para o chat do Wisp;
+  - listar as sessões recentes e retomar uma delas.
+
+**Aceite:**
+
+- rodar `claude` num terminal, pedir algo que precisa de permissão e aprovar pelo card do Wisp;
+- a aba Sessões mostra o que cada sessão está fazendo e avisa quando ela termina;
+- com o Wisp fechado, o Claude Code segue normal.
+
+### Fase 8: personalidade
 
 O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena.
 
@@ -179,7 +200,7 @@ O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena
   - o áudio dorme quando nada está tocando.
 - **Soltar arquivo no mascote (M),** com uma animação própria: a gotinha absorve o arquivo e o
   painel abre com ele anexado.
-- **Dançar com música (P):** um balanço quando algum player está tocando (pelo MPRIS, da Fase 8).
+- **Dançar com música (P):** um balanço quando algum player está tocando (pelo MPRIS, da Fase 9).
 - **Acessórios por data (M, opcional):** gorro no Natal, óculos no verão, com arte própria.
 - **Rive (especificação v2):** reavaliar depois desta fase. Talvez SVG e CSS bastem.
 
@@ -190,7 +211,7 @@ O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena
 - os sons podem ser desligados;
 - parado, o app não gasta CPU perceptível.
 
-### Fase 8: desktop
+### Fase 9: desktop
 
 O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquema de permissões.
 
@@ -226,7 +247,7 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 - "me lembra de beber água em 1 minuto" avisa na hora certa, mesmo com o app reiniciado no meio;
 - "pausa a música" funciona com o Spotify.
 
-### Fase 9: voz ("Whisper to Wisp", especificação v2)
+### Fase 10: voz ("Whisper to Wisp", especificação v2)
 
 - **Apertar para falar primeiro (G).**
   - Botão de microfone e atalho.
@@ -249,7 +270,7 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 **Aceite:** segurar o atalho, dizer "abre o Firefox" e soltar mostra o card de permissão do app, e
 nenhum áudio é gravado em disco.
 
-### Fase 10: distribuição e qualidade
+### Fase 11: distribuição e qualidade
 
 - **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder:
   - ícone e `.desktop`;
@@ -265,28 +286,6 @@ nenhum áudio é gravado em disco.
 - **Tela de configurações (M),** no lugar de editar o `config.json`: pastas de projetos, editor,
   sons, modelo, atalho e ferramentas liberadas.
 - **Logs (P):** limitados a 1 MB, sem comandos nem URLs.
-
-### Fase 11 (opcional): acompanhar o Claude Code do terminal
-
-Este é o coração do Coucou. Faz sentido se você também usa o Claude Code no terminal e quer que o
-Wisp avise quando uma sessão de lá precisa de você.
-
-- **Hooks instalados com cuidado (M):**
-  - no `~/.claude/settings.json`, só com backup datado, diff na tela e confirmação;
-  - um relay pequeno conversa com o app por um socket em `$XDG_RUNTIME_DIR`: pasta 0700,
-    socket 0600, conferindo o usuário do outro lado.
-- **Nunca travar o Claude Code (P):** o relay desiste em fração de segundo se o app não responde. Sem
-  decisão, o Claude Code pergunta no próprio terminal.
-- **Avisos e cards (M):**
-  - o mascote avisa quando uma sessão pede permissão, faz uma pergunta ou termina;
-  - dá para aprovar, negar e responder pelo card;
-  - os processos do próprio Wisp são marcados por uma variável de ambiente, para não aparecerem
-    duas vezes.
-
-**Aceite:**
-
-- rodar `claude` num terminal, pedir algo que precisa de permissão e aprovar pelo card do Wisp;
-- com o Wisp fechado, o Claude Code segue normal.
 
 ## Ideias avaliadas e deixadas de fora
 
@@ -306,7 +305,7 @@ Wisp avise quando uma sessão de lá precisa de você.
 - **Resumo semanal** (tarefas, tempo, apps abertos, aprovações, tudo local). É simpático, mas fica
   para quando o resto estiver pronto.
 - **A ilha no topo da tela.** A identidade do Wisp é o mascote flutuante. Um modo compacto, em que o
-  mascote vira uma aba na borda da tela e espia quando o cursor passa, pode entrar na Fase 7 se fizer
+  mascote vira uma aba na borda da tela e espia quando o cursor passa, pode entrar na Fase 8 se fizer
   falta.
 
 ## Princípios que ficam

@@ -1,4 +1,12 @@
-import { mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'fs'
+import {
+  chmodSync,
+  mkdirSync,
+  readFileSync,
+  realpathSync,
+  renameSync,
+  statSync,
+  writeFileSync
+} from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
 import { CONFIG_DIR } from './paths'
@@ -27,6 +35,28 @@ function defaults(): WispConfig {
   }
 }
 
+// Problemas da última leitura, em português, para o chat mostrar: quem abre o app pelo menu não
+// vê o terminal. Os campos inválidos se acumulam aqui enquanto o schema lê o arquivo.
+let problems: string[] = []
+let fieldProblems: string[] = []
+let problemsListener: ((problems: string[]) => void) | null = null
+
+/** O que estava errado no config.json na última leitura (vazio se nada). */
+export function configProblems(): string[] {
+  return problems
+}
+
+/** Avisa quando os problemas mudam (o arquivo foi editado com o app aberto). */
+export function onConfigProblems(listener: (problems: string[]) => void): void {
+  problemsListener = listener
+}
+
+function setProblems(next: string[]): void {
+  const changed = next.join('\n') !== problems.join('\n')
+  problems = next
+  if (changed) problemsListener?.(next)
+}
+
 // Cada campo cai no próprio padrão quando está ausente ou inválido, para que um
 // erro de digitação num campo não descarte o resto da config.
 function field<T>(key: keyof WispConfig, schema: z.ZodType<T>, fallback: () => T): z.ZodType<T> {
@@ -34,6 +64,9 @@ function field<T>(key: keyof WispConfig, schema: z.ZodType<T>, fallback: () => T
     if (ctx.input !== undefined) {
       const reason = ctx.error.issues[0]?.message
       console.warn(`[wisp] config: valor inválido em "${key}" (${reason}); usando o padrão.`)
+      fieldProblems.push(
+        `\`${key}\` tem um valor inválido; usei o padrão (\`${JSON.stringify(fallback())}\`).`
+      )
     }
     return fallback()
   })
@@ -78,9 +111,11 @@ export function loadConfig(): WispConfig {
       fileData = { ...defaults() }
       writeFile()
       console.log(`[wisp] config criada em ${CONFIG_PATH}`)
+      setProblems([])
     } else {
       writable = false
       console.warn(`[wisp] não consegui ler ${CONFIG_PATH}; usando ${current}.`, err)
+      setProblems([`Não consegui ler o arquivo; usei ${current}.`])
     }
     return config
   }
@@ -94,16 +129,23 @@ export function loadConfig(): WispConfig {
       `[wisp] ${CONFIG_PATH} não é um JSON válido (${(err as Error).message}). ` +
         `Usando ${current}; o arquivo não será sobrescrito até ser corrigido.`
     )
+    setProblems([
+      `O arquivo não é um JSON válido (\`${(err as Error).message}\`). Usei ${current} e não ` +
+        'vou gravar nele até você corrigir.'
+    ])
     return config
   }
   if (typeof json !== 'object' || json === null || Array.isArray(json)) {
     writable = false
     console.warn(`[wisp] ${CONFIG_PATH} deveria conter um objeto JSON; usando ${current}.`)
+    setProblems([`O arquivo deveria conter um objeto JSON (\`{ ... }\`); usei ${current}.`])
     return config
   }
 
   fileData = json as Record<string, unknown>
+  fieldProblems = []
   config = ConfigSchema.parse(fileData)
+  setProblems(fieldProblems)
   writable = true
   loaded = true
   return config
@@ -129,13 +171,34 @@ export function updateConfig(patch: Partial<WispConfig>): void {
   writeFile()
 }
 
+/**
+ * Onde gravar: o destino do link, se o config.json for um (quem guarda dotfiles num repositório
+ * costuma ligar o arquivo para lá). Renomear por cima do link o trocaria por um arquivo comum.
+ */
+function writeTarget(): string {
+  try {
+    return realpathSync(CONFIG_PATH)
+  } catch {
+    return CONFIG_PATH
+  }
+}
+
 function writeFile(): void {
   try {
     mkdirSync(CONFIG_DIR, { recursive: true })
-    // Escreve num temporário e renomeia, para nunca deixar um config.json pela metade.
-    const tmp = `${CONFIG_PATH}.tmp`
+    const target = writeTarget()
+    // Escreve num temporário e renomeia, para nunca deixar um config.json pela metade, mantendo
+    // as permissões que o arquivo já tinha.
+    let mode: number | null = null
+    try {
+      mode = statSync(target).mode & 0o777
+    } catch {
+      // Arquivo novo: fica com as permissões padrão.
+    }
+    const tmp = `${target}.tmp`
     writeFileSync(tmp, JSON.stringify(fileData, null, 2) + '\n', 'utf8')
-    renameSync(tmp, CONFIG_PATH)
+    if (mode !== null) chmodSync(tmp, mode)
+    renameSync(tmp, target)
     seenMtime = mtimeOf(CONFIG_PATH)
   } catch (err) {
     console.warn(`[wisp] não consegui salvar ${CONFIG_PATH}:`, err)

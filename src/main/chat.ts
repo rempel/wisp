@@ -2,15 +2,20 @@ import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electro
 import type { IpcMainEvent, Rectangle } from 'electron'
 import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { homedir } from 'os'
 import { join } from 'path'
+import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
 import { ClaudeSession, SAFE_TOOLS } from './claude'
-import { getConfig } from './config'
+import { CONFIG_PATH, configProblems, getConfig, onConfigProblems } from './config'
 import type { Approval, ApprovalRequest } from './mcp-server'
-import { loadPage, PRELOAD } from './page'
+import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { DATA_DIR } from './paths'
+import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
 import { IPC } from '../shared/ipc'
 import type { ChatEvent } from '../shared/ipc'
+
+type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
 const CHAT_WIDTH = 420
 const CHAT_HEIGHT = 600
@@ -51,31 +56,66 @@ function permissionScope({ toolName, input }: ApprovalRequest): string {
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
   toggle(): void
+  /** Abre o painel numa conversa nova (menu da bandeja). */
+  newConversation(): void
+  /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
+  side(): 'left' | 'right'
   /** Mostra o card de permissão e resolve com a decisão do usuário. */
   requestApproval(request: ApprovalRequest): Promise<Approval>
   /** Encerra o processo do Claude Code (o app está fechando). */
   dispose(): void
 }
 
+export interface ChatOptions {
+  /** Onde está o mascote, para ancorar o painel ao lado dele. */
+  anchor: () => Rectangle | null
+  /** Liga o servidor `desktop`; sem ele, a conversa roda sem as ferramentas de desktop. */
+  mcpConfigPath?: string
+  /** Recebe cada evento da conversa (o humor do mascote acompanha a conversa por aqui). */
+  onEvent?: (event: ChatEvent) => void
+}
+
 /**
  * Painel de chat: uma janela que nasce na primeira vez que é aberta e depois só é escondida,
- * para a conversa continuar lá. `anchor` diz onde está o mascote; `mcpConfigPath` liga o
- * servidor `desktop` (sem ele, a conversa roda sem as ferramentas de desktop).
+ * para a conversa continuar lá.
  */
-export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string): Chat {
+export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat {
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
   let pageReady = false
   const queued: ChatEvent[] = []
   let quitting = false
   // Pedidos de permissão esperando o clique no card, e o que já foi liberado "sempre".
-  const approvals = new Map<string, { scope: string; resolve: (approval: Approval) => void }>()
+  const approvals = new Map<
+    string,
+    { scope: string; resolve: (approval: Approval) => void; event: PermissionRequestEvent }
+  >()
   const alwaysAllowed = new Set<string>()
 
   const send = (event: ChatEvent): void => {
+    onEvent?.(event)
     if (win && pageReady) win.webContents.send(IPC.chatEvent, event)
     else queued.push(event)
   }
+
+  // Problemas no config.json aparecem na conversa (o terminal nem sempre está à vista): ao abrir
+  // o painel pela primeira vez e quando o arquivo muda com eles.
+  const configNotice = (problems: string[]): ChatEvent => ({
+    type: 'notice',
+    level: 'warning',
+    text:
+      `Encontrei problemas no \`${CONFIG_PATH.replace(homedir(), '~')}\`:\n\n` +
+      problems.map((problem) => `- ${problem}`).join('\n')
+  })
+  onConfigProblems((problems) => {
+    if (win && problems.length) send(configNotice(problems))
+  })
+
+  // O tema do sistema mudou: a página troca sozinha (prefers-color-scheme); o fundo da janela,
+  // que aparece antes de a página pintar e ao redimensionar, acompanha aqui.
+  nativeTheme.on('updated', () => {
+    win?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light)
+  })
 
   const deliver = (event: ChatEvent): void => {
     // Turno encerrado (parado, com erro) ou conversa nova: nenhum pedido aberto vai ser usado.
@@ -132,13 +172,33 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
     if (!fromChat(event) || typeof id !== 'string') return
     if (decision !== 'allow' && decision !== 'allow-always' && decision !== 'deny') return
     const approval = approvals.get(id)
-    if (!approval) return
+    // Perguntas se respondem pelo chatAnswer: liberadas sem respostas, o Claude entenderia que o
+    // usuário não respondeu.
+    if (!approval || approval.event.toolName === QUESTION_TOOL) return
     approvals.delete(id)
     if (decision === 'allow-always') alwaysAllowed.add(approval.scope)
     approval.resolve(
       decision === 'deny' ? { allow: false, message: 'Usuário negou' } : { allow: true }
     )
     send({ type: 'permission-resolved', id, decision })
+  })
+  ipcMain.on(IPC.chatAnswer, (event, id: unknown, answers: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return
+    const approval = approvals.get(id)
+    if (!approval || approval.event.toolName !== QUESTION_TOOL) return
+    const input = approval.event.input as Record<string, unknown>
+    if (answers === null) {
+      approvals.delete(id)
+      approval.resolve({ allow: false, message: 'O usuário preferiu não responder.' })
+      send({ type: 'permission-resolved', id, decision: 'deny' })
+      return
+    }
+    const questions = parseQuestions(input)
+    const checked = questions && checkAnswers(questions, answers)
+    if (!checked) return
+    approvals.delete(id)
+    approval.resolve({ allow: true, updatedInput: { ...input, answers: checked } })
+    send({ type: 'permission-resolved', id, decision: 'answered', answers: checked })
   })
   app.on('before-quit', () => {
     quitting = true
@@ -164,6 +224,8 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
   }
 
   function show(chat: BrowserWindow): void {
+    // Relê o config.json se ele mudou; problemas novos chegam pelo onConfigProblems.
+    getConfig()
     if (!chat.isVisible()) placeNextToMascot(chat)
     chat.show()
     chat.focus()
@@ -178,6 +240,7 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
       show: false,
       frame: false,
       title: 'Wisp',
+      icon: appIcon,
       backgroundColor: nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light,
       webPreferences: {
         preload: PRELOAD,
@@ -202,6 +265,19 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
     chat.webContents.on('did-start-loading', () => {
       pageReady = false
     })
+    // Se a página cair, ela recarrega vazia: o processo do Claude Code e a conversa continuam,
+    // e o que estava pendente (resposta em andamento, cards de permissão) volta para a tela.
+    reloadOnCrash(chat, () => {
+      send({
+        type: 'notice',
+        level: 'warning',
+        text:
+          'O painel reiniciou depois de uma falha. A conversa continua, mas as mensagens ' +
+          'anteriores não aparecem mais aqui.'
+      })
+      if (session.isBusy()) send({ type: 'busy', busy: true })
+      for (const approval of approvals.values()) send(approval.event)
+    })
 
     // Links da conversa abrem no navegador; a janela nunca navega para fora.
     chat.webContents.setWindowOpenHandler(({ url }) => {
@@ -215,6 +291,7 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
     })
 
     loadPage(chat, 'chat')
+    if (configProblems().length) send(configNotice(configProblems()))
     // Já avisa no chat se o Claude Code não estiver instalado ou logado.
     void session.preflight()
     return chat
@@ -222,22 +299,37 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
 
   return {
     requestApproval(request) {
+      if (request.signal?.aborted) {
+        return Promise.resolve({ allow: false, message: 'O pedido foi cancelado.' })
+      }
       if (alwaysAllowed.has(permissionScope(request))) return Promise.resolve({ allow: true })
       const id = randomUUID()
       return new Promise<Approval>((resolve) => {
-        approvals.set(id, { scope: permissionScope(request), resolve })
-        send({
+        const event: PermissionRequestEvent = {
           type: 'permission-request',
           id,
           toolName: request.toolName,
           input: request.input,
           toolUseId: request.toolUseId
-        })
+        }
+        approvals.set(id, { scope: permissionScope(request), resolve, event })
+        // O Claude Code desistiu (Parar, turno encerrado, conexão fechada): o card some.
+        request.signal?.addEventListener(
+          'abort',
+          () => {
+            if (!approvals.delete(id)) return
+            resolve({ allow: false, message: 'O pedido foi cancelado.' })
+            send({ type: 'permission-resolved', id, decision: 'cancelled' })
+          },
+          { once: true }
+        )
         // O Claude fica parado esperando: com o painel escondido, ele aparece, sem roubar o foco.
+        // Aparece antes do evento, para o mascote já olhar para o lado certo.
         if (win && !win.isVisible()) {
           placeNextToMascot(win)
           win.showInactive()
         }
+        send(event)
       })
     },
     toggle() {
@@ -247,6 +339,17 @@ export function setupChat(anchor: () => Rectangle | null, mcpConfigPath?: string
       }
       if (win.isVisible() && win.isFocused()) win.hide()
       else show(win)
+    },
+    newConversation() {
+      void session.reset()
+      if (!win) win = createWindow()
+      else show(win)
+    },
+    side() {
+      const mascot = anchor()
+      if (!win || !mascot) return 'left'
+      const chat = win.getBounds()
+      return chat.x + chat.width / 2 < mascot.x + mascot.width / 2 ? 'left' : 'right'
     },
     dispose() {
       session.dispose()

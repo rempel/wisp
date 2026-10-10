@@ -1,5 +1,6 @@
-import { useRef, useState } from 'react'
-import type { JSX, PointerEvent } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { CSSProperties, JSX, PointerEvent } from 'react'
+import type { MascotView } from '../../shared/ipc'
 
 /** Movimento (px) a partir do qual o gesto deixa de ser clique e vira arraste. */
 const DRAG_THRESHOLD = 5
@@ -8,6 +9,13 @@ const DRAG_THRESHOLD = 5
 const DROP_PATH =
   'M 64 30 C 69 41 89 56 89 79 C 89 92.8 77.8 104 64 104 ' +
   'C 50.2 104 39 92.8 39 79 C 39 56 59 41 64 30 Z'
+
+/** O brilho extra que pisca a cada pedaço de texto da resposta. */
+const PULSE_KEYFRAMES: Keyframe[] = [
+  { opacity: 0, transform: 'scale(0.92)' },
+  { opacity: 0.9, transform: 'scale(1.04)', offset: 0.3 },
+  { opacity: 0, transform: 'scale(1.12)' }
+]
 
 interface Press {
   pointerId: number
@@ -37,10 +45,38 @@ function Sparks({ layer }: { layer: 'back' | 'front' }): JSX.Element {
   )
 }
 
+/** Bits que saltam do corpo quando ele fica feliz: direção (px) e atraso (s) de cada um. */
+const BURST = [
+  { x: -34, y: -26, delay: 0 },
+  { x: 34, y: -24, delay: 0.05 },
+  { x: -42, y: 4, delay: 0.1 },
+  { x: 42, y: 6, delay: 0.03 },
+  { x: -20, y: -40, delay: 0.08 },
+  { x: 22, y: -42, delay: 0.12 }
+]
+
 export default function Mascot(): JSX.Element {
   const press = useRef<Press | null>(null)
+  const pulse = useRef<HTMLDivElement>(null)
   const [dragging, setDragging] = useState(false)
   const [booping, setBooping] = useState(false)
+  const [view, setView] = useState<MascotView>({ state: 'idle', look: 'left' })
+
+  // Estado vindo do main (seção 5.3) e o pulso do brilho no ritmo do texto.
+  useEffect(() => {
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
+    const offState = window.wisp.mascot.onState(setView)
+    const offPulse = window.wisp.mascot.onPulse(() => {
+      if (!reducedMotion.matches) {
+        pulse.current?.animate(PULSE_KEYFRAMES, { duration: 460, easing: 'ease-out' })
+      }
+    })
+    window.wisp.mascot.ready()
+    return () => {
+      offState()
+      offPulse()
+    }
+  }, [])
 
   function onPointerDown(e: PointerEvent<HTMLDivElement>): void {
     if (e.button !== 0 || press.current) return
@@ -75,7 +111,7 @@ export default function Mascot(): JSX.Element {
 
   return (
     <div
-      className={`stage idle${dragging ? ' dragging' : ''}`}
+      className={`stage state-${view.state} look-${view.look}${dragging ? ' dragging' : ''}`}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(e) => endPress(e, true)}
@@ -122,61 +158,101 @@ export default function Mascot(): JSX.Element {
       </svg>
 
       <div className="float">
-        <div
-          className={`wisp${booping ? ' boop' : ''}`}
-          onAnimationEnd={(e) => {
-            if (e.animationName === 'boop') setBooping(false)
-          }}
-        >
-          <div className="glow" />
-          <Sparks layer="back" />
+        {/* Pulos e tremidas dos estados ficam aqui; o amassado do clique fica no .wisp. */}
+        <div className="mood">
+          <div
+            className={`wisp${booping ? ' boop' : ''}`}
+            onAnimationEnd={(e) => {
+              if (e.animationName === 'boop') setBooping(false)
+            }}
+          >
+            <div className="glow" />
+            <div className="pulse" ref={pulse} />
+            <Sparks layer="back" />
 
-          {/* Antena: balança a partir da base, que fica escondida atrás do encaixe na ponta. */}
-          <div className="antenna" aria-hidden>
-            <svg className="layer" viewBox="0 0 128 128">
-              <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
-              <circle className="led" cx="64" cy="15" r="3.3" />
-            </svg>
-            <div className="antenna-glow">
+            {/* Antena: balança a partir da base, que fica escondida atrás do encaixe na ponta. */}
+            <div className="antenna" aria-hidden>
               <svg className="layer" viewBox="0 0 128 128">
-                <circle className="led-halo" cx="64" cy="15" r="5.5" />
+                <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
+                <circle className="led" cx="64" cy="15" r="3.3" />
               </svg>
+              <div className="antenna-glow">
+                <svg className="layer" viewBox="0 0 128 128">
+                  <circle className="led-halo" cx="64" cy="15" r="5.5" />
+                </svg>
+              </div>
             </div>
-          </div>
 
-          {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
+            {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
               desenhado uma vez só. */}
-          <div className="body" aria-hidden>
-            <svg className="layer" viewBox="0 0 128 128">
-              <path className="shell" d={DROP_PATH} />
-              <path className="gloss" d="M 47 60 Q 50 52 57 49" />
-              <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
-              <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
-              <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
-              <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
-              <path className="visor-glare" d="M 50 73 L 57 73" />
-              <circle className="bolt" cx="39.4" cy="80" r="3.6" />
-              <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
-              <circle className="bolt" cx="88.6" cy="80" r="3.6" />
-              <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
-              <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
-              <rect className="collar-light" x="61.3" y="29.6" width="5.4" height="1.1" rx="0.5" />
-            </svg>
-          </div>
-
-          {/* Olhos de LED: a camada de fora olha para os lados, a de dentro pisca. */}
-          <div className="eyes" aria-hidden>
-            <div className="eyes-blink">
+            <div className="body" aria-hidden>
               <svg className="layer" viewBox="0 0 128 128">
-                <g className="eye-leds">
-                  <rect className="led" x="52.5" y="75" width="6" height="10" rx="3" />
-                  <rect className="led" x="69.5" y="75" width="6" height="10" rx="3" />
-                </g>
+                <path className="shell" d={DROP_PATH} />
+                <path className="gloss" d="M 47 60 Q 50 52 57 49" />
+                <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
+                <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
+                <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
+                <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
+                <path className="visor-glare" d="M 50 73 L 57 73" />
+                <circle className="bolt" cx="39.4" cy="80" r="3.6" />
+                <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
+                <circle className="bolt" cx="88.6" cy="80" r="3.6" />
+                <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
+                <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
+                <rect
+                  className="collar-light"
+                  x="61.3"
+                  y="29.6"
+                  width="5.4"
+                  height="1.1"
+                  rx="0.5"
+                />
               </svg>
+            </div>
+
+            {/* Olhos de LED: a camada de fora olha para os lados, a de dentro pisca. */}
+            <div className="eyes" aria-hidden>
+              <div className="eyes-blink">
+                <svg className="layer" viewBox="0 0 128 128">
+                  <g className="eye-leds">
+                    <rect className="led" x="52.5" y="75" width="6" height="10" rx="3" />
+                    <rect className="led" x="69.5" y="75" width="6" height="10" rx="3" />
+                  </g>
+                  {/* Feliz: ^ ^. Erro: x x. */}
+                  <g className="eye-glyph eye-happy">
+                    <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
+                    <path d="M 69 82.5 L 72.5 77.5 L 76 82.5" />
+                  </g>
+                  <g className="eye-glyph eye-x">
+                    <path d="M 52.5 76.5 L 58.5 83.5 M 58.5 76.5 L 52.5 83.5" />
+                    <path d="M 69.5 76.5 L 75.5 83.5 M 75.5 76.5 L 69.5 83.5" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <Sparks layer="front" />
+
+            <div className="burst" aria-hidden>
+              {BURST.map((bit, index) => (
+                <i
+                  key={index}
+                  style={
+                    {
+                      '--bx': `${bit.x}px`,
+                      '--by': `${bit.y}px`,
+                      '--bd': `${bit.delay}s`
+                    } as CSSProperties
+                  }
+                />
+              ))}
             </div>
           </div>
 
-          <Sparks layer="front" />
+          {/* "?" do pedido de permissão, do lado em que o painel está. */}
+          <div className="ask" aria-hidden>
+            ?
+          </div>
         </div>
       </div>
     </div>
