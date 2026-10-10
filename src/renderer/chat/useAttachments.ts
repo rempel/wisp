@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
-import type { AttachmentPreview } from '../../shared/ipc'
+import type { AttachmentPreview, DroppedFiles } from '../../shared/ipc'
+import { makeThumbnail } from '../common/thumbnail'
 
 /** Um anexo ainda na caixa de texto, esperando o envio. */
 export interface PendingAttachment extends AttachmentPreview {
@@ -9,8 +10,6 @@ export interface PendingAttachment extends AttachmentPreview {
   path: string
 }
 
-/** Lado da miniatura em px (o dobro do tamanho na tela, para telas HiDPI). */
-const THUMB_PX = 128
 const ERROR_MS = 6000
 const MAX_MB = ATTACHMENT_LIMITS.maxBytes / 1024 / 1024
 
@@ -20,37 +19,6 @@ export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${sizeFormat.format(bytes / 1024 / 1024)} MB`
-}
-
-/**
- * Miniatura quadrada (corte central) num data URL pequeno. Sem object URLs: o CSP do chat só
- * aceita imagens data:. Formatos que o Chromium não decodifica (HEIC, TIFF, SVG) viram chip.
- */
-async function makeThumbnail(file: File): Promise<string | undefined> {
-  if (!file.type.startsWith('image/')) return undefined
-  try {
-    const bitmap = await createImageBitmap(file)
-    const side = Math.min(bitmap.width, bitmap.height)
-    const canvas = document.createElement('canvas')
-    canvas.width = canvas.height = Math.max(1, Math.min(THUMB_PX, side))
-    canvas
-      .getContext('2d')
-      ?.drawImage(
-        bitmap,
-        (bitmap.width - side) / 2,
-        (bitmap.height - side) / 2,
-        side,
-        side,
-        0,
-        0,
-        canvas.width,
-        canvas.height
-      )
-    bitmap.close()
-    return canvas.toDataURL('image/webp', 0.85)
-  } catch {
-    return undefined
-  }
 }
 
 function pathOf(file: File): string {
@@ -73,6 +41,8 @@ export interface Attachments {
    * tem arquivo: o main a guarda num, e ela vira um anexo como os outros.
    */
   addPasted(files: File[]): Promise<void>
+  /** Anexa o que foi solto no mascote (o main já conferiu os arquivos). */
+  addDroppedOnMascot(dropped: DroppedFiles): void
   remove(id: string): void
   clear(): void
 }
@@ -103,7 +73,20 @@ export function useAttachments(): Attachments {
     return () => clearTimeout(timer)
   }, [error])
 
-  /** Gera as miniaturas e junta aos anexos, dentro do limite por mensagem. */
+  /** Junta os anexos aos que já estão na caixa, dentro do limite por mensagem. */
+  const append = useCallback(
+    (previews: PendingAttachment[], problems: string[]): void => {
+      const room = ATTACHMENT_LIMITS.maxFiles - current.current.length
+      if (previews.length > room) {
+        problems.push(`Dá para mandar até ${ATTACHMENT_LIMITS.maxFiles} anexos por mensagem.`)
+      }
+      update([...current.current, ...previews.slice(0, Math.max(0, room))])
+      setError(problems.length ? problems.join(' ') : null)
+    },
+    [update]
+  )
+
+  /** Gera as miniaturas e junta aos anexos. */
   const accept = useCallback(
     async (incoming: Incoming[], problems: string[]): Promise<void> => {
       const previews = await Promise.all(
@@ -115,14 +98,9 @@ export function useAttachments(): Attachments {
           thumbnail: await makeThumbnail(file)
         }))
       )
-      const room = ATTACHMENT_LIMITS.maxFiles - current.current.length
-      if (previews.length > room) {
-        problems.push(`Dá para mandar até ${ATTACHMENT_LIMITS.maxFiles} anexos por mensagem.`)
-      }
-      update([...current.current, ...previews.slice(0, Math.max(0, room))])
-      setError(problems.length ? problems.join(' ') : null)
+      append(previews, problems)
     },
-    [update]
+    [append]
   )
 
   const add = useCallback(
@@ -185,11 +163,22 @@ export function useAttachments(): Attachments {
     [add]
   )
 
+  const addDroppedOnMascot = useCallback(
+    ({ files, problems }: DroppedFiles): void => {
+      const seen = new Set(current.current.map((item) => item.path))
+      const previews = files
+        .filter((file) => !seen.has(file.path) && seen.add(file.path))
+        .map((file) => ({ ...file, id: `anexo-${nextId.current++}` }))
+      append(previews, [...problems])
+    },
+    [append]
+  )
+
   const remove = useCallback(
     (id: string): void => update(current.current.filter((item) => item.id !== id)),
     [update]
   )
   const clear = useCallback((): void => update([]), [update])
 
-  return { pending, error, add, addDropped, addPasted, remove, clear }
+  return { pending, error, add, addDropped, addPasted, addDroppedOnMascot, remove, clear }
 }

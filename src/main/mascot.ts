@@ -1,10 +1,21 @@
 import { BrowserWindow, ipcMain, screen } from 'electron'
 import type { IpcMainEvent, Rectangle } from 'electron'
+import { statSync } from 'fs'
+import { basename, isAbsolute } from 'path'
+import { isThumbnail } from './attachments'
 import { getConfig, updateConfig } from './config'
 import type { Point } from './config'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
-import { IPC } from '../shared/ipc'
-import type { MascotView } from '../shared/ipc'
+import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
+import type {
+  Accessory,
+  DroppedFile,
+  DroppedFiles,
+  Gaze,
+  MascotReaction,
+  MascotView,
+  SoundName
+} from '../shared/ipc'
 
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
@@ -13,24 +24,82 @@ const DRAG_TICK_MS = 16
 let mascotWin: BrowserWindow | null = null
 /** O estado atual, reenviado quando a página (re)carrega. */
 let view: MascotView = { state: 'idle', look: 'left' }
+/** O acessório do dia, reenviado quando a página (re)carrega. */
+let accessory: Accessory | null = null
 /** O usuário escondeu o mascote pelo menu da bandeja (só nesta execução). */
 let hiddenByUser = false
+/** A saudação sai uma vez só, quando a janela aparece pela primeira vez com a página pronta. */
+const greeting = {
+  shown: false,
+  ready: false,
+  done: false
+}
+let handlers: MascotHandlers | null = null
 
-/** Cria a janela do mascote e liga o arraste. `onClick` roda a cada clique sem arraste. */
-export function setupMascot(onClick: () => void): void {
+/** O que o mascote faz com o que acontece na janela dele. */
+export interface MascotHandlers {
+  /** Clique sem arraste. */
+  click(): void
+  /** O cursor entrou ou saiu de cima do mascote. */
+  hover(inside: boolean): void
+  /** O usuário mexeu com o mascote (cutucadas, carinho). */
+  activity(): void
+  /** Arquivos soltos no mascote, já conferidos. */
+  drop(dropped: DroppedFiles): void
+  /** Clique com o botão direito. */
+  menu(): void
+  /** A página pede um som de reação. */
+  sound(name: SoundName): void
+  /** A página (re)carregou: o estado já foi; o resto que ela precisa vai por aqui. */
+  ready(): void
+  /** O mascote apareceu ou mudou de lugar (a leitura do cursor recomeça). */
+  moved(): void
+}
+
+/** Cria a janela do mascote e liga o arraste, os cliques e o resto do que vem da página. */
+export function setupMascot(options: MascotHandlers): void {
+  handlers = options
   ipcMain.on(IPC.mascotDragStart, onDragStart)
   ipcMain.on(IPC.mascotDragEnd, onDragEnd)
   ipcMain.on(IPC.mascotClick, (event) => {
-    if (fromMascot(event)) onClick()
+    if (fromMascot(event)) options.click()
   })
   ipcMain.on(IPC.mascotReady, (event) => {
-    if (fromMascot(event)) event.sender.send(IPC.mascotState, view)
+    if (!fromMascot(event)) return
+    event.sender.send(IPC.mascotState, view)
+    event.sender.send(IPC.mascotAccessory, accessory)
+    options.ready()
+    greeting.ready = true
+    maybeGreet()
+  })
+  ipcMain.on(IPC.mascotHover, (event, inside: unknown) => {
+    if (fromMascot(event) && typeof inside === 'boolean') options.hover(inside)
+  })
+  ipcMain.on(IPC.mascotActivity, (event) => {
+    if (fromMascot(event)) options.activity()
+  })
+  ipcMain.on(IPC.mascotMenu, (event) => {
+    if (fromMascot(event)) options.menu()
+  })
+  ipcMain.on(IPC.soundPlay, (event, name: unknown) => {
+    if (fromMascot(event) && SOUND_NAMES.includes(name as SoundName))
+      options.sound(name as SoundName)
+  })
+  ipcMain.on(IPC.mascotDrop, (event, dropped: unknown) => {
+    if (!fromMascot(event)) return
+    const checked = checkDropped(dropped)
+    if (checked.files.length || checked.problems.length) options.drop(checked)
   })
 
   screen.on('display-removed', keepMascotOnScreen)
   screen.on('display-metrics-changed', keepMascotOnScreen)
 
   mascotWin = createMascotWindow()
+}
+
+/** A janela do mascote, para o menu dele aparecer junto. */
+export function getMascotWindow(): BrowserWindow | null {
+  return mascotWin
 }
 
 /** Onde o mascote está agora (para ancorar o chat ao lado dele). */
@@ -50,6 +119,33 @@ export function pulseMascot(): void {
   mascotWin?.webContents.send(IPC.mascotPulse)
 }
 
+/** Para onde os olhos olham (null: de volta ao centro). */
+export function setMascotGaze(gaze: Gaze | null): void {
+  mascotWin?.webContents.send(IPC.mascotGaze, gaze)
+}
+
+/** Uma reação que vem de fora da página. */
+export function reactMascot(reaction: MascotReaction): void {
+  mascotWin?.webContents.send(IPC.mascotReact, reaction)
+}
+
+/** O acessório do dia (null: nenhum). */
+export function setMascotAccessory(next: Accessory | null): void {
+  if (next === accessory) return
+  accessory = next
+  mascotWin?.webContents.send(IPC.mascotAccessory, accessory)
+}
+
+/** Toca um som na página do mascote, onde fica o WebAudio. */
+export function playMascotSound(name: SoundName, volume: number): void {
+  mascotWin?.webContents.send(IPC.mascotSound, name, volume)
+}
+
+/** Um som da pasta do usuário (bytes) ou a volta do sintetizado (null). */
+export function sendMascotCustomSound(name: SoundName, data: Buffer | null): void {
+  mascotWin?.webContents.send(IPC.mascotCustomSound, name, data)
+}
+
 /** Se o mascote deve aparecer (a janela pode ainda estar carregando). */
 export function isMascotVisible(): boolean {
   return !hiddenByUser
@@ -59,11 +155,61 @@ export function isMascotVisible(): boolean {
 export function setMascotVisible(visible: boolean): void {
   hiddenByUser = !visible
   if (!mascotWin) return
-  if (visible) mascotWin.showInactive()
-  else {
+  if (visible) {
+    mascotWin.showInactive()
+    handlers?.moved()
+  } else {
     stopDrag()
     mascotWin.hide()
   }
+}
+
+/** Onde está o mascote, se ele está à vista (para os olhos e o cochilo). */
+export function getVisibleMascotBounds(): Rectangle | null {
+  return mascotWin && !hiddenByUser && mascotWin.isVisible() ? mascotWin.getBounds() : null
+}
+
+function maybeGreet(): void {
+  if (greeting.done || !greeting.shown || !greeting.ready) return
+  greeting.done = true
+  reactMascot('greet')
+}
+
+/**
+ * Os arquivos soltos no mascote, conferidos: caminhos absolutos de arquivos comuns, dentro do
+ * limite de tamanho; o resto vira um problema para o painel mostrar.
+ */
+function checkDropped(value: unknown): DroppedFiles {
+  const input = (value ?? {}) as { files?: unknown; problems?: unknown }
+  const files: DroppedFile[] = []
+  const problems: string[] = []
+  const list = Array.isArray(input.files)
+    ? input.files.slice(0, ATTACHMENT_LIMITS.maxFiles * 2)
+    : []
+  for (const item of list as { path?: unknown; thumbnail?: unknown }[]) {
+    const path = item?.path
+    if (typeof path !== 'string' || !isAbsolute(path)) continue
+    const name = basename(path)
+    try {
+      const info = statSync(path)
+      if (!info.isFile()) {
+        problems.push(`"${name}" não é um arquivo.`)
+      } else if (info.size > ATTACHMENT_LIMITS.maxBytes) {
+        problems.push(`"${name}" passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB.`)
+      } else {
+        const thumbnail = isThumbnail(item.thumbnail) ? item.thumbnail : undefined
+        files.push({ path, name, size: info.size, ...(thumbnail ? { thumbnail } : {}) })
+      }
+    } catch {
+      problems.push(`Não consegui ler "${name}".`)
+    }
+  }
+  if (Array.isArray(input.problems)) {
+    for (const problem of input.problems.slice(0, 10)) {
+      if (typeof problem === 'string' && problem.length <= 300) problems.push(problem)
+    }
+  }
+  return { files, problems }
 }
 
 function createMascotWindow(): BrowserWindow {
@@ -96,12 +242,18 @@ function createMascotWindow(): BrowserWindow {
     webPreferences: {
       preload: PRELOAD,
       sandbox: true,
-      spellcheck: false
+      spellcheck: false,
+      // Os sons do Wisp tocam aqui, e quase nunca depois de um clique nesta janela.
+      autoplayPolicy: 'no-user-gesture-required'
     }
   })
 
   win.once('ready-to-show', () => {
-    if (!hiddenByUser) win.showInactive()
+    if (hiddenByUser) return
+    win.showInactive()
+    greeting.shown = true
+    maybeGreet()
+    handlers?.moved()
   })
   win.on('closed', () => {
     stopDrag()
@@ -218,4 +370,5 @@ function onDragEnd(event: IpcMainEvent): void {
   stopDrag()
   const [x, y] = mascotWin.getPosition()
   updateConfig({ mascotPosition: { x, y } })
+  handlers?.moved()
 }

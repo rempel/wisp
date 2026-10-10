@@ -17,9 +17,15 @@ Depois do MVP, vieram as fases do roadmap:
 
 - **Fase 6 (conversa):** troca de modelo, uso do plano, Parar na hora, histórico de conversas,
   diff das edições, colar imagem e um painel mais vivo.
-- **Fase 7 (sessões do terminal), pronta para validação:** o Wisp acompanha as sessões do Claude
-  Code que você roda no terminal, avisa quando uma precisa de você, deixa aprovar e responder
-  pelo card e continuar uma sessão no chat.
+- **Fase 7 (sessões do terminal):** o Wisp acompanha as sessões do Claude Code que você roda no
+  terminal, avisa quando uma precisa de você, deixa aprovar e responder pelo card e continuar uma
+  sessão no chat.
+- **Fase 8 (personalidade), pronta para validação:**
+  - o mascote reage a cliques e a carinho, e os olhos seguem o cursor;
+  - cochila quando nada acontece, sem gastar CPU;
+  - tem sons próprios, com mudo;
+  - engole os arquivos soltos nele;
+  - usa gorro no Natal e óculos no verão.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -203,6 +209,35 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] **Wisp fechado:** feche o Wisp e use o Claude Code no terminal: tudo segue normal.
 - [ ] **Tirar:** no fim da aba, **Tirar** mostra o diff e devolve o `settings.json` ao que era.
 
+### Personalidade (Fase 8)
+
+- [ ] **Saudação:** ao abrir o app, o mascote aparece num pulo, acena com a antena, sorri e diz
+      "oi!", com um bipe.
+- [ ] **Olhos:** mexa o cursor pela tela, e os olhos o seguem. Com o cursor parado por uns
+      segundos, eles voltam ao centro. No Wayland, eles só o seguem quando o cursor passa pelo
+      mascote ou pelo painel.
+- [ ] **Cliques:**
+  - um clique abre ou fecha o painel, e ele aperta os olhos (`> <`);
+  - dois cliques rápidos o deixam bravo, com os LEDs vermelhos;
+  - três o deixam tonto, com espirais nos olhos e estrelinhas;
+  - as cutucadas não mexem no painel.
+- [ ] **Carinho:** deixe o cursor parado em cima dele por 2 s. Os olhos viram `^ ^`, as bochechas
+      acendem e saem coraçõezinhos.
+- [ ] **Cochilo:** sem conversa por 3 minutos e com o cursor longe, ele cochila. A cabeça pende,
+      os LEDs apagam devagar e uns "z" sobem. Chegue o cursor perto e ele acorda com um susto.
+- [ ] **Sons:** abrir e fechar o painel, enviar, resposta pronta, pedido de permissão, erro e as
+      cutucadas têm som.
+  - O alto-falante ao lado da pílula do modelo desliga e liga (Ctrl+M, com o painel aberto).
+  - O item **Sons** da bandeja e do botão direito no mascote faz o mesmo.
+- [ ] **Sons próprios:** ponha um `pronto.ogg` (ou `.wav`, `.mp3`…) em `~/.config/wisp/sounds/`.
+      Ele toca no lugar do bipe de resposta pronta, sem reiniciar o app.
+- [ ] **Soltar arquivo:** arraste um arquivo do gerenciador de arquivos até o mascote, e os olhos
+      arregalam. Ao soltar, ele engole o arquivo e o painel abre com ele anexado.
+- [ ] **Botão direito:** abre, junto do mascote, o mesmo menu da bandeja.
+- [ ] **Acessórios:** com `"accessory": "christmas"` no `config.json`, ele põe um gorro de Natal;
+      com `"summer"`, óculos de sol na testa.
+- [ ] **CPU:** parado e cochilando, o Wisp não aparece no `top`.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -218,8 +253,23 @@ de LED na ponta e "bits" quadradinhos em órbita, tudo com um glow suave. Ele ac
 | Pedindo permissão | Casco e LEDs âmbar (`#FBBF24`), olhos virados para o painel e um "?" ao lado da cabeça, do lado do painel |
 | Feliz             | Dá dois pulinhos, os olhos viram `^ ^` e solta bits (por uns 2 s, no fim de uma resposta)                 |
 | Erro              | Fica coral (`#F87171`), treme e os olhos viram `x x` (por uns 5 s)                                        |
+| Cochilando        | A cabeça pende, os LEDs apagam, os olhos viram traços e uns "z" sobem; depois, tudo para                  |
 
-As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las.
+E reage a quem mexe com ele:
+
+| Reação        | Quando                                        | Como fica                                                        |
+| ------------- | --------------------------------------------- | ---------------------------------------------------------------- |
+| Cutucada      | Um clique (o mesmo que abre e fecha o painel) | Amassa e aperta os olhos (`> <`)                                 |
+| Bravo         | Segundo clique rápido                         | LEDs vermelhos e inclinados, bufa e mostra uma veia de bravo     |
+| Tonto         | Terceiro clique rápido em diante              | Olhos em espiral, estrelinhas rodando e um balanço               |
+| Carinho       | Cursor parado em cima dele por 2 s            | Olhos `^ ^`, bochechas de LED, coraçõezinhos e um aconchego      |
+| Saudação      | O app abriu                                   | Aparece num pulo, acena com a antena, sorri e diz "oi!"          |
+| Susto         | Acordou                                       | Pula, os olhos abrem de uma vez e a antena volta com uma molinha |
+| Olhos atentos | Um arquivo arrastado por cima                 | Arregala os olhos e estica, com a antena em pé                   |
+| Gole          | Soltou o arquivo                              | O arquivo voa para dentro da gota, que engole e brilha           |
+
+As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las. O
+desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação do momento.
 
 ## Configuração
 
@@ -232,7 +282,11 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "projectRoots": ["~/projetos"],
   "mascotPosition": null,
   "extraAllowedTools": [],
-  "model": null
+  "model": null,
+  "sound": true,
+  "volume": 0.5,
+  "sleepAfterMinutes": 3,
+  "accessory": "auto"
 }
 ```
 
@@ -242,8 +296,12 @@ terminal) e usa o padrão daquele campo, sem apagar o que você escreveu. Se o a
 ele continua com a configuração anterior (ou com os padrões, se acabou de abrir) e não
 sobrescreve o arquivo até você corrigir.
 
-Dá para editar o arquivo com o Wisp aberto: `projectRoots` e `editorCommand` valem na hora;
-`model`, na próxima mensagem; `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
+Dá para editar o arquivo com o Wisp aberto:
+
+- `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes` e `accessory` valem
+  na hora;
+- `model`, na próxima mensagem;
+- `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
 
 `model` é o modelo do Claude: `null` usa o padrão do seu Claude Code, e a pílula acima da caixa
 de texto troca entre `"haiku"`, `"sonnet"`, `"opus"` e `"fable"`. No arquivo, também vale o nome
@@ -268,6 +326,16 @@ podem ser abertos. `editorCommand` é o comando do editor, com argumentos se pre
 Ferramentas em `extraAllowedTools` passam a rodar sem o card, além das já liberadas. Por
 exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar. Comandos `Bash` são a
 exceção: sempre pedem permissão, mesmo listados aqui.
+
+`sound` liga e desliga os sons; o botão de mudo do painel, o Ctrl+M e o item **Sons** dos menus
+mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
+(e com o cursor longe) até o mascote cochilar; `0` desliga o cochilo. `accessory` é `"auto"`
+(gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
+
+Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
+`fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi` ou
+`absorver`. Valem `.ogg`, `.oga`, `.opus`, `.wav`, `.mp3`, `.flac`, `.m4a` e `.webm`, até 2 MB.
+O Wisp acompanha a pasta, então vale na hora. Apagar o arquivo traz o som do Wisp de volta.
 
 Os dados internos do Chromium (cache etc.) ficam em `~/.cache/wisp/electron`, fora da pasta
 de configuração. O Claude Code roda em `~/.local/share/wisp/workspace/`, cujo `CLAUDE.md` define
@@ -319,6 +387,10 @@ do Claude Code segue a regra dele.
 | A sessão do terminal não aparece            | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
 | O botão Terminal não traz a janela          | No X11, instale o `xdotool`. No GNOME com Wayland não há como: use o botão **Pasta**                           |
 | Um card ficou parado na aba Sessões         | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba      |
+| Os olhos não seguem o cursor                | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)            |
+| Sem som                                     | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1        |
+| Ele cochila enquanto eu leio                | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                             |
+| O menu do mascote não fecha com Esc         | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando           |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -340,9 +412,13 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 src/
 ├─ main/
 │  ├─ index.ts       # ciclo de vida do app
-│  ├─ mascot.ts      # janela do mascote, arraste e estado mostrado
+│  ├─ mascot.ts      # janela do mascote, arraste, estado mostrado e o que vem da página
 │  ├─ mood.ts        # estado do mascote a partir dos eventos da conversa
-│  ├─ tray.ts        # ícone e menu da bandeja
+│  ├─ presence.ts    # olhos seguindo o cursor, cochilar e acordar
+│  ├─ xpointer.ts    # posição do cursor direto do servidor X (QueryPointer)
+│  ├─ sounds.ts      # quem decide os sons, e a pasta de sons do usuário
+│  ├─ accessory.ts   # acessório do dia (gorro, óculos)
+│  ├─ tray.ts        # menu da bandeja (o mesmo do botão direito no mascote)
 │  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
 │  ├─ claude.ts      # processo `claude -p`, leitura do stream-json e pedidos de controle
 │  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
@@ -367,8 +443,9 @@ src/
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
-   ├─ mascot/        # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas, histórico, aba Sessões
+   ├─ mascot/        # Mascot.tsx (SVG e reações), mascot.css (animações), sounds.ts (WebAudio)
+   ├─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas, histórico, aba Sessões
+   └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
 └─ workspace/CLAUDE.md # persona, copiada para o workspace na 1ª vez
@@ -469,7 +546,8 @@ resources/
   1. pedindo permissão, enquanto há um card esperando;
   2. feliz (uns 2 s) ou erro (uns 5 s) quando o turno acaba;
   3. falando, enquanto o texto chega, ou trabalhando, no resto do turno;
-  4. ocioso.
+  4. cochilando, quando a presença (abaixo) diz que ele dormiu;
+  5. ocioso.
 
   O mascote recebe o estado por IPC e troca uma classe CSS. O brilho pulsa a cada pedaço de texto,
   no máximo umas 7 vezes por segundo, e as animações continuam em `transform` e `opacity`.
@@ -532,6 +610,46 @@ resources/
   estiver aberta no terminal, o chat usa `--fork-session` e segue numa cópia. Sem isso, os dois
   processos escreveriam na mesma sessão (testado no 2.1.296: o CLI não copia sozinho). A
   conversa guarda a pasta no histórico, para reabrir no lugar certo.
+- **Presença:** o `presence.ts` lê o cursor de tempos em tempos: a cada 50 ms com ele se mexendo,
+  cada vez mais devagar com ele parado, até 400 ms, e a cada 500 ms com o mascote dormindo.
+  - **Olhos:** a direção do cursor vira um olhar de -1 a 1 em cada eixo, em passos de 0,05. Só
+    as mudanças vão para a página, que move os olhos com uma transição curta. Com o cursor parado
+    por 6 s, o olhar volta ao centro.
+  - **Cochilo:** depois de `sleepAfterMinutes` sem atividade, ele cochila. Contam como atividade
+    os eventos da conversa, abrir e fechar o painel, mexer no painel, cliques, carinho, arquivos
+    arrastados e o cursor se mexendo a menos de 200 px dos olhos. Conta o movimento, e não a
+    posição: no Wayland, a última posição conhecida pode ficar parada ao lado do mascote para
+    sempre. Com o cursor em cima dele, um pedido esperando ou uma resposta em andamento, ele não
+    dorme.
+  - **Cursor:** o `screen.getCursorScreenPoint()` do Electron 44 guarda a última posição vista
+    nos eventos das janelas do app, e fora delas ela fica parada. Por isso o `xpointer.ts` abre
+    a própria conexão com o servidor X: o display de `DISPLAY`, o cookie do `Xauthority` e um
+    `QueryPointer` por leitura, uns 0,1 ms. Sem X11, ou se a conexão cair, volta ao do Electron.
+- **Cochilo sem CPU:** no cochilo, as animações contínuas (flutuar, brilho, antena) ficam
+  pausadas onde estavam, e os bits somem com `display: none`. A pose de sono é feita por
+  transições e animações que terminam. Os "z" sobem num número fixo de voltas (um minuto) e
+  depois fica um parado. Animação pausada não pede quadros ao compositor, e a CPU vai a zero.
+  Ao acordar, tudo continua de onde parou.
+- **Reações:** ficam na página do mascote. O primeiro clique de uma sequência abre ou fecha o
+  painel; os seguintes (com menos de 600 ms entre eles) são cutucadas, que só avisam o main para
+  contar como atividade. O carinho começa 2 s depois de o cursor entrar e acaba quando ele sai.
+- **Sons:** são sintetizados no WebAudio da página do mascote: notas de seno e triângulo com
+  envelope, vibrato, tremolo e um sopro de ruído filtrado. Quem decide se tocam é o main, que
+  confere `sound` e `volume` a cada som. As reações da página também pedem o som ao main. O mesmo
+  som não toca de novo em menos de 400 ms. O contexto de áudio nasce no primeiro som, suspende 2 s
+  depois do último e fecha depois de um minuto. A janela do mascote tem
+  `autoplayPolicy: 'no-user-gesture-required'`, porque quase nenhum som vem de um clique nela.
+- **Sons próprios:** o main lê `~/.config/wisp/sounds/` e acompanha a pasta com `fs.watch`. Manda
+  à página só os arquivos que mudaram, como bytes; a página decodifica cada um uma vez, e um
+  arquivo que não decodifica volta ao som sintetizado.
+- **Arquivo solto no mascote:** a página do mascote pega os caminhos (`webUtils.getPathForFile`)
+  e as miniaturas durante o gole. O main confere cada arquivo (caminho absoluto, arquivo comum,
+  até 50 MB) e os entrega ao painel, que os junta aos anexos.
+- **Menu do mascote:** o botão direito abre o mesmo menu da bandeja (`Menu.popup`), montado na
+  hora, com **Sons** marcado ou não.
+- **Acessórios:** o país vem do idioma do sistema (`app.getLocaleCountryCode()`) e diz o
+  hemisfério. O acessório é calculado ao abrir o app, à meia-noite, quando o `config.json` muda
+  e quando o painel abre.
 - **Painel vivo:** o humor do mascote também vai para o painel (`chat:mood`): o avatar do
   cabeçalho muda os olhos e a antena, e o alto do painel ganha um degradê na cor do estado (uma
   propriedade CSS registrada com `@property`, para a cor poder animar). O status traduz a

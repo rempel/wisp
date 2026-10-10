@@ -26,6 +26,14 @@ const KEEP_PASTED_DAYS = 1
 const SESSION_DIR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_NAME = 120
 
+/** Miniatura que as páginas mandam junto com um anexo: um data URL de imagem pequeno. */
+const THUMBNAIL = /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/]+=*$/
+const MAX_THUMBNAIL = 100_000
+
+export function isThumbnail(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_THUMBNAIL && THUMBNAIL.test(value)
+}
+
 /**
  * Nome da cópia: o original sem caracteres de controle, quebras de linha Unicode, controles de
  * direção do texto e `<` `>`. Um arquivo baixado pode ter qualquer nome, e esses caracteres

@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import type { ClipboardEvent, JSX, KeyboardEvent } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
-import type { ChatEvent, MascotState } from '../../shared/ipc'
+import type { ChatEvent, MascotState, SoundSettings } from '../../shared/ipc'
 import { AttachmentList } from './AttachmentList'
 import { HistoryView } from './HistoryView'
 import {
@@ -12,6 +12,8 @@ import {
   PaperclipIcon,
   PlusIcon,
   SendIcon,
+  SoundOffIcon,
+  SoundOnIcon,
   StopIcon,
   TerminalIcon
 } from './icons'
@@ -29,6 +31,8 @@ import { useSessions } from './useSessions'
 
 /** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
 const STICK_DISTANCE = 48
+/** De quanto em quanto tempo (ms), no máximo, o painel avisa que o usuário está mexendo nele. */
+const ACTIVITY_EVERY_MS = 20_000
 
 /** A "mola" do painel quando ele aparece. */
 const SHOW_KEYFRAMES: Keyframe[] = [
@@ -81,6 +85,7 @@ export default function Chat(): JSX.Element {
   const sessions = useSessions()
   const requests = sessions?.sessions.reduce((sum, item) => sum + item.requests.length, 0) ?? 0
   const [mood, setMood] = useState<MascotState>('idle')
+  const [sound, setSound] = useState<SoundSettings | null>(null)
   const attachments = useAttachments()
   const [dragging, setDragging] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -115,6 +120,44 @@ export default function Chat(): JSX.Element {
     }
   }, [])
 
+  // Os sons (o botão de mudo) e os arquivos soltos no mascote, que viram anexos aqui.
+  const { addDroppedOnMascot } = attachments
+  useEffect(() => {
+    let alive = true
+    void window.wisp.sound.get().then((settings) => {
+      if (alive && settings) setSound(settings)
+    })
+    const offSound = window.wisp.sound.onChanged(setSound)
+    const offAttach = window.wisp.chat.onAttach((dropped) => {
+      addDroppedOnMascot(dropped)
+      setView('chat')
+      input.current?.focus()
+    })
+    return () => {
+      alive = false
+      offSound()
+      offAttach()
+    }
+  }, [addDroppedOnMascot])
+
+  // Mexer no painel (teclas, cliques, rolagem) conta como atividade: o mascote não cochila com o
+  // usuário escrevendo ou lendo. O aviso vai no máximo a cada ACTIVITY_EVERY_MS.
+  useEffect(() => {
+    let last = 0
+    const onActivity = (): void => {
+      const now = Date.now()
+      if (now - last < ACTIVITY_EVERY_MS) return
+      last = now
+      window.wisp.chat.activity()
+    }
+    const options = { capture: true, passive: true }
+    const events = ['keydown', 'pointerdown', 'wheel'] as const
+    for (const name of events) window.addEventListener(name, onActivity, options)
+    return () => {
+      for (const name of events) window.removeEventListener(name, onActivity, options)
+    }
+  }, [])
+
   // Eventos do main. Os que chegam no mesmo quadro viram um render só.
   useEffect(() => {
     let queued: ChatEvent[] = []
@@ -136,18 +179,27 @@ export default function Chat(): JSX.Element {
     }
   }, [])
 
-  // Esc fecha (ou volta do histórico); Ctrl+K começa uma conversa nova; voltar ao painel devolve
-  // o foco para a caixa de texto (se não houver seleção).
+  // Esc fecha (ou volta do histórico); Ctrl+K começa uma conversa nova; Ctrl+M liga e desliga os
+  // sons; voltar ao painel devolve o foco para a caixa de texto (se não houver seleção).
+  const soundRef = useRef(sound)
+  useEffect(() => {
+    soundRef.current = sound
+  }, [sound])
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
+      const ctrl = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey
       if (event.key === 'Escape') {
         if (viewRef.current !== 'chat') setView('chat')
         else window.wisp.chat.hide()
-      } else if (event.ctrlKey && !event.altKey && event.key.toLowerCase() === 'k') {
+      } else if (ctrl && event.key.toLowerCase() === 'k') {
         event.preventDefault()
         window.wisp.chat.newConversation()
         setView('chat')
         input.current?.focus()
+      } else if (ctrl && event.key.toLowerCase() === 'm') {
+        event.preventDefault()
+        const current = soundRef.current
+        if (current) toggleSound(current)
       }
     }
     const onFocus = (): void => {
@@ -261,6 +313,12 @@ export default function Chat(): JSX.Element {
     if (!files.length) return
     event.preventDefault()
     void attachments.addPasted(files)
+  }
+
+  function toggleSound(current: SoundSettings): void {
+    const next = { ...current, enabled: !current.enabled }
+    setSound(next)
+    window.wisp.sound.set(next.enabled)
   }
 
   function newConversation(): void {
@@ -411,11 +469,21 @@ export default function Chat(): JSX.Element {
                 {attachments.error}
               </div>
             )}
-            {state.model && (
-              <div className="composer-meta">
-                <ModelPill choice={state.model.choice} active={state.model.active} />
-              </div>
-            )}
+            <div className="composer-meta">
+              {state.model && <ModelPill choice={state.model.choice} active={state.model.active} />}
+              {sound && (
+                <button
+                  type="button"
+                  className={`icon-button sound-toggle${sound.enabled ? '' : ' off'}`}
+                  onClick={() => toggleSound(sound)}
+                  title={sound.enabled ? 'Desligar os sons (Ctrl+M)' : 'Ligar os sons (Ctrl+M)'}
+                  aria-label={sound.enabled ? 'Desligar os sons' : 'Ligar os sons'}
+                  aria-pressed={!sound.enabled}
+                >
+                  {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
+                </button>
+              )}
+            </div>
             <div className="composer-row">
               <button
                 type="button"

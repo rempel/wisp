@@ -235,6 +235,10 @@ button {
   animation: avatar-glow 0.6s ease-in-out infinite;
 }
 
+.avatar-sleeping .avatar-tip {
+  opacity: 0.35;
+}
+
 .avatar-error .avatar-tip {
   fill: #fb7185;
 }
@@ -824,6 +828,26 @@ code {
   background: var(--hover);
   color: var(--text);
   filter: none;
+}
+
+/* Botão de mudo, no canto da linha do modelo. */
+.composer .icon-button.sound-toggle {
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.composer .icon-button.sound-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+  filter: none;
+}
+
+.composer .icon-button.sound-toggle.off {
+  opacity: 0.6;
 }
 
 /* ---- Anexos ----------------------------------------------------------- */
