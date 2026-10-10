@@ -164,6 +164,18 @@ const SYNTHS: Record<SoundName, Part[]> = {
     { from: 900, to: 1350, at: 0.13, dur: 0.17, gain: 0.14, vibrato: [7, 15] },
     { type: 'triangle', from: 2700, at: 0.14, dur: 0.1, gain: 0.018 }
   ],
+  // Um sininho de três notas, duas vezes (a segunda mais baixa), para o lembrete.
+  lembrete: [
+    { from: 1319, at: 0, dur: 0.22, gain: 0.13 },
+    { from: 2638, at: 0, dur: 0.12, gain: 0.02 },
+    { from: 1568, at: 0.12, dur: 0.22, gain: 0.13 },
+    { from: 3136, at: 0.12, dur: 0.12, gain: 0.02 },
+    { from: 2093, at: 0.24, dur: 0.42, gain: 0.12 },
+    { from: 4186, at: 0.24, dur: 0.2, gain: 0.015 },
+    { from: 1319, at: 0.72, dur: 0.2, gain: 0.08 },
+    { from: 1568, at: 0.84, dur: 0.2, gain: 0.08 },
+    { from: 2093, at: 0.96, dur: 0.4, gain: 0.075 }
+  ],
   // Um gole: desce rápido e faz "plop".
   absorver: [
     { from: 520, to: 160, at: 0, dur: 0.16, gain: 0.17 },

@@ -4,6 +4,7 @@ import { IPC } from '../shared/ipc'
 import type {
   Accessory,
   ChatEvent,
+  ClipboardOffer,
   DroppedFiles,
   Gaze,
   MascotReaction,
@@ -69,7 +70,12 @@ const api: WispApi = {
     onMood: (listener) => subscribe<[MascotState]>(IPC.chatMood, listener),
     onShown: (listener) => subscribe<[]>(IPC.chatShown, listener),
     onAttach: (listener) => subscribe<[DroppedFiles]>(IPC.chatAttach, listener),
-    activity: () => ipcRenderer.send(IPC.chatActivity)
+    activity: () => ipcRenderer.send(IPC.chatActivity),
+    captureScreen: () => ipcRenderer.invoke(IPC.chatCapture),
+    onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
+    takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
+    dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
+    copied: () => ipcRenderer.send(IPC.chatCopied)
   },
   sound: {
     get: () => ipcRenderer.invoke(IPC.soundGet),

@@ -6,20 +6,27 @@ import { homedir } from 'os'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
-import { isThumbnail, savePasted } from './attachments'
+import { isThumbnail, saveIncoming, savePasted } from './attachments'
+import { BROWSER_PREFIX, BrowserPolicy } from './browser-policy'
 import { ClaudeSession, SAFE_TOOLS } from './claude'
+import { ClipboardChip } from './clipboard'
 import { CONFIG_PATH, configProblems, getConfig, onConfigProblems, updateConfig } from './config'
 import { History } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { DATA_DIR } from './paths'
 import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
+import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
+import type { ScreenImage } from './screenshot'
 import { IPC, MODEL_CHOICES } from '../shared/ipc'
 import type {
   AttachmentPreview,
   ChatEvent,
+  ClipboardUse,
+  DroppedFile,
   DroppedFiles,
   MascotState,
+  NoticeLevel,
   OutgoingAttachment,
   PastedImage,
   SoundSettings
@@ -33,6 +40,10 @@ const CHAT_HEIGHT = 600
 const GAP = 8
 /** Fundo da janela antes de a página pintar; igual ao --bg do chat.css. */
 const BACKGROUND = { dark: '#0b1418', light: '#f5fafb' }
+/** Quanto esperar o painel sumir da tela (inclusive a animação do desktop) antes do print. */
+const PANEL_AWAY_MS = 350
+/** De quanto em quanto tempo, no máximo, a área de transferência é conferida. */
+const CLIPBOARD_CHECK_MS = 1000
 
 const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
 
@@ -96,6 +107,10 @@ function permissionScope({ toolName, input }: ApprovalRequest): string {
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
   toggle(): void
+  /** Mostra o painel e traz para a frente (sem esconder, se já estiver à vista). */
+  open(): void
+  /** Manda uma mensagem como se o usuário a tivesse escrito (o comando `wisp --ask`). */
+  ask(text: string): void
   /** O humor do mascote mudou: o avatar do cabeçalho acompanha. */
   setMood(state: MascotState): void
   /** Abre o painel numa conversa nova (menu da bandeja). */
@@ -116,6 +131,13 @@ export interface Chat {
   attach(dropped: DroppedFiles): void
   /** Os sons foram ligados ou desligados (o botão de mudo acompanha). */
   notifySound(settings: SoundSettings): void
+  /**
+   * Tira o print das telas com o painel fora da frente; depois ele volta como estava. Lança
+   * CaptureError com o motivo.
+   */
+  capture(): Promise<ScreenImage[]>
+  /** Um aviso na conversa (fora do histórico), como um problema na configuração. */
+  notice(level: NoticeLevel, text: string): void
   /** Encerra o processo do Claude Code (o app está fechando). */
   dispose(): void
 }
@@ -168,12 +190,20 @@ export function setupChat({
   // O último uso do plano, para mostrar de novo se a página recarregar.
   let lastUsage: Extract<ChatEvent, { type: 'usage' }> | null = null
   const history = new History()
+  // A oferta de "usar o que você copiou" que o painel mostra (o id), e quando foi conferida.
+  const clipboardChip = new ClipboardChip()
+  let clipboardOffered: string | null = null
+  let clipboardCheckedAt = 0
+  // Os prints, um de cada vez (o painel some e volta em cada um).
+  let captureQueue: Promise<unknown> = Promise.resolve()
   // Pedidos de permissão esperando o clique no card, e o que já foi liberado "sempre".
   const approvals = new Map<
     string,
     { scope: string; resolve: (approval: Approval) => void; event: PermissionRequestEvent }
   >()
   const alwaysAllowed = new Set<string>()
+  // O navegador do Claude: sites liberados e em que página ele está (browser-policy.ts).
+  const browser = new BrowserPolicy()
 
   /** Manda um evento só para a página (as reaberturas do histórico não mexem no mascote). */
   const toPage = (event: ChatEvent): void => {
@@ -209,6 +239,7 @@ export function setupChat({
     if (event.type === 'turn-end' || event.type === 'reset') cancelApprovals()
     if (event.type === 'reset') alwaysAllowed.clear()
     if (event.type === 'usage') lastUsage = event
+    browser.track(event)
     history.record(event)
     send(event)
   }
@@ -239,7 +270,8 @@ export function setupChat({
       appendSystemPrompt: APPEND_SYSTEM_PROMPT,
       mcpConfigPath,
       model: config.model,
-      onSessionId: (id) => history.setSession(id)
+      onSessionId: (id) => history.setSession(id),
+      thumbnail: thumbnailOfBase64
     },
     deliver
   )
@@ -255,6 +287,10 @@ export function setupChat({
     if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
     showSessionsOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
+    // A página (re)começou sem chip: o que estiver copiado é oferecido de novo.
+    clipboardOffered = null
+    clipboardCheckedAt = 0
+    if (win.isFocused()) void offerClipboard()
   })
   ipcMain.on(IPC.chatActivity, (event) => {
     if (fromChat(event)) onActivity?.()
@@ -295,6 +331,37 @@ export function setupChat({
       }
     }
   )
+  ipcMain.handle(IPC.chatCapture, async (event): Promise<DroppedFiles> => {
+    if (!fromChat(event)) return { files: [], problems: [] }
+    try {
+      const shots = await captureWithoutPanel()
+      const files: DroppedFile[] = []
+      for (const [index, shot] of shots.entries()) {
+        const prefix = shots.length > 1 ? `print-tela${index + 1}` : 'print'
+        const saved = await saveIncoming(shot.image.toPNG(), prefix, 'png')
+        const thumbnail = thumbnailOf(shot.image)
+        files.push({ ...saved, ...(thumbnail ? { thumbnail } : {}) })
+      }
+      return { files, problems: [] }
+    } catch (err) {
+      const reason = err instanceof CaptureError ? err.message : (err as Error).message
+      return { files: [], problems: [`Não consegui tirar o print: ${reason}.`] }
+    }
+  })
+  ipcMain.handle(IPC.chatClipboardUse, async (event, id: unknown): Promise<ClipboardUse> => {
+    if (!fromChat(event) || typeof id !== 'string') return { error: 'pedido inválido' }
+    clipboardOffered = null
+    return clipboardChip.use(id)
+  })
+  ipcMain.on(IPC.chatClipboardDismiss, (event, id: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return
+    clipboardOffered = null
+    clipboardChip.dismiss(id)
+  })
+  ipcMain.on(IPC.chatCopied, (event) => {
+    // O texto vai para a área de transferência logo depois do evento de copiar.
+    if (fromChat(event)) setTimeout(() => void clipboardChip.markCopied(), 200)
+  })
   ipcMain.handle(IPC.historyList, (event) => (fromChat(event) ? history.list() : []))
   ipcMain.handle(IPC.historyOpen, (event, id: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return false
@@ -328,7 +395,12 @@ export function setupChat({
     // usuário não respondeu.
     if (!approval || approval.event.toolName === QUESTION_TOOL) return
     approvals.delete(id)
-    if (decision === 'allow-always') alwaysAllowed.add(approval.scope)
+    if (decision === 'allow-always') {
+      // No navegador, o "sempre" vale para o site; código na página e arquivos não têm "sempre".
+      const { always, site } = approval.event
+      if (always === 'site' && site) browser.allowSite(site)
+      else if (!always) alwaysAllowed.add(approval.scope)
+    }
     approval.resolve(
       decision === 'deny' ? { allow: false, message: 'Usuário negou' } : { allow: true }
     )
@@ -355,6 +427,48 @@ export function setupChat({
   app.on('before-quit', () => {
     quitting = true
   })
+
+  /**
+   * Oferece no painel o que há de novo na área de transferência. Só quando o painel ganha o foco
+   * (o Wisp não fica vigiando o que você copia) e no máximo uma vez por CLIPBOARD_CHECK_MS.
+   */
+  async function offerClipboard(): Promise<void> {
+    const now = Date.now()
+    if (!win || !pageReady || now - clipboardCheckedAt < CLIPBOARD_CHECK_MS) return
+    clipboardCheckedAt = now
+    const offer = getConfig().clipboardChip ? await clipboardChip.check() : null
+    if ((offer?.id ?? null) === clipboardOffered) return
+    clipboardOffered = offer?.id ?? null
+    if (win && pageReady) win.webContents.send(IPC.chatClipboard, offer)
+  }
+
+  /** Tira o print com o painel fora da frente e depois o devolve como estava. */
+  function captureWithoutPanel(): Promise<ScreenImage[]> {
+    const run = async (): Promise<ScreenImage[]> => {
+      const chat = win?.isVisible() ? win : null
+      const focused = chat?.isFocused() ?? false
+      if (chat) {
+        // Sem o hide(): sumir e voltar para o print não toca os sons de fechar e abrir.
+        chat.hide()
+        await new Promise((resolve) => setTimeout(resolve, PANEL_AWAY_MS))
+      }
+      try {
+        return await captureScreens()
+      } finally {
+        if (chat && !chat.isDestroyed()) {
+          if (focused) {
+            chat.show()
+            chat.focus()
+          } else {
+            chat.showInactive()
+          }
+        }
+      }
+    }
+    const next = captureQueue.then(run, run)
+    captureQueue = next.catch(() => {})
+    return next
+  }
 
   /** Coloca o painel ao lado do mascote (à esquerda, ou à direita se não couber), dentro da área útil. */
   function placeNextToMascot(chat: BrowserWindow): void {
@@ -430,6 +544,7 @@ export function setupChat({
       win = null
       pageReady = false
     })
+    chat.on('focus', () => void offerClipboard())
     // Se a página recarregar (dev), os eventos esperam até ela avisar que está pronta de novo.
     chat.webContents.on('did-start-loading', () => {
       pageReady = false
@@ -475,7 +590,17 @@ export function setupChat({
       if (request.signal?.aborted) {
         return Promise.resolve({ allow: false, message: 'O pedido foi cancelado.' })
       }
-      if (alwaysAllowed.has(permissionScope(request))) return Promise.resolve({ allow: true })
+      let scope: Pick<PermissionRequestEvent, 'site' | 'always'> = {}
+      if (request.toolName.startsWith(BROWSER_PREFIX)) {
+        const verdict = browser.check(request.toolName, request.input)
+        if (verdict.allow) return Promise.resolve({ allow: true })
+        scope = {
+          ...(verdict.site ? { site: verdict.site } : {}),
+          always: verdict.always ? 'site' : 'none'
+        }
+      } else if (alwaysAllowed.has(permissionScope(request))) {
+        return Promise.resolve({ allow: true })
+      }
       const id = randomUUID()
       return new Promise<Approval>((resolve) => {
         const event: PermissionRequestEvent = {
@@ -483,7 +608,8 @@ export function setupChat({
           id,
           toolName: request.toolName,
           input: request.input,
-          toolUseId: request.toolUseId
+          toolUseId: request.toolUseId,
+          ...scope
         }
         approvals.set(id, { scope: permissionScope(request), resolve, event })
         // O Claude Code desistiu (Parar, turno encerrado, conexão fechada): o card some.
@@ -512,6 +638,26 @@ export function setupChat({
       }
       if (win.isVisible() && win.isFocused()) hide(win)
       else show(win)
+    },
+    open() {
+      if (!win) win = createWindow()
+      else show(win)
+    },
+    ask(text) {
+      if (!win) win = createWindow()
+      else show(win)
+      if (session.isBusy()) {
+        deliver({
+          type: 'notice',
+          level: 'warning',
+          text: 'Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.'
+        })
+        return
+      }
+      // O painel mostra a mensagem como se ela tivesse sido escrita nele.
+      toPage({ type: 'user', text, attachments: [] })
+      history.user(session.ensureSessionId(), text, [])
+      void session.send(text, [])
     },
     setMood(state) {
       mood = state
@@ -575,6 +721,10 @@ export function setupChat({
     },
     notifySound(settings) {
       if (win && pageReady) win.webContents.send(IPC.soundChanged, settings)
+    },
+    capture: captureWithoutPanel,
+    notice(level, text) {
+      send({ type: 'notice', level, text })
     },
     side() {
       const mascot = anchor()

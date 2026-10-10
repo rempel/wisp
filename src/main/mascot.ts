@@ -109,7 +109,12 @@ export function getMascotBounds(): Rectangle | null {
 
 /** Mostra um estado no mascote (seção 5.3). */
 export function setMascotView(next: MascotView): void {
-  if (next.state === view.state && next.look === view.look) return
+  if (
+    next.state === view.state &&
+    next.look === view.look &&
+    Boolean(next.music) === Boolean(view.music)
+  )
+    return
   view = next
   mascotWin?.webContents.send(IPC.mascotState, view)
 }

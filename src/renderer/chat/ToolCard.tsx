@@ -9,7 +9,19 @@ import type { Item } from './state'
 type ToolItem = Extract<Item, { kind: 'tool' }>
 
 /** Campos que melhor resumem cada chamada, na ordem de preferência. */
-const SUMMARY_KEYS = ['command', 'file_path', 'path', 'pattern', 'url', 'query', 'description']
+const SUMMARY_KEYS = [
+  'command',
+  'file_path',
+  'path',
+  'pattern',
+  'url',
+  'query',
+  'description',
+  // O elemento da página (navegador), a janela e o texto do lembrete.
+  'element',
+  'janela',
+  'texto'
+]
 
 /** Anexos ficam em ~/.cache/wisp/anexos/<sessão>/; no resumo, basta o nome do arquivo. */
 const ATTACHMENT_PATH = /\/wisp\/anexos\/[\w-]+\/([^/]+)$/
@@ -20,6 +32,19 @@ function summarize(input: unknown): string {
   const key = SUMMARY_KEYS.find((k) => typeof fields[k] === 'string' && fields[k])
   const value = key ? String(fields[key]) : ''
   return ATTACHMENT_PATH.exec(value)?.[1] ?? value
+}
+
+/** Ferramentas cujas imagens aparecem sem abrir o card: o print mostra o que o Claude viu. */
+const INLINE_IMAGES = new Set(['mcp__desktop__screenshot'])
+
+function ToolImages({ images }: { images: string[] }): JSX.Element {
+  return (
+    <div className="tool-images">
+      {images.map((src, index) => (
+        <img key={index} src={src} alt={`Imagem ${index + 1} do resultado`} />
+      ))}
+    </div>
+  )
 }
 
 /** O Claude Code nega na hora o que precisa de aprovação e explica isso no resultado. */
@@ -52,6 +77,8 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
   const predicted = useMemo(() => diffFromInput(tool.name, tool.input), [tool.name, tool.input])
   const diff =
     tool.status === 'error' || tool.status === 'stopped' ? null : (tool.diff ?? predicted)
+  const images = tool.images ?? []
+  const inlineImages = images.length > 0 && INLINE_IMAGES.has(tool.name)
 
   return (
     <div className={`tool tool-${tool.status}`}>
@@ -78,6 +105,7 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
         <span className="tool-status">{statusLabel(tool)}</span>
         <ChevronIcon open={open} />
       </button>
+      {inlineImages && <ToolImages images={images} />}
       {open && (
         <div className="tool-body">
           {diff && diff.hunks.length > 0 ? (
@@ -99,6 +127,7 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
               <pre>{tool.output || '(vazio)'}</pre>
             </>
           )}
+          {images.length > 0 && !inlineImages && <ToolImages images={images} />}
         </div>
       )}
     </div>

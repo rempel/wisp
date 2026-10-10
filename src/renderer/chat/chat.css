@@ -596,6 +596,26 @@ code {
   text-transform: uppercase;
 }
 
+/* O que a ferramenta devolveu em imagem (um print da tela): miniaturas que abrem o card. */
+.tool-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.tool-body .tool-images {
+  padding: 2px 0 4px;
+}
+
+.tool-images img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .tool-body pre {
   max-height: 220px;
   margin: 0 0 6px;
@@ -830,6 +850,15 @@ code {
   filter: none;
 }
 
+/* Os dois botões pequenos à esquerda da caixa (anexar e print) ficam juntinhos. */
+.composer .icon-button.attach + .icon-button.attach {
+  margin-left: -6px;
+}
+
+.composer .icon-button.attach .spinner {
+  color: var(--accent);
+}
+
 /* Botão de mudo, no canto da linha do modelo. */
 .composer .icon-button.sound-toggle {
   width: 26px;
@@ -951,6 +980,89 @@ code {
 .attach-error {
   font-size: 12.5px;
   color: var(--danger-text);
+}
+
+/* ---- "Usar o que você copiou" ----------------------------------------- */
+
+.clip-chip {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  animation: clip-in 0.25s ease-out;
+}
+
+.clip-take {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  border-radius: 999px 0 0 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.clip-take > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.clip-take:hover .clip-label {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.clip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clip-meta {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.clip-dismiss {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.clip-dismiss:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.clip-dismiss svg {
+  width: 11px;
+  height: 11px;
+}
+
+@keyframes clip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
 }
 
 /* Aparece enquanto arquivos são arrastados por cima do painel. */
@@ -1565,7 +1677,8 @@ code {
   .avatar-working .avatar-tip,
   .avatar-talking .avatar-tip,
   .avatar-permission .avatar-tip,
-  .avatar-happy {
+  .avatar-happy,
+  .clip-chip {
     animation: none;
   }
 }

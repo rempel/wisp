@@ -1,8 +1,9 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import type { ClipboardEvent, JSX, KeyboardEvent } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
-import type { ChatEvent, MascotState, SoundSettings } from '../../shared/ipc'
+import type { ChatEvent, ClipboardOffer, MascotState, SoundSettings } from '../../shared/ipc'
 import { AttachmentList } from './AttachmentList'
+import { ClipboardChip } from './ClipboardChip'
 import { HistoryView } from './HistoryView'
 import {
   Avatar,
@@ -11,6 +12,7 @@ import {
   HistoryIcon,
   PaperclipIcon,
   PlusIcon,
+  ScreenshotIcon,
   SendIcon,
   SoundOffIcon,
   SoundOnIcon,
@@ -88,6 +90,9 @@ export default function Chat(): JSX.Element {
   const [sound, setSound] = useState<SoundSettings | null>(null)
   const attachments = useAttachments()
   const [dragging, setDragging] = useState(false)
+  // O chip "usar o que você copiou" e o print da tela em andamento.
+  const [clip, setClip] = useState<ClipboardOffer | null>(null)
+  const [capturing, setCapturing] = useState(false)
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
@@ -104,6 +109,7 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offMood = window.wisp.chat.onMood(setMood)
+    const offClipboard = window.wisp.chat.onClipboard(setClip)
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
@@ -113,15 +119,22 @@ export default function Chat(): JSX.Element {
         })
       }
     })
+    // Copiar algo do painel (uma resposta, um código) não vira oferta de volta.
+    const onCopy = (): void => window.wisp.chat.copied()
+    document.addEventListener('copy', onCopy)
+    document.addEventListener('cut', onCopy)
     return () => {
       offMood()
+      offClipboard()
       offShown()
       offSessions()
+      document.removeEventListener('copy', onCopy)
+      document.removeEventListener('cut', onCopy)
     }
   }, [])
 
   // Os sons (o botão de mudo) e os arquivos soltos no mascote, que viram anexos aqui.
-  const { addDroppedOnMascot } = attachments
+  const { addPrepared } = attachments
   useEffect(() => {
     let alive = true
     void window.wisp.sound.get().then((settings) => {
@@ -129,7 +142,7 @@ export default function Chat(): JSX.Element {
     })
     const offSound = window.wisp.sound.onChanged(setSound)
     const offAttach = window.wisp.chat.onAttach((dropped) => {
-      addDroppedOnMascot(dropped)
+      addPrepared(dropped)
       setView('chat')
       input.current?.focus()
     })
@@ -138,7 +151,7 @@ export default function Chat(): JSX.Element {
       offSound()
       offAttach()
     }
-  }, [addDroppedOnMascot])
+  }, [addPrepared])
 
   // Mexer no painel (teclas, cliques, rolagem) conta como atividade: o mascote não cochila com o
   // usuário escrevendo ou lendo. O aviso vai no máximo a cada ACTIVITY_EVERY_MS.
@@ -297,6 +310,8 @@ export default function Chat(): JSX.Element {
     )
     setDraft('')
     attachments.clear()
+    // O chip ignorado sai; volta se outra coisa for copiada.
+    setClip(null)
     stick.current = true
   }
 
@@ -309,10 +324,51 @@ export default function Chat(): JSX.Element {
 
   // Imagem copiada (um print, por exemplo) vira anexo; texto cola normalmente.
   function onPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
+    // Colar é usar o que o chip oferecia.
+    if (clip) dismissClip(clip)
     const files = Array.from(event.clipboardData.files)
     if (!files.length) return
     event.preventDefault()
     void attachments.addPasted(files)
+  }
+
+  /** Põe o texto onde está o cursor da caixa de texto, como uma colagem. */
+  function insertText(text: string): void {
+    const box = input.current
+    const start = box?.selectionStart ?? draft.length
+    const end = box?.selectionEnd ?? draft.length
+    setDraft((current) => current.slice(0, start) + text + current.slice(end))
+    requestAnimationFrame(() => {
+      box?.focus()
+      box?.setSelectionRange(start + text.length, start + text.length)
+    })
+  }
+
+  async function takeClip(offer: ClipboardOffer): Promise<void> {
+    setClip(null)
+    const result = await window.wisp.chat.takeClipboard(offer.id)
+    if ('text' in result) insertText(result.text)
+    else if ('attachment' in result)
+      attachments.addPrepared({ files: [result.attachment], problems: [] })
+    else attachments.addPrepared({ files: [], problems: [result.error] })
+    input.current?.focus()
+  }
+
+  function dismissClip(offer: ClipboardOffer): void {
+    setClip(null)
+    window.wisp.chat.dismissClipboard(offer.id)
+  }
+
+  /** Print da tela como anexo: o painel some, a tela é capturada e ele volta com o print. */
+  async function captureScreen(): Promise<void> {
+    if (capturing) return
+    setCapturing(true)
+    try {
+      attachments.addPrepared(await window.wisp.chat.captureScreen())
+    } finally {
+      setCapturing(false)
+      input.current?.focus()
+    }
   }
 
   function toggleSound(current: SoundSettings): void {
@@ -461,6 +517,13 @@ export default function Chat(): JSX.Element {
               send()
             }}
           >
+            {clip && (
+              <ClipboardChip
+                offer={clip}
+                onTake={() => void takeClip(clip)}
+                onDismiss={() => dismissClip(clip)}
+              />
+            )}
             {attachments.pending.length > 0 && (
               <AttachmentList items={attachments.pending} onRemove={attachments.remove} />
             )}
@@ -493,6 +556,16 @@ export default function Chat(): JSX.Element {
                 aria-label="Anexar arquivos"
               >
                 <PaperclipIcon />
+              </button>
+              <button
+                type="button"
+                className="icon-button attach"
+                onClick={() => void captureScreen()}
+                disabled={capturing}
+                title="Anexar um print da tela (o painel sai da frente)"
+                aria-label="Anexar um print da tela"
+              >
+                {capturing ? <span className="spinner" /> : <ScreenshotIcon />}
               </button>
               <input
                 ref={picker}

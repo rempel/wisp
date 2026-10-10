@@ -41,8 +41,11 @@ export interface Attachments {
    * tem arquivo: o main a guarda num, e ela vira um anexo como os outros.
    */
   addPasted(files: File[]): Promise<void>
-  /** Anexa o que foi solto no mascote (o main já conferiu os arquivos). */
-  addDroppedOnMascot(dropped: DroppedFiles): void
+  /**
+   * Anexa arquivos que o main já conferiu: os soltos no mascote, os prints da tela e o que veio
+   * da área de transferência. Os problemas aparecem como os outros.
+   */
+  addPrepared(prepared: DroppedFiles): void
   remove(id: string): void
   clear(): void
 }
@@ -163,7 +166,7 @@ export function useAttachments(): Attachments {
     [add]
   )
 
-  const addDroppedOnMascot = useCallback(
+  const addPrepared = useCallback(
     ({ files, problems }: DroppedFiles): void => {
       const seen = new Set(current.current.map((item) => item.path))
       const previews = files
@@ -180,5 +183,5 @@ export function useAttachments(): Attachments {
   )
   const clear = useCallback((): void => update([]), [update])
 
-  return { pending, error, add, addDropped, addPasted, addDroppedOnMascot, remove, clear }
+  return { pending, error, add, addDropped, addPasted, addPrepared, remove, clear }
 }

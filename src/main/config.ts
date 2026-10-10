@@ -36,6 +36,19 @@ export interface WispConfig {
   sleepAfterMinutes: number
   /** Acessórios por data: "auto" segue o calendário, "none" desliga; ou um fixo. */
   accessory: AccessorySetting
+  /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
+  shortcut: string | null
+  /** O painel oferece um chip para usar o que você copiou. */
+  clipboardChip: boolean
+  /**
+   * O terminal que o Claude abre ("kitty", "konsole --workdir {dir}"); null escolhe sozinho pelo
+   * desktop.
+   */
+  terminalCommand: string | null
+  /** O Claude pode controlar um navegador separado (Playwright). Desligado por padrão. */
+  browserAutomation: boolean
+  /** O navegador para isso (um Chrome ou Chromium); null procura sozinho. */
+  browserExecutable: string | null
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -52,7 +65,12 @@ function defaults(): WispConfig {
     sound: true,
     volume: 0.5,
     sleepAfterMinutes: 3,
-    accessory: 'auto'
+    accessory: 'auto',
+    shortcut: 'Ctrl+Alt+W',
+    clipboardChip: true,
+    terminalCommand: null,
+    browserAutomation: false,
+    browserExecutable: null
   }
 }
 
@@ -118,7 +136,12 @@ const ConfigSchema = z.object({
     z.number().min(0),
     () => defaults().sleepAfterMinutes
   ),
-  accessory: field('accessory', z.enum(ACCESSORY_SETTINGS), () => defaults().accessory)
+  accessory: field('accessory', z.enum(ACCESSORY_SETTINGS), () => defaults().accessory),
+  shortcut: field('shortcut', z.string().max(60).nullable(), () => defaults().shortcut),
+  clipboardChip: field('clipboardChip', z.boolean(), () => defaults().clipboardChip),
+  terminalCommand: field('terminalCommand', z.string().max(300).nullable(), () => null),
+  browserAutomation: field('browserAutomation', z.boolean(), () => false),
+  browserExecutable: field('browserExecutable', z.string().max(500).nullable(), () => null)
 })
 
 let config: WispConfig = defaults()

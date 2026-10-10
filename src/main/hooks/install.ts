@@ -14,6 +14,7 @@ import { homedir } from 'os'
 import { dirname, isAbsolute, join } from 'path'
 import { compactHunks, lineDiff } from '../../shared/diff'
 import type { HookPreview, HooksAction, HooksStatus } from '../../shared/ipc'
+import { shellQuote } from '../launcher'
 import { DATA_DIR } from '../paths'
 import { HOOK_EVENTS, RELAY_NAME } from './protocol'
 
@@ -28,9 +29,6 @@ export function settingsPath(env: NodeJS.ProcessEnv = process.env): string {
 
 const tilde = (path: string): string =>
   path.startsWith(homedir() + '/') ? `~${path.slice(homedir().length)}` : path
-
-/** Aspas simples do sh: o caminho vira uma palavra só, seja qual for. */
-const shellQuote = (value: string): string => `'${value.replace(/'/g, `'\\''`)}'`
 
 /**
  * Escreve o script que o Claude Code chama a cada hook. Ele roda o relay com o próprio Electron
