@@ -1,19 +1,27 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
-import type { IpcMainEvent, Rectangle } from 'electron'
+import type { IpcMainEvent, IpcMainInvokeEvent, Rectangle } from 'electron'
 import { randomUUID } from 'crypto'
-import { existsSync, mkdirSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
-import { join } from 'path'
+import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
+import { savePasted } from './attachments'
 import { ClaudeSession, SAFE_TOOLS } from './claude'
-import { CONFIG_PATH, configProblems, getConfig, onConfigProblems } from './config'
+import { CONFIG_PATH, configProblems, getConfig, onConfigProblems, updateConfig } from './config'
+import { History } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { DATA_DIR } from './paths'
 import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
-import { IPC } from '../shared/ipc'
-import type { ChatEvent } from '../shared/ipc'
+import { IPC, MODEL_CHOICES } from '../shared/ipc'
+import type {
+  AttachmentPreview,
+  ChatEvent,
+  MascotState,
+  OutgoingAttachment,
+  PastedImage
+} from '../shared/ipc'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
@@ -28,9 +36,47 @@ const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
 
 const APPEND_SYSTEM_PROMPT =
   'Você está respondendo dentro do Wisp, um painel de chat pequeno no desktop Linux do usuário. ' +
-  'Responda em português do Brasil, de forma breve. Quando o usuário anexa arquivos, a mensagem ' +
-  'termina com um bloco <anexos> com os caminhos deles: leia-os com a ferramenta Read (ela também ' +
-  'lê imagens e PDFs) antes de responder sobre eles.'
+  'Responda em português do Brasil, de forma breve. O painel é estreito: use Markdown leve, com ' +
+  'parágrafos curtos e listas simples, sem títulos grandes nem tabelas largas. Quando o usuário ' +
+  'anexa arquivos, a mensagem termina com um bloco <anexos> com os caminhos deles: leia-os com a ' +
+  'ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles.'
+
+/** Miniatura que o chat manda junto com um anexo: um data URL de imagem pequeno. */
+const THUMBNAIL = /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/]+=*$/
+const MAX_THUMBNAIL = 100_000
+
+/** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
+function outgoing(value: unknown): OutgoingAttachment[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((item: Record<string, unknown> | null) => {
+    const path = item?.path
+    if (typeof path !== 'string' || !path) return []
+    const thumbnail = item?.thumbnail
+    const valid =
+      typeof thumbnail === 'string' &&
+      thumbnail.length <= MAX_THUMBNAIL &&
+      THUMBNAIL.test(thumbnail)
+    return [valid ? { path, thumbnail } : { path }]
+  })
+}
+
+/** Como o anexo aparece no histórico: nome, tamanho e a miniatura que o chat gerou. */
+function previewOf({ path, thumbnail }: OutgoingAttachment): AttachmentPreview {
+  let size = 0
+  try {
+    size = statSync(path).size
+  } catch {
+    // O arquivo sumiu; o envio vai avisar.
+  }
+  return { name: basename(path), size, ...(thumbnail ? { thumbnail } : {}) }
+}
+
+/** Os bytes de uma imagem colada, como chegam pelo IPC (ArrayBuffer ou uma view dele). */
+function bytesOf(data: unknown): Uint8Array | null {
+  if (data instanceof ArrayBuffer) return new Uint8Array(data)
+  if (ArrayBuffer.isView(data)) return new Uint8Array(data.buffer, data.byteOffset, data.byteLength)
+  return null
+}
 
 /** Cria a pasta de trabalho do Claude Code e, na primeira vez, o CLAUDE.md com a persona. */
 function prepareWorkspace(): string {
@@ -56,6 +102,8 @@ function permissionScope({ toolName, input }: ApprovalRequest): string {
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
   toggle(): void
+  /** O humor do mascote mudou: o avatar do cabeçalho acompanha. */
+  setMood(state: MascotState): void
   /** Abre o painel numa conversa nova (menu da bandeja). */
   newConversation(): void
   /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
@@ -85,6 +133,10 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
   let pageReady = false
   const queued: ChatEvent[] = []
   let quitting = false
+  let mood: MascotState = 'idle'
+  // O último uso do plano, para mostrar de novo se a página recarregar.
+  let lastUsage: Extract<ChatEvent, { type: 'usage' }> | null = null
+  const history = new History()
   // Pedidos de permissão esperando o clique no card, e o que já foi liberado "sempre".
   const approvals = new Map<
     string,
@@ -92,10 +144,14 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
   >()
   const alwaysAllowed = new Set<string>()
 
-  const send = (event: ChatEvent): void => {
-    onEvent?.(event)
+  /** Manda um evento só para a página (as reaberturas do histórico não mexem no mascote). */
+  const toPage = (event: ChatEvent): void => {
     if (win && pageReady) win.webContents.send(IPC.chatEvent, event)
     else queued.push(event)
+  }
+  const send = (event: ChatEvent): void => {
+    onEvent?.(event)
+    toPage(event)
   }
 
   // Problemas no config.json aparecem na conversa (o terminal nem sempre está à vista): ao abrir
@@ -121,15 +177,26 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     // Turno encerrado (parado, com erro) ou conversa nova: nenhum pedido aberto vai ser usado.
     if (event.type === 'turn-end' || event.type === 'reset') cancelApprovals()
     if (event.type === 'reset') alwaysAllowed.clear()
+    if (event.type === 'usage') lastUsage = event
+    history.record(event)
     send(event)
   }
 
   function cancelApprovals(): void {
     for (const [id, approval] of approvals) {
       approval.resolve({ allow: false, message: 'O usuário parou a resposta.' })
-      send({ type: 'permission-resolved', id, decision: 'cancelled' })
+      deliver({ type: 'permission-resolved', id, decision: 'cancelled' })
     }
     approvals.clear()
+  }
+
+  /** Manda de novo para a página a conversa atual, do histórico (a página recarregou). */
+  function replayCurrent(): boolean {
+    const id = history.currentId()
+    const saved = id ? history.load(id) : null
+    if (!saved) return false
+    for (const event of saved.events) toPage(event)
+    return true
   }
 
   const config = getConfig()
@@ -139,31 +206,78 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       workspace: prepareWorkspace,
       allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
       appendSystemPrompt: APPEND_SYSTEM_PROMPT,
-      mcpConfigPath
+      mcpConfigPath,
+      model: config.model
     },
     deliver
   )
 
-  const fromChat = (event: IpcMainEvent): boolean =>
+  const fromChat = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
     win !== null && event.sender === win.webContents
 
   ipcMain.on(IPC.chatReady, (event) => {
     if (!fromChat(event) || !win) return
     pageReady = true
+    win.webContents.send(IPC.chatMood, mood)
     for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
   })
   ipcMain.on(IPC.chatSend, (event, text: unknown, attachments: unknown) => {
-    if (!fromChat(event) || typeof text !== 'string') return
-    const paths = Array.isArray(attachments)
-      ? attachments.filter((path): path is string => typeof path === 'string' && path !== '')
-      : []
-    if (text.trim() || paths.length) void session.send(text, paths)
+    if (!fromChat(event) || typeof text !== 'string' || session.isBusy()) return
+    const files = outgoing(attachments)
+    if (!text.trim() && !files.length) return
+    history.user(session.ensureSessionId(), text, files.map(previewOf))
+    void session.send(
+      text,
+      files.map((file) => file.path)
+    )
   })
   ipcMain.on(IPC.chatStop, (event) => {
-    if (fromChat(event)) void session.stop()
+    if (fromChat(event)) session.stop()
   })
   ipcMain.on(IPC.chatNew, (event) => {
-    if (fromChat(event)) void session.reset()
+    if (fromChat(event)) session.reset()
+  })
+  ipcMain.on(IPC.chatModel, (event, choice: unknown) => {
+    if (!fromChat(event)) return
+    if (choice !== null && !MODEL_CHOICES.includes(choice as (typeof MODEL_CHOICES)[number])) return
+    const model = choice as string | null
+    updateConfig({ model })
+    session.setModel(model)
+  })
+  ipcMain.handle(
+    IPC.chatPaste,
+    async (event, data: unknown, type: unknown): Promise<PastedImage> => {
+      const bytes = bytesOf(data)
+      if (!fromChat(event) || !bytes || typeof type !== 'string')
+        return { error: 'pedido inválido' }
+      try {
+        return await savePasted(bytes, type)
+      } catch (err) {
+        return { error: (err as Error).message }
+      }
+    }
+  )
+  ipcMain.handle(IPC.historyList, (event) => (fromChat(event) ? history.list() : []))
+  ipcMain.handle(IPC.historyOpen, (event, id: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return false
+    if (id === history.currentId()) return true
+    const saved = history.load(id)
+    if (!saved) return false
+    // A conversa atual fecha (o 'reset' passa pelo histórico e pelos cards) e a guardada volta:
+    // primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
+    session.resume(saved.sessionId)
+    history.continue(saved)
+    for (const replayed of saved.events) toPage(replayed)
+    toPage({ type: 'restored', createdAt: saved.createdAt })
+    return true
+  })
+  ipcMain.handle(IPC.historyDelete, (event, id: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return false
+    const current = id === history.currentId()
+    const removed = history.remove(id)
+    // Apagar a conversa aberta é começar outra.
+    if (current) session.reset()
+    return removed
   })
   ipcMain.on(IPC.chatHide, (event) => {
     if (fromChat(event)) win?.hide()
@@ -180,7 +294,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     approval.resolve(
       decision === 'deny' ? { allow: false, message: 'Usuário negou' } : { allow: true }
     )
-    send({ type: 'permission-resolved', id, decision })
+    deliver({ type: 'permission-resolved', id, decision })
   })
   ipcMain.on(IPC.chatAnswer, (event, id: unknown, answers: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return
@@ -190,7 +304,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     if (answers === null) {
       approvals.delete(id)
       approval.resolve({ allow: false, message: 'O usuário preferiu não responder.' })
-      send({ type: 'permission-resolved', id, decision: 'deny' })
+      deliver({ type: 'permission-resolved', id, decision: 'deny' })
       return
     }
     const questions = parseQuestions(input)
@@ -198,7 +312,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     if (!checked) return
     approvals.delete(id)
     approval.resolve({ allow: true, updatedInput: { ...input, answers: checked } })
-    send({ type: 'permission-resolved', id, decision: 'answered', answers: checked })
+    deliver({ type: 'permission-resolved', id, decision: 'answered', answers: checked })
   })
   app.on('before-quit', () => {
     quitting = true
@@ -224,11 +338,14 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
   }
 
   function show(chat: BrowserWindow): void {
-    // Relê o config.json se ele mudou; problemas novos chegam pelo onConfigProblems.
-    getConfig()
-    if (!chat.isVisible()) placeNextToMascot(chat)
+    // Relê o config.json se ele mudou; problemas novos chegam pelo onConfigProblems, e um
+    // modelo trocado no arquivo vale a partir da próxima mensagem.
+    session.setModel(getConfig().model)
+    const appearing = !chat.isVisible()
+    if (appearing) placeNextToMascot(chat)
     chat.show()
     chat.focus()
+    if (appearing && pageReady) chat.webContents.send(IPC.chatShown)
   }
 
   function createWindow(): BrowserWindow {
@@ -265,18 +382,21 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     chat.webContents.on('did-start-loading', () => {
       pageReady = false
     })
-    // Se a página cair, ela recarrega vazia: o processo do Claude Code e a conversa continuam,
-    // e o que estava pendente (resposta em andamento, cards de permissão) volta para a tela.
+    // Se a página cair, ela recarrega vazia: o processo do Claude Code e a conversa continuam.
+    // A conversa volta do histórico, com os cards de permissão ainda abertos, e depois o resto.
     reloadOnCrash(chat, () => {
-      send({
+      pageReady = false
+      history.flush()
+      const replayed = replayCurrent()
+      if (!replayed) for (const approval of approvals.values()) toPage(approval.event)
+      toPage(session.modelEvent())
+      if (lastUsage) toPage(lastUsage)
+      if (session.isBusy()) toPage({ type: 'busy', busy: true })
+      toPage({
         type: 'notice',
         level: 'warning',
-        text:
-          'O painel reiniciou depois de uma falha. A conversa continua, mas as mensagens ' +
-          'anteriores não aparecem mais aqui.'
+        text: 'O painel reiniciou depois de uma falha. A conversa continua.'
       })
-      if (session.isBusy()) send({ type: 'busy', busy: true })
-      for (const approval of approvals.values()) send(approval.event)
     })
 
     // Links da conversa abrem no navegador; a janela nunca navega para fora.
@@ -291,6 +411,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     })
 
     loadPage(chat, 'chat')
+    toPage(session.modelEvent())
     if (configProblems().length) send(configNotice(configProblems()))
     // Já avisa no chat se o Claude Code não estiver instalado ou logado.
     void session.preflight()
@@ -319,7 +440,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
           () => {
             if (!approvals.delete(id)) return
             resolve({ allow: false, message: 'O pedido foi cancelado.' })
-            send({ type: 'permission-resolved', id, decision: 'cancelled' })
+            deliver({ type: 'permission-resolved', id, decision: 'cancelled' })
           },
           { once: true }
         )
@@ -329,7 +450,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
           placeNextToMascot(win)
           win.showInactive()
         }
-        send(event)
+        deliver(event)
       })
     },
     toggle() {
@@ -340,8 +461,12 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       if (win.isVisible() && win.isFocused()) win.hide()
       else show(win)
     },
+    setMood(state) {
+      mood = state
+      if (win && pageReady) win.webContents.send(IPC.chatMood, state)
+    },
     newConversation() {
-      void session.reset()
+      session.reset()
       if (!win) win = createWindow()
       else show(win)
     },
@@ -352,6 +477,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       return chat.x + chat.width / 2 < mascot.x + mascot.width / 2 ? 'left' : 'right'
     },
     dispose() {
+      history.flush()
       session.dispose()
     }
   }

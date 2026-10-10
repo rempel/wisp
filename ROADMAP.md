@@ -96,12 +96,17 @@ As lacunas que apareceram no fim da Etapa 4 também entraram na Etapa 5:
 - `claude` instalado pelo npm;
 - escala de texto do GNOME.
 
-### Fase 6: conversa
+### Fase 6: conversa ✅
+
+**Status:** pronta, esperando validação.
 
 O painel ganha a cara e os recursos que fazem falta no uso diário.
 
-- **Pílula do modelo (P).** Fica acima da caixa de texto, com Haiku, Sonnet e Opus. Trocar reinicia
-  o processo com `--model` e `--resume`, mantendo a conversa.
+- **Pílula do modelo (P).** Fica acima da caixa de texto, com Padrão, Haiku, Sonnet, Opus e Fable
+  (os apelidos que o `--model` aceita).
+  - **Como ficou:** melhor que o planejado. Em vez de reiniciar o processo, a troca vai pelo stdin
+    num `control_request` de `set_model`, logo antes da próxima mensagem: o mesmo processo segue,
+    com o contexto inteiro. A escolha fica no `config.json`.
 - **Uso do plano (P).**
   - **De onde vem:** o stream do Claude Code já manda `rate_limit_event`, com o uso das janelas de
     5 horas e de 7 dias e o horário em que cada uma reinicia (testado no 2.1.296). O Coucou precisa
@@ -109,28 +114,32 @@ O painel ganha a cara e os recursos que fazem falta no uso diário.
   - **Na tela:** uma pílula no cabeçalho com a maior das duas porcentagens (verde até 50%, âmbar
     até 80%, vermelho acima) e um cartão com as duas barras.
 - **Parar na hora (P).**
-  - **Como:** em vez de matar o processo, mandar pelo stdin um `control_request` com
-    `"subtype": "interrupt"`. Testado: o turno acaba em milissegundos e o mesmo processo continua
-    vivo, com a conexão MCP.
-  - **O que muda:** a regra "Parar: encerra o processo" da especificação. O `--resume` fica para
-    quando o processo cair.
+  - **Como:** em vez de matar o processo, o Wisp manda pelo stdin um `control_request` com
+    `"subtype": "interrupt"`. O turno acaba em milissegundos e o mesmo processo continua vivo, com
+    a conexão MCP.
+  - **O que mudou:** a regra "Parar: encerra o processo" da especificação. O processo só é
+    encerrado se não obedecer em 4 s, e o `--resume` fica para quando ele cair.
 - **Histórico de conversas (M, especificação v2).**
-  - Uma lista das conversas anteriores, com a data e a primeira mensagem como título. Abrir uma
-    retoma com `--resume`.
-  - As sessões já ficam gravadas pelo próprio Claude Code, mas num formato interno, que pode mudar
-    entre versões.
+  - Uma lista das conversas anteriores, agrupadas por dia, com busca e a primeira mensagem como
+    título. Abrir uma traz as mensagens de volta e retoma o Claude com `--resume`.
+  - O Wisp grava o próprio histórico (JSONL em `~/.local/share/wisp/conversas/`): as sessões do
+    Claude Code ficam num formato interno, que pode mudar entre versões.
+  - Se o Claude Code já apagou a sessão, a conversa continua numa sessão nova, com um aviso.
 - **Visual inspirado no Coucou, sem copiar a arte (M):**
-  - o avatar do Wisp no painel reagindo à conversa;
-  - respostas sem balão;
+  - o avatar do Wisp no painel reagindo à conversa (olhos e antena de cada estado);
+  - respostas sem balão (já era assim);
   - degradê de fundo por estado;
-  - painel que começa menor e cresce, com mola ao abrir;
-  - "Continuar…" depois da primeira mensagem, foco de volta após cada resposta e Ctrl+K para
-    conversa nova;
-  - linha de status com brilho ("Lendo package.json…");
+  - mola ao abrir o painel;
+  - "Continuar a conversa…" depois da primeira mensagem, foco de volta após cada resposta e
+    Ctrl+K para conversa nova;
+  - linha de status com brilho ("lendo package.json…");
   - um pedido de "Markdown leve" no system prompt, porque o painel é pequeno.
-- **Contagem +N −M nos cards de Edit e Write (P),** com o diff completo ao abrir o card. O stream já
-  traz o antes e o depois.
+- **Contagem +N −M nos cards de Edit e Write (P),** com o diff completo ao abrir o card. O diff
+  vem do `structuredPatch` que o Claude Code manda com o resultado, com os números das linhas.
 - **Colar imagem com Ctrl+V (P),** por exemplo um print, que vira anexo.
+
+**Ficou para depois:** o painel que começa menor e cresce com a conversa. Redimensionar a janela a
+cada mensagem briga com o gerenciador de janelas no X11 e no XWayland; a mola ao abrir entrou.
 
 **Aceite:**
 

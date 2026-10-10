@@ -1,5 +1,7 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import type { JSX } from 'react'
+import { diffFromInput } from '../../shared/diff'
+import type { FileDiff } from '../../shared/ipc'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { toolLabel } from './state'
 import type { Item } from './state'
@@ -22,6 +24,8 @@ function summarize(input: unknown): string {
 
 /** O Claude Code nega na hora o que precisa de aprovação e explica isso no resultado. */
 const DENIED = /needs approval|requires approval|permission|not allowed|denied|negou/i
+/** A ferramenta parou porque o usuário parou a resposta. */
+const INTERRUPTED = /interrupted by user/i
 
 function statusLabel(tool: ToolItem): string {
   switch (tool.status) {
@@ -34,14 +38,57 @@ function statusLabel(tool: ToolItem): string {
     case 'stopped':
       return 'interrompido'
     case 'error':
+      if (INTERRUPTED.test(tool.output ?? '')) return 'interrompido'
       return DENIED.test(tool.output ?? '') ? 'negado' : 'erro'
   }
+}
+
+/** As linhas de um diff, coloridas, com o número da linha no arquivo quando se sabe. */
+function DiffView({ diff }: { diff: FileDiff }): JSX.Element {
+  return (
+    <pre className="diff-view">
+      {diff.hunks.map((hunk, index) => (
+        <div key={index} className="diff-hunk">
+          {hunk.newStart > 0 && <div className="diff-at">linha {hunk.newStart}</div>}
+          {hunk.lines.map((line, n) => {
+            const kind = line[0] === '+' ? 'add' : line[0] === '-' ? 'del' : 'ctx'
+            return (
+              <div key={n} className={`diff-line ${kind}`}>
+                <span className="diff-sign">{kind === 'ctx' ? ' ' : line[0]}</span>
+                {line.slice(1) || ' '}
+              </div>
+            )
+          })}
+        </div>
+      ))}
+      {diff.truncated && <div className="diff-at">… (mais linhas)</div>}
+    </pre>
+  )
+}
+
+/** "+3 −1" no cabeçalho do card. */
+function DiffCount({ diff }: { diff: FileDiff }): JSX.Element | null {
+  if (!diff.added && !diff.removed) return null
+  return (
+    <span
+      className="diff-count"
+      aria-label={`${diff.added} linhas a mais, ${diff.removed} a menos`}
+    >
+      {diff.added > 0 && <span className="add">+{diff.added}</span>}
+      {diff.removed > 0 && <span className="del">−{diff.removed}</span>}
+    </span>
+  )
 }
 
 /** Uma chamada de ferramenta: uma linha com o resumo, que abre para mostrar entrada e saída. */
 export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
   const [open, setOpen] = useState(false)
   const summary = summarize(tool.input)
+  // O diff real chega com o resultado; antes dele (e nas versões do CLI que não o mandam), vale o
+  // que dá para tirar dos argumentos. Uma edição que falhou não mudou nada.
+  const predicted = useMemo(() => diffFromInput(tool.name, tool.input), [tool.name, tool.input])
+  const diff =
+    tool.status === 'error' || tool.status === 'stopped' ? null : (tool.diff ?? predicted)
 
   return (
     <div className={`tool tool-${tool.status}`}>
@@ -64,16 +111,24 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
         </span>
         <span className="tool-name">{toolLabel(tool.name)}</span>
         <span className="tool-summary">{summary}</span>
+        {diff && <DiffCount diff={diff} />}
         <span className="tool-status">{statusLabel(tool)}</span>
         <ChevronIcon open={open} />
       </button>
       {open && (
         <div className="tool-body">
-          {tool.input !== undefined && (
+          {diff && diff.hunks.length > 0 ? (
             <>
-              <div className="tool-label">Entrada</div>
-              <pre>{JSON.stringify(tool.input, null, 2)}</pre>
+              <div className="tool-label">Mudanças</div>
+              <DiffView diff={diff} />
             </>
+          ) : (
+            tool.input !== undefined && (
+              <>
+                <div className="tool-label">Entrada</div>
+                <pre>{JSON.stringify(tool.input, null, 2)}</pre>
+              </>
+            )
           )}
           {tool.output !== undefined && (
             <>

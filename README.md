@@ -13,7 +13,9 @@ Um assistente para Linux com um mascote animado que flutua na tela. O cérebro �
 4. anexos;
 5. estados do mascote, bandeja e acabamento.
 
-O que vem depois está no [ROADMAP.md](ROADMAP.md).
+Depois do MVP, a Fase 6 do roadmap (conversa) está pronta para validação: troca de modelo, uso
+do plano, Parar na hora, histórico de conversas, diff das edições, colar imagem e um painel
+mais vivo. O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
 ## Requisitos
 
@@ -143,6 +145,32 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
       vira um aviso no chat quando você abre o painel.
 - [ ] **Claude instalado pelo npm ou nvm:** o Wisp o encontra mesmo aberto pelo menu do sistema.
 
+### Conversa (Fase 6)
+
+- [ ] **Modelo:** a pílula acima da caixa de texto mostra quem responde ("Padrão · Sonnet 5.5").
+  - Peça para o Claude guardar uma palavra, troque para **Opus** na pílula e pergunte a palavra:
+    ele lembra, e a resposta vem do Opus.
+  - A escolha fica no `config.json` (`"model"`) e vale nas próximas conversas.
+- [ ] **Uso do plano:** depois da primeira resposta, aparece no cabeçalho uma pílula com a
+      porcentagem (verde até 50%, âmbar até 80%, vermelha acima). Clicar abre as barras da sessão
+      de 5 horas e da semana, com o horário em que cada uma reinicia.
+- [ ] **Parar:** peça um texto longo e clique em Parar no meio. A resposta para na hora, e a
+      próxima mensagem continua a conversa sem esperar o Claude Code subir de novo.
+- [ ] **Histórico:** o botão do relógio, no cabeçalho, lista as conversas por dia, com busca.
+  - Abrir uma traz as mensagens de volta, e o Claude continua de onde parou, inclusive depois de
+    fechar e abrir o app.
+  - A lixeira apaga a conversa do histórico (com confirmação).
+- [ ] **Edições de arquivo:** os cards de `Edit` e `Write` mostram `+N −M`; aberto, o card
+      mostra o diff colorido.
+- [ ] **Colar imagem:** tire um print (ou copie uma imagem do navegador) e aperte Ctrl+V na
+      caixa de texto: ela vira um anexo.
+- [ ] **Painel:**
+  - o status mostra o que o Claude está fazendo ("lendo package.json…"), com um brilho;
+  - o avatar do cabeçalho acompanha o humor do mascote, e o alto do painel ganha a cor dele;
+  - depois da primeira mensagem, a caixa diz "Continuar a conversa…", e o foco volta para ela
+    quando a resposta termina;
+  - Ctrl+K começa uma conversa nova.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -171,7 +199,8 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "editorCommand": "code",
   "projectRoots": ["~/projetos"],
   "mascotPosition": null,
-  "extraAllowedTools": []
+  "extraAllowedTools": [],
+  "model": null
 }
 ```
 
@@ -182,7 +211,11 @@ ele continua com a configuração anterior (ou com os padrões, se acabou de abr
 sobrescreve o arquivo até você corrigir.
 
 Dá para editar o arquivo com o Wisp aberto: `projectRoots` e `editorCommand` valem na hora;
-`claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
+`model`, na próxima mensagem; `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
+
+`model` é o modelo do Claude: `null` usa o padrão do seu Claude Code, e a pílula acima da caixa
+de texto troca entre `"haiku"`, `"sonnet"`, `"opus"` e `"fable"`. No arquivo, também vale o nome
+completo de um modelo (`"claude-sonnet-5-5"`).
 
 `claudePath` é o comando do Claude Code. Um app aberto pelo menu do sistema recebe um `PATH` curto,
 então um nome simples é procurado em vários lugares:
@@ -209,7 +242,14 @@ de configuração. O Claude Code roda em `~/.local/share/wisp/workspace/`, cujo 
 a persona do Wisp. Ele é criado na primeira vez e depois você pode editá-lo à vontade.
 
 Os anexos são copiados para `~/.cache/wisp/anexos/<id da conversa>/`. Quando o app abre, ele
-apaga as pastas de conversas com mais de 7 dias.
+apaga as pastas de conversas com mais de 7 dias. Imagens coladas com Ctrl+V esperam o envio em
+`~/.cache/wisp/anexos/colados/`; as que nunca foram enviadas somem depois de um dia.
+
+O histórico fica em `~/.local/share/wisp/conversas/`, um arquivo por conversa, que só o seu
+usuário lê. Ele guarda o que o painel mostrou; o contexto do Claude volta pelo próprio Claude
+Code, que apaga as conversas antigas depois de um tempo (30 dias, por padrão, pelo
+`cleanupPeriodDays` dele). Apagar uma conversa no Wisp tira ela do histórico do Wisp; a cópia
+do Claude Code segue a regra dele.
 
 ## Problemas comuns
 
@@ -229,6 +269,9 @@ apaga as pastas de conversas com mais de 7 dias.
 | Sem ícone na bandeja                        | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                     |
 | O mascote sumiu                             | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                    |
 | "Você chegou ao limite de uso do seu plano" | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                     |
+| "O modelo escolhido não existe…"            | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula   |
+| "O Claude Code não tem mais esta conversa"  | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                       |
+| A pílula de uso não aparece                 | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -254,19 +297,23 @@ src/
 │  ├─ mood.ts        # estado do mascote a partir dos eventos da conversa
 │  ├─ tray.ts        # ícone e menu da bandeja
 │  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
-│  ├─ claude.ts      # processo `claude -p` + leitura do stream-json
+│  ├─ claude.ts      # processo `claude -p`, leitura do stream-json e pedidos de controle
+│  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
 │  ├─ mcp-server.ts  # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
 │  ├─ questions.ts   # perguntas do Claude (AskUserQuestion): leitura e conferência das respostas
 │  ├─ desktop.ts     # apps (.desktop), links, projetos: o que as ferramentas fazem
-│  ├─ attachments.ts # cópia dos anexos para ~/.cache/wisp/anexos e limpeza das antigas
+│  ├─ attachments.ts # cópia dos anexos, imagens coladas e limpeza das antigas
 │  ├─ config.ts      # ~/.config/wisp/config.json
 │  ├─ page.ts        # carregar as páginas e recarregá-las se caírem
 │  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
 ├─ preload/          # expõe window.wisp (só funções específicas)
-├─ shared/ipc.ts     # canais de IPC, eventos da conversa e o tipo da API
+├─ shared/
+│  ├─ ipc.ts         # canais de IPC, eventos da conversa e o tipo da API
+│  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
+│  └─ format.ts      # datas e horários em português
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG) + mascot.css (animações)
-   └─ chat/          # Chat.tsx, Markdown, cards de ferramenta, permissão e pergunta, anexos
+   └─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas de modelo e uso, histórico
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
 └─ workspace/CLAUDE.md # persona, copiada para o workspace na 1ª vez
@@ -292,9 +339,31 @@ resources/
   começar, o Wisp confere a instalação e o login com `claude auth status`. Se mesmo assim o
   Claude Code usar uma chave de API, a conversa avisa.
 - **Parar e nova conversa:** o id da conversa é gerado pelo Wisp e passado no primeiro processo
-  com `--session-id`. Parar encerra o processo, e a próxima mensagem sobe outro com
-  `--resume <session_id>`, continuando a mesma conversa. Nova conversa encerra o processo e
-  começa outra, com outro id.
+  com `--session-id`. Parar manda ao processo, pelo stdin, um `control_request` de `interrupt`:
+  o turno acaba na hora e o mesmo processo segue para a próxima mensagem. Se ele não obedecer em
+  4 s, é encerrado, e a próxima mensagem sobe outro com `--resume <session_id>`. Nova conversa
+  encerra o processo e começa outra, com outro id.
+- **Modelo:** o processo sobe com `--model=<escolha>` (com `=`, o valor nunca vira outra opção).
+  Trocar na pílula com o processo vivo manda um `control_request` de `set_model` logo antes da
+  próxima mensagem, que já sai no modelo novo, com o contexto inteiro. Sem modelo, o CLI volta ao
+  padrão. O nome do modelo que respondeu vem do evento `init` de cada turno. Se o CLI recusar a
+  troca, a conversa avisa e a pílula volta ao modelo de antes.
+- **Uso do plano:** o stream do Claude Code manda um `rate_limit_event` a cada resposta, com o uso
+  das janelas de 5 horas e de 7 dias e o horário em que cada uma reinicia. A pílula mostra a
+  maior das duas. Não é preciso instalar nada no Claude Code do usuário.
+- **Histórico:** cada conversa vira um JSONL em `~/.local/share/wisp/conversas/` (pasta 0700,
+  arquivos 0600). A primeira linha tem o título (a primeira mensagem) e a data; as outras são os
+  eventos que o painel recebeu, com o texto juntado por bloco e as miniaturas dos anexos. Reabrir
+  manda esses eventos de volta ao painel e prepara a sessão: a próxima mensagem sobe o processo com
+  `--resume`. Se o Claude Code já tiver apagado a sessão, o processo cai na largada com "No
+  conversation found"; o Wisp manda a mesma mensagem de novo numa sessão nova, com o mesmo id, e
+  avisa que o contexto se perdeu. O formato interno das sessões do Claude Code não é lido.
+- **Diff das edições:** junto com o resultado do `Edit` e do `Write`, o Claude Code manda o
+  `structuredPatch` do arquivo, com os números das linhas. Antes do resultado (ou se ele não vier),
+  o diff sai dos argumentos da chamada, linha a linha. O card mostra até 400 linhas.
+- **Colar imagem:** uma imagem copiada não tem arquivo; o painel manda os bytes ao main
+  (`ipcRenderer.invoke`), que grava um PNG em `~/.cache/wisp/anexos/colados/`. No envio, ela é
+  copiada para a pasta da conversa como qualquer anexo, e o arquivo de espera sai.
 - **Servidor MCP `desktop`:** roda dentro do app, em HTTP (Streamable HTTP, sem sessões),
   só em `127.0.0.1` e numa porta aleatória. Cada execução gera um token novo, exigido no header
   `Authorization`; o `Host` também é conferido, contra DNS rebinding. O endereço e o token vão
@@ -325,6 +394,10 @@ resources/
   - Regras `ask` para `Read` em arquivos de segredos (`~/.ssh`, `~/.gnupg`, `~/.aws`,
     `~/.kube`, chaveiros, perfis de navegador, `.env`…): sem elas, um texto malicioso numa
     página lida pelo `WebFetch` poderia levar o Claude a ler uma chave sem ninguém ver.
+  - A memória automática do Claude Code fica desligada (`CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`):
+    ela grava arquivos em `~/.claude/projects/…/memory/` sem passar pelo card e os carrega em
+    toda conversa. Para o Wisp lembrar de algo entre conversas, o Claude pede para editar o
+    `CLAUDE.md` do workspace, com card.
 - **Painel e pedidos:** um pedido que chega com o painel escondido faz ele reaparecer sem
   roubar o foco. Parar a resposta ou começar outra conversa cancela os pedidos abertos.
 - **Anexos:** o preload descobre o caminho de cada arquivo escolhido ou arrastado
@@ -367,7 +440,12 @@ resources/
   - a mensagem de erro crua do CLI não aparece como resposta, porque o aviso já cobre o erro;
   - problemas no `config.json` aparecem no chat;
   - se a página do painel ou do mascote cair, ela recarrega sozinha. Se cair de novo logo depois,
-    o Wisp desiste, para não entrar num laço. No painel, a resposta em andamento e os cards
-    pendentes voltam para a tela.
+    o Wisp desiste, para não entrar num laço. No painel, a conversa volta do histórico, com a
+    resposta em andamento e os cards pendentes.
 - **Tema:** o painel segue o tema do sistema na hora (`prefers-color-scheme`), e o fundo da janela
   acompanha pelo `nativeTheme`.
+- **Painel vivo:** o humor do mascote também vai para o painel (`chat:mood`): o avatar do
+  cabeçalho muda os olhos e a antena, e o alto do painel ganha um degradê na cor do estado (uma
+  propriedade CSS registrada com `@property`, para a cor poder animar). O status traduz a
+  ferramenta em andamento ("lendo package.json…", "pesquisando “…”…"). O system prompt pede
+  Markdown leve, porque o painel é estreito.

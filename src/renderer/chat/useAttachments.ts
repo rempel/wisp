@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
-import type { AttachmentPreview } from './state'
+import type { AttachmentPreview } from '../../shared/ipc'
 
 /** Um anexo ainda na caixa de texto, esperando o envio. */
 export interface PendingAttachment extends AttachmentPreview {
@@ -68,8 +68,20 @@ export interface Attachments {
   add(files: File[], problems?: string[]): Promise<void>
   /** Anexa o que veio num arraste: arquivos sim, pastas não. */
   addDropped(data: DataTransfer): void
+  /**
+   * Anexa o que veio num Ctrl+V. Uma imagem copiada (um print, uma imagem do navegador) não
+   * tem arquivo: o main a guarda num, e ela vira um anexo como os outros.
+   */
+  addPasted(files: File[]): Promise<void>
   remove(id: string): void
   clear(): void
+}
+
+/** Um arquivo a anexar, já com o caminho no disco. */
+interface Incoming {
+  file: File
+  path: string
+  name: string
 }
 
 /** Os anexos da caixa de texto: confere os limites, gera as miniaturas e guarda os caminhos. */
@@ -91,22 +103,14 @@ export function useAttachments(): Attachments {
     return () => clearTimeout(timer)
   }, [error])
 
-  const add = useCallback(
-    async (files: File[], problems: string[] = []): Promise<void> => {
-      const accepted: { file: File; path: string }[] = []
-      for (const file of files) {
-        const path = pathOf(file)
-        if (!path) problems.push(`"${file.name}" não veio de uma pasta do computador.`)
-        else if (file.size > ATTACHMENT_LIMITS.maxBytes)
-          problems.push(`"${file.name}" passa de ${MAX_MB} MB.`)
-        else if (![...current.current, ...accepted].some((item) => item.path === path))
-          accepted.push({ file, path })
-      }
+  /** Gera as miniaturas e junta aos anexos, dentro do limite por mensagem. */
+  const accept = useCallback(
+    async (incoming: Incoming[], problems: string[]): Promise<void> => {
       const previews = await Promise.all(
-        accepted.map(async ({ file, path }) => ({
+        incoming.map(async ({ file, path, name }) => ({
           id: `anexo-${nextId.current++}`,
           path,
-          name: file.name,
+          name,
           size: file.size,
           thumbnail: await makeThumbnail(file)
         }))
@@ -119,6 +123,47 @@ export function useAttachments(): Attachments {
       setError(problems.length ? problems.join(' ') : null)
     },
     [update]
+  )
+
+  const add = useCallback(
+    async (files: File[], problems: string[] = []): Promise<void> => {
+      const accepted: Incoming[] = []
+      for (const file of files) {
+        const path = pathOf(file)
+        if (!path) problems.push(`"${file.name}" não veio de uma pasta do computador.`)
+        else if (file.size > ATTACHMENT_LIMITS.maxBytes)
+          problems.push(`"${file.name}" passa de ${MAX_MB} MB.`)
+        else if (![...current.current, ...accepted].some((item) => item.path === path))
+          accepted.push({ file, path, name: file.name })
+      }
+      await accept(accepted, problems)
+    },
+    [accept]
+  )
+
+  const addPasted = useCallback(
+    async (files: File[]): Promise<void> => {
+      const problems: string[] = []
+      const ready: File[] = []
+      const saved: Incoming[] = []
+      for (const file of files) {
+        // Arquivo copiado no gerenciador de arquivos: tem caminho, é um anexo comum.
+        if (pathOf(file)) {
+          ready.push(file)
+        } else if (!file.type.startsWith('image/')) {
+          problems.push('Só dá para colar imagens; arquivos, arraste para o painel.')
+        } else if (file.size > ATTACHMENT_LIMITS.maxBytes) {
+          problems.push(`A imagem colada passa de ${MAX_MB} MB.`)
+        } else {
+          const result = await window.wisp.chat.savePasted(await file.arrayBuffer(), file.type)
+          if ('error' in result) problems.push(`Não consegui colar a imagem: ${result.error}.`)
+          else saved.push({ file, path: result.path, name: result.name })
+        }
+      }
+      if (ready.length) await add(ready, problems)
+      await accept(saved, problems)
+    },
+    [accept, add]
   )
 
   const addDropped = useCallback(
@@ -146,5 +191,5 @@ export function useAttachments(): Attachments {
   )
   const clear = useCallback((): void => update([]), [update])
 
-  return { pending, error, add, addDropped, remove, clear }
+  return { pending, error, add, addDropped, addPasted, remove, clear }
 }

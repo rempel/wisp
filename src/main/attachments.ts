@@ -1,14 +1,28 @@
 import { constants, mkdirSync } from 'fs'
-import { copyFile, mkdir, readdir, rm, stat } from 'fs/promises'
-import { basename, extname, isAbsolute, join } from 'path'
+import { copyFile, mkdir, readdir, rm, stat, unlink, writeFile } from 'fs/promises'
+import { basename, dirname, extname, isAbsolute, join } from 'path'
 import { ATTACHMENT_LIMITS } from '../shared/ipc'
 import { CACHE_DIR } from './paths'
 
 /** Pasta dos anexos: uma subpasta por conversa, com o session_id do Claude Code. */
 export const ATTACHMENTS_DIR = join(CACHE_DIR, 'anexos')
 
+/**
+ * Imagens coladas com Ctrl+V: viram arquivo aqui assim que são coladas e, no envio, são
+ * copiadas para a pasta da conversa como qualquer anexo.
+ */
+const PASTED_DIR = join(ATTACHMENTS_DIR, 'colados')
+const PASTED_TYPES: Record<string, string> = {
+  'image/png': 'png',
+  'image/jpeg': 'jpg',
+  'image/gif': 'gif',
+  'image/webp': 'webp'
+}
+
 /** Pastas de conversas mais antigas que isso são apagadas quando o app abre. */
 const KEEP_DAYS = 7
+/** Imagens coladas e nunca enviadas são apagadas depois disso. */
+const KEEP_PASTED_DAYS = 1
 const SESSION_DIR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_NAME = 120
 
@@ -29,19 +43,30 @@ function safeName(name: string): string {
   return clean.slice(0, MAX_NAME - ext.length) + ext
 }
 
-/** Copia para `dir` sem sobrescrever nada: "foto.png", "foto (2).png", "foto (3).png"… */
-async function copyUnique(source: string, dir: string, name: string): Promise<string> {
+/**
+ * Cria um arquivo em `dir` sem sobrescrever nada: "foto.png", "foto (2).png", "foto (3).png"…
+ * `create` grava no caminho dado e falha com EEXIST se ele já existir.
+ */
+async function createUnique(
+  dir: string,
+  name: string,
+  create: (target: string) => Promise<void>
+): Promise<string> {
   const ext = extname(name)
   const stem = name.slice(0, name.length - ext.length)
   for (let n = 1; ; n++) {
     const target = join(dir, n === 1 ? name : `${stem} (${n})${ext}`)
     try {
-      await copyFile(source, target, constants.COPYFILE_EXCL)
+      await create(target)
       return target
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code !== 'EEXIST' || n >= 1000) throw err
     }
   }
+}
+
+function copyUnique(source: string, dir: string, name: string): Promise<string> {
+  return createUnique(dir, name, (target) => copyFile(source, target, constants.COPYFILE_EXCL))
 }
 
 function reason(err: unknown): string {
@@ -88,6 +113,8 @@ export async function copyAttachments(
         problems.push(`"${name}" passa de ${maxBytes / 1024 / 1024} MB e ficou de fora.`)
       } else {
         paths.push(await copyUnique(source, dir, name))
+        // Uma imagem colada já tem a cópia dela na conversa; o arquivo de espera sai.
+        if (dirname(source) === PASTED_DIR) await unlink(source).catch(() => {})
       }
     } catch (err) {
       problems.push(`Não consegui anexar "${name}": ${reason(err)}.`)
@@ -97,6 +124,36 @@ export async function copyAttachments(
     problems.push(`Só os ${maxFiles} primeiros anexos foram enviados.`)
   }
   return { paths, problems }
+}
+
+/** "2026-10-10-143201": data e hora para o nome de uma imagem colada. */
+function stamp(date: Date): string {
+  const two = (n: number): string => String(n).padStart(2, '0')
+  return (
+    `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}-` +
+    `${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`
+  )
+}
+
+/**
+ * Guarda uma imagem colada (Ctrl+V) num arquivo, para ela poder ser anexada como as outras.
+ * Devolve o caminho e o nome, ou lança um erro com a explicação em português.
+ */
+export async function savePasted(
+  data: Uint8Array,
+  type: string,
+  now = new Date()
+): Promise<{ path: string; name: string }> {
+  const ext = PASTED_TYPES[type]
+  if (!ext) throw new Error('só dá para colar imagens PNG, JPEG, GIF ou WebP')
+  if (data.byteLength > ATTACHMENT_LIMITS.maxBytes) {
+    throw new Error(`a imagem passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB`)
+  }
+  await mkdir(PASTED_DIR, { recursive: true, mode: 0o700 })
+  const path = await createUnique(PASTED_DIR, `imagem-colada-${stamp(now)}.${ext}`, (target) =>
+    writeFile(target, data, { flag: 'wx', mode: 0o600 })
+  )
+  return { path, name: basename(path) }
 }
 
 /** Cria a pasta dos anexos (o processo do Claude Code a recebe com --add-dir). */
@@ -115,25 +172,44 @@ export function withAttachments(text: string, paths: string[]): string {
   return [text.trim(), `<anexos>\n${list}\n</anexos>`].filter(Boolean).join('\n\n')
 }
 
-/** Apaga as pastas de conversas com mais de KEEP_DAYS dias, para o cache não crescer para sempre. */
-export async function cleanOldAttachments(now = Date.now()): Promise<void> {
+/** Apaga o que em `dir` passou de `days` dias (e passa no `select`), sem reclamar de nada. */
+async function removeOlderThan(
+  dir: string,
+  days: number,
+  now: number,
+  select: (entry: { name: string; isDirectory(): boolean }) => boolean
+): Promise<void> {
   let entries
   try {
-    entries = await readdir(ATTACHMENTS_DIR, { withFileTypes: true })
+    entries = await readdir(dir, { withFileTypes: true })
   } catch {
     return
   }
-  const limit = now - KEEP_DAYS * 24 * 60 * 60 * 1000
+  const limit = now - days * 24 * 60 * 60 * 1000
   await Promise.all(
-    entries
-      .filter((entry) => entry.isDirectory() && SESSION_DIR.test(entry.name))
-      .map(async (entry) => {
-        const dir = join(ATTACHMENTS_DIR, entry.name)
-        try {
-          if ((await stat(dir)).mtimeMs < limit) await rm(dir, { recursive: true, force: true })
-        } catch {
-          // Some no meio do caminho ou sem permissão: fica para a próxima.
-        }
-      })
+    entries.filter(select).map(async (entry) => {
+      const path = join(dir, entry.name)
+      try {
+        if ((await stat(path)).mtimeMs < limit) await rm(path, { recursive: true, force: true })
+      } catch {
+        // Some no meio do caminho ou sem permissão: fica para a próxima.
+      }
+    })
   )
+}
+
+/**
+ * Apaga as pastas de conversas com mais de KEEP_DAYS dias e as imagens coladas que nunca foram
+ * enviadas, para o cache não crescer para sempre.
+ */
+export async function cleanOldAttachments(now = Date.now()): Promise<void> {
+  await Promise.all([
+    removeOlderThan(
+      ATTACHMENTS_DIR,
+      KEEP_DAYS,
+      now,
+      (entry) => entry.isDirectory() && SESSION_DIR.test(entry.name)
+    ),
+    removeOlderThan(PASTED_DIR, KEEP_PASTED_DAYS, now, (entry) => !entry.isDirectory())
+  ])
 }

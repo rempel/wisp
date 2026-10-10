@@ -1,5 +1,6 @@
 import { useId } from 'react'
 import type { JSX, SVGProps } from 'react'
+import type { MascotState } from '../../shared/ipc'
 
 // Ícones de traço simples (16×16, cor do texto) e o avatar do Wisp. Sem assets externos.
 
@@ -78,18 +79,100 @@ export const ChevronIcon = ({ open }: { open: boolean }): JSX.Element => (
   </Icon>
 )
 
+export const HistoryIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.8 8a5.2 5.2 0 1 0 1.5-3.7" />
+    <path d="M2.5 2.8v2.3h2.3" />
+    <path d="M8 5.2V8l1.9 1.3" />
+  </Icon>
+)
+
+export const TrashIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.4 4.5l.6 8.2a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.6-8.2" />
+  </Icon>
+)
+
+export const BackIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M13 8H3.5M7.5 4 3.5 8l4 4" />
+  </Icon>
+)
+
+export const SearchIcon = (): JSX.Element => (
+  <Icon>
+    <circle cx="7" cy="7" r="4.2" />
+    <path d="m10.2 10.2 3.3 3.3" />
+  </Icon>
+)
+
+/** Um chip, para o modelo. */
+export const ModelIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="4.5" y="4.5" width="7" height="7" rx="1.5" />
+    <path d="M6.5 2.5v2M9.5 2.5v2M6.5 11.5v2M9.5 11.5v2M2.5 6.5h2M2.5 9.5h2M11.5 6.5h2M11.5 9.5h2" />
+  </Icon>
+)
+
+export const ChevronDownIcon = (): JSX.Element => (
+  <Icon className="chevron-down">
+    <path d="m4.5 6.5 3.5 3.5 3.5-3.5" />
+  </Icon>
+)
+
 export const ErrorIcon = (): JSX.Element => (
   <Icon>
     <path d="m5 5 6 6M11 5l-6 6" />
   </Icon>
 )
 
-/** O Wisp em miniatura: a mesma gotinha robô do mascote, sem animação. */
-export function Avatar({ size }: { size: number }): JSX.Element {
+/** Os olhos do avatar em cada humor: "^ ^" feliz, "x x" no erro, os retângulos no resto. */
+function Eyes({ mood }: { mood: MascotState }): JSX.Element {
+  const stroke = {
+    fill: 'none',
+    stroke: '#a5f3fc',
+    strokeWidth: 2.4,
+    strokeLinecap: 'round'
+  } as const
+  if (mood === 'happy') {
+    return (
+      <g className="avatar-eyes">
+        <path d="M52 82 l3.5 -5 3.5 5" {...stroke} />
+        <path d="M69 82 l3.5 -5 3.5 5" {...stroke} />
+      </g>
+    )
+  }
+  if (mood === 'error') {
+    return (
+      <g className="avatar-eyes">
+        <path d="M52.5 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#fda4af" />
+        <path d="M70 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#fda4af" />
+      </g>
+    )
+  }
+  return (
+    <g className="avatar-eyes">
+      <rect x="52.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
+      <rect x="69.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
+    </g>
+  )
+}
+
+/**
+ * O Wisp em miniatura: a mesma gotinha robô do mascote. Com `mood`, acompanha o humor do
+ * mascote: olhos, antena e um pouco de movimento (chat.css).
+ */
+export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotState }): JSX.Element {
   // Os ids do useId têm caracteres que atrapalham o url(#...) do SVG.
   const id = 'avatar' + useId().replace(/[^\w-]/g, '')
   return (
-    <svg className="avatar" viewBox="33 9 62 97" width={size * (62 / 97)} height={size} aria-hidden>
+    <svg
+      className={`avatar avatar-${mood}`}
+      viewBox="33 9 62 97"
+      width={size * (62 / 97)}
+      height={size}
+      aria-hidden
+    >
       <defs>
         <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0.4" y2="1">
           <stop offset="0" stopColor="#99f6e4" />
@@ -98,7 +181,7 @@ export function Avatar({ size }: { size: number }): JSX.Element {
         </linearGradient>
       </defs>
       <line x1="64" y1="31" x2="64" y2="17.5" stroke="#0e7490" strokeWidth="2.4" />
-      <circle cx="64" cy="15" r="4.2" fill="#67e8f9" />
+      <circle className="avatar-tip" cx="64" cy="15" r="4.2" fill="#67e8f9" />
       <path
         d="M 64 30 C 69 41 89 56 89 79 C 89 92.8 77.8 104 64 104 C 50.2 104 39 92.8 39 79 C 39 56 59 41 64 30 Z"
         fill={`url(#${id}-shell)`}
@@ -106,8 +189,7 @@ export function Avatar({ size }: { size: number }): JSX.Element {
         strokeWidth="1.5"
       />
       <rect x="45" y="70" width="38" height="20" rx="10" fill="#0b1e26" />
-      <rect x="52.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
-      <rect x="69.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
+      <Eyes mood={mood} />
       <circle cx="39.4" cy="80" r="3.6" fill="#0e7490" />
       <circle cx="88.6" cy="80" r="3.6" fill="#0e7490" />
     </svg>

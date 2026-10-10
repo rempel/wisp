@@ -22,6 +22,13 @@ export const IPC = {
   chatStop: 'chat:stop',
   /** chat → main: começar uma conversa nova. */
   chatNew: 'chat:new',
+  /** chat → main: trocar o modelo. Arg: um de MODEL_CHOICES, ou null para o padrão. */
+  chatModel: 'chat:model',
+  /**
+   * chat → main (invoke): guarda uma imagem colada (Ctrl+V) para virar anexo. Args: (bytes,
+   * tipo MIME). Devolve PastedImage.
+   */
+  chatPaste: 'chat:paste',
   /** chat → main: esconder o painel. */
   chatHide: 'chat:hide',
   /** chat → main: resposta a um card de permissão. Args: (id, PermissionDecision). */
@@ -32,7 +39,18 @@ export const IPC = {
    */
   chatAnswer: 'chat:answer',
   /** main → chat: um ChatEvent. */
-  chatEvent: 'chat:event'
+  chatEvent: 'chat:event',
+  /** main → chat: o humor do mascote mudou (o avatar do cabeçalho acompanha). Arg: MascotState. */
+  chatMood: 'chat:mood',
+  /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
+  chatShown: 'chat:shown',
+
+  /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
+  historyList: 'history:list',
+  /** chat → main (invoke): reabre uma conversa do histórico. Arg: id. Devolve boolean. */
+  historyOpen: 'history:open',
+  /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
+  historyDelete: 'history:delete'
 } as const
 
 /** Estados do mascote, ligados aos eventos da conversa (seção 5.3 da especificação). */
@@ -47,6 +65,76 @@ export interface MascotView {
 /** Limites dos anexos de uma mensagem. O chat confere ao anexar; o main, de novo, ao copiar. */
 export const ATTACHMENT_LIMITS = { maxFiles: 20, maxBytes: 50 * 1024 * 1024 } as const
 
+/** Um anexo saindo com a mensagem: o arquivo e, se for imagem, a miniatura (data URL). */
+export interface OutgoingAttachment {
+  path: string
+  thumbnail?: string
+}
+
+/** Como um anexo aparece na conversa. */
+export interface AttachmentPreview {
+  name: string
+  size: number
+  /** Miniatura (data URL) quando é uma imagem que dá para mostrar. */
+  thumbnail?: string
+}
+
+/** Imagem colada guardada pelo main, ou por que não deu. */
+export type PastedImage = { path: string; name: string } | { error: string }
+
+/**
+ * Modelos da pílula, pelos apelidos que o `--model` do Claude Code aceita (cada um aponta para
+ * a versão mais nova da família). null é o padrão do Claude Code.
+ */
+export const MODEL_CHOICES = ['haiku', 'sonnet', 'opus', 'fable'] as const
+
+/** Uma janela de uso do plano: quanto já foi usado (0 a 1) e quando ela reinicia. */
+export interface UsageWindow {
+  used: number
+  /** Segundos Unix; null se o CLI não disse. */
+  resetsAt: number | null
+}
+
+/** Uso do plano do Claude, como o Claude Code informa a cada resposta. */
+export interface PlanUsage {
+  /** Janela de 5 horas. */
+  session: UsageWindow | null
+  /** Janela de 7 dias. */
+  week: UsageWindow | null
+  /** O limite foi atingido. */
+  limited: boolean
+  /** Quando a informação chegou (ms Unix). */
+  at: number
+}
+
+/** Trecho de um diff: cada linha começa com ' ' (contexto), '-' (saiu) ou '+' (entrou). */
+export interface DiffHunk {
+  oldStart: number
+  newStart: number
+  lines: string[]
+}
+
+/** O que uma edição de arquivo mudou. */
+export interface FileDiff {
+  added: number
+  removed: number
+  hunks: DiffHunk[]
+  /** Linhas demais: os trechos trazem só o começo (as contagens valem para tudo). */
+  truncated: boolean
+}
+
+/** Uma conversa guardada no histórico. */
+export interface ConversationSummary {
+  id: string
+  /** A primeira mensagem, encurtada. */
+  title: string
+  /** ms Unix. */
+  createdAt: number
+  updatedAt: number
+  /** É a conversa aberta no painel. */
+  current: boolean
+}
+
 /**
  * O que o main conta ao chat sobre a conversa. É uma versão enxuta da saída stream-json do
  * Claude Code, para a interface não depender do formato do CLI.
@@ -60,8 +148,11 @@ export type ChatEvent =
   | { type: 'tool-start'; id: string; name: string }
   /** Os argumentos completos da chamada. */
   | { type: 'tool-input'; id: string; name: string; input: unknown }
-  /** Resultado da ferramenta (texto, possivelmente cortado). */
-  | { type: 'tool-result'; id: string; isError: boolean; output: string }
+  /**
+   * Resultado da ferramenta (texto, possivelmente cortado). Edições de arquivo trazem o diff,
+   * quando o Claude Code o informa.
+   */
+  | { type: 'tool-result'; id: string; isError: boolean; output: string; diff?: FileDiff }
   /** O turno acabou: normalmente, com erro ou porque o usuário parou. */
   | { type: 'turn-end'; outcome: 'done' | 'error' | 'stopped' }
   /** Aviso para mostrar na conversa (texto em Markdown). */
@@ -86,6 +177,20 @@ export type ChatEvent =
    * anterior chega depois dele.
    */
   | { type: 'reset' }
+  /**
+   * O modelo: o escolhido na pílula (null é o padrão do Claude Code) e o que respondeu por
+   * último, como o CLI o chama (por exemplo "claude-sonnet-5-5"), se já se sabe.
+   */
+  | { type: 'model'; choice: string | null; active: string | null }
+  /** O uso do plano mudou. */
+  | { type: 'usage'; usage: PlanUsage }
+  /**
+   * Uma mensagem do usuário, ao reabrir uma conversa do histórico. Ao vivo, o chat mostra a
+   * mensagem na hora do envio, sem esperar o main.
+   */
+  | { type: 'user'; text: string; attachments: AttachmentPreview[] }
+  /** Fim da reabertura de uma conversa do histórico (vem depois das mensagens dela). */
+  | { type: 'restored'; createdAt: number }
 
 /** "allow-always" vale até a conversa recomeçar (Permitir sempre nesta conversa). */
 export type PermissionDecision = 'allow' | 'allow-always' | 'deny'
@@ -108,17 +213,31 @@ export interface WispApi {
   chat: {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
     ready(): void
-    /** Manda uma mensagem; `attachments` são caminhos de arquivos (veja pathForFile). */
-    send(text: string, attachments: string[]): void
+    /** Manda uma mensagem com os anexos (caminhos: veja pathForFile e savePasted). */
+    send(text: string, attachments: OutgoingAttachment[]): void
     /** Caminho no disco de um File vindo de um arraste ou do seletor de arquivos ('' se não houver). */
     pathForFile(file: File): string
+    /** Guarda uma imagem colada num arquivo, para ela poder ser anexada. */
+    savePasted(data: ArrayBuffer, type: string): Promise<PastedImage>
     stop(): void
     newConversation(): void
     hide(): void
+    /** Troca o modelo (um de MODEL_CHOICES, ou null para o padrão). */
+    setModel(choice: string | null): void
     answerPermission(id: string, decision: PermissionDecision): void
     /** Responde uma pergunta do Claude (texto da pergunta → resposta); null pula. */
     answerQuestion(id: string, answers: Record<string, string> | null): void
     /** Registra quem recebe os eventos da conversa; devolve a função que cancela. */
     onEvent(listener: (event: ChatEvent) => void): () => void
+    /** O humor do mascote, para o avatar do cabeçalho. */
+    onMood(listener: (state: MascotState) => void): () => void
+    /** O painel acabou de aparecer. */
+    onShown(listener: () => void): () => void
+  }
+  history: {
+    list(): Promise<ConversationSummary[]>
+    /** Reabre a conversa: ela chega pelo onEvent, depois de um 'reset'. */
+    open(id: string): Promise<boolean>
+    remove(id: string): Promise<boolean>
   }
 }

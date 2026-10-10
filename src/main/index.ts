@@ -66,7 +66,10 @@ app.whenReady().then(async () => {
 
   // O mascote acompanha a conversa: falando, trabalhando, pedindo permissão, feliz, erro.
   const mood = new MascotMood({
-    state: (state) => setMascotView({ state, look: chat?.side() ?? 'left' }),
+    state: (state) => {
+      setMascotView({ state, look: chat?.side() ?? 'left' })
+      chat?.setMood(state)
+    },
     pulse: pulseMascot
   })
   chat = setupChat({

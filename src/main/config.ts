@@ -15,6 +15,9 @@ export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
 const PointSchema = z.object({ x: z.number().int(), y: z.number().int() })
 
+/** Nome de modelo que o --model aceita. */
+export const MODEL_NAME = /^[A-Za-z0-9][\w.:[\]-]{0,99}$/
+
 export type Point = z.infer<typeof PointSchema>
 
 export interface WispConfig {
@@ -23,6 +26,8 @@ export interface WispConfig {
   projectRoots: string[]
   mascotPosition: Point | null
   extraAllowedTools: string[]
+  /** Modelo do Claude (apelido como "sonnet" ou nome completo); null usa o padrão do Claude Code. */
+  model: string | null
 }
 
 function defaults(): WispConfig {
@@ -31,7 +36,8 @@ function defaults(): WispConfig {
     editorCommand: 'code',
     projectRoots: ['~/projetos'],
     mascotPosition: null,
-    extraAllowedTools: []
+    extraAllowedTools: [],
+    model: null
   }
 }
 
@@ -77,7 +83,9 @@ const ConfigSchema = z.object({
   editorCommand: field('editorCommand', z.string().min(1), () => defaults().editorCommand),
   projectRoots: field('projectRoots', z.array(z.string()), () => defaults().projectRoots),
   mascotPosition: field('mascotPosition', PointSchema.nullable(), () => null),
-  extraAllowedTools: field('extraAllowedTools', z.array(z.string()), () => [])
+  extraAllowedTools: field('extraAllowedTools', z.array(z.string()), () => []),
+  // Só letras, números e . _ - : [ ]: apelidos ("sonnet") e nomes completos ("claude-sonnet-5-5").
+  model: field('model', z.string().regex(MODEL_NAME).nullable(), () => null)
 })
 
 let config: WispConfig = defaults()
