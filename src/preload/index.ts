@@ -1,7 +1,18 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
-import type { ChatEvent, MascotState, MascotView, WispApi } from '../shared/ipc'
+import type {
+  Accessory,
+  ChatEvent,
+  DroppedFiles,
+  Gaze,
+  MascotReaction,
+  MascotState,
+  MascotView,
+  SoundName,
+  SoundSettings,
+  WispApi
+} from '../shared/ipc'
 
 /** Liga um listener a um canal do main e devolve a função que o desliga. */
 function subscribe<T extends unknown[]>(
@@ -21,7 +32,27 @@ const api: WispApi = {
     click: () => ipcRenderer.send(IPC.mascotClick),
     ready: () => ipcRenderer.send(IPC.mascotReady),
     onState: (listener) => subscribe<[MascotView]>(IPC.mascotState, listener),
-    onPulse: (listener) => subscribe<[]>(IPC.mascotPulse, listener)
+    onPulse: (listener) => subscribe<[]>(IPC.mascotPulse, listener),
+    onGaze: (listener) => subscribe<[Gaze | null]>(IPC.mascotGaze, listener),
+    onReact: (listener) => subscribe<[MascotReaction]>(IPC.mascotReact, listener),
+    onAccessory: (listener) => subscribe<[Accessory | null]>(IPC.mascotAccessory, listener),
+    onSound: (listener) => subscribe<[SoundName, number]>(IPC.mascotSound, listener),
+    // Os bytes chegam como Uint8Array (o Buffer do main); a página quer o ArrayBuffer.
+    onCustomSound: (listener) =>
+      subscribe<[SoundName, Uint8Array | null]>(IPC.mascotCustomSound, (name, data) =>
+        listener(
+          name,
+          data
+            ? (data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer)
+            : null
+        )
+      ),
+    hover: (inside) => ipcRenderer.send(IPC.mascotHover, inside),
+    activity: () => ipcRenderer.send(IPC.mascotActivity),
+    playSound: (name) => ipcRenderer.send(IPC.soundPlay, name),
+    drop: (dropped) => ipcRenderer.send(IPC.mascotDrop, dropped),
+    pathForFile: (file) => webUtils.getPathForFile(file),
+    menu: () => ipcRenderer.send(IPC.mascotMenu)
   },
   chat: {
     ready: () => ipcRenderer.send(IPC.chatReady),
@@ -36,7 +67,14 @@ const api: WispApi = {
     answerQuestion: (id, answers) => ipcRenderer.send(IPC.chatAnswer, id, answers),
     onEvent: (listener) => subscribe<[ChatEvent]>(IPC.chatEvent, listener),
     onMood: (listener) => subscribe<[MascotState]>(IPC.chatMood, listener),
-    onShown: (listener) => subscribe<[]>(IPC.chatShown, listener)
+    onShown: (listener) => subscribe<[]>(IPC.chatShown, listener),
+    onAttach: (listener) => subscribe<[DroppedFiles]>(IPC.chatAttach, listener),
+    activity: () => ipcRenderer.send(IPC.chatActivity)
+  },
+  sound: {
+    get: () => ipcRenderer.invoke(IPC.soundGet),
+    set: (enabled) => ipcRenderer.send(IPC.soundSet, enabled),
+    onChanged: (listener) => subscribe<[SoundSettings]>(IPC.soundChanged, listener)
   },
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),

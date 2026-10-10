@@ -148,13 +148,32 @@ export const ChevronDownIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Alto-falante com ondas: sons ligados. */
+export const SoundOnIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.8 6.2h2.3l3.4-2.7v9L5.1 9.8H2.8a.5.5 0 0 1-.5-.5V6.7a.5.5 0 0 1 .5-.5Z" />
+    <path d="M10.8 6a2.8 2.8 0 0 1 0 4M12.5 4.3a5.2 5.2 0 0 1 0 7.4" />
+  </Icon>
+)
+
+/** Alto-falante riscado: sons desligados. */
+export const SoundOffIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.8 6.2h2.3l3.4-2.7v9L5.1 9.8H2.8a.5.5 0 0 1-.5-.5V6.7a.5.5 0 0 1 .5-.5Z" />
+    <path d="m10.8 6.3 3.4 3.4M14.2 6.3l-3.4 3.4" />
+  </Icon>
+)
+
 export const ErrorIcon = (): JSX.Element => (
   <Icon>
     <path d="m5 5 6 6M11 5l-6 6" />
   </Icon>
 )
 
-/** Os olhos do avatar em cada humor: "^ ^" feliz, "x x" no erro, os retângulos no resto. */
+/**
+ * Os olhos do avatar em cada humor: "^ ^" feliz, "x x" no erro, fechados no cochilo, os
+ * retângulos no resto.
+ */
 function Eyes({ mood }: { mood: MascotState }): JSX.Element {
   const stroke = {
     fill: 'none',
@@ -162,6 +181,14 @@ function Eyes({ mood }: { mood: MascotState }): JSX.Element {
     strokeWidth: 2.4,
     strokeLinecap: 'round'
   } as const
+  if (mood === 'sleeping') {
+    return (
+      <g className="avatar-eyes">
+        <path d="M52 80 q3.5 3.6 7 0" {...stroke} strokeOpacity={0.6} />
+        <path d="M69 80 q3.5 3.6 7 0" {...stroke} strokeOpacity={0.6} />
+      </g>
+    )
+  }
   if (mood === 'happy') {
     return (
       <g className="avatar-eyes">

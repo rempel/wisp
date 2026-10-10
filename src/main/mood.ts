@@ -21,7 +21,8 @@ export interface MoodOutput {
  * 1. pedindo permissão, enquanto houver um card esperando;
  * 2. feliz ou erro, por alguns segundos depois que o turno acaba;
  * 3. falando, enquanto o texto chega, ou trabalhando, no resto do turno;
- * 4. ocioso.
+ * 4. cochilando, se a presença (presence.ts) disse que ele dormiu;
+ * 5. ocioso.
  */
 export class MascotMood {
   private busy = false
@@ -30,6 +31,7 @@ export class MascotMood {
   private readonly pending = new Set<string>()
   /** Pedidos de sessões do terminal esperando resposta. */
   private externalPending = 0
+  private asleep = false
   private current: MascotState = 'idle'
   private talkTimer: NodeJS.Timeout | null = null
   private flashTimer: NodeJS.Timeout | null = null
@@ -88,6 +90,17 @@ export class MascotMood {
     this.update()
   }
 
+  /** O mascote cochilou ou acordou. Só aparece quando não há mais nada para mostrar. */
+  setAsleep(asleep: boolean): void {
+    this.asleep = asleep
+    this.update()
+  }
+
+  /** Nada acontecendo: sem turno, pedido nem o feliz ou o erro do fim de um turno. */
+  get quiet(): boolean {
+    return !this.busy && !this.flash && this.pending.size === 0 && this.externalPending === 0
+  }
+
   /** Uma sessão do terminal terminou (feliz) ou deu erro. A conversa do chat tem a vez. */
   flashExternal(kind: 'happy' | 'error'): void {
     if (this.busy) return
@@ -135,7 +148,8 @@ export class MascotMood {
     const next: MascotState =
       this.pending.size > 0 || this.externalPending > 0
         ? 'permission'
-        : (this.flash ?? (this.busy ? (this.talking ? 'talking' : 'working') : 'idle'))
+        : (this.flash ??
+          (this.busy ? (this.talking ? 'talking' : 'working') : this.asleep ? 'sleeping' : 'idle'))
     if (next === this.current) return
     this.current = next
     this.output.state(next)

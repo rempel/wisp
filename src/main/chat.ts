@@ -6,7 +6,7 @@ import { homedir } from 'os'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
-import { savePasted } from './attachments'
+import { isThumbnail, savePasted } from './attachments'
 import { ClaudeSession, SAFE_TOOLS } from './claude'
 import { CONFIG_PATH, configProblems, getConfig, onConfigProblems, updateConfig } from './config'
 import { History } from './history'
@@ -18,9 +18,11 @@ import { IPC, MODEL_CHOICES } from '../shared/ipc'
 import type {
   AttachmentPreview,
   ChatEvent,
+  DroppedFiles,
   MascotState,
   OutgoingAttachment,
-  PastedImage
+  PastedImage,
+  SoundSettings
 } from '../shared/ipc'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
@@ -41,10 +43,6 @@ const APPEND_SYSTEM_PROMPT =
   'anexa arquivos, a mensagem termina com um bloco <anexos> com os caminhos deles: leia-os com a ' +
   'ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles.'
 
-/** Miniatura que o chat manda junto com um anexo: um data URL de imagem pequeno. */
-const THUMBNAIL = /^data:image\/(?:webp|png|jpeg);base64,[A-Za-z0-9+/]+=*$/
-const MAX_THUMBNAIL = 100_000
-
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 function outgoing(value: unknown): OutgoingAttachment[] {
   if (!Array.isArray(value)) return []
@@ -52,11 +50,7 @@ function outgoing(value: unknown): OutgoingAttachment[] {
     const path = item?.path
     if (typeof path !== 'string' || !path) return []
     const thumbnail = item?.thumbnail
-    const valid =
-      typeof thumbnail === 'string' &&
-      thumbnail.length <= MAX_THUMBNAIL &&
-      THUMBNAIL.test(thumbnail)
-    return [valid ? { path, thumbnail } : { path }]
+    return [isThumbnail(thumbnail) ? { path, thumbnail } : { path }]
   })
 }
 
@@ -118,6 +112,10 @@ export interface Chat {
   showSessions(): void
   /** Continua no chat uma sessão do terminal. */
   continueSession(seed: SessionSeed): void
+  /** Arquivos soltos no mascote: o painel aparece com eles anexados. */
+  attach(dropped: DroppedFiles): void
+  /** Os sons foram ligados ou desligados (o botão de mudo acompanha). */
+  notifySound(settings: SoundSettings): void
   /** Encerra o processo do Claude Code (o app está fechando). */
   dispose(): void
 }
@@ -140,13 +138,23 @@ export interface ChatOptions {
   mcpConfigPath?: string
   /** Recebe cada evento da conversa (o humor do mascote acompanha a conversa por aqui). */
   onEvent?: (event: ChatEvent) => void
+  /** O usuário abriu ou fechou o painel (os sons de abrir e fechar). */
+  onPanel?: (change: 'open' | 'close') => void
+  /** O usuário está mexendo no painel (o mascote não cochila). */
+  onActivity?: () => void
 }
 
 /**
  * Painel de chat: uma janela que nasce na primeira vez que é aberta e depois só é escondida,
  * para a conversa continuar lá.
  */
-export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat {
+export function setupChat({
+  anchor,
+  mcpConfigPath,
+  onEvent,
+  onPanel,
+  onActivity
+}: ChatOptions): Chat {
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
   let pageReady = false
@@ -155,6 +163,8 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
   let mood: MascotState = 'idle'
   // Mostrar a aba Sessões assim que a página carregar (o pedido chegou antes).
   let showSessionsOnReady = false
+  // Arquivos soltos no mascote antes de a página carregar.
+  const pendingAttach: DroppedFiles[] = []
   // O último uso do plano, para mostrar de novo se a página recarregar.
   let lastUsage: Extract<ChatEvent, { type: 'usage' }> | null = null
   const history = new History()
@@ -244,6 +254,10 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
     if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
     showSessionsOnReady = false
+    for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
+  })
+  ipcMain.on(IPC.chatActivity, (event) => {
+    if (fromChat(event)) onActivity?.()
   })
   ipcMain.on(IPC.chatSend, (event, text: unknown, attachments: unknown) => {
     if (!fromChat(event) || typeof text !== 'string' || session.isBusy()) return
@@ -304,7 +318,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     return removed
   })
   ipcMain.on(IPC.chatHide, (event) => {
-    if (fromChat(event)) win?.hide()
+    if (fromChat(event) && win) hide(win)
   })
   ipcMain.on(IPC.chatPermission, (event, id: unknown, decision: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return
@@ -369,7 +383,16 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     if (appearing) placeNextToMascot(chat)
     chat.show()
     chat.focus()
-    if (appearing && pageReady) chat.webContents.send(IPC.chatShown)
+    if (!appearing) return
+    if (pageReady) chat.webContents.send(IPC.chatShown)
+    onPanel?.('open')
+  }
+
+  /** Esconde o painel (a conversa continua). */
+  function hide(chat: BrowserWindow): void {
+    if (!chat.isVisible()) return
+    chat.hide()
+    onPanel?.('close')
   }
 
   /** Cria o painel. `inactive`: aparece sem roubar o foco (um pedido de uma sessão do terminal). */
@@ -401,7 +424,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
     chat.on('close', (event) => {
       if (quitting) return
       event.preventDefault()
-      chat.hide()
+      hide(chat)
     })
     chat.on('closed', () => {
       win = null
@@ -487,7 +510,7 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
         win = createWindow()
         return
       }
-      if (win.isVisible() && win.isFocused()) win.hide()
+      if (win.isVisible() && win.isFocused()) hide(win)
       else show(win)
     },
     setMood(state) {
@@ -543,6 +566,15 @@ export function setupChat({ anchor, mcpConfigPath, onEvent }: ChatOptions): Chat
       session.reset()
       if (!win) win = createWindow()
       else show(win)
+    },
+    attach(dropped) {
+      if (win && pageReady) win.webContents.send(IPC.chatAttach, dropped)
+      else pendingAttach.push(dropped)
+      if (!win) win = createWindow()
+      else show(win)
+    },
+    notifySound(settings) {
+      if (win && pageReady) win.webContents.send(IPC.soundChanged, settings)
     },
     side() {
       const mascot = anchor()

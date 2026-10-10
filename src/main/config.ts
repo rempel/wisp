@@ -28,7 +28,18 @@ export interface WispConfig {
   extraAllowedTools: string[]
   /** Modelo do Claude (apelido como "sonnet" ou nome completo); null usa o padrão do Claude Code. */
   model: string | null
+  /** Sons do Wisp ligados. */
+  sound: boolean
+  /** Volume dos sons, de 0 a 1. */
+  volume: number
+  /** Minutos sem nada acontecer (e com o cursor longe) até o mascote cochilar; 0 desliga. */
+  sleepAfterMinutes: number
+  /** Acessórios por data: "auto" segue o calendário, "none" desliga; ou um fixo. */
+  accessory: AccessorySetting
 }
+
+export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
+export type AccessorySetting = (typeof ACCESSORY_SETTINGS)[number]
 
 function defaults(): WispConfig {
   return {
@@ -37,7 +48,11 @@ function defaults(): WispConfig {
     projectRoots: ['~/projetos'],
     mascotPosition: null,
     extraAllowedTools: [],
-    model: null
+    model: null,
+    sound: true,
+    volume: 0.5,
+    sleepAfterMinutes: 3,
+    accessory: 'auto'
   }
 }
 
@@ -55,6 +70,16 @@ export function configProblems(): string[] {
 /** Avisa quando os problemas mudam (o arquivo foi editado com o app aberto). */
 export function onConfigProblems(listener: (problems: string[]) => void): void {
   problemsListener = listener
+}
+
+const changeListeners: ((config: WispConfig) => void)[] = []
+
+/**
+ * Avisa quando o arquivo é relido depois de editado com o app aberto (o que acontece na próxima
+ * vez que alguém pede a config).
+ */
+export function onConfigChange(listener: (config: WispConfig) => void): void {
+  changeListeners.push(listener)
 }
 
 function setProblems(next: string[]): void {
@@ -85,7 +110,15 @@ const ConfigSchema = z.object({
   mascotPosition: field('mascotPosition', PointSchema.nullable(), () => null),
   extraAllowedTools: field('extraAllowedTools', z.array(z.string()), () => []),
   // Só letras, números e . _ - : [ ]: apelidos ("sonnet") e nomes completos ("claude-sonnet-5-5").
-  model: field('model', z.string().regex(MODEL_NAME).nullable(), () => null)
+  model: field('model', z.string().regex(MODEL_NAME).nullable(), () => null),
+  sound: field('sound', z.boolean(), () => defaults().sound),
+  volume: field('volume', z.number().min(0).max(1), () => defaults().volume),
+  sleepAfterMinutes: field(
+    'sleepAfterMinutes',
+    z.number().min(0),
+    () => defaults().sleepAfterMinutes
+  ),
+  accessory: field('accessory', z.enum(ACCESSORY_SETTINGS), () => defaults().accessory)
 })
 
 let config: WispConfig = defaults()
@@ -162,7 +195,9 @@ export function loadConfig(): WispConfig {
 /** Relê o arquivo se ele mudou desde a última leitura (o usuário pode editá-lo com o app aberto). */
 function refresh(): void {
   const mtime = mtimeOf(CONFIG_PATH)
-  if (mtime !== null && mtime !== seenMtime) loadConfig()
+  if (mtime === null || mtime === seenMtime) return
+  loadConfig()
+  for (const listener of changeListeners) listener(config)
 }
 
 export function getConfig(): WispConfig {

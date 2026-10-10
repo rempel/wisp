@@ -2,11 +2,12 @@
  * Wisp: uma gotinha robô de luz. Tudo em SVG + CSS, sem assets externos.
  *
  * Todas as animações contínuas usam só transform e opacity em camadas HTML. O compositor as
- * desenha sem acordar a thread principal da página e sem redesenhar o SVG, o que deixa o
- * mascote quase de graça em CPU enquanto está ocioso.
+ * desenha sem acordar a thread principal da página e sem redesenhar o SVG. Quando ele cochila,
+ * elas param, e o mascote deixa de gastar CPU.
  *
  * As cores ficam nas variáveis abaixo: os estados (pedindo permissão, erro...) só precisam
- * trocá-las.
+ * trocá-las. O desenho dos olhos vem do atributo data-eyes (Mascot.tsx), que junta o estado e a
+ * reação do momento.
  */
 
 :root {
@@ -71,12 +72,19 @@ body {
 
 .float,
 .mood,
+.react,
 .wisp,
+.glow-pose,
+.antenna-pose,
 .antenna,
 .antenna-glow,
 .body,
+.blush,
 .eyes,
+.gaze,
+.eyes-react,
 .eyes-blink,
+.accessory,
 .layer {
   position: absolute;
   inset: 0;
@@ -106,9 +114,14 @@ body {
 }
 
 .mood,
+.react,
 .wisp {
   /* Base da gota: pulos, tremidas e o "boop" amassam e esticam a partir daqui. */
   transform-origin: 64px 104px;
+}
+
+.react {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 /* Reação ao clique: amassa, dá um pulinho e volta. */
@@ -135,6 +148,11 @@ body {
 }
 
 /* ---- Glow ------------------------------------------------------------- */
+
+/* A pose do brilho (mais fraco no cochilo) fica por fora da respiração. */
+.glow-pose {
+  transition: opacity 0.4s;
+}
 
 .glow {
   position: absolute;
@@ -276,10 +294,21 @@ body {
 
 /* ---- Antena ----------------------------------------------------------- */
 
+/* A pose (caída no cochilo, em pé no susto) volta com uma molinha. */
+.antenna-pose {
+  transform-origin: 64px 31px;
+  transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
 /* Balança devagar a partir da base, presa no encaixe da ponta da gota. */
 .antenna {
   transform-origin: 64px 31px;
   animation: sway 3.6s ease-in-out -0.9s infinite;
+}
+
+.antenna .led,
+.antenna-glow svg {
+  transition: opacity 0.4s;
 }
 
 @keyframes sway {
@@ -327,6 +356,26 @@ body {
 /* De vez em quando os olhos dão uma olhada para um lado e para o outro. */
 .eyes {
   animation: glance 11s ease-in-out infinite;
+}
+
+/* Seguindo o cursor (main → --gx e --gy, de -1 a 1), com um atraso que suaviza o movimento. Só
+   quando não há nada mais para olhar; aí a olhada de lado para. */
+.gaze {
+  transition: transform 0.2s ease-out;
+}
+
+.stage.state-idle.gazing .gaze {
+  transform: translate(calc(var(--gx, 0) * 4.2px), calc(var(--gy, 0) * 2.6px));
+}
+
+.stage.state-idle.gazing .eyes {
+  animation: none;
+}
+
+/* Arregalar e apertar os olhos, nas reações. */
+.eyes-react {
+  transform-origin: 64px 80px;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 @keyframes glance {
@@ -383,6 +432,16 @@ body {
   left: 0;
   width: 128px;
   overflow: hidden;
+  /* Somem no cochilo (display: none para as animações pararem) e voltam aos poucos. */
+  transition:
+    opacity 0.8s,
+    display 0.8s allow-discrete;
+}
+
+@starting-style {
+  .sparks {
+    opacity: 0;
+  }
 }
 
 .sparks.back {
@@ -486,9 +545,14 @@ body {
   opacity: 0;
 }
 
-/* Olhos alternativos: ^ ^ (feliz) e x x (erro), no lugar dos LEDs. */
+/*
+ * Os desenhos dos olhos, no lugar dos LEDs: ^ ^ (feliz, carinho), x x (erro), fechados (cochilo),
+ * > < (cutucada), bravos e espirais (tonto). Com outro desenho, eles param de piscar e de olhar
+ * para os lados.
+ */
 .eye-leds,
-.eye-glyph {
+.eye-glyph,
+.eye-angry {
   transition: opacity 0.15s;
 }
 
@@ -500,6 +564,55 @@ body {
   stroke-linejoin: round;
   filter: url(#wisp-led-glow);
   opacity: 0;
+}
+
+.eye-angry {
+  filter: url(#wisp-led-glow);
+  opacity: 0;
+}
+
+.eye-closed {
+  stroke-width: 2;
+  stroke-opacity: 0.6;
+}
+
+.eye-spiral {
+  stroke-width: 1.15;
+}
+
+.eye-spiral .spin {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+.stage:not([data-eyes='leds']) .eye-leds {
+  opacity: 0;
+}
+
+.stage[data-eyes='happy'] .eye-happy,
+.stage[data-eyes='x'] .eye-x,
+.stage[data-eyes='closed'] .eye-closed,
+.stage[data-eyes='squint'] .eye-squint,
+.stage[data-eyes='angry'] .eye-angry,
+.stage[data-eyes='spiral'] .eye-spiral {
+  opacity: 1;
+}
+
+.stage:not([data-eyes='leds']) .eyes,
+.stage:not([data-eyes='leds']) .eyes-blink {
+  animation: none;
+}
+
+/* Bochechas de LED, no carinho. */
+.blush {
+  opacity: 0;
+  transition: opacity 0.4s;
+}
+
+.blush ellipse {
+  fill: #fb7185;
+  fill-opacity: 0.8;
+  filter: url(#wisp-led-glow);
 }
 
 /* Bits que saltam do corpo quando ele fica feliz. */
@@ -695,23 +808,6 @@ body {
   }
 }
 
-.state-happy .eyes,
-.state-happy .eyes-blink,
-.state-error .eyes,
-.state-error .eyes-blink {
-  animation: none;
-}
-
-.state-happy .eye-leds,
-.state-error .eye-leds {
-  opacity: 0;
-}
-
-.state-happy .eye-happy,
-.state-error .eye-x {
-  opacity: 1;
-}
-
 .state-happy .burst i {
   animation: burst 0.9s ease-out var(--bd) forwards;
 }
@@ -762,6 +858,670 @@ body {
   animation-duration: 0.8s;
 }
 
+/* ---- Cochilo ---------------------------------------------------------- */
+
+/*
+ * Nada acontece há um tempo e o cursor está longe. O flutuar, o brilho e a antena congelam onde
+ * estavam (pausados, para continuarem de lá quando ele acordar), os bits somem, a cabeça pende,
+ * as luzes baixam e os olhos fecham devagar. Parado assim, o compositor não tem o que desenhar.
+ * Os "z" sobem por um minuto; depois fica um só, parado.
+ */
+.state-sleeping .float,
+.state-sleeping .glow,
+.state-sleeping .antenna,
+.state-sleeping .antenna-glow {
+  animation-play-state: paused;
+}
+
+.state-sleeping .sparks {
+  opacity: 0;
+  display: none;
+}
+
+.state-sleeping .mood {
+  animation: nod-off 2.6s ease-in-out forwards;
+}
+
+@keyframes nod-off {
+  0% {
+    transform: none;
+  }
+  30% {
+    transform: rotate(-3deg) translateY(1px);
+  }
+  45% {
+    transform: rotate(-0.5deg);
+  }
+  80% {
+    transform: rotate(-4deg) translateY(2px);
+  }
+  100% {
+    transform: rotate(-5deg) translateY(2.5px);
+  }
+}
+
+.state-sleeping .glow-pose {
+  opacity: 0.3;
+  transition: opacity 2.4s ease-in 0.6s;
+}
+
+.state-sleeping .antenna-pose {
+  transform: rotate(16deg);
+  transition: transform 2s ease-in-out 0.8s;
+}
+
+.state-sleeping .antenna .led,
+.state-sleeping .antenna-glow svg {
+  opacity: 0.25;
+  transition: opacity 2s ease-in 1s;
+}
+
+/* Os LEDs dos olhos apagam devagar e viram dois traços. */
+.state-sleeping .eye-leds {
+  transition: opacity 1.4s ease-in 0.6s;
+}
+
+.state-sleeping .eye-closed {
+  transition: opacity 0.8s 1.6s;
+}
+
+.zzz {
+  position: absolute;
+  left: 84px;
+  top: 20px;
+}
+
+.z {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--led-1);
+  font:
+    800 10px/1 system-ui,
+    sans-serif;
+  text-shadow: 0 0 3px rgb(var(--glow) / 0.8);
+  opacity: 0;
+}
+
+.state-sleeping .z1 {
+  animation: z-rise 3.3s ease-out 2.6s 18;
+}
+
+.state-sleeping .z2 {
+  animation: z-rise 3.3s ease-out 3.7s 18;
+}
+
+.state-sleeping .z3 {
+  animation: z-rise 3.3s ease-out 4.8s 18;
+}
+
+.state-sleeping .z-deep {
+  animation: z-settle 1.5s ease 64s forwards;
+}
+
+@keyframes z-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 6px) scale(0.6) rotate(-10deg);
+  }
+  20% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(14px, -16px) scale(1.25) rotate(8deg);
+  }
+}
+
+@keyframes z-settle {
+  from {
+    opacity: 0;
+    transform: translate(2px, 2px) scale(0.7);
+  }
+  to {
+    opacity: 0.55;
+    transform: translate(5px, -4px) scale(1.05) rotate(-6deg);
+  }
+}
+
+/* Acordou: um susto, os olhos abrem de uma vez e a antena volta com a molinha. */
+.react-wake .react {
+  animation: startle 0.7s ease-out;
+}
+
+@keyframes startle {
+  0% {
+    transform: none;
+  }
+  20% {
+    transform: translateY(-9px) scale(0.94, 1.08);
+  }
+  45% {
+    transform: translateY(0) scale(1.06, 0.95);
+  }
+  70% {
+    transform: translateY(-2px) scale(0.99, 1.01);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.react-wake .eyes-react {
+  animation: eyes-pop 0.5s ease-out;
+}
+
+@keyframes eyes-pop {
+  0% {
+    transform: scale(1, 0.15);
+  }
+  40% {
+    transform: scale(1.25);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+/* ---- Reações ---------------------------------------------------------- */
+
+/* Segunda cutucada: os LEDs ficam bravos e vermelhos, ele bufa e aparece a veia de bravo. */
+.react-annoyed {
+  --led-0: #fff1f2;
+  --led-1: #fecdd3;
+  --led-2: #fb7185;
+  --led-halo: #fb7185;
+}
+
+.react-annoyed .react {
+  animation: huff 0.5s ease-out 2;
+}
+
+@keyframes huff {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.07, 0.93);
+  }
+  60% {
+    transform: translateY(-1px) scale(0.98, 1.03);
+  }
+}
+
+.anger-mark {
+  fill: none;
+  stroke: #fb7185;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0;
+  transform: translate(87px, 40px);
+}
+
+.react-annoyed .anger-mark {
+  animation: anger 1.1s ease-out forwards;
+}
+
+@keyframes anger {
+  0% {
+    opacity: 0;
+    transform: translate(87px, 40px) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(87px, 40px) scale(1.2);
+  }
+  30%,
+  60% {
+    transform: translate(87px, 40px) scale(0.95);
+  }
+  45% {
+    transform: translate(87px, 40px) scale(1.15);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(87px, 40px) scale(1);
+  }
+}
+
+/* Três cutucadas: tonto. Balança, os olhos viram espirais e estrelinhas rodam na cabeça. */
+.react-dizzy .react {
+  animation: wobble 0.9s ease-in-out 3;
+}
+
+@keyframes wobble {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-2px) rotate(-7deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(7deg);
+  }
+}
+
+.react-dizzy .eye-spiral .spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.star {
+  position: absolute;
+  left: 64px;
+  top: 19px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.star > svg {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  overflow: visible;
+  fill: #fde68a;
+  filter: drop-shadow(0 0 2px rgb(253 224 71 / 0.8));
+}
+
+.react-dizzy .star {
+  opacity: 1;
+  transition: opacity 0.2s;
+  animation: star-x 0.7s var(--ease-sine) var(--d) infinite alternate;
+}
+
+.react-dizzy .star > svg {
+  animation: star-y 0.7s var(--ease-sine) calc(var(--d) - 0.35s) infinite alternate;
+}
+
+.t1 {
+  --d: 0s;
+}
+
+.t2 {
+  --d: -0.47s;
+}
+
+.t3 {
+  --d: -0.93s;
+}
+
+@keyframes star-x {
+  from {
+    transform: translateX(-17px);
+  }
+  to {
+    transform: translateX(17px);
+  }
+}
+
+@keyframes star-y {
+  from {
+    transform: translateY(-4px) scale(0.7);
+  }
+  to {
+    transform: translateY(4px) scale(1.1);
+  }
+}
+
+/* Carinho: os olhos sorriem, as bochechas acendem, ele se aconchega e solta coraçõezinhos. */
+.react-petting {
+  --led-halo: #fda4af;
+}
+
+.react-petting .react {
+  animation: nuzzle 1.6s ease-in-out infinite;
+}
+
+@keyframes nuzzle {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg) scale(1.02, 0.98);
+  }
+}
+
+.react-petting .blush {
+  opacity: 1;
+}
+
+.heart {
+  fill: #fb7185;
+  opacity: 0;
+}
+
+.h1 {
+  --hx: 55px;
+  --hdx: -7px;
+}
+
+.h2 {
+  --hx: 72px;
+  --hdx: 6px;
+}
+
+.h3 {
+  --hx: 63px;
+  --hdx: 1px;
+}
+
+.react-petting .heart {
+  animation: heart-rise 1.8s ease-out infinite;
+}
+
+.react-petting .h2 {
+  animation-delay: 0.6s;
+}
+
+.react-petting .h3 {
+  animation-delay: 1.2s;
+}
+
+@keyframes heart-rise {
+  0% {
+    opacity: 0;
+    transform: translate(var(--hx), 36px) scale(0.5);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--hx) + var(--hdx)), 6px) scale(1.1);
+  }
+}
+
+/* Saudação, quando o app abre: aparece num pulo, acena com a antena, sorri e diz oi. */
+.react-greet .react {
+  animation: greet-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes greet-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.react-greet .antenna-pose {
+  animation: wave 1s ease-in-out 0.6s;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: rotate(-18deg);
+  }
+  45% {
+    transform: rotate(16deg);
+  }
+  70% {
+    transform: rotate(-10deg);
+  }
+  85% {
+    transform: rotate(5deg);
+  }
+}
+
+.react-greet .eye-leds {
+  animation: greet-leds 2.4s;
+}
+
+.react-greet .eye-happy {
+  animation: greet-smile 2.4s;
+}
+
+@keyframes greet-leds {
+  0%,
+  35%,
+  80%,
+  100% {
+    opacity: 1;
+  }
+  40%,
+  75% {
+    opacity: 0;
+  }
+}
+
+@keyframes greet-smile {
+  0%,
+  35%,
+  80%,
+  100% {
+    opacity: 0;
+  }
+  40%,
+  75% {
+    opacity: 1;
+  }
+}
+
+.bubble {
+  position: absolute;
+  left: 8px;
+  top: 17px;
+  padding: 3px 6px 4px;
+  border-radius: 9px;
+  background: #ecfeff;
+  color: #0e7490;
+  font:
+    800 11px/1 system-ui,
+    sans-serif;
+  box-shadow: 0 0 6px rgb(var(--glow) / 0.6);
+  opacity: 0;
+  transform-origin: 85% 100%;
+}
+
+/* O rabinho do balão, apontando para a gota. */
+.bubble::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: -4px;
+  border: 4px solid transparent;
+  border-top-color: #ecfeff;
+  border-bottom: 0;
+  transform: skewX(-25deg);
+}
+
+.react-greet .bubble {
+  animation: bubble 2s ease 0.4s both;
+}
+
+@keyframes bubble {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  20% {
+    transform: none;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* ---- Arquivo solto no mascote ---------------------------------------- */
+
+/* Um arquivo passando por cima: os olhos arregalam, ele estica e a antena fica em pé. */
+.drop-over .react {
+  transform: scale(0.97, 1.04);
+}
+
+.drop-over .eyes-react {
+  transform: scale(1.22);
+}
+
+.drop-over .antenna-pose {
+  transform: scaleY(1.12);
+}
+
+.drop-over .glow {
+  animation-duration: 0.9s;
+}
+
+/* Soltou: o arquivo voa para dentro da gota, que engole com um gole e brilha. */
+.absorb {
+  position: absolute;
+  left: 57px;
+  top: 69px;
+  width: 14px;
+  height: 18px;
+  animation: absorb-fly 0.45s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.absorb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px rgb(var(--glow) / 0.7));
+}
+
+.absorb .doc {
+  fill: #f8fafc;
+  stroke: var(--metal);
+}
+
+.absorb .doc-fold {
+  fill: none;
+  stroke: var(--metal);
+}
+
+.absorb .doc-lines {
+  stroke: var(--shell-2);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+@keyframes absorb-fly {
+  0% {
+    opacity: 1;
+    transform: translate(var(--ax), var(--ay)) scale(1.3) rotate(-8deg);
+  }
+  100% {
+    opacity: 0.2;
+    transform: translate(0, 0) scale(0.1) rotate(10deg);
+  }
+}
+
+.react-absorb .react {
+  animation: gulp 0.45s ease-out 0.42s;
+}
+
+@keyframes gulp {
+  0% {
+    transform: none;
+  }
+  35% {
+    transform: scale(1.12, 0.88);
+  }
+  65% {
+    transform: translateY(-2px) scale(0.95, 1.07);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.react-absorb .pulse {
+  animation: absorb-flash 0.6s ease-out 0.45s;
+}
+
+@keyframes absorb-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
+
+/* ---- Acessórios por data --------------------------------------------- */
+
+/* O gorro fica no lugar da antena. */
+.acc-christmas .antenna-pose {
+  display: none;
+}
+
+.hat-shine {
+  fill: none;
+  stroke: #fecaca;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.hat-brim,
+.hat-pompom {
+  fill: #f8fafc;
+  stroke: #e2e8f0;
+  stroke-width: 0.6;
+}
+
+.hat-pompom {
+  filter: drop-shadow(0 0 2px rgb(var(--glow) / 0.6));
+}
+
+.shades-lens {
+  fill: url(#wisp-lens);
+  stroke: #0f172a;
+  stroke-width: 1.1;
+}
+
+.shades-bridge,
+.shades-arm {
+  fill: none;
+  stroke: #0f172a;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.shades-glint {
+  stroke: #fff;
+  stroke-opacity: 0.55;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
 /* ---- Menos movimento -------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -773,12 +1533,29 @@ body {
   .eyes-blink,
   .wisp.boop,
   .stage .mood,
-  .stage .ask {
+  .stage .react,
+  .stage .ask,
+  .stage .antenna-pose,
+  .stage .eyes-react,
+  .stage .z,
+  .stage .heart,
+  .stage .star,
+  .stage .star > svg,
+  .stage .anger-mark,
+  .stage .bubble,
+  .stage .absorb,
+  .stage .spin {
     animation: none;
   }
 
   .sparks,
-  .burst {
+  .burst,
+  .absorb {
     display: none;
+  }
+
+  /* Sem a subida, o cochilo mostra o "z" parado logo de cara. */
+  .state-sleeping .z-deep {
+    opacity: 0.55;
   }
 }

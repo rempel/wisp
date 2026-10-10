@@ -13,6 +13,36 @@ export const IPC = {
   mascotState: 'mascot:state',
   /** main → mascote: chegou um pedaço de texto da resposta (o brilho pulsa no ritmo). */
   mascotPulse: 'mascot:pulse',
+  /** main → mascote: para onde os olhos olham (Gaze), ou null para voltarem ao centro. */
+  mascotGaze: 'mascot:gaze',
+  /** mascote → main: o cursor entrou (true) ou saiu (false) de cima do mascote. */
+  mascotHover: 'mascot:hover',
+  /** mascote → main: o usuário mexeu com o mascote (cutucou, fez carinho). */
+  mascotActivity: 'mascot:activity',
+  /** mascote → main: arquivos soltos no mascote, para anexar no painel. Arg: DroppedFiles. */
+  mascotDrop: 'mascot:drop',
+  /** mascote → main: clique com o botão direito (abre o menu do mascote). */
+  mascotMenu: 'mascot:menu',
+  /** main → mascote: uma reação que vem de fora da página. Arg: MascotReaction. */
+  mascotReact: 'mascot:react',
+  /** main → mascote: o acessório do dia. Arg: Accessory | null. */
+  mascotAccessory: 'mascot:accessory',
+  /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
+  mascotSound: 'mascot:sound',
+  /**
+   * main → mascote: um som da pasta de sons do usuário. Args: (SoundName, bytes do arquivo, ou
+   * null quando ele sai da pasta e o som sintetizado volta).
+   */
+  mascotCustomSound: 'mascot:custom-sound',
+
+  /** mascote → main: pede um som de reação (o main confere se os sons estão ligados). */
+  soundPlay: 'sound:play',
+  /** chat → main (invoke): os sons estão ligados? Devolve SoundSettings. */
+  soundGet: 'sound:get',
+  /** chat → main: liga ou desliga os sons. Arg: boolean. */
+  soundSet: 'sound:set',
+  /** main → chat: os sons foram ligados ou desligados. Arg: SoundSettings. */
+  soundChanged: 'sound:changed',
 
   /** chat → main: a página carregou e já ouve eventos (o main manda os que guardou). */
   chatReady: 'chat:ready',
@@ -44,6 +74,10 @@ export const IPC = {
   chatMood: 'chat:mood',
   /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
   chatShown: 'chat:shown',
+  /** main → chat: arquivos soltos no mascote, para virar anexos. Arg: DroppedFiles. */
+  chatAttach: 'chat:attach',
+  /** chat → main: o usuário está mexendo no painel (o mascote não cochila). */
+  chatActivity: 'chat:activity',
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
@@ -74,13 +108,73 @@ export const IPC = {
   hooksApply: 'hooks:apply'
 } as const
 
-/** Estados do mascote, ligados aos eventos da conversa (seção 5.3 da especificação). */
-export type MascotState = 'idle' | 'talking' | 'working' | 'permission' | 'happy' | 'error'
+/**
+ * Estados do mascote, ligados aos eventos da conversa (seção 5.3 da especificação). 'sleeping' é
+ * o cochilo: nada acontece há um tempo e o cursor está longe.
+ */
+export type MascotState =
+  'idle' | 'talking' | 'working' | 'permission' | 'happy' | 'error' | 'sleeping'
 
 /** O que o mascote mostra: o estado e para que lado fica o painel de chat. */
 export interface MascotView {
   state: MascotState
   look: 'left' | 'right'
+}
+
+/**
+ * Para onde os olhos do mascote olham: de -1 a 1 em cada eixo (o máximo é o canto do visor).
+ * Positivo é para a direita e para baixo.
+ */
+export interface Gaze {
+  x: number
+  y: number
+}
+
+/** Reações que o main pede ao mascote: a saudação, quando o app abre. */
+export type MascotReaction = 'greet'
+
+/** Acessórios por data: gorro no Natal, óculos no verão. */
+export type Accessory = 'christmas' | 'summer'
+
+/**
+ * Os sons do Wisp. O main toca os da conversa (abrir, fechar, enviar, pronto, pedido, erro); o
+ * mascote, os das reações. Cada um pode ser trocado por um arquivo na pasta de sons.
+ */
+export const SOUND_NAMES = [
+  'abrir',
+  'fechar',
+  'enviar',
+  'pronto',
+  'pedido',
+  'erro',
+  'cutucada',
+  'tonto',
+  'carinho',
+  'oi',
+  'absorver'
+] as const
+
+export type SoundName = (typeof SOUND_NAMES)[number]
+
+export interface SoundSettings {
+  enabled: boolean
+  /** De 0 a 1. */
+  volume: number
+}
+
+/** Um arquivo solto no mascote, a caminho dos anexos do painel. */
+export interface DroppedFile {
+  path: string
+  name: string
+  size: number
+  /** Miniatura (data URL) quando é uma imagem. */
+  thumbnail?: string
+}
+
+/** O que foi solto no mascote: os arquivos e o que ficou de fora (uma pasta, por exemplo). */
+export interface DroppedFiles {
+  files: DroppedFile[]
+  problems: string[]
 }
 
 /** Limites dos anexos de uma mensagem. O chat confere ao anexar; o main, de novo, ao copiar. */
@@ -316,6 +410,25 @@ export interface WispApi {
     /** Registra quem recebe as mudanças de estado; devolve a função que cancela. */
     onState(listener: (view: MascotView) => void): () => void
     onPulse(listener: () => void): () => void
+    onGaze(listener: (gaze: Gaze | null) => void): () => void
+    onReact(listener: (reaction: MascotReaction) => void): () => void
+    onAccessory(listener: (accessory: Accessory | null) => void): () => void
+    /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */
+    onSound(listener: (name: SoundName, volume: number) => void): () => void
+    /** Um som da pasta do usuário chegou (bytes) ou saiu (null). */
+    onCustomSound(listener: (name: SoundName, data: ArrayBuffer | null) => void): () => void
+    /** O cursor entrou ou saiu de cima do mascote. */
+    hover(inside: boolean): void
+    /** O usuário mexeu com o mascote (conta como atividade: ele não cochila). */
+    activity(): void
+    /** Pede um som de reação; toca se os sons estiverem ligados. */
+    playSound(name: SoundName): void
+    /** Arquivos soltos no mascote: o painel abre com eles anexados. */
+    drop(dropped: DroppedFiles): void
+    /** Caminho no disco de um File solto ('' se não houver). */
+    pathForFile(file: File): string
+    /** Abre o menu do mascote (botão direito). */
+    menu(): void
   }
   chat: {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
@@ -340,6 +453,16 @@ export interface WispApi {
     onMood(listener: (state: MascotState) => void): () => void
     /** O painel acabou de aparecer. */
     onShown(listener: () => void): () => void
+    /** Arquivos soltos no mascote, para anexar. */
+    onAttach(listener: (dropped: DroppedFiles) => void): () => void
+    /** O usuário está mexendo no painel (chame no máximo de tempos em tempos). */
+    activity(): void
+  }
+  /** Os sons do Wisp (o botão de mudo do painel). */
+  sound: {
+    get(): Promise<SoundSettings>
+    set(enabled: boolean): void
+    onChanged(listener: (settings: SoundSettings) => void): () => void
   }
   history: {
     list(): Promise<ConversationSummary[]>

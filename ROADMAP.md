@@ -98,7 +98,7 @@ As lacunas que apareceram no fim da Etapa 4 também entraram na Etapa 5:
 
 ### Fase 6: conversa ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 O painel ganha a cara e os recursos que fazem falta no uso diário.
 
@@ -150,7 +150,7 @@ cada mensagem briga com o gerenciador de janelas no X11 e no XWayland; a mola ao
 
 ### Fase 7: escutar e gerenciar as sessões do Claude Code ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 O que você mais gostou no Coucou. O Wisp "escuta" as sessões do Claude Code que você roda no
 terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de janela.
@@ -203,31 +203,62 @@ terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de 
 - a aba Sessões mostra o que cada sessão está fazendo e avisa quando ela termina;
 - com o Wisp fechado, o Claude Code segue normal.
 
-### Fase 8: personalidade
+### Fase 8: personalidade ✅
+
+**Status:** pronta, esperando validação.
 
 O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena.
 
 - **Reações (M):**
-  - um clique o deixa irritado por um instante;
-  - três cliques rápidos o deixam tonto;
-  - o cursor parado em cima dele por uns 2 s vira carinho;
-  - pulinho quando uma tarefa termina;
-  - saudação ao abrir o app.
-- **Dormir e acordar (P).** Depois de um tempo sem conversa e com o cursor longe, ele cochila (LEDs
-  apagando, "z"); acorda quando o cursor chega perto.
-- **Olhos que seguem o cursor (P),** com movimento suavizado. No Wayland, um app em XWayland só sabe
-  onde o cursor está quando ele passa por janelas X11 (as do Wisp incluídas). Ali ele acompanha o
-  cursor só de vez em quando.
+  - um clique abre ou fecha o painel, e ele aperta os olhos (`> <`), como quem leva uma cutucada;
+  - o segundo clique rápido o deixa bravo: LEDs vermelhos e inclinados e uma veia de bravo;
+  - a partir do terceiro, ele fica tonto: espirais nos olhos, estrelinhas e um balanço;
+  - as cutucadas não mexem no painel: só o primeiro clique da sequência abre ou fecha;
+  - o cursor parado em cima dele por 2 s vira carinho: olhos `^ ^`, bochechas de LED e corações;
+  - pulinho quando uma tarefa termina (já vinha da Etapa 5);
+  - saudação ao abrir o app: aparece num pulo, acena com a antena, sorri e diz "oi!".
+- **Dormir e acordar (P).** Depois de 3 minutos sem nada acontecer e com o cursor longe
+  (`sleepAfterMinutes`), ele cochila.
+  - A cabeça pende, as luzes baixam, os olhos fecham devagar e uns "z" sobem por um minuto.
+  - Acorda com um susto quando o cursor chega perto ou passa por cima dele, quando a conversa
+    recomeça ou quando uma sessão do terminal precisa dele.
+  - As animações ficam pausadas, e o compositor não tem o que desenhar. Medido no Xvfb, que
+    desenha sem GPU: 13,8% de CPU acordado e parado, 9,4% no minuto dos "z" e 0,4% dormindo.
+- **Olhos que seguem o cursor (P),** com o movimento suavizado.
+  - **Correção do plano:** nem no X11 dava. O `screen.getCursorScreenPoint()` do Electron 44
+    (Chromium 152) guarda a última posição vista nos eventos das janelas do app e não pergunta
+    de novo ao servidor. O Chromium mais novo já corrigiu isso: volta a perguntar quando o
+    cursor não está nas janelas dele. Até essa versão chegar ao Electron, o Wisp abre a própria
+    conexão com o servidor X, só para o `QueryPointer` (`xpointer.ts`, uns 0,1 ms por pergunta).
+  - No Wayland, o XWayland também só sabe do cursor quando ele passa por janelas X11. Ali os
+    olhos o acompanham no mascote e no painel.
 - **Kit de sons próprio (M),** sintetizado com WebAudio:
-  - abrir, fechar, enviar, resposta pronta, pedido de permissão, erro e cutucada;
-  - volume baixo por padrão e botão de mudo com atalho;
-  - uma pasta `~/.config/wisp/sounds` para trocar qualquer som;
-  - o áudio dorme quando nada está tocando.
-- **Soltar arquivo no mascote (M),** com uma animação própria: a gotinha absorve o arquivo e o
-  painel abre com ele anexado.
-- **Dançar com música (P):** um balanço quando algum player está tocando (pelo MPRIS, da Fase 9).
-- **Acessórios por data (M, opcional):** gorro no Natal, óculos no verão, com arte própria.
-- **Rive (especificação v2):** reavaliar depois desta fase. Talvez SVG e CSS bastem.
+  - abrir, fechar, enviar, resposta pronta, pedido de permissão, erro e cutucada, mais tonto,
+    carinho, "oi" e o gole do arquivo;
+  - volume baixo por padrão (`volume`);
+  - mudo por três caminhos: o botão ao lado da pílula do modelo, o Ctrl+M no painel e o item
+    **Sons** nos menus;
+  - uma pasta `~/.config/wisp/sounds` para trocar qualquer som, que vale na hora;
+  - o áudio suspende 2 s depois do último som e solta o dispositivo depois de um minuto.
+- **Soltar arquivo no mascote (M):** com o arquivo por cima, os olhos arregalam. Solto, o arquivo
+  voa para dentro da gota, que engole com um gole, e o painel abre com o anexo.
+- **Menu do botão direito no mascote (P, novo):** o mesmo menu da bandeja. No GNOME sem a
+  extensão AppIndicator, é o único jeito de chegar a **Sons**, **Abrir config** e **Sair**.
+- **Acessórios por data (M, opcional),** com arte própria:
+  - gorro de Natal de 1º de dezembro a 6 de janeiro;
+  - óculos de sol na testa no verão, com o hemisfério pelo país do idioma do sistema;
+  - `accessory` fixa um dos dois ou desliga.
+- **Rive (especificação v2):** avaliado e dispensado por ora.
+  - As reações couberam em SVG, CSS e algumas animações pelo JavaScript.
+  - O cochilo zera a CPU pausando as animações.
+  - O Rive traria um runtime em WebAssembly e um editor à parte para desenhar cada estado.
+
+**Ficou para depois:**
+
+- **Dançar com música:** foi para a Fase 9, junto com o MPRIS, que diz quando um player está
+  tocando.
+- **Esc no menu do mascote:** o mascote não recebe foco, para não roubar o de quem está
+  trabalhando, então o teclado não chega ao menu dele. O menu fecha com um clique fora.
 
 **Aceite:**
 
@@ -255,6 +286,7 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
   - Um processo headless não consegue acordar sozinho depois; o app consegue.
 - **Controle de mídia pelo MPRIS (P):** tocar, pausar, pular, volume e o que está tocando, via
   D-Bus. Funciona com Spotify, Firefox e VLC, sem chave de API.
+  - Com ele, o mascote dança quando algum player está tocando (veio da Fase 8).
 - **Contexto da tela (M).** "O que é isso na minha tela?" tira um print pelo portal de captura (o
   sistema pede permissão) e anexa como imagem. Também um chip com o conteúdo da área de
   transferência.
@@ -314,6 +346,8 @@ nenhum áudio é gravado em disco.
 - **Tela de configurações (M),** no lugar de editar o `config.json`: pastas de projetos, editor,
   sons, modelo, atalho e ferramentas liberadas.
 - **Logs (P):** limitados a 1 MB, sem comandos nem URLs.
+- **Cursor (P):** tirar o `xpointer.ts` quando o Electron trouxer um Chromium que volta a perguntar
+  a posição do cursor ao servidor X (ver a Fase 8).
 
 ## Ideias avaliadas e deixadas de fora
 
@@ -333,8 +367,8 @@ nenhum áudio é gravado em disco.
 - **Resumo semanal** (tarefas, tempo, apps abertos, aprovações, tudo local). É simpático, mas fica
   para quando o resto estiver pronto.
 - **A ilha no topo da tela.** A identidade do Wisp é o mascote flutuante. Um modo compacto, em que o
-  mascote vira uma aba na borda da tela e espia quando o cursor passa, pode entrar na Fase 8 se fizer
-  falta.
+  mascote vira uma aba na borda da tela e espia quando o cursor passa, pode entrar mais tarde se
+  fizer falta.
 
 ## Princípios que ficam
 

@@ -1,18 +1,26 @@
-import { app, Notification, shell } from 'electron'
+import { app, ipcMain, Notification, screen, shell } from 'electron'
+import type { Point } from 'electron'
 import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
+import { accessoryFor, msUntilMidnight } from './accessory'
 import { cleanOldAttachments } from './attachments'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
-import { CONFIG_PATH, getConfig, loadConfig } from './config'
+import { CONFIG_PATH, getConfig, loadConfig, onConfigChange } from './config'
 import { openInEditor } from './desktop'
 import { deployRelay } from './hooks/install'
 import { startHookServer } from './hooks/server'
 import type { HookServer } from './hooks/server'
 import {
   getMascotBounds,
+  getMascotWindow,
+  getVisibleMascotBounds,
   isMascotVisible,
+  playMascotSound,
   pulseMascot,
+  sendMascotCustomSound,
+  setMascotAccessory,
+  setMascotGaze,
   setMascotView,
   setMascotVisible,
   setupMascot
@@ -21,9 +29,14 @@ import { startDesktopServer } from './mcp-server'
 import type { DesktopServer } from './mcp-server'
 import { MascotMood } from './mood'
 import { CACHE_DIR } from './paths'
+import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
 import { setupSessionsIpc } from './sessions-ipc'
+import { soundForEvent, Sounds } from './sounds'
 import { setupTray } from './tray'
+import type { AppMenu } from './tray'
+import { XPointer } from './xpointer'
+import { IPC } from '../shared/ipc'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -78,10 +91,72 @@ app.whenReady().then(async () => {
     },
     pulse: pulseMascot
   })
+  // Os olhos seguem o cursor, e o mascote cochila quando nada acontece e o cursor está longe. O
+  // cursor vem direto do servidor X (xpointer.ts): o do Electron fica parado enquanto ele está
+  // fora das janelas do Wisp.
+  let xpointer: XPointer | null = null
+  void XPointer.open().then((opened) => {
+    xpointer = opened
+  })
+  const cursor = async (): Promise<Point> => {
+    const point = xpointer?.alive ? await xpointer.query() : null
+    if (!point) return screen.getCursorScreenPoint()
+    const scale = screen.getPrimaryDisplay().scaleFactor
+    return { x: Math.round(point.x / scale), y: Math.round(point.y / scale) }
+  }
+  const presence = new Presence({
+    bounds: getVisibleMascotBounds,
+    cursor,
+    gaze: setMascotGaze,
+    sleep: (asleep) => mood.setAsleep(asleep),
+    canSleep: () => mood.quiet,
+    sleepAfter: () => getConfig().sleepAfterMinutes * 60_000
+  })
+  // Os sons tocam na página do mascote; quem decide se tocam é o main.
+  let menu: AppMenu | null = null
+  const sounds = new Sounds({
+    play: playMascotSound,
+    custom: sendMascotCustomSound,
+    changed: (settings) => {
+      chat?.notifySound(settings)
+      menu?.refresh()
+    }
+  })
+  ipcMain.handle(IPC.soundGet, (event) => (chat?.isSender(event.sender) ? sounds.check() : null))
+  ipcMain.on(IPC.soundSet, (event, enabled: unknown) => {
+    if (chat?.isSender(event.sender) && typeof enabled === 'boolean') sounds.setEnabled(enabled)
+  })
+
   chat = setupChat({
     anchor: getMascotBounds,
     mcpConfigPath: desktop?.configPath,
-    onEvent: (event) => mood.onEvent(event)
+    onEvent: (event) => {
+      presence.activity()
+      mood.onEvent(event)
+      const sound = soundForEvent(event)
+      if (sound) sounds.play(sound)
+    },
+    onPanel: (change) => {
+      presence.activity()
+      sounds.play(change === 'open' ? 'abrir' : 'fechar')
+      updateAccessory()
+    },
+    onActivity: () => presence.activity()
+  })
+
+  // Gorro no Natal, óculos no verão (o país do idioma do sistema diz o hemisfério).
+  const updateAccessory = (): void => {
+    setMascotAccessory(accessoryFor(new Date(), app.getLocaleCountryCode(), getConfig().accessory))
+  }
+  let midnight: NodeJS.Timeout | null = null
+  const atMidnight = (): void => {
+    updateAccessory()
+    midnight = setTimeout(atMidnight, msUntilMidnight())
+  }
+  atMidnight()
+  onConfigChange(() => {
+    updateAccessory()
+    sounds.check()
   })
 
   // As sessões do Claude Code no terminal, pelos hooks (aba Sessões). O relay é reescrito a cada
@@ -93,8 +168,14 @@ app.whenReady().then(async () => {
       chat?.notifySessions()
     },
     onAttention: (kind) => {
-      if (kind === 'request') chat?.showSessions()
-      else mood.flashExternal(kind === 'done' ? 'happy' : 'error')
+      presence.activity()
+      if (kind === 'request') {
+        chat?.showSessions()
+        sounds.play('pedido')
+      } else {
+        mood.flashExternal(kind === 'done' ? 'happy' : 'error')
+        sounds.play(kind === 'done' ? 'pronto' : 'erro')
+      }
     }
   })
   let hooks: HookServer | null = null
@@ -128,11 +209,12 @@ app.whenReady().then(async () => {
       })
     }
   })
-  setupMascot(() => chat?.toggle())
-  setupTray({
+  menu = setupTray({
     mascotVisible: isMascotVisible,
     setMascotVisible,
     newConversation: () => chat?.newConversation(),
+    soundEnabled: () => sounds.settings().enabled,
+    setSoundEnabled: (enabled) => sounds.setEnabled(enabled),
     openConfig: () => {
       // Abre no app padrão para .json; sem um, mostra o arquivo na pasta.
       void shell.openPath(CONFIG_PATH).then((error) => {
@@ -141,8 +223,32 @@ app.whenReady().then(async () => {
     },
     quit: () => app.quit()
   })
+  setupMascot({
+    click: () => {
+      presence.activity()
+      chat?.toggle()
+    },
+    hover: (inside) => presence.setHover(inside),
+    activity: () => presence.activity(),
+    drop: (dropped) => {
+      presence.activity()
+      chat?.attach(dropped)
+    },
+    menu: () => {
+      const win = getMascotWindow()
+      if (win) menu?.popup(win)
+    },
+    sound: (name) => sounds.play(name),
+    ready: () => sounds.resend(),
+    moved: () => presence.start()
+  })
+  sounds.watch()
 
   app.on('before-quit', () => {
+    if (midnight) clearTimeout(midnight)
+    presence.dispose()
+    xpointer?.close()
+    sounds.dispose()
     mood.dispose()
     sessions.dispose()
     hooks?.close()
