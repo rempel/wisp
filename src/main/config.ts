@@ -1,13 +1,8 @@
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
-import { homedir } from 'os'
-import { isAbsolute, join } from 'path'
+import { join } from 'path'
 import { z } from 'zod'
+import { CONFIG_DIR } from './paths'
 
-const xdgConfigHome = process.env.XDG_CONFIG_HOME
-const configHome =
-  xdgConfigHome && isAbsolute(xdgConfigHome) ? xdgConfigHome : join(homedir(), '.config')
-
-export const CONFIG_DIR = join(configHome, 'wisp')
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
 const PointSchema = z.object({ x: z.number().int(), y: z.number().int() })

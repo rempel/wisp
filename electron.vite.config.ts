@@ -9,9 +9,10 @@ export default defineConfig({
     plugins: [react()],
     build: {
       rollupOptions: {
-        // Uma página por janela. O painel de chat entra aqui na Etapa 2.
+        // Uma página por janela.
         input: {
-          mascot: resolve('src/renderer/mascot/index.html')
+          mascot: resolve('src/renderer/mascot/index.html'),
+          chat: resolve('src/renderer/chat/index.html')
         }
       }
     }

@@ -1,0 +1,573 @@
+/* Painel de chat do Wisp. Segue o tema claro/escuro do sistema. */
+
+:root {
+  color-scheme: light dark;
+  --font: system-ui, 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
+  --mono: ui-monospace, 'Ubuntu Mono', 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
+
+  --bg: #f5fafb;
+  --surface: #ffffff;
+  --hover: #e6f1f4;
+  --border: #d6e7eb;
+  --text: #0c2a33;
+  --muted: #58747d;
+  --accent: #0891b2;
+  --on-accent: #ffffff;
+  --ok: #0d9488;
+  --user-bg: #0e7490;
+  --user-text: #ffffff;
+  --code-bg: #f0f6f8;
+  --code-inline-bg: #e3eff2;
+  --warning-bg: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-bg: #fef2f2;
+  --danger-border: #fca5a5;
+  --danger-text: #b91c1c;
+  --danger-solid: #ef4444;
+  --scrollbar: #c5dbe1;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1418;
+    --surface: #111d22;
+    --hover: #182a31;
+    --border: #1d3139;
+    --text: #e2f1f4;
+    --muted: #86a2aa;
+    --accent: #22d3ee;
+    --on-accent: #052e36;
+    --ok: #5eead4;
+    --user-bg: #0e4552;
+    --user-text: #ecfeff;
+    --code-bg: #071015;
+    --code-inline-bg: #15262d;
+    --warning-bg: rgb(251 191 36 / 0.1);
+    --warning-border: rgb(251 191 36 / 0.35);
+    --warning-text: #fcd779;
+    --danger-bg: rgb(248 113 113 / 0.1);
+    --danger-border: rgb(248 113 113 / 0.35);
+    --danger-text: #fca5a5;
+    --danger-solid: #f87171;
+    --scrollbar: #24404a;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+::selection {
+  background: rgb(34 211 238 / 0.3);
+}
+
+button {
+  font: inherit;
+}
+
+.chat {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/* ---- Cabeçalho (arrasta a janela) ------------------------------------- */
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.title strong {
+  font-size: 14px;
+}
+
+.status {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.status.busy {
+  color: var(--accent);
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.icon-button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* ---- Mensagens -------------------------------------------------------- */
+
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+  overflow-y: auto;
+}
+
+.messages::-webkit-scrollbar {
+  width: 10px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border: 3px solid var(--bg);
+  border-radius: 10px;
+}
+
+.empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty .hello {
+  margin-top: 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty p {
+  margin: 0;
+  max-width: 260px;
+  font-size: 13px;
+}
+
+.msg.user {
+  align-self: flex-end;
+  max-width: 85%;
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--user-bg);
+  color: var(--user-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.msg.assistant {
+  overflow-wrap: anywhere;
+}
+
+/* Cursor piscando no fim do texto enquanto a resposta chega. */
+.msg.assistant.streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+.thinking {
+  display: flex;
+  gap: 5px;
+  padding: 6px 2px;
+}
+
+.thinking span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dot 1.2s ease-in-out infinite;
+}
+
+.thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+/* ---- Markdown --------------------------------------------------------- */
+
+.msg.assistant p,
+.notice p {
+  margin: 0 0 8px;
+}
+
+.msg.assistant > :last-child,
+.notice > :last-child {
+  margin-bottom: 0;
+}
+
+.msg.assistant ul,
+.msg.assistant ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.msg.assistant li + li {
+  margin-top: 2px;
+}
+
+.msg.assistant h1,
+.msg.assistant h2,
+.msg.assistant h3,
+.msg.assistant h4 {
+  margin: 12px 0 6px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.msg.assistant blockquote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.msg.assistant hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.msg.assistant table {
+  display: block;
+  margin: 0 0 8px;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.msg.assistant th,
+.msg.assistant td {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+:not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--code-inline-bg);
+}
+
+.code-block {
+  margin: 4px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px 3px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.code-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.code-head button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.code-head svg {
+  width: 13px;
+  height: 13px;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+/* ---- Ferramentas ------------------------------------------------------ */
+
+.tool {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.tool-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--accent);
+}
+
+.tool-done .tool-icon {
+  color: var(--ok);
+}
+
+.tool-error .tool-icon,
+.tool-stopped .tool-icon {
+  color: var(--danger-solid);
+}
+
+.tool-name {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.tool-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-status {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
+}
+
+.tool-body {
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tool-label {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.tool-body pre {
+  max-height: 220px;
+  margin: 0 0 6px;
+  padding: 8px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Avisos ----------------------------------------------------------- */
+
+.notice {
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.notice-info {
+  padding: 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.notice-warning {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.notice-error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.notice pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* ---- Caixa de texto --------------------------------------------------- */
+
+.composer {
+  flex: none;
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.4;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  /* A caixa cresce com o texto, até o max-height. */
+  field-sizing: content;
+}
+
+.composer textarea:focus {
+  border-color: var(--accent);
+}
+
+.composer .icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.composer .icon-button:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  filter: brightness(1.08);
+}
+
+.composer .icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  filter: none;
+}
+
+.composer .icon-button.stop {
+  background: var(--danger-solid);
+  color: #fff;
+}
