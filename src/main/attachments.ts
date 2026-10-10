@@ -8,8 +8,8 @@ import { CACHE_DIR } from './paths'
 export const ATTACHMENTS_DIR = join(CACHE_DIR, 'anexos')
 
 /**
- * Imagens coladas com Ctrl+V: viram arquivo aqui assim que são coladas e, no envio, são
- * copiadas para a pasta da conversa como qualquer anexo.
+ * Imagens coladas com Ctrl+V, prints da tela e textos copiados: viram arquivo aqui assim que
+ * entram na caixa de texto e, no envio, são copiados para a pasta da conversa como qualquer anexo.
  */
 const PASTED_DIR = join(ATTACHMENTS_DIR, 'colados')
 const PASTED_TYPES: Record<string, string> = {
@@ -21,7 +21,7 @@ const PASTED_TYPES: Record<string, string> = {
 
 /** Pastas de conversas mais antigas que isso são apagadas quando o app abre. */
 const KEEP_DAYS = 7
-/** Imagens coladas e nunca enviadas são apagadas depois disso. */
+/** O que foi colado ou capturado e nunca enviado é apagado depois disso. */
 const KEEP_PASTED_DAYS = 1
 const SESSION_DIR = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const MAX_NAME = 120
@@ -121,7 +121,7 @@ export async function copyAttachments(
         problems.push(`"${name}" passa de ${maxBytes / 1024 / 1024} MB e ficou de fora.`)
       } else {
         paths.push(await copyUnique(source, dir, name))
-        // Uma imagem colada já tem a cópia dela na conversa; o arquivo de espera sai.
+        // Algo colado ou capturado já tem a cópia na conversa; o arquivo de espera sai.
         if (dirname(source) === PASTED_DIR) await unlink(source).catch(() => {})
       }
     } catch (err) {
@@ -144,6 +144,26 @@ function stamp(date: Date): string {
 }
 
 /**
+ * Guarda num arquivo algo que não veio de um (uma imagem colada, um print, um texto copiado),
+ * para virar um anexo como os outros: "<prefixo>-2026-10-10-143201.<ext>".
+ */
+export async function saveIncoming(
+  data: Uint8Array,
+  prefix: string,
+  ext: string,
+  now = new Date()
+): Promise<{ path: string; name: string; size: number }> {
+  if (data.byteLength > ATTACHMENT_LIMITS.maxBytes) {
+    throw new Error(`o arquivo passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB`)
+  }
+  await mkdir(PASTED_DIR, { recursive: true, mode: 0o700 })
+  const path = await createUnique(PASTED_DIR, `${prefix}-${stamp(now)}.${ext}`, (target) =>
+    writeFile(target, data, { flag: 'wx', mode: 0o600 })
+  )
+  return { path, name: basename(path), size: data.byteLength }
+}
+
+/**
  * Guarda uma imagem colada (Ctrl+V) num arquivo, para ela poder ser anexada como as outras.
  * Devolve o caminho e o nome, ou lança um erro com a explicação em português.
  */
@@ -157,11 +177,8 @@ export async function savePasted(
   if (data.byteLength > ATTACHMENT_LIMITS.maxBytes) {
     throw new Error(`a imagem passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB`)
   }
-  await mkdir(PASTED_DIR, { recursive: true, mode: 0o700 })
-  const path = await createUnique(PASTED_DIR, `imagem-colada-${stamp(now)}.${ext}`, (target) =>
-    writeFile(target, data, { flag: 'wx', mode: 0o600 })
-  )
-  return { path, name: basename(path) }
+  const { path, name } = await saveIncoming(data, 'imagem-colada', ext, now)
+  return { path, name }
 }
 
 /** Cria a pasta dos anexos (o processo do Claude Code a recebe com --add-dir). */
@@ -207,8 +224,8 @@ async function removeOlderThan(
 }
 
 /**
- * Apaga as pastas de conversas com mais de KEEP_DAYS dias e as imagens coladas que nunca foram
- * enviadas, para o cache não crescer para sempre.
+ * Apaga as pastas de conversas com mais de KEEP_DAYS dias e o que foi colado ou capturado e
+ * nunca enviado, para o cache não crescer para sempre.
  */
 export async function cleanOldAttachments(now = Date.now()): Promise<void> {
   await Promise.all([

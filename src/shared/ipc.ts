@@ -78,6 +78,19 @@ export const IPC = {
   chatAttach: 'chat:attach',
   /** chat → main: o usuário está mexendo no painel (o mascote não cochila). */
   chatActivity: 'chat:activity',
+  /**
+   * chat → main (invoke): tira um print da tela, com o painel fora da frente, para anexar.
+   * Devolve DroppedFiles (um arquivo por tela, ou o motivo em problems).
+   */
+  chatCapture: 'chat:capture',
+  /** main → chat: o que há de novo na área de transferência (ClipboardOffer), ou null. */
+  chatClipboard: 'chat:clipboard',
+  /** chat → main (invoke): usar o que foi copiado. Arg: id da oferta. Devolve ClipboardUse. */
+  chatClipboardUse: 'chat:clipboard-use',
+  /** chat → main: dispensar a oferta (o × do chip). Arg: id. */
+  chatClipboardDismiss: 'chat:clipboard-dismiss',
+  /** chat → main: o usuário copiou algo do painel (não é para oferecer de volta). */
+  chatCopied: 'chat:copied',
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
@@ -115,10 +128,12 @@ export const IPC = {
 export type MascotState =
   'idle' | 'talking' | 'working' | 'permission' | 'happy' | 'error' | 'sleeping'
 
-/** O que o mascote mostra: o estado e para que lado fica o painel de chat. */
+/** O que o mascote mostra: o estado, para que lado fica o painel de chat e se há música. */
 export interface MascotView {
   state: MascotState
   look: 'left' | 'right'
+  /** Algum player está tocando: ocioso e acordado, ele dança. */
+  music?: boolean
 }
 
 /**
@@ -130,8 +145,8 @@ export interface Gaze {
   y: number
 }
 
-/** Reações que o main pede ao mascote: a saudação, quando o app abre. */
-export type MascotReaction = 'greet'
+/** Reações que o main pede ao mascote: a saudação, quando o app abre, e o toque de um lembrete. */
+export type MascotReaction = 'greet' | 'remind'
 
 /** Acessórios por data: gorro no Natal, óculos no verão. */
 export type Accessory = 'christmas' | 'summer'
@@ -151,7 +166,8 @@ export const SOUND_NAMES = [
   'tonto',
   'carinho',
   'oi',
-  'absorver'
+  'absorver',
+  'lembrete'
 ] as const
 
 export type SoundName = (typeof SOUND_NAMES)[number]
@@ -196,6 +212,29 @@ export interface AttachmentPreview {
 
 /** Imagem colada guardada pelo main, ou por que não deu. */
 export type PastedImage = { path: string; name: string } | { error: string }
+
+/**
+ * O chip "usar o que você copiou": só o tipo e o tamanho do que está na área de transferência.
+ * O conteúdo fica no main até o usuário clicar.
+ */
+export interface ClipboardOffer {
+  /** Identifica este conteúdo (para usar ou dispensar exatamente ele). */
+  id: string
+  kind: 'text' | 'link' | 'image'
+  /** Texto: caracteres e linhas. */
+  chars?: number
+  lines?: number
+  /** Link: o domínio. */
+  host?: string
+  /** Imagem: o tamanho. */
+  width?: number
+  height?: number
+  /** Texto longo demais para a caixa: entra como anexo .txt. */
+  asFile?: boolean
+}
+
+/** O que foi copiado, pronto para usar: texto para a caixa ou um anexo. */
+export type ClipboardUse = { text: string } | { attachment: DroppedFile } | { error: string }
 
 /**
  * Modelos da pílula, pelos apelidos que o `--model` do Claude Code aceita (cada um aponta para
@@ -351,9 +390,17 @@ export type ChatEvent =
   | { type: 'tool-input'; id: string; name: string; input: unknown }
   /**
    * Resultado da ferramenta (texto, possivelmente cortado). Edições de arquivo trazem o diff,
-   * quando o Claude Code o informa.
+   * quando o Claude Code o informa, e imagens vêm como miniaturas.
    */
-  | { type: 'tool-result'; id: string; isError: boolean; output: string; diff?: FileDiff }
+  | {
+      type: 'tool-result'
+      id: string
+      isError: boolean
+      output: string
+      diff?: FileDiff
+      /** Miniaturas (data URLs) das imagens que a ferramenta devolveu, como um print da tela. */
+      images?: string[]
+    }
   /** O turno acabou: normalmente, com erro ou porque o usuário parou. */
   | { type: 'turn-end'; outcome: 'done' | 'error' | 'stopped' }
   /** Aviso para mostrar na conversa (texto em Markdown). */
@@ -362,7 +409,20 @@ export type ChatEvent =
    * O Claude quer usar uma ferramenta que precisa de aprovação. `toolUseId` liga o pedido ao
    * card da ferramenta.
    */
-  | { type: 'permission-request'; id: string; toolName: string; input: unknown; toolUseId?: string }
+  | {
+      type: 'permission-request'
+      id: string
+      toolName: string
+      input: unknown
+      toolUseId?: string
+      /** Navegador: o site em jogo (o de destino, ou o da página aberta). */
+      site?: string
+      /**
+       * Até onde vai o "Permitir sempre": 'site' libera o site nesta conversa (navegador); 'none'
+       * não oferece (código na página, envio de arquivos). Sem o campo, a ferramenta ou o comando.
+       */
+      always?: 'site' | 'none'
+    }
   /**
    * O pedido foi respondido, ou cancelado (o turno acabou ou o Claude desistiu). Perguntas
    * respondidas trazem as respostas.
@@ -457,6 +517,15 @@ export interface WispApi {
     onAttach(listener: (dropped: DroppedFiles) => void): () => void
     /** O usuário está mexendo no painel (chame no máximo de tempos em tempos). */
     activity(): void
+    /** Tira um print da tela (o painel sai da frente) e devolve os arquivos para anexar. */
+    captureScreen(): Promise<DroppedFiles>
+    /** O que há de novo na área de transferência (null: nada a oferecer). */
+    onClipboard(listener: (offer: ClipboardOffer | null) => void): () => void
+    /** Usa o que foi copiado: o texto para a caixa ou um anexo. */
+    takeClipboard(id: string): Promise<ClipboardUse>
+    dismissClipboard(id: string): void
+    /** O usuário copiou algo do painel. */
+    copied(): void
   }
   /** Os sons do Wisp (o botão de mudo do painel). */
   sound: {

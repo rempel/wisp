@@ -20,12 +20,17 @@ Depois do MVP, vieram as fases do roadmap:
 - **Fase 7 (sessões do terminal):** o Wisp acompanha as sessões do Claude Code que você roda no
   terminal, avisa quando uma precisa de você, deixa aprovar e responder pelo card e continuar uma
   sessão no chat.
-- **Fase 8 (personalidade), pronta para validação:**
-  - o mascote reage a cliques e a carinho, e os olhos seguem o cursor;
-  - cochila quando nada acontece, sem gastar CPU;
-  - tem sons próprios, com mudo;
-  - engole os arquivos soltos nele;
-  - usa gorro no Natal e óculos no verão.
+- **Fase 8 (personalidade):** o mascote reage a cliques e a carinho, os olhos seguem o cursor,
+  cochila sem gastar CPU, tem sons próprios, engole os arquivos soltos nele e usa gorro no Natal.
+- **Fase 9 (desktop), pronta para validação:**
+  - um atalho global abre o painel, também no Wayland (pelo portal), e o comando `wisp` aceita
+    `--toggle`, `--new` e `--ask "…"`;
+  - inicia com o sistema, se você quiser;
+  - lembretes que avisam na hora, mesmo com o app reaberto no meio;
+  - controle da música (Spotify, Firefox, VLC…), e o mascote dança quando algo toca;
+  - print da tela e um chip com o que você copiou;
+  - abrir um terminal num projeto e trazer janelas para a frente;
+  - um navegador separado que o Claude controla (opcional), com permissão por site.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -40,9 +45,13 @@ O que vem depois está no [ROADMAP.md](ROADMAP.md).
   links: `xdg-open` (pacote `xdg-utils`)
 - Para o ícone na bandeja: no Ubuntu e no KDE já funciona. Em outros GNOME, instale a extensão
   "AppIndicator and KStatusNotifierItem Support". O mascote e o chat funcionam sem ela
-- Para a aba Sessões: Claude Code 2.1 ou mais novo. Para trazer o terminal de uma sessão para a
-  frente: no KDE já funciona; no X11, instale o `xdotool`. No GNOME com Wayland não há como, e o
-  Wisp oferece abrir a pasta no editor
+- Para a aba Sessões: Claude Code 2.1 ou mais novo. Trazer o terminal de uma sessão (ou outra
+  janela) para a frente funciona no KDE e no X11. No GNOME com Wayland não há como, e o Wisp
+  oferece abrir a pasta no editor
+- Para o atalho global no Wayland: o portal `GlobalShortcuts` (GNOME 48+ ou KDE Plasma
+  5.27+). Para o print no Wayland: o portal de captura, que o GNOME e o KDE já têm
+- Para o navegador do Claude (opcional): Google Chrome, Chromium, Brave ou Edge instalado fora
+  do Snap
 
 ## Rodando
 
@@ -51,8 +60,8 @@ npm install
 npm run dev
 ```
 
-Vindo de uma etapa anterior, rode `npm install` de novo: a Etapa 3 trouxe uma dependência nova
-(o SDK do MCP).
+Vindo de uma fase anterior, rode `npm install` de novo: a Fase 9 trouxe uma dependência nova
+(o `@playwright/mcp`, para o navegador do Claude).
 
 Na primeira vez, o `npm run dev` baixa o binário do Electron (~120 MB). Desde o Electron 42
 o download não acontece mais no `npm install`.
@@ -238,6 +247,43 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
       com `"summer"`, óculos de sol na testa.
 - [ ] **CPU:** parado e cochilando, o Wisp não aparece no `top`.
 
+### Desktop (Fase 9)
+
+- [ ] **Atalho global:** Ctrl+Alt+W abre e fecha o painel de qualquer lugar.
+  - No X11, funciona direto.
+  - No Wayland, o GNOME e o KDE perguntam, na primeira vez, se o Wisp pode ter o atalho (e qual
+    tecla usar). O GNOME pergunta de novo a cada abertura do Wisp (veja em Problemas comuns).
+  - O menu da bandeja mostra o atalho ligado.
+- [ ] **Comando `wisp`:** `~/.local/share/wisp/bin/wisp --toggle` abre e fecha o painel do Wisp
+      já aberto; `--new` começa uma conversa nova; `--ask "que horas são em Tóquio?"` manda a
+      pergunta. Dá para ligar esses comandos a um atalho nas configurações do sistema.
+- [ ] **Menu de apps:** o Wisp aparece no menu de aplicativos, com as ações **Abrir ou fechar o
+      painel** e **Nova conversa**.
+- [ ] **Iniciar com o sistema:** marque o item na bandeja (ou no botão direito do mascote), saia
+      da sessão e entre de novo: o Wisp abre sozinho.
+- [ ] **Lembrete:** "me lembra de beber água em 1 minuto". Feche o Wisp e abra de novo antes de
+      dar o minuto. Na hora, chegam uma notificação, um bipe e o sininho do mascote. "Quais
+      lembretes eu tenho?" e "cancela o lembrete" também funcionam.
+- [ ] **Música:** com o Spotify (ou o Firefox, o VLC…) tocando, o mascote dança. "Pausa a música",
+      "próxima", "volume 30" e "o que está tocando?" funcionam sem card.
+- [ ] **Print da tela:** "o que é isso na minha tela?". O card pede permissão, o painel sai da
+      frente durante o print e o card da ferramenta mostra a miniatura do que o Claude viu. No
+      Wayland, o sistema pergunta uma vez se o Wisp pode tirar prints. O botão ao lado do clipe
+      anexa um print à mensagem.
+- [ ] **O que você copiou:** copie um texto, um link ou uma imagem e abra o painel. Um chip
+      oferece usar o que foi copiado, sem mostrar o conteúdo (de um link, só o domínio). Texto
+      longo vira um anexo `.txt`. O × dispensa, e uma senha copiada do KeePassXC não aparece.
+- [ ] **Terminal:** "abre um terminal no projeto X". O card pede permissão, e o terminal do seu
+      desktop abre na pasta do projeto.
+- [ ] **Janelas:** "traz o Firefox para a frente" e "quais janelas estão abertas?" pedem
+      permissão e funcionam no KDE e no X11. No GNOME com Wayland, o Claude explica que o sistema
+      não deixa.
+- [ ] **Navegador do Claude (opcional):** ponha `"browserAutomation": true` no `config.json` e
+      comece uma conversa nova. Peça "abre example.com e me diz o título".
+  - Abrir um site pede permissão, com **Permitir em example.com nesta conversa**.
+  - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
+  - Rodar código na página e enviar arquivos pedem sempre.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -267,6 +313,8 @@ E reage a quem mexe com ele:
 | Susto         | Acordou                                       | Pula, os olhos abrem de uma vez e a antena volta com uma molinha |
 | Olhos atentos | Um arquivo arrastado por cima                 | Arregala os olhos e estica, com a antena em pé                   |
 | Gole          | Soltou o arquivo                              | O arquivo voa para dentro da gota, que engole e brilha           |
+| Lembrete      | Chegou a hora de um lembrete                  | LED âmbar, um sininho tocando ao lado e um chacoalhão de alarme  |
+| Dança         | Um player de música está tocando              | Balança no ritmo, inclinando de um lado para o outro, com notas  |
 
 As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las. O
 desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação do momento.
@@ -286,7 +334,12 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "sound": true,
   "volume": 0.5,
   "sleepAfterMinutes": 3,
-  "accessory": "auto"
+  "accessory": "auto",
+  "shortcut": "Ctrl+Alt+W",
+  "clipboardChip": true,
+  "terminalCommand": null,
+  "browserAutomation": false,
+  "browserExecutable": null
 }
 ```
 
@@ -298,9 +351,10 @@ sobrescreve o arquivo até você corrigir.
 
 Dá para editar o arquivo com o Wisp aberto:
 
-- `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes` e `accessory` valem
-  na hora;
+- `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes`, `accessory`,
+  `shortcut`, `clipboardChip` e `terminalCommand` valem na hora;
 - `model`, na próxima mensagem;
+- `browserAutomation` e `browserExecutable`, na próxima conversa (Ctrl+K);
 - `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
 
 `model` é o modelo do Claude: `null` usa o padrão do seu Claude Code, e a pílula acima da caixa
@@ -333,17 +387,49 @@ mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem
 (gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
 
 Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
-`fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi` ou
-`absorver`. Valem `.ogg`, `.oga`, `.opus`, `.wav`, `.mp3`, `.flac`, `.m4a` e `.webm`, até 2 MB.
+`fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`,
+`absorver` ou `lembrete`. Valem `.ogg`, `.oga`, `.opus`, `.wav`, `.mp3`, `.flac`, `.m4a` e `.webm`, até 2 MB.
 O Wisp acompanha a pasta, então vale na hora. Apagar o arquivo traz o som do Wisp de volta.
+
+`shortcut` é o atalho global que abre e fecha o painel, no formato do Electron (`"Ctrl+Alt+W"`,
+`"Super+Space"`); `null` desliga. No Wayland, quem liga o atalho é o sistema, pelo portal
+`GlobalShortcuts`: o GNOME e o KDE mostram uma janela pedindo permissão, onde dá para escolher
+outra tecla. O KDE lembra da resposta; o GNOME, por enquanto, pergunta de novo a cada abertura do
+Wisp. Se isso incomodar, ponha `"shortcut": null` e ligue um atalho do sistema
+(**Configurações → Teclado → Atalhos personalizados** no GNOME) ao comando
+`~/.local/share/wisp/bin/wisp --toggle`.
+
+`clipboardChip` liga o chip "usar o que você copiou" do painel. O Wisp só olha a área de
+transferência quando o painel ganha o foco, e nada sai do computador até você clicar no chip e
+enviar a mensagem. `terminalCommand` é o terminal que o Claude abre: `null` escolhe pelo desktop
+(Ptyxis, Console ou GNOME Terminal no GNOME; Konsole no KDE; o do `$TERMINAL`, se houver) ou um
+comando com argumentos, como `"kitty"` ou `"konsole --workdir {dir}"` (`{dir}` vira a pasta).
+
+`browserAutomation` liga o navegador do Claude: um Chrome ou Chromium separado, com perfil
+próprio em `~/.local/share/wisp/navegador`, que o Claude controla pelo
+[Playwright MCP](https://github.com/microsoft/playwright-mcp). Você vê a janela e pode entrar em
+sites nela; os logins ficam só nesse perfil. `browserExecutable` é o caminho do navegador; com
+`null`, o Wisp procura o Chrome, o Chromium, o Brave, o Edge ou o Vivaldi no `PATH` (os do Snap
+não servem: o confinamento não deixa usar o perfil).
+
+O comando `~/.local/share/wisp/bin/wisp` abre o Wisp ou fala com o que já está aberto:
+`--toggle` abre e fecha o painel, `--show` mostra, `--new` começa uma conversa nova e
+`--ask "texto"` manda uma pergunta. Ele é reescrito a cada abertura do app, assim como o
+`~/.local/share/applications/io.github.rempel.Wisp.desktop` (a entrada no menu de apps). O
+**Iniciar com o sistema** grava `~/.config/autostart/io.github.rempel.Wisp.desktop`. O Wisp nunca
+sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).
+
+Os lembretes ficam em `~/.local/share/wisp/lembretes.json`. Os que venceram com o app fechado
+aparecem quando ele abre, com a hora em que deviam ter avisado.
 
 Os dados internos do Chromium (cache etc.) ficam em `~/.cache/wisp/electron`, fora da pasta
 de configuração. O Claude Code roda em `~/.local/share/wisp/workspace/`, cujo `CLAUDE.md` define
 a persona do Wisp. Ele é criado na primeira vez e depois você pode editá-lo à vontade.
 
 Os anexos são copiados para `~/.cache/wisp/anexos/<id da conversa>/`. Quando o app abre, ele
-apaga as pastas de conversas com mais de 7 dias. Imagens coladas com Ctrl+V esperam o envio em
-`~/.cache/wisp/anexos/colados/`; as que nunca foram enviadas somem depois de um dia.
+apaga as pastas de conversas com mais de 7 dias. Imagens coladas com Ctrl+V, prints e textos do
+chip esperam o envio em `~/.cache/wisp/anexos/colados/`; os que nunca foram enviados somem depois
+de um dia.
 
 As sessões do terminal usam:
 
@@ -385,12 +471,30 @@ do Claude Code segue a regra dele.
 | A pílula de uso não aparece                 | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
 | "O Wisp não está ouvindo as sessões"        | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões       |
 | A sessão do terminal não aparece            | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
-| O botão Terminal não traz a janela          | No X11, instale o `xdotool`. No GNOME com Wayland não há como: use o botão **Pasta**                           |
+| O botão Terminal não traz a janela          | Funciona no KDE e no X11. No GNOME com Wayland não há como: use o botão **Pasta**                              |
 | Um card ficou parado na aba Sessões         | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba      |
 | Os olhos não seguem o cursor                | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)            |
 | Sem som                                     | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1        |
 | Ele cochila enquanto eu leio                | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                             |
 | O menu do mascote não fecha com Esc         | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando           |
+| O GNOME pede o atalho toda vez que abro     | É o GNOME que não lembra; use `"shortcut": null` e um atalho do sistema para `wisp --toggle` (veja acima)      |
+| "Ctrl+Alt+W já é usado por outro programa"  | Troque `shortcut` no `config.json` (por exemplo, `"Super+Space"`); vale na hora                                |
+| "Este desktop não tem o portal de atalhos"  | O Wayland do seu desktop não tem o `GlobalShortcuts`: ligue um atalho do sistema a `wisp --toggle`             |
+| O lembrete não avisou                       | O Wisp precisa estar aberto na hora; os que venceram com ele fechado avisam quando ele abre                    |
+| "Nenhum player de música aberto"            | O player precisa falar MPRIS (Spotify, Firefox, Chrome, VLC, Rhythmbox…); no navegador, a aba precisa tocar    |
+| "O sistema não deixou tirar o print"        | O print foi negado antes, e o desktop lembra. Para perguntar de novo, rode o comando abaixo da tabela          |
+| O chip do que copiei não aparece            | Ele aparece ao abrir o painel com algo novo copiado; senhas do KeePassXC não aparecem; veja `clipboardChip`    |
+| O terminal não abre, ou abre o errado       | Diga qual usar em `terminalCommand` (por exemplo, `"kitty"` ou `"konsole --workdir {dir}"`)                    |
+| "Não achei um Chrome, Chromium…"            | O navegador do Claude precisa de um Chromium fora do Snap; instale um ou diga o caminho em `browserExecutable` |
+| A janela do navegador do Claude não abre    | Ligou o `browserAutomation` com uma conversa aberta? Ele vale a partir da próxima conversa (Ctrl+K)            |
+
+Para o GNOME perguntar de novo se o Wisp pode tirar prints (ele guarda o "Negar"):
+
+```sh
+busctl --user call org.freedesktop.impl.portal.PermissionStore \
+  /org/freedesktop/impl/portal/PermissionStore org.freedesktop.impl.portal.PermissionStore \
+  DeletePermission sss screenshot screenshot io.github.rempel.Wisp
+```
 
 Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
@@ -411,7 +515,21 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 ```
 src/
 ├─ main/
-│  ├─ index.ts       # ciclo de vida do app
+│  ├─ index.ts       # ciclo de vida do app, instância única e os pedidos do comando `wisp`
+│  ├─ launcher.ts    # o comando ~/.local/share/wisp/bin/wisp e a entrada no menu de apps
+│  ├─ autostart.ts   # Iniciar com o sistema (~/.config/autostart)
+│  ├─ dbus.ts        # cliente D-Bus em Node puro (chamadas, sinais, objetos exportados)
+│  ├─ portal.ts      # pedidos aos portais do desktop (xdg-desktop-portal)
+│  ├─ shortcut.ts    # atalho global: Electron no X11, portal GlobalShortcuts no Wayland
+│  ├─ reminders.ts   # lembretes: arquivo, horários e o temporizador
+│  ├─ media.ts       # players de música pelo MPRIS (e quem está tocando, para a dança)
+│  ├─ screenshot.ts  # print da tela (portal no Wayland, Electron no X11) e miniaturas
+│  ├─ clipboard.ts   # o chip "usar o que você copiou"
+│  ├─ windows.ts     # listar e trazer janelas para a frente
+│  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
+│  ├─ kwin.ts        # scripts do KWin (KDE), com o resultado de volta pelo D-Bus
+│  ├─ browser.ts     # o servidor do Playwright MCP e o navegador que ele usa
+│  ├─ browser-policy.ts # permissões do navegador por site
 │  ├─ mascot.ts      # janela do mascote, arraste, estado mostrado e o que vem da página
 │  ├─ mood.ts        # estado do mascote a partir dos eventos da conversa
 │  ├─ presence.ts    # olhos seguindo o cursor, cochilar e acordar
@@ -429,10 +547,10 @@ src/
 │  │  └─ install.ts  # hooks no ~/.claude/settings.json: prévia, backup, gravação
 │  ├─ sessions.ts    # as sessões do terminal: estado, passos, pedidos
 │  ├─ sessions-ipc.ts # IPC da aba Sessões
-│  ├─ terminal.ts    # trazer o terminal de uma sessão para a frente (KWin, xdotool, tmux)
+│  ├─ terminal.ts    # trazer o terminal de uma sessão para a frente (KWin, EWMH, tmux)
 │  ├─ mcp-server.ts  # servidor MCP `desktop` (127.0.0.1 + token) e a ferramenta approve
 │  ├─ questions.ts   # perguntas do Claude (AskUserQuestion): leitura e conferência das respostas
-│  ├─ desktop.ts     # apps (.desktop), links, projetos: o que as ferramentas fazem
+│  ├─ desktop.ts     # apps (.desktop), links, projetos, terminal: o que as ferramentas fazem
 │  ├─ attachments.ts # cópia dos anexos, imagens coladas e limpeza das antigas
 │  ├─ config.ts      # ~/.config/wisp/config.json
 │  ├─ page.ts        # carregar as páginas e recarregá-las se caírem
@@ -503,15 +621,21 @@ resources/
   permissão 0600. Esse arquivo é passado ao Claude Code com `--mcp-config` e apagado quando o
   app fecha. Com `--strict-mcp-config`, os servidores MCP que você configurou no seu Claude Code
   ficam de fora da conversa do Wisp.
-- **Ferramentas:** `list_apps`, `open_app`, `open_url`, `list_projects`, `open_project` e
-  `notify`. Nenhuma passa por shell: os programas rodam com `spawn` e uma lista de argumentos.
+- **Ferramentas:** `list_apps`, `open_app`, `open_url`, `list_projects`, `open_project`,
+  `notify` e, desde a Fase 9, `set_reminder`, `list_reminders`, `cancel_reminder`,
+  `media_status`, `media_control`, `media_volume`, `screenshot`, `open_terminal`, `list_windows`
+  e `focus_window`. Nenhuma passa por shell: os programas rodam com `spawn` e uma lista de
+  argumentos.
   `open_app` só aceita ids que estão na lista de apps, `open_url` só aceita http e https, e
   `open_project` só abre pastas dentro de `projectRoots` (depois de resolver links simbólicos).
   As ferramentas vão direto no prompt (`_meta` `anthropic/alwaysLoad`), em vez de ficarem atrás
   do ToolSearch, o que economiza uma ida ao modelo por pedido.
 - **Permissões:** `Read`, `Glob`, `Grep`, `WebSearch`, `WebFetch`, `open_url`, `list_apps`,
-  `list_projects` e `notify` rodam direto (`--allowedTools`). Todo o resto (`Bash`, `Write`,
-  `Edit`, `open_app`, `open_project`…) passa pela ferramenta `approve` do servidor
+  `list_projects` e `notify` rodam direto (`--allowedTools`). Na Fase 9, entraram nessa lista
+  as ferramentas de lembrete e de música: como a notificação, elas só mexem no próprio Wisp e no
+  player, sem mudar nada na máquina. Todo o resto (`Bash`, `Write`, `Edit`, `open_app`,
+  `open_project`, `screenshot`, `open_terminal`, `list_windows`, `focus_window`…) passa pela
+  ferramenta `approve` do servidor
   (`--permission-prompt-tool mcp__desktop__approve`), que mostra o card e espera o clique:
   **Permitir** responde `{"behavior":"allow","updatedInput":…}` e **Negar** responde
   `{"behavior":"deny","message":"Usuário negou"}`. **Permitir sempre nesta conversa** fica só
@@ -605,7 +729,7 @@ resources/
   - **Trazer o terminal para a frente:** o Wisp acha os processos pais do Claude Code pelo
     `/proc`, e numa sessão no tmux, os clientes conectados. No KDE, um script do KWin carregado
     pelo D-Bus ativa a janela do primeiro processo com janela (vale no X11 e no Wayland). No
-    X11, o `xdotool` ativa a janela anunciada pelo terminal (`WINDOWID`) ou a do processo.
+    X11, o EWMH (abaixo) ativa a janela anunciada pelo terminal (`WINDOWID`) ou a do processo.
 - **Continuar no Wisp:** o chat retoma a sessão na pasta dela, com `--resume`. Se ela ainda
   estiver aberta no terminal, o chat usa `--fork-session` e segue numa cópia. Sem isso, os dois
   processos escreveriam na mesma sessão (testado no 2.1.296: o CLI não copia sozinho). A
@@ -655,3 +779,69 @@ resources/
   propriedade CSS registrada com `@property`, para a cor poder animar). O status traduz a
   ferramenta em andamento ("lendo package.json…", "pesquisando “…”…"). O system prompt pede
   Markdown leve, porque o painel é estreito.
+- **Instância única e o comando `wisp`:** o app pega a trava de instância única do Electron.
+  Abrir de novo (o comando, o menu de apps, um atalho do sistema) entrega o pedido da linha de
+  comando ao Wisp já aberto (`--toggle`, `--show`, `--new`, `--ask`) e sai. O comando é um script
+  em `~/.local/share/wisp/bin/wisp`, que chama o Electron do projeto com `--ozone-platform=x11`.
+- **D-Bus:** o `dbus.ts` fala o protocolo do D-Bus direto pelo socket do barramento de sessão
+  (autenticação EXTERNAL, serialização, sinais, objetos exportados), sem dependência nativa. É o
+  que conversa com os portais, os players de música e o KWin.
+- **Atalho global:** no X11, o `globalShortcut` do Electron. No Wayland, ele só veria as teclas
+  digitadas em janelas X11, então o Wisp usa o portal `GlobalShortcuts`:
+  1. registra o próprio id (`io.github.rempel.Wisp`) no `org.freedesktop.host.portal.Registry`,
+     o que os portais exigem de apps fora do Flatpak, e por isso a entrada no menu de apps;
+  2. cria uma sessão e pergunta (`ListShortcuts`) se o atalho já está ligado, para o KDE não
+     perguntar de novo;
+  3. se não estiver, pede o `BindShortcuts` com a tecla preferida (`CTRL+ALT+w`), e o desktop
+     mostra a janela de permissão;
+  4. o sinal `Activated` abre e fecha o painel.
+- **Iniciar com o sistema:** um `.desktop` em `~/.config/autostart`, que chama o comando `wisp`.
+- **Lembretes:** o `set_reminder` grava em `lembretes.json` (0600, escrita atômica) e o app avisa
+  na hora: notificação, som `lembrete` e o sininho no mascote. O temporizador nunca espera mais
+  que um minuto, então um lembrete sai no máximo um minuto atrasado depois de suspender o
+  computador ou de o relógio mudar; ao voltar da suspensão, ele confere na hora. O Claude
+  Code headless não tem como acordar sozinho depois; o app tem.
+- **Música:** o `media.ts` lista os players pelo nome `org.mpris.MediaPlayer2.*` e chama `Play`,
+  `Pause`, `Next`, `Previous`, a propriedade `Volume`… Pausar sem dizer qual pausa todos que estão
+  tocando. A dança vem dos sinais `PropertiesChanged` e `NameOwnerChanged`, sem consultar os
+  players de tempos em tempos.
+- **Print da tela:** no Wayland, o portal `Screenshot` (sem modo interativo). Na primeira vez, o
+  GNOME e o KDE perguntam se o Wisp pode tirar prints e guardam a resposta. O portal grava o
+  print num arquivo (o GNOME, na pasta de imagens), que o Wisp lê e apaga, só se ele acabou de
+  ser criado. No X11, o `desktopCapturer` do Electron, uma imagem por monitor. O painel some
+  350 ms antes do print e volta depois, sem os sons de fechar e abrir. Para o Claude, a imagem é
+  reduzida ao que a visão aproveita (até 1568 px e 1,2 megapixel) e vai em PNG ou, se ficar
+  pesado, em JPEG. Imagens que voltam de ferramentas viram miniaturas no card.
+- **O que você copiou:** quando o painel ganha o foco (no máximo uma vez por segundo), o main lê
+  a área de transferência pela API nova do Electron 44 (`clipboard.read()`). O que vai ao painel
+  é só o tipo e o tamanho; o conteúdo fica no main até o clique. Itens marcados como segredo pelo
+  gerenciador de senhas (`x-kde-passwordManagerHint`) são ignorados. Um conteúdo usado,
+  dispensado ou copiado do próprio painel não é oferecido de novo (o Wisp guarda só o hash dele).
+- **Terminal:** uma tabela de terminais conhecidos diz como pedir que cada um abra numa pasta
+  (`--working-directory`, `--workdir`, `--directory`…), e o processo também começa nela. Um
+  terminal que sai com erro passa a vez ao próximo. A pasta precisa estar na pasta pessoal ou nas
+  `projectRoots`, com os links resolvidos.
+- **Janelas:** no X11, o `ewmh.ts` abre a própria conexão com o servidor X e lê o que o
+  gerenciador de janelas publica (`_NET_CLIENT_LIST_STACKING`, `_NET_WM_NAME`, `WM_CLASS`,
+  `_NET_WM_PID`, `_NET_WM_STATE`). Para trazer uma janela, manda `_NET_ACTIVE_WINDOW` como um
+  pager (trocando de área de trabalho se for preciso). No KDE, um script do KWin lista ou ativa a
+  janela e devolve o resultado chamando, pelo D-Bus, um objeto que o Wisp exporta. O script é
+  ES5, para valer no KWin 5 e no 6, e os dados entram nele só como JSON. As janelas do próprio
+  Wisp ficam de fora.
+- **Navegador do Claude:** com `browserAutomation`, o `--mcp-config` ganha o servidor
+  `playwright`, que o próprio Claude Code roda: o `@playwright/mcp` com o Electron em modo Node,
+  apontando para o Chromium achado, com perfil próprio, sem as ferramentas que as páginas podem
+  registrar (`--no-webmcp`) e com o upload de arquivos limitado às pastas de trabalho (o padrão
+  dele). O Claude Code sobe sem `CHROME_DESKTOP` e sem as variáveis do Electron: sem isso, o
+  navegador se apresentaria como o Wisp na barra de tarefas. As ferramentas do navegador passam
+  todas pelo `approve`, e o `browser-policy.ts` decide:
+  - ler a página (snapshot, print, console, rede, abas) passa direto;
+  - abrir um endereço pede, e o card oferece liberar o site (e os subdomínios) nesta conversa;
+  - clicar, digitar, preencher e afins passam direto se a página aberta é de um site liberado.
+    A página aberta vem da seção `### Page` (`- Page URL: …`) das respostas do Playwright, lida
+    só fora dos blocos de código e só das ferramentas em que a página não escreve fora deles.
+    Depois de rodar código na página, ou numa resposta cortada sem essa seção, a página passa a
+    ser desconhecida e a próxima ação pede;
+  - rodar código na página (`browser_evaluate`, `browser_run_code_unsafe`) e mandar arquivos
+    (`browser_file_upload`, `browser_drop`) pedem sempre, sem o "sempre";
+  - ferramentas que o Wisp não conhece pedem, também sem o "sempre".

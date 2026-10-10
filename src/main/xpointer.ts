@@ -116,25 +116,8 @@ export class XPointer {
 
   /** Abre a conexão com o display de DISPLAY; null se não for X11 local ou se não der. */
   static async open(env: NodeJS.ProcessEnv = process.env): Promise<XPointer | null> {
-    const display = parseDisplay(env.DISPLAY)
-    if (!display) return null
-    let cookie: Buffer | null = null
-    try {
-      const file = readFileSync(env.XAUTHORITY || join(homedir(), '.Xauthority'))
-      cookie = readCookie(file, display.number, hostname())
-    } catch {
-      // Sem Xauthority: o servidor pode aceitar a conexão local mesmo assim.
-    }
-    const path = `/tmp/.X11-unix/X${display.number}`
-    // O caminho no disco; se não existir, o do namespace abstrato do Linux.
-    const socket = (await connectTo(path)) ?? (await connectTo(`\0${path}`))
-    if (!socket) return null
-    const root = await handshake(socket, cookie)
-    if (root === null) {
-      socket.destroy()
-      return null
-    }
-    return new XPointer(socket, root)
+    const opened = await openDisplay(env)
+    return opened && new XPointer(opened.socket, opened.root)
   }
 
   get alive(): boolean {
@@ -182,6 +165,34 @@ export class XPointer {
       }
     }
   }
+}
+
+/**
+ * Conecta no display de DISPLAY (local, pelo socket Unix) e faz o aperto de mão, com o cookie do
+ * Xauthority; devolve o socket e a janela raiz, ou null se não for X11 local ou se não der.
+ */
+export async function openDisplay(
+  env: NodeJS.ProcessEnv = process.env
+): Promise<{ socket: Socket; root: number } | null> {
+  const display = parseDisplay(env.DISPLAY)
+  if (!display) return null
+  let cookie: Buffer | null = null
+  try {
+    const file = readFileSync(env.XAUTHORITY || join(homedir(), '.Xauthority'))
+    cookie = readCookie(file, display.number, hostname())
+  } catch {
+    // Sem Xauthority: o servidor pode aceitar a conexão local mesmo assim.
+  }
+  const path = `/tmp/.X11-unix/X${display.number}`
+  // O caminho no disco; se não existir, o do namespace abstrato do Linux.
+  const socket = (await connectTo(path)) ?? (await connectTo(`\0${path}`))
+  if (!socket) return null
+  const root = await handshake(socket, cookie)
+  if (root === null) {
+    socket.destroy()
+    return null
+  }
+  return { socket, root }
 }
 
 function connectTo(path: string): Promise<Socket | null> {

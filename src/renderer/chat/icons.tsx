@@ -66,6 +66,22 @@ export const PaperclipIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Print da tela: os cantos de uma área capturada em volta de uma tela. */
+export const ScreenshotIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.5 5.5v-2a1 1 0 0 1 1-1h2M10.5 2.5h2a1 1 0 0 1 1 1v2M13.5 10.5v2a1 1 0 0 1-1 1h-2M5.5 13.5h-2a1 1 0 0 1-1-1v-2" />
+    <rect x="5.2" y="5.7" width="5.6" height="4.6" rx="0.8" />
+  </Icon>
+)
+
+export const ClipboardIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M10.5 3.5h1a1.3 1.3 0 0 1 1.3 1.3v7.9a1.3 1.3 0 0 1-1.3 1.3h-7a1.3 1.3 0 0 1-1.3-1.3V4.8a1.3 1.3 0 0 1 1.3-1.3h1" />
+    <rect x="5.5" y="2.2" width="5" height="2.6" rx="0.8" />
+    <path d="M6 8.2h4M6 10.7h2.6" />
+  </Icon>
+)
+
 export const FileIcon = (): JSX.Element => (
   <Icon>
     <path d="M9 2.5H5.2a1.4 1.4 0 0 0-1.4 1.4v8.2a1.4 1.4 0 0 0 1.4 1.4h5.6a1.4 1.4 0 0 0 1.4-1.4V5.7Z" />

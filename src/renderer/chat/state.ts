@@ -30,6 +30,8 @@ export type Item =
       output?: string
       /** O que uma edição de arquivo mudou, como o Claude Code informou. */
       diff?: FileDiff
+      /** Miniaturas das imagens que a ferramenta devolveu (um print da tela). */
+      images?: string[]
     }
   | { kind: 'notice'; id: string; level: NoticeLevel; text: string }
   | {
@@ -39,6 +41,9 @@ export type Item =
       input: unknown
       toolUseId?: string
       status: PermissionStatus
+      /** Navegador: o site em jogo e até onde vai o "sempre" (veja o ChatEvent). */
+      site?: string
+      always?: 'site' | 'none'
       /** Respostas dadas, quando é uma pergunta do Claude. */
       answers?: Record<string, string>
     }
@@ -126,7 +131,13 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       const tool = findItem(state, 'tool', event.id)
       if (!tool) return state
       const status = event.isError ? 'error' : 'done'
-      return replaceItem(state, tool, { ...tool, status, output: event.output, diff: event.diff })
+      return replaceItem(state, tool, {
+        ...tool,
+        status,
+        output: event.output,
+        diff: event.diff,
+        images: event.images
+      })
     }
     case 'turn-end': {
       if (event.outcome !== 'stopped') return state
@@ -141,7 +152,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'notice':
       return append(state, notice(state.items, event.level, event.text))
     case 'permission-request': {
-      const { id, toolName, input, toolUseId } = event
+      const { id, toolName, input, toolUseId, site, always } = event
       const tool = toolUseId ? findItem(state, 'tool', toolUseId) : undefined
       const waiting =
         tool && tool.status === 'running'
@@ -153,7 +164,9 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         toolName,
         input,
         toolUseId,
-        status: 'pending'
+        status: 'pending',
+        ...(site ? { site } : {}),
+        ...(always ? { always } : {})
       })
     }
     case 'permission-resolved': {
@@ -286,8 +299,46 @@ export function toolActivity(name: string, input: unknown): string {
       return 'vendo seus projetos…'
     case 'mcp__desktop__notify':
       return 'mandando uma notificação…'
+    case 'mcp__desktop__screenshot':
+      return 'tirando um print da tela…'
+    case 'mcp__desktop__open_terminal':
+      return 'abrindo o terminal…'
+    case 'mcp__desktop__list_windows':
+      return 'vendo as janelas abertas…'
+    case 'mcp__desktop__focus_window':
+      return 'trazendo a janela para a frente…'
+    case 'mcp__playwright__browser_navigate':
+      try {
+        return `abrindo ${new URL(field(input, 'url')).host}…`
+      } catch {
+        return 'abrindo uma página…'
+      }
+    case 'mcp__playwright__browser_snapshot':
+    case 'mcp__playwright__browser_find':
+      return 'lendo a página…'
+    case 'mcp__playwright__browser_take_screenshot':
+      return 'olhando a página…'
+    case 'mcp__playwright__browser_click':
+      return 'clicando na página…'
+    case 'mcp__playwright__browser_type':
+    case 'mcp__playwright__browser_fill_form':
+      return 'preenchendo a página…'
+    case 'mcp__desktop__set_reminder':
+      return 'marcando o lembrete…'
+    case 'mcp__desktop__list_reminders':
+      return 'vendo os lembretes…'
+    case 'mcp__desktop__cancel_reminder':
+      return 'cancelando o lembrete…'
+    case 'mcp__desktop__media_status':
+      return 'vendo o que está tocando…'
+    case 'mcp__desktop__media_control':
+      return 'mexendo na música…'
+    case 'mcp__desktop__media_volume':
+      return 'mudando o volume…'
     default:
-      return `usando ${toolLabel(name)}…`
+      return name.startsWith('mcp__playwright__')
+        ? 'usando o navegador…'
+        : `usando ${toolLabel(name)}…`
   }
 }
 

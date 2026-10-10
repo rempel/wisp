@@ -8,6 +8,10 @@ export interface TrayActions {
   newConversation(): void
   soundEnabled(): boolean
   setSoundEnabled(enabled: boolean): void
+  autostartEnabled(): boolean
+  setAutostartEnabled(enabled: boolean): void
+  /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
+  shortcutLabel(): string | null
   openConfig(): void
   quit(): void
 }
@@ -45,7 +49,23 @@ export function setupTray(actions: TrayActions): AppMenu {
         checked: actions.soundEnabled(),
         click: (item) => actions.setSoundEnabled(item.checked)
       },
+      {
+        label: 'Iniciar com o sistema',
+        type: 'checkbox',
+        checked: actions.autostartEnabled(),
+        click: (item) => {
+          actions.setAutostartEnabled(item.checked)
+          refresh()
+        }
+      },
       { label: 'Abrir config', click: () => actions.openConfig() },
+      { type: 'separator' },
+      {
+        label: actions.shortcutLabel()
+          ? `Atalho: ${actions.shortcutLabel()}`
+          : 'Atalho: wisp --toggle (veja o README)',
+        enabled: false
+      },
       { type: 'separator' },
       { label: 'Sair', click: () => actions.quit() }
     ]

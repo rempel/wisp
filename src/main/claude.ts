@@ -27,7 +27,15 @@ export const SAFE_TOOLS = [
   'mcp__desktop__open_url',
   'mcp__desktop__list_apps',
   'mcp__desktop__list_projects',
-  'mcp__desktop__notify'
+  'mcp__desktop__notify',
+  // Lembretes: só mexem no próprio Wisp, como a notificação.
+  'mcp__desktop__set_reminder',
+  'mcp__desktop__list_reminders',
+  'mcp__desktop__cancel_reminder',
+  // Música: tocar, pausar e volume do player não mudam nada na máquina.
+  'mcp__desktop__media_status',
+  'mcp__desktop__media_control',
+  'mcp__desktop__media_volume'
 ]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
@@ -102,6 +110,11 @@ export interface ClaudeOptions {
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */
   onSessionId?: (id: string) => void
+  /**
+   * Miniatura (data URL) de uma imagem em base64 que uma ferramenta devolveu, para o card da
+   * ferramenta mostrar o que o Claude viu (um print da tela, por exemplo).
+   */
+  thumbnail?: (base64: string) => string | undefined
 }
 
 export const LOGIN_HINT =
@@ -118,6 +131,8 @@ export const INSTALL_HINT =
 const HIDDEN_TOOLS = new Set(['ToolSearch', 'AskUserQuestion'])
 
 const MAX_TOOL_OUTPUT = 4000
+/** Imagens de um resultado que viram miniatura no card. */
+const MAX_TOOL_IMAGES = 4
 const STDERR_TAIL = 2000
 const KILL_TIMEOUT_MS = 3000
 const AUTH_TIMEOUT_MS = 15000
@@ -191,15 +206,23 @@ function isExecutableFile(path: string): boolean {
 }
 
 /**
- * Ambiente do CLI: o do app, com dois ajustes.
+ * Ambiente do CLI: o do app, com alguns ajustes.
  * - Sem ANTHROPIC_API_KEY: com essa variável definida, o Claude Code cobra o uso pela API em vez
  *   de usar a assinatura.
  * - Sem a memória automática do Claude Code: ela grava arquivos em ~/.claude/projects/…/memory
  *   sem passar pelo card de permissão e os carrega em toda conversa, o que deixaria um texto
  *   malicioso (lido pelo WebFetch, por exemplo) plantar instruções que ficam para sempre.
+ * - Sem as variáveis do npm e do Electron (CHROME_DESKTOP, ELECTRON_*): o que o CLI abre as
+ *   herdaria. O navegador do Claude, por exemplo, se apresentaria como o Wisp na barra de
+ *   tarefas.
  */
 function claudeEnv(bin: string): NodeJS.ProcessEnv {
   const env = { ...process.env }
+  for (const key of Object.keys(env)) {
+    if (key.startsWith('npm_') || key.startsWith('ELECTRON_') || key === 'CHROME_DESKTOP') {
+      delete env[key]
+    }
+  }
   delete env.ANTHROPIC_API_KEY
   env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = '1'
   // Marca os processos do Wisp: os hooks deles não viram sessões na aba Sessões.
@@ -257,6 +280,8 @@ interface ContentBlock {
   tool_use_id?: string
   content?: unknown
   is_error?: boolean
+  /** Imagens: os bytes em base64. */
+  source?: { type?: string; data?: unknown }
 }
 
 interface CliWindow {
@@ -305,6 +330,15 @@ function toolOutputText(content: unknown): string {
         : `[${block.type === 'image' ? 'imagem' : block.type}]`
     )
     .join('\n')
+}
+
+/** As imagens em base64 de um resultado de ferramenta. */
+function toolImages(content: unknown): string[] {
+  if (!Array.isArray(content)) return []
+  return content.flatMap((block: ContentBlock) => {
+    const source = block.type === 'image' ? block.source : undefined
+    return source?.type === 'base64' && typeof source.data === 'string' ? [source.data] : []
+  })
 }
 
 function truncate(text: string, max: number): string {
@@ -909,12 +943,19 @@ export class ClaudeSession {
       if (this.hiddenToolUses.delete(id)) continue
       // O tool_use_result vale para a mensagem toda; só dá para atribuí-lo com um resultado só.
       const diff = results.length === 1 ? diffFromResult(event.tool_use_result) : null
+      const thumbnail = this.options.thumbnail
+      const images = thumbnail
+        ? toolImages(block.content)
+            .slice(0, MAX_TOOL_IMAGES)
+            .flatMap((data) => thumbnail(data) ?? [])
+        : []
       this.emit({
         type: 'tool-result',
         id,
         isError: block.is_error === true,
         output: truncate(toolOutputText(block.content), MAX_TOOL_OUTPUT),
-        ...(diff && !block.is_error ? { diff } : {})
+        ...(diff && !block.is_error ? { diff } : {}),
+        ...(images.length ? { images } : {})
       })
     }
   }

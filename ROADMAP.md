@@ -205,7 +205,7 @@ terminal, avisa quando uma precisa de você e deixa gerenciá-las sem trocar de 
 
 ### Fase 8: personalidade ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena.
 
@@ -267,36 +267,64 @@ O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena
 - os sons podem ser desligados;
 - parado, o app não gasta CPU perceptível.
 
-### Fase 9: desktop
+### Fase 9: desktop ✅
+
+**Status:** pronta, esperando validação.
 
 O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquema de permissões.
 
-- **Atalho global (M, especificação v2).**
-  - **O problema:** no Wayland, o `globalShortcut` do Electron, que roda em XWayland, só vê teclas
-    digitadas em janelas X11.
-  - **O caminho:** o portal `GlobalShortcuts` do xdg-desktop-portal, via D-Bus. O GNOME e o KDE
-    perguntam qual tecla usar.
-  - **Alternativa:** `wisp --toggle` e `wisp --ask "…"`, ligados pelo usuário a um atalho nas
-    configurações do sistema. O bloqueio de instância única entrega o comando ao app já aberto.
-- **Iniciar com o sistema (P, especificação v2):** um `.desktop` em `~/.config/autostart/`, ligado
-  e desligado pelo menu da bandeja.
-- **Lembretes e timers (P),** como "me lembra de X às 15h".
-  - Ferramentas MCP gravam num agendador local que sobrevive a reinícios. Na hora marcada, ele
-    mostra uma notificação e uma reação do mascote.
-  - Um processo headless não consegue acordar sozinho depois; o app consegue.
-- **Controle de mídia pelo MPRIS (P):** tocar, pausar, pular, volume e o que está tocando, via
-  D-Bus. Funciona com Spotify, Firefox e VLC, sem chave de API.
-  - Com ele, o mascote dança quando algum player está tocando (veio da Fase 8).
-- **Contexto da tela (M).** "O que é isso na minha tela?" tira um print pelo portal de captura (o
-  sistema pede permissão) e anexa como imagem. Também um chip com o conteúdo da área de
-  transferência.
-- **Terminal (M).** Abrir um terminal na pasta de um projeto e trazer janelas para a frente onde der:
-  - EWMH no X11;
-  - script do KWin no KDE;
-  - o GNOME não deixa.
-- **Navegação com o Playwright MCP (G, especificação v2):** o Claude navega e preenche páginas num
-  navegador separado. Precisa de um bom desenho de permissões (por domínio, talvez) para não virar
-  um card a cada clique.
+- **Atalho global (M, especificação v2):** Ctrl+Alt+W abre e fecha o painel (`shortcut` no
+  `config.json`).
+  - No X11, o `globalShortcut` do Electron.
+  - No Wayland, o portal `GlobalShortcuts`, por um cliente D-Bus próprio, em Node puro, já que o
+    Chromium só usa o portal quando roda como app Wayland nativo. Os portais novos só atendem
+    apps fora do Flatpak que registram um id com `.desktop` instalado, então o Wisp passou a
+    ter uma entrada no menu de apps.
+  - **Limite do GNOME:** ele não devolve os atalhos já ligados (`ListShortcuts` vem vazio) e
+    pergunta de novo a cada abertura do Wisp. O KDE lembra. Para quem se incomodar, o README
+    explica como trocar pelo atalho do sistema.
+  - A alternativa também ficou pronta: o comando `wisp --toggle`, `--new` e `--ask "…"`, que a
+    trava de instância única entrega ao app já aberto.
+- **Iniciar com o sistema (P, especificação v2):** um `.desktop` em `~/.config/autostart/`,
+  ligado e desligado pela bandeja e pelo botão direito no mascote.
+- **Lembretes e timers (P):** `set_reminder`, `list_reminders` e `cancel_reminder` gravam num
+  arquivo, e o app avisa na hora: notificação, bipe e um sininho no mascote. Os que vencem com o
+  app fechado avisam quando ele abre, com a hora em que deviam ter saído.
+- **Controle de mídia pelo MPRIS (P):** `media_status`, `media_control` e `media_volume`, para
+  qualquer player que fale MPRIS.
+  - O mascote dança quando algum player está tocando, pelos sinais do D-Bus.
+  - **Decisão para validar:** as ferramentas de lembrete e de música rodam sem card, como o
+    `notify`. Elas só mexem no próprio Wisp e no player; pedir permissão para pausar uma música
+    tiraria a graça. A lista de ferramentas liberadas da especificação ganhou essas seis.
+- **Contexto da tela (M):**
+  - `screenshot`, com card: o painel sai da frente, e o print vai como imagem para o Claude. O
+    card da ferramenta mostra a miniatura do que ele viu. No Wayland, vai pelo portal de
+    captura, que pergunta uma vez se o Wisp pode tirar prints; no X11, pelo Electron.
+  - Um botão ao lado do clipe anexa um print à mensagem.
+  - O chip "usar o que você copiou": aparece ao abrir o painel com algo novo copiado, sem
+    mostrar o conteúdo. Texto curto vai para a caixa, texto longo vira um `.txt`, imagem vira
+    anexo. Senhas marcadas pelo gerenciador de senhas ficam de fora.
+- **Terminal (M):**
+  - `open_terminal` abre o terminal do desktop numa pasta (`terminalCommand` troca o terminal);
+  - `list_windows` e `focus_window`, com card, pelo EWMH no X11 e por um script do KWin no KDE
+    (X11 e Wayland). No GNOME com Wayland, o Claude explica que o sistema não deixa.
+  - O botão Terminal da aba Sessões passou a usar o mesmo EWMH e não depende mais do `xdotool`.
+- **Navegação com o Playwright MCP (G, especificação v2):** opcional (`browserAutomation`).
+  - Um Chrome ou Chromium separado, com perfil próprio, controlado pelo `@playwright/mcp` que o
+    Claude Code roda com o Electron em modo Node.
+  - **Permissões por site, por conversa:** ler a página passa direto; abrir um site pede, com
+    "Permitir em <site> nesta conversa"; clicar, digitar e preencher passam direto no site
+    liberado e pedem nos outros; rodar código na página e enviar arquivos pedem sempre. Num
+    formulário de teste, isso deu um card só, para abrir o site.
+
+**Ficou para depois:**
+
+- **Print de uma área:** o modo interativo do portal deixaria escolher uma janela ou uma área, mas
+  muda de cara em cada desktop. Por ora, é a tela inteira.
+- **Janelas no GNOME com Wayland:** só com uma extensão do GNOME Shell, que teria de ser instalada
+  à parte.
+- **Outros compositores Wayland** (Sway, Hyprland): têm IPC próprio para janelas; dá para somar
+  quando alguém pedir.
 
 **Aceite:**
 

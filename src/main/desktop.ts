@@ -184,7 +184,12 @@ export interface Outcome {
  * se ainda estiver rodando ao fim da espera, considera que deu certo.
  * A saída vai para /dev/null: um pipe ligado ao app poderia derrubá-lo quando o Wisp fechasse.
  */
-function launch(command: string, args: string[], waitMs = 8000): Promise<number | 'missing'> {
+function launch(
+  command: string,
+  args: string[],
+  waitMs = 8000,
+  cwd?: string
+): Promise<number | 'missing'> {
   return new Promise((done) => {
     let settled = false
     const finish = (result: number | 'missing'): void => {
@@ -193,7 +198,12 @@ function launch(command: string, args: string[], waitMs = 8000): Promise<number 
       clearTimeout(timer)
       done(result)
     }
-    const child = spawn(command, args, { detached: true, stdio: 'ignore', env: launchEnv() })
+    const child = spawn(command, args, {
+      detached: true,
+      stdio: 'ignore',
+      env: launchEnv(),
+      ...(cwd ? { cwd } : {})
+    })
     const timer = setTimeout(() => finish(0), waitMs)
     child.on('error', (err: NodeJS.ErrnoException) => finish(err.code === 'ENOENT' ? 'missing' : 1))
     child.on('exit', (code) => finish(code ?? 1))
@@ -368,4 +378,107 @@ export async function openInEditor(path: string, editorCommand: string): Promise
   return result === 0
     ? { ok: true, message: `Abri ${target} no editor.` }
     : { ok: false, message: `O editor saiu com erro (código ${result}).` }
+}
+
+// ---------------------------------------------------------------------------
+// Terminal
+
+/** Terminais conhecidos e como pedir que abram numa pasta (o resto abre na pasta do processo). */
+const TERMINALS: Record<string, { name: string; args: (dir: string) => string[] }> = {
+  ptyxis: { name: 'Ptyxis', args: (dir) => ['--new-window', '--working-directory', dir] },
+  kgx: { name: 'Console', args: (dir) => ['--working-directory', dir] },
+  'gnome-terminal': { name: 'Terminal', args: (dir) => ['--window', `--working-directory=${dir}`] },
+  konsole: { name: 'Konsole', args: (dir) => ['--workdir', dir] },
+  'xfce4-terminal': { name: 'Terminal do Xfce', args: (dir) => [`--working-directory=${dir}`] },
+  'mate-terminal': { name: 'Terminal do MATE', args: (dir) => [`--working-directory=${dir}`] },
+  tilix: { name: 'Tilix', args: (dir) => [`--working-directory=${dir}`] },
+  terminator: { name: 'Terminator', args: (dir) => [`--working-directory=${dir}`] },
+  kitty: { name: 'kitty', args: (dir) => ['--directory', dir] },
+  alacritty: { name: 'Alacritty', args: (dir) => ['--working-directory', dir] },
+  wezterm: { name: 'WezTerm', args: (dir) => ['start', '--cwd', dir] },
+  foot: { name: 'foot', args: (dir) => [`--working-directory=${dir}`] },
+  'x-terminal-emulator': { name: 'terminal', args: () => [] },
+  xterm: { name: 'XTerm', args: () => [] }
+}
+
+/** A ordem de tentativa: o $TERMINAL, o do desktop e depois os mais comuns. */
+export function terminalOrder(env: NodeJS.ProcessEnv = process.env): string[] {
+  const desktop = (env.XDG_CURRENT_DESKTOP ?? '').toUpperCase()
+  const preferred = desktop.includes('KDE')
+    ? ['konsole']
+    : desktop.includes('GNOME')
+      ? ['ptyxis', 'kgx', 'gnome-terminal']
+      : desktop.includes('XFCE')
+        ? ['xfce4-terminal']
+        : desktop.includes('MATE')
+          ? ['mate-terminal']
+          : []
+  const chosen = env.TERMINAL?.trim() ? [env.TERMINAL.trim()] : []
+  return [...new Set([...chosen, ...preferred, 'x-terminal-emulator', ...Object.keys(TERMINALS)])]
+}
+
+/**
+ * Abre um terminal na pasta: o do `terminalCommand` (com {dir} no lugar da pasta, ou só rodando
+ * nela), senão o primeiro que achar na ordem de terminalOrder.
+ */
+export async function openTerminal(
+  dir: string,
+  terminalCommand: string | null,
+  env: NodeJS.ProcessEnv = process.env
+): Promise<Outcome> {
+  const configured = terminalCommand?.trim()
+  if (configured) {
+    const [command, ...args] = configured.split(/\s+/)
+    const result = await launch(
+      command,
+      args.map((arg) => arg.replaceAll('{dir}', dir)),
+      1500,
+      dir
+    )
+    if (result === 'missing') {
+      return {
+        ok: false,
+        message: `Não achei o terminal "${command}" (terminalCommand no config.json).`
+      }
+    }
+    return result === 0
+      ? { ok: true, message: `Abri o terminal em ${dir}.` }
+      : { ok: false, message: `O terminal saiu com erro (código ${result}).` }
+  }
+  for (const command of terminalOrder(env)) {
+    if (!inPath(command)) continue
+    const known = TERMINALS[command.split('/').pop() ?? command]
+    const result = await launch(command, known ? known.args(dir) : [], 1500, dir)
+    if (result === 0) return { ok: true, message: `Abri o ${known?.name ?? command} em ${dir}.` }
+  }
+  return {
+    ok: false,
+    message:
+      'Não achei um terminal instalado. Diga qual usar em terminalCommand no config.json ' +
+      '(por exemplo "kitty" ou "konsole --workdir {dir}").'
+  }
+}
+
+/**
+ * Abre um terminal numa pasta da pasta pessoal ou de uma das projectRoots (links resolvidos);
+ * sem pasta, na pasta pessoal.
+ */
+export async function openTerminalIn(
+  path: string | undefined,
+  projectRoots: string[],
+  terminalCommand: string | null
+): Promise<Outcome> {
+  const asked = path?.trim() || '~'
+  const target = realpathOrNull(resolve(expandHome(asked)))
+  if (!target || !isDir(target)) return { ok: false, message: `A pasta "${asked}" não existe.` }
+  const roots = [homedir(), ...projectRoots]
+    .map((root) => realpathOrNull(resolve(expandHome(root))))
+    .filter((root): root is string => root !== null)
+  if (!roots.some((root) => target === root || target.startsWith(root + sep))) {
+    return {
+      ok: false,
+      message: `"${target}" fica fora da pasta pessoal e das pastas de projetos; só abro terminais nelas.`
+    }
+  }
+  return openTerminal(target, terminalCommand)
 }

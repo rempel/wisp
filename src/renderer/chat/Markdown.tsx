@@ -21,6 +21,8 @@ function CodeBlock({ children, node }: ComponentProps<'pre'> & ExtraProps): JSX.
 
   async function copy(): Promise<void> {
     await navigator.clipboard.writeText(pre.current?.innerText ?? '')
+    // Copiado do painel: o chip da área de transferência não oferece de volta.
+    window.wisp.chat.copied()
     setCopied(true)
     setTimeout(() => setCopied(false), 1500)
   }

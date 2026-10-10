@@ -72,6 +72,7 @@ body {
 
 .float,
 .mood,
+.groove,
 .react,
 .wisp,
 .glow-pose,
@@ -114,6 +115,7 @@ body {
 }
 
 .mood,
+.groove,
 .react,
 .wisp {
   /* Base da gota: pulos, tremidas e o "boop" amassam e esticam a partir daqui. */
@@ -1373,6 +1375,144 @@ body {
   }
 }
 
+/* Lembrete: toca como um despertador, com um sininho e o LED da antena piscando âmbar. */
+.react-remind {
+  --led-halo: #fbbf24;
+}
+
+.react-remind .react {
+  animation: alarm 0.1s linear 14;
+}
+
+@keyframes alarm {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-1.5px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(1.5px) rotate(2deg);
+  }
+}
+
+.react-remind .antenna-glow {
+  animation-duration: 0.25s;
+}
+
+.react-remind .eyes-react {
+  transform: scale(1.15);
+}
+
+.bell {
+  fill: #fbbf24;
+  filter: drop-shadow(0 0 3px rgb(251 191 36 / 0.7));
+  opacity: 0;
+}
+
+.bell-clapper {
+  fill: #b45309;
+}
+
+.react-remind .bell {
+  animation: bell-show 3.6s ease both;
+}
+
+.react-remind .bell-body {
+  transform-origin: 28px 21px;
+  animation: bell-ring 0.22s ease-in-out 14 alternate;
+}
+
+@keyframes bell-show {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bell-ring {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+/* ---- Dança ------------------------------------------------------------ */
+
+/*
+ * Algum player está tocando (MPRIS): ocioso e acordado, ele balança no ritmo, uns 114 batidas
+ * por minuto. A cada batida desce e sobe; a cada duas, pende para um lado. Notinhas sobem da
+ * cabeça. Cochilando, não dança.
+ */
+.stage.state-idle.music .groove {
+  animation: groove 1.05s ease-in-out infinite;
+}
+
+@keyframes groove {
+  0%,
+  100% {
+    transform: translateY(1px) rotate(-4deg) scale(1.03, 0.97);
+  }
+  25% {
+    transform: translateY(-3px) scale(0.98, 1.02);
+  }
+  50% {
+    transform: translateY(1px) rotate(4deg) scale(1.03, 0.97);
+  }
+  75% {
+    transform: translateY(-3px) scale(0.98, 1.02);
+  }
+}
+
+.notes {
+  position: absolute;
+  left: 82px;
+  top: 30px;
+}
+
+.note {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--led-1);
+  font:
+    700 11px/1 system-ui,
+    sans-serif;
+  text-shadow: 0 0 4px rgb(var(--glow) / 0.8);
+  opacity: 0;
+}
+
+.stage.state-idle.music .note {
+  animation: note-rise 2.1s ease-out infinite;
+}
+
+.stage.state-idle.music .n2 {
+  animation-delay: 1.05s;
+}
+
+@keyframes note-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 8px) rotate(-10deg) scale(0.7);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(12px, -22px) rotate(12deg) scale(1.15);
+  }
+}
+
 /* ---- Arquivo solto no mascote ---------------------------------------- */
 
 /* Um arquivo passando por cima: os olhos arregalam, ele estica e a antena fica em pé. */
@@ -1544,7 +1684,10 @@ body {
   .stage .anger-mark,
   .stage .bubble,
   .stage .absorb,
-  .stage .spin {
+  .stage .spin,
+  .stage .bell-body,
+  .stage .groove,
+  .stage .note {
     animation: none;
   }
 
