@@ -1,0 +1,100 @@
+# CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; num
+# job à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes .deb e AppImage. Numa
+# tag v*, os pacotes vão para um release do GitHub.
+name: CI
+
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: Tipos, lint, build e testes de unidade
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npx prettier --check .
+      - run: npx electron-vite build
+      - run: npm test
+
+  e2e:
+    name: Ponta a ponta (Xvfb e DevTools)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: X virtual, D-Bus e as bibliotecas do Electron
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth dbus dbus-x11 \
+            libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
+      - run: npm ci
+      - run: npx install-electron
+      - run: npx electron-vite build
+      - run: e2e/run.sh
+      - name: Logs do app, se algo falhar
+        if: failure()
+        run: find /tmp -maxdepth 2 -path '*wisp-e2e-*' -name wisp.log -exec tail -n 50 {} \;
+
+  package:
+    name: Pacotes .deb e AppImage
+    # A versão mais antiga do Ubuntu com runner: o que for montado aqui roda nas mais novas.
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    needs: check
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx install-electron
+      - run: npm run build
+      - run: npx electron-builder --linux deb AppImage --publish never
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pacotes-linux
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+          if-no-files-found: error
+
+  release:
+    name: Release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    needs: [package, e2e]
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v6
+        with:
+          name: pacotes-linux
+          path: dist
+      - name: Publica os pacotes no release da tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" dist/* --repo "$GITHUB_REPOSITORY" --title "Wisp $GITHUB_REF_NAME" --generate-notes
