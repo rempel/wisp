@@ -176,9 +176,9 @@ test('o texto do resumo, comparado com a semana anterior', () => {
       'Semana de 12/10 a 18/10:',
       '- 2 conversas (+1), 2 mensagens; o Claude trabalhou 1 h 25 min (antes: menos de 1 min)',
       '- Edições: 1 (+120 −30 linhas)',
-      '- Permissões: 1 aprovadas, 0 negadas',
+      '- Permissões: 1 aprovada, 0 negadas',
       '- Ferramentas mais usadas: Edit (1)',
-      '- Terminal: 1 mensagens no Claude Code, em wisp (1)'
+      '- Terminal: 1 mensagem no Claude Code, em wisp (1)'
     ].join('\n')
   )
   assert.equal(isEmpty(summarize([], from, to)), true)
