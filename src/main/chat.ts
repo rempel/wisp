@@ -181,6 +181,8 @@ export interface Chat {
   newConversation(): void
   /** Abre o painel na tela de configurações (menu do mascote). */
   openSettings(): void
+  /** Abre o painel no histórico, com o resumo da semana em cima (a notificação de segunda). */
+  openSummary(): void
   /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
   side(): 'left' | 'right'
   /** Mostra o card de permissão na conversa do pedido e resolve com a decisão do usuário. */
@@ -274,6 +276,7 @@ export function setupChat({
   // Mostrar a aba Sessões assim que a página carregar (o pedido chegou antes).
   let showSessionsOnReady = false
   let showSettingsOnReady = false
+  let showSummaryOnReady = false
   // Arquivos soltos no mascote antes de a página carregar.
   const pendingAttach: DroppedFiles[] = []
   // O último uso do plano (vale para a conta toda), para mostrar de novo se a página recarregar.
@@ -623,6 +626,8 @@ export function setupChat({
     showSessionsOnReady = false
     if (showSettingsOnReady) win.webContents.send(IPC.settingsShow)
     showSettingsOnReady = false
+    if (showSummaryOnReady) win.webContents.send(IPC.summaryShow)
+    showSummaryOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
     win.webContents.send(IPC.voiceStatus, voice)
     win.webContents.send(IPC.agendaNext, agendaNext)
@@ -976,6 +981,12 @@ export function setupChat({
     openSettings() {
       if (win && pageReady) win.webContents.send(IPC.settingsShow)
       else showSettingsOnReady = true
+      if (!win) win = createWindow()
+      else show(win)
+    },
+    openSummary() {
+      if (win && pageReady) win.webContents.send(IPC.summaryShow)
+      else showSummaryOnReady = true
       if (!win) win = createWindow()
       else show(win)
     },

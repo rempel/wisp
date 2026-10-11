@@ -73,6 +73,8 @@ export interface DesktopServerOptions {
   github?: () => Promise<string>
   /** Os compromissos da agenda, em texto: `days` dias a partir de hoje (ou de `from`, AAAA-MM-DD). */
   agenda?: (days: number, from?: string) => Promise<string>
+  /** O resumo da semana em texto: a atual (até agora) ou a anterior. */
+  weekly?: (which: 'atual' | 'anterior') => string
 }
 
 export interface DesktopServer {
@@ -415,6 +417,25 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
         _meta: ALWAYS_LOAD
       },
       async () => text(await github())
+    )
+  }
+
+  const weekly = options.weekly
+  if (weekly) {
+    server.registerTool(
+      'weekly_summary',
+      {
+        title: 'Resumo da semana',
+        description:
+          'O resumo da semana do usuário no Wisp, comparado com a anterior: conversas, tempo do ' +
+          'Claude trabalhando, linhas editadas, permissões aprovadas e negadas, ferramentas e ' +
+          'apps mais usados, mensagens no Claude Code do terminal (por projeto) e lembretes. Só ' +
+          'contagens, nada do conteúdo. `semana`: "atual" (padrão, até agora) ou "anterior".',
+        inputSchema: { semana: z.enum(['atual', 'anterior']).optional() },
+        annotations: { readOnlyHint: true },
+        _meta: ALWAYS_LOAD
+      },
+      async ({ semana }) => text(weekly(semana ?? 'atual'))
     )
   }
 

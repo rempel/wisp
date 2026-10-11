@@ -2741,3 +2741,99 @@ button.link {
   color: var(--muted);
   font-size: 12px;
 }
+
+/* O resumo da semana, no topo do histórico. */
+.week-card {
+  margin: 10px 12px 4px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.week-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.week-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.week-tabs button {
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.week-tabs button.active {
+  border-color: var(--border);
+  background: var(--bg);
+  color: var(--text);
+  font-weight: 600;
+}
+
+.week-range {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.week-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px 12px;
+}
+
+.week-stats div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.week-stats strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
+.week-stats strong em {
+  font-style: normal;
+}
+
+.week-stats small {
+  margin-left: 5px;
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.week-stats small.up,
+.week-stats .plus {
+  color: var(--ok);
+}
+
+.week-stats small.down,
+.week-stats .minus {
+  color: var(--muted);
+}
+
+.week-stats span {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.week-line {
+  margin: 8px 0 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

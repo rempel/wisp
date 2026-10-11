@@ -139,6 +139,7 @@ export default function Chat(): JSX.Element {
     const offSettingsShow = window.wisp.settings.onShow(() => setView('settings'))
     const offSettings = window.wisp.settings.onChanged(setSettings)
     const offAgenda = window.wisp.agenda.onNext(setAgendaNext)
+    const offSummary = window.wisp.summary.onShow(() => setView('history'))
     void window.wisp.settings.get().then((snapshot) => snapshot && setSettings(snapshot))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
@@ -164,6 +165,7 @@ export default function Chat(): JSX.Element {
       offSettingsShow()
       offSettings()
       offAgenda()
+      offSummary()
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCopy)
     }

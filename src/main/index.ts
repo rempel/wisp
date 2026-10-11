@@ -1,8 +1,18 @@
 import { app, ipcMain, Notification, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
-import { join } from 'path'
+import { readFileSync, writeFileSync } from 'fs'
+import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { accessoryFor, msUntilMidnight } from './accessory'
+import {
+  ActivityLog,
+  describeWeek,
+  formatMinutes,
+  isEmpty,
+  nextWeek,
+  summarize,
+  weekStart
+} from './activity'
 import { Agenda, describeAgenda } from './agenda'
 import { isAutostartEnabled, refreshAutostart, setAutostart } from './autostart'
 import { cleanOldAttachments } from './attachments'
@@ -170,11 +180,30 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     notification.show()
   }
 
+  // O registro da semana (só contagens e nomes, nada do conteúdo), para o resumo de segunda.
+  const activity = new ActivityLog(join(DATA_DIR, 'atividade.jsonl'), {
+    enabled: () => getConfig().weeklySummary
+  })
+  activity.prune()
+  const summaries = (): {
+    current: ReturnType<typeof summarize>
+    previous: ReturnType<typeof summarize>
+  } => {
+    const start = weekStart(Date.now())
+    const before = weekStart(start - 1)
+    const entries = activity.entries(before, nextWeek(start))
+    return {
+      current: summarize(entries, start, nextWeek(start)),
+      previous: summarize(entries, before, start)
+    }
+  }
+
   // Os lembretes ficam num arquivo e avisam na hora, mesmo com o app reaberto no meio. A
   // notificação, o som e o sininho do mascote saem juntos; clicar na notificação abre o painel.
   const reminders = new Reminders(join(DATA_DIR, 'lembretes.json'), {
     fire: (reminder, late) => {
       presence.activity()
+      activity.record({ k: 'lembrete' })
       reactMascot('remind')
       sounds.play('lembrete')
       const body = late ? `${reminder.text} (era para ${describeWhen(reminder.at)})` : reminder.text
@@ -319,6 +348,22 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         const snapshot = github.snapshot()
         return snapshot ? describeSnapshot(snapshot) : 'Não consegui ler o GitHub agora.'
       },
+      weekly: (which) => {
+        if (!getConfig().weeklySummary) {
+          return 'O resumo da semana está desligado (Configurações → Integrações).'
+        }
+        const { current, previous } = summaries()
+        if (which === 'anterior') {
+          const start = previous.from
+          const older = summarize(
+            activity.entries(weekStart(start - 1), start),
+            weekStart(start - 1),
+            start
+          )
+          return describeWeek(previous, older)
+        }
+        return `${describeWeek(current, previous)}\n(Semana em andamento; a anterior teve ${previous.conversations} conversas.)`
+      },
       agenda: async (days, from) => {
         if (!getConfig().calendar) {
           return (
@@ -408,6 +453,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sessionTitle: (id) => sessions.get(id)?.project ?? null,
     onEvent: (event, conversation) => {
       presence.activity()
+      activity.onChatEvent(event, conversation)
       mood.onEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       const sound = soundForEvent(event)
@@ -609,7 +655,16 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   let hooks: HookServer | null = null
   let listening: { ok: boolean; problem?: string } = { ok: false, problem: 'abrindo…' }
-  void startHookServer((event, pending) => sessions.handle(event, pending)).then((started) => {
+  void startHookServer((event, pending) => {
+    // Uma mensagem no Claude Code do terminal conta no resumo da semana, com a pasta do projeto.
+    if (event.event === 'UserPromptSubmit' && typeof event.input.cwd === 'string') {
+      activity.record({
+        k: 'terminal',
+        projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
+      })
+    }
+    sessions.handle(event, pending)
+  }).then((started) => {
     if (started.ok) {
       hooks = started.server
       listening = { ok: true }
@@ -728,6 +783,42 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   updateGithub()
   updateAgenda()
+
+  // Na segunda (a partir das 9h, ou na primeira vez que o Wisp abre depois disso), o resumo da
+  // semana que passou, uma vez só. O clique abre o painel com ele.
+  const seenPath = join(DATA_DIR, 'resumo.json')
+  const checkWeekly = (): void => {
+    if (!getConfig().weeklySummary) return
+    const now = Date.now()
+    const start = weekStart(now)
+    if (now < start + 9 * 3_600_000) return
+    let seen = 0
+    try {
+      seen = (JSON.parse(readFileSync(seenPath, 'utf8')) as { semana?: number }).semana ?? 0
+    } catch {
+      // Nunca mostrou.
+    }
+    if (seen >= start) return
+    try {
+      writeFileSync(seenPath, JSON.stringify({ semana: start }), { mode: 0o600 })
+    } catch {
+      return
+    }
+    const { previous } = summaries()
+    if (isEmpty(previous)) return
+    notify(
+      'O resumo da sua semana',
+      `${previous.conversations} conversas, o Claude trabalhou ${formatMinutes(previous.claudeMinutes)}, ` +
+        `+${previous.added} −${previous.removed} linhas editadas.`,
+      () => chat?.openSummary()
+    )
+  }
+  setTimeout(checkWeekly, 10_000)
+  setInterval(checkWeekly, 3_600_000).unref()
+  ipcMain.handle(IPC.summaryGet, (event) => {
+    if (!chat?.isSender(event.sender)) return null
+    return { enabled: getConfig().weeklySummary, ...summaries() }
+  })
 
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.
