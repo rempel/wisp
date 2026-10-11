@@ -74,11 +74,15 @@ curl -s http://127.0.0.1:9334/json/list | grep -q '/renderer/mascot/index.html' 
   fail "o mascote não apareceu"
 }
 ok "abre: o mascote apareceu"
-grep -qF "$appimage" "$home/.local/bin/wisp" || fail "o comando wisp não aponta para o AppImage"
-grep '^Exec=' "$home/.local/share/applications/io.github.rempel.Wisp.desktop" |
-  grep -qF "$appimage" || fail "a entrada do menu não aponta para o AppImage"
+launcher="$home/.local/share/wisp/bin/wisp"
+grep -qF "$appimage" "$launcher" || fail "o comando wisp não aponta para o AppImage"
+grep -qx "Exec=$launcher" "$home/.local/share/applications/io.github.rempel.Wisp.desktop" ||
+  fail "a entrada do menu não chama o comando wisp"
+grep -qx "Icon=$home/.local/share/wisp/icon.png" \
+  "$home/.local/share/applications/io.github.rempel.Wisp.desktop" ||
+  fail "a entrada do menu sem o ícone copiado"
 [ -s "$home/.local/share/wisp/icon.png" ] || fail "o ícone não foi copiado para fora do AppImage"
-ok "o comando wisp, a entrada do menu e o ícone apontam para o AppImage"
+ok "o comando wisp aponta para o AppImage, e o menu, para ele e para o ícone copiado"
 head -n 1 "$home/.local/state/wisp/wisp.log" | grep -q '(appimage)' ||
   fail "o registro não diz que é o AppImage: $(head -n 1 "$home/.local/state/wisp/wisp.log")"
 ok "o registro em ~/.local/state/wisp/wisp.log"
