@@ -5,6 +5,8 @@ import { basename, isAbsolute } from 'path'
 import { isThumbnail } from './attachments'
 import { getConfig, updateConfig } from './config'
 import type { Point } from './config'
+import { dockedPosition, FULL_SHAPE, nearestEdge, SLIDE_MS, tabShape } from './dock'
+import type { DockEdge } from './dock'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
 import type {
@@ -12,6 +14,7 @@ import type {
   DroppedFile,
   DroppedFiles,
   Gaze,
+  MascotDock,
   MascotReaction,
   MascotView,
   SoundName,
@@ -23,6 +26,18 @@ import type {
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
 const DRAG_TICK_MS = 16
+/** No compacto: o cursor saiu de cima, e ele se esconde depois disto (ms). */
+const HOVER_TUCK_MS = 1200
+/** No compacto: o que o fazia espiar acabou (o painel fechou, o pedido foi respondido) (ms). */
+const TUCK_MS = 700
+/** No compacto: ao abrir o app ou ligar o modo, ele aparece um pouco antes de se esconder (ms). */
+const FIRST_TUCK_MS = 3000
+/** No compacto: quanto ele espia com uma resposta pronta, um erro ou um lembrete (ms). */
+const MOMENT_MS: Record<'happy' | 'greet' | 'remind', number> = {
+  happy: 3000,
+  greet: 2600,
+  remind: 4000
+}
 
 let mascotWin: BrowserWindow | null = null
 /** O estado atual, reenviado quando a página (re)carrega. */
@@ -73,12 +88,15 @@ export function setupMascot(options: MascotHandlers): void {
     if (!fromMascot(event)) return
     event.sender.send(IPC.mascotState, view)
     event.sender.send(IPC.mascotAccessory, accessory)
+    event.sender.send(IPC.mascotDock, dockView())
     options.ready()
     greeting.ready = true
     maybeGreet()
   })
   ipcMain.on(IPC.mascotHover, (event, inside: unknown) => {
-    if (fromMascot(event) && typeof inside === 'boolean') options.hover(inside)
+    if (!fromMascot(event) || typeof inside !== 'boolean') return
+    holdPeek('hover', inside)
+    options.hover(inside)
   })
   ipcMain.on(IPC.mascotActivity, (event) => {
     if (fromMascot(event)) options.activity()
@@ -125,7 +143,10 @@ export function setMascotView(next: MascotView): void {
     Boolean(next.music) === Boolean(view.music)
   )
     return
+  if (next.state === 'happy' && view.state !== 'happy') peekFor(MOMENT_MS.happy)
   view = next
+  // Um pedido de permissão ou um erro: ele sai da borda até isso passar.
+  holdPeek('attention', next.state === 'permission' || next.state === 'error')
   mascotWin?.webContents.send(IPC.mascotState, view)
 }
 
@@ -141,6 +162,7 @@ export function setMascotGaze(gaze: Gaze | null): void {
 
 /** Uma reação que vem de fora da página. */
 export function reactMascot(reaction: MascotReaction): void {
+  peekFor(MOMENT_MS[reaction])
   mascotWin?.webContents.send(IPC.mascotReact, reaction)
 }
 
@@ -168,6 +190,7 @@ export function sendVoiceCommand(command: VoiceCommand): void {
 
 /** Em que pé está a voz (o mascote mostra que ouve, transcreve ou fala). */
 export function setMascotVoice(status: VoiceStatus): void {
+  holdPeek('voice', status.state !== 'idle')
   mascotWin?.webContents.send(IPC.voiceStatus, status)
 }
 
@@ -282,7 +305,18 @@ function checkDropped(value: unknown): DroppedFiles {
 }
 
 function createMascotWindow(): BrowserWindow {
-  const { x, y } = resolveMascotPosition(getConfig().mascotPosition)
+  let { x, y } = resolveMascotPosition(getConfig().mascotPosition)
+  if (getConfig().compact) {
+    const area = screen.getDisplayMatching({
+      x,
+      y,
+      width: MASCOT_SIZE,
+      height: MASCOT_SIZE
+    }).workArea
+    const edge = nearestEdge({ x, y, width: MASCOT_SIZE, height: MASCOT_SIZE }, area)
+    ;({ x, y } = dockedPosition(edge, y, area))
+    dock = newDock(edge)
+  }
 
   const win = new BrowserWindow({
     width: MASCOT_SIZE,
@@ -327,6 +361,10 @@ function createMascotWindow(): BrowserWindow {
   win.on('closed', () => {
     stopDrag()
     mascotWin = null
+    if (dock) {
+      clearTimeout(dock.timer ?? undefined)
+      clearTimeout(dock.moment ?? undefined)
+    }
   })
   // Sem o renderer ninguém avisa o fim do arraste; sem isso o mascote seguiria o cursor.
   win.webContents.on('render-process-gone', () => stopDrag())
@@ -389,7 +427,13 @@ function moveMascot(p: Point): void {
 function keepMascotOnScreen(): void {
   if (!mascotWin || drag) return
   const [x, y] = mascotWin.getPosition()
-  moveMascot(resolveMascotPosition({ x, y }))
+  const p = resolveMascotPosition({ x, y })
+  if (dock) {
+    // No compacto, continua encostado na borda dele (o monitor pode ter mudado de tamanho).
+    redock({ ...p, width: MASCOT_SIZE, height: MASCOT_SIZE }, false)
+  } else {
+    moveMascot(p)
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -429,6 +473,7 @@ function isFiniteNumber(value: unknown): value is number {
 function onDragStart(event: IpcMainEvent, offsetX: unknown, offsetY: unknown): void {
   if (!fromMascot(event) || !isFiniteNumber(offsetX) || !isFiniteNumber(offsetY)) return
   stopDrag()
+  holdPeek('drag', true)
   drag = { offset: { x: offsetX, y: offsetY }, timer: setInterval(followCursor, DRAG_TICK_MS) }
   followCursor()
 }
@@ -437,7 +482,133 @@ function onDragEnd(event: IpcMainEvent): void {
   if (!fromMascot(event) || !drag || !mascotWin) return
   followCursor()
   stopDrag()
-  const [x, y] = mascotWin.getPosition()
-  updateConfig({ mascotPosition: { x, y } })
+  if (dock) {
+    // No compacto, encosta na borda mais perto de onde foi solto.
+    redock(mascotWin.getBounds(), true)
+    holdPeek('drag', false)
+  } else {
+    const [x, y] = mascotWin.getPosition()
+    updateConfig({ mascotPosition: { x, y } })
+  }
   handlers?.moved()
+}
+
+// ---------------------------------------------------------------------------
+// Modo compacto
+//
+// O mascote mora encostado na borda esquerda ou direita, guardado: a página escorrega o desenho
+// para fora da janela (só um olho e a antena ficam à vista), e a forma da janela encolhe para essa
+// aba, então o resto da borda continua recebendo os cliques de quem está atrás. Ele espia (sai
+// inteiro) enquanto houver um motivo: o cursor na aba, o painel aberto, um pedido de permissão ou
+// um erro, a voz, o arraste, ou um momento (resposta pronta, lembrete, saudação). Sem motivo
+// nenhum, volta a se guardar depois de um tempo.
+
+type PeekReason = 'hover' | 'panel' | 'attention' | 'voice' | 'drag' | 'moment'
+
+interface Dock {
+  edge: DockEdge
+  tucked: boolean
+  reasons: Set<PeekReason>
+  timer: NodeJS.Timeout | null
+  moment: NodeJS.Timeout | null
+}
+
+let dock: Dock | null = null
+
+function newDock(edge: DockEdge): Dock {
+  const created: Dock = { edge, tucked: false, reasons: new Set(), timer: null, moment: null }
+  created.timer = setTimeout(() => tuckLater(0), FIRST_TUCK_MS)
+  return created
+}
+
+function dockView(): MascotDock {
+  return dock ? { edge: dock.edge, tucked: dock.tucked } : null
+}
+
+function sendDock(): void {
+  mascotWin?.webContents.send(IPC.mascotDock, dockView())
+}
+
+/** Liga ou desliga o modo compacto (o config.json, o menu, a tela de configurações). */
+export function setCompact(enabled: boolean): void {
+  if (enabled === (dock !== null) || !mascotWin) return
+  const bounds = mascotWin.getBounds()
+  const area = screen.getDisplayMatching(bounds).workArea
+  if (enabled) {
+    dock = newDock(nearestEdge(bounds, area))
+    redock(bounds, true)
+  } else {
+    const edge = dock?.edge ?? nearestEdge(bounds, area)
+    if (dock) {
+      clearTimeout(dock.timer ?? undefined)
+      clearTimeout(dock.moment ?? undefined)
+    }
+    dock = null
+    mascotWin.setShape([FULL_SHAPE])
+    // Sai da borda: volta a flutuar um pouco para dentro, na mesma altura.
+    const p = {
+      x: edge === 'left' ? area.x + EDGE_MARGIN : area.x + area.width - MASCOT_SIZE - EDGE_MARGIN,
+      y: bounds.y
+    }
+    moveMascot(p)
+    updateConfig({ mascotPosition: p })
+    sendDock()
+  }
+  handlers?.moved()
+}
+
+/** Encosta o mascote na borda mais perto de `bounds`, no monitor dele. */
+function redock(bounds: Rectangle, save: boolean): void {
+  if (!dock || !mascotWin) return
+  const area = screen.getDisplayMatching(bounds).workArea
+  dock.edge = nearestEdge(bounds, area)
+  const p = dockedPosition(dock.edge, bounds.y, area)
+  moveMascot(p)
+  if (save) updateConfig({ mascotPosition: p })
+  if (dock.tucked) mascotWin.setShape([tabShape(dock.edge)])
+  sendDock()
+}
+
+/** Um motivo para espiar começou ou acabou. Sem motivo nenhum, ele volta para a borda. */
+export function holdPeek(reason: PeekReason, on: boolean): void {
+  if (!dock) return
+  if (on) {
+    dock.reasons.add(reason)
+    peek()
+  } else if (dock.reasons.delete(reason) && dock.reasons.size === 0) {
+    tuckLater(reason === 'hover' ? HOVER_TUCK_MS : TUCK_MS)
+  }
+}
+
+/** Espia por um momento (uma resposta pronta, um lembrete), e volta se nada mais o segurar. */
+function peekFor(ms: number): void {
+  if (!dock) return
+  clearTimeout(dock.moment ?? undefined)
+  holdPeek('moment', true)
+  dock.moment = setTimeout(() => holdPeek('moment', false), ms)
+}
+
+function peek(): void {
+  if (!dock || !mascotWin) return
+  clearTimeout(dock.timer ?? undefined)
+  dock.timer = null
+  if (!dock.tucked) return
+  dock.tucked = false
+  // A janela volta inteira antes do desenho sair, senão ele apareceria cortado.
+  mascotWin.setShape([FULL_SHAPE])
+  sendDock()
+}
+
+function tuckLater(ms: number): void {
+  if (!dock) return
+  clearTimeout(dock.timer ?? undefined)
+  dock.timer = setTimeout(() => {
+    if (!dock || !mascotWin || dock.reasons.size > 0 || drag) return
+    dock.tucked = true
+    sendDock()
+    // A forma encolhe só depois da animação de se guardar.
+    dock.timer = setTimeout(() => {
+      if (dock?.tucked) mascotWin?.setShape([tabShape(dock.edge)])
+    }, SLIDE_MS + 40)
+  }, ms)
 }

@@ -79,6 +79,21 @@ export interface WispConfig {
    * funcionando antes de instalar o Claude Code ou de fazer login.
    */
   demo: boolean
+  /**
+   * Modo compacto: o mascote mora na borda da tela, quase todo escondido, e espia quando o cursor
+   * passa ou quando tem algo a mostrar.
+   */
+  compact: boolean
+  /** Alertas do GitHub (CI e revisões dos seus PRs), pelo `gh` já logado. Desligado por padrão. */
+  github: boolean
+  /** Agenda: os próximos compromissos (Evolution Data Server e .ics). Desligada por padrão. */
+  calendar: boolean
+  /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
+  calendarFiles: string[]
+  /** Minutos antes de um compromisso para o Wisp avisar; 0 não avisa. */
+  calendarAlertMinutes: number
+  /** Guarda as contagens da semana (sem conteúdo) e mostra o resumo na segunda-feira. */
+  weeklySummary: boolean
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -111,7 +126,13 @@ function defaults(): WispConfig {
     voiceReplies: false,
     piperPath: 'piper',
     piperModel: '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx',
-    demo: false
+    demo: false,
+    compact: false,
+    github: false,
+    calendar: false,
+    calendarFiles: [],
+    calendarAlertMinutes: 10,
+    weeklySummary: true
   }
 }
 
@@ -194,7 +215,13 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   voiceReplies: z.boolean(),
   piperPath: z.string().min(1).max(500),
   piperModel: z.string().min(1).max(500),
-  demo: z.boolean()
+  demo: z.boolean(),
+  compact: z.boolean(),
+  github: z.boolean(),
+  calendar: z.boolean(),
+  calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
+  calendarAlertMinutes: z.number().int().min(0).max(240),
+  weeklySummary: z.boolean()
 }
 
 const ConfigSchema = z.object(
@@ -302,7 +329,9 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   shortcut: 'O atalho tem no máximo 60 caracteres.',
   voiceShortcut: 'O atalho tem no máximo 60 caracteres.',
   terminalCommand: 'O comando do terminal tem no máximo 300 caracteres.',
-  voiceLanguage: 'Um código de idioma (pt, en, es…) ou auto.'
+  voiceLanguage: 'Um código de idioma (pt, en, es…) ou auto.',
+  calendarFiles: 'Um arquivo .ics ou uma pasta por linha (até 20).',
+  calendarAlertMinutes: 'Um número inteiro de minutos, de 0 a 240 (0 não avisa).'
 }
 
 /**

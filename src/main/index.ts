@@ -35,6 +35,7 @@ import {
   getMascotBounds,
   getMascotWindow,
   getVisibleMascotBounds,
+  holdPeek,
   isMascotVisible,
   playMascotSound,
   pulseMascot,
@@ -46,6 +47,7 @@ import {
   setMascotVisible,
   setMascotVoice,
   sendVoiceCommand,
+  setCompact,
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
@@ -276,7 +278,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       sounds.play(change === 'open' ? 'abrir' : 'fechar')
       updateAccessory()
     },
-    onActivity: () => presence.activity()
+    onActivity: () => presence.activity(),
+    // No modo compacto, o mascote sai da borda enquanto o painel estiver aberto.
+    onVisible: (visible) => holdPeek('panel', visible)
   })
 
   // A voz: o botão do microfone do painel e o atalho de voz. Escuta só quando pedida, e nunca com
@@ -409,6 +413,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     updateAccessory()
     sounds.check()
     updateBrowser()
+    setCompact(getConfig().compact)
   })
 
   // O navegador do Claude (opcional): o servidor do Playwright entra no --mcp-config e vale a
@@ -505,6 +510,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     mascotVisible: isMascotVisible,
     setMascotVisible,
     newConversation: () => chat?.newConversation(),
+    compactEnabled: () => getConfig().compact,
+    setCompactEnabled: (enabled) => {
+      updateConfig({ compact: enabled })
+      notifyConfigChange()
+    },
     soundEnabled: () => sounds.settings().enabled,
     setSoundEnabled: (enabled) => sounds.setEnabled(enabled),
     autostartEnabled: isAutostartEnabled,

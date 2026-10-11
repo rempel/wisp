@@ -7,6 +7,7 @@ import type {
   ClipboardOffer,
   DroppedFiles,
   Gaze,
+  MascotDock,
   MascotReaction,
   MascotState,
   MascotView,
@@ -41,6 +42,7 @@ const api: WispApi = {
     onGaze: (listener) => subscribe<[Gaze | null]>(IPC.mascotGaze, listener),
     onReact: (listener) => subscribe<[MascotReaction]>(IPC.mascotReact, listener),
     onAccessory: (listener) => subscribe<[Accessory | null]>(IPC.mascotAccessory, listener),
+    onDock: (listener) => subscribe<[MascotDock]>(IPC.mascotDock, listener),
     onSound: (listener) => subscribe<[SoundName, number]>(IPC.mascotSound, listener),
     // Os bytes chegam como Uint8Array (o Buffer do main); a página quer o ArrayBuffer.
     onCustomSound: (listener) =>

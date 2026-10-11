@@ -165,6 +165,12 @@ export function SettingsView(): JSX.Element {
         </Section>
 
         <Section title="Mascote e sons">
+          <Toggle
+            label="Modo compacto"
+            hint="O mascote mora na borda da tela, quase todo escondido, e espia quando o cursor passa, com o painel aberto ou quando tem algo para mostrar."
+            checked={values.compact}
+            onChange={(compact) => void save({ compact })}
+          />
           <Toggle label="Sons" checked={values.sound} onChange={(sound) => void save({ sound })} />
           <Row label="Volume">
             <input
