@@ -2481,6 +2481,7 @@ button.link {
 }
 
 .settings-row :is(input[type='text'], select, textarea) {
+  box-sizing: border-box;
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border);

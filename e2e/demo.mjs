@@ -151,7 +151,7 @@ p = await waitFor(async () => {
   const value = await pane()
   return value.pill ? value : null
 }, 4000)
-check('M2 a pílula "Demonstração" no cabeçalho', p?.pill === 'Demonstração', JSON.stringify(p))
+check('M2 a pílula "Demo" no cabeçalho', p?.pill === 'Demo', JSON.stringify(p))
 check(
   'M3 a conversa recomeçou, com o aviso',
   p?.users.length === 0 && p.notices.some((n) => /Modo demonstração ligado/.test(n)),

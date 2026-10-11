@@ -453,9 +453,10 @@ export default function Chat(): JSX.Element {
             className="demo-pill"
             onClick={() => void window.wisp.settings.set({ demo: false })}
             title="Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar."
+            aria-label="Modo demonstração (clique para desligar)"
           >
             <DemoIcon />
-            Demonstração
+            Demo
           </button>
         )}
         {usage && !demo && <UsagePill usage={usage} />}
