@@ -14,7 +14,8 @@ import type {
   ChatEvent,
   OutgoingAttachment,
   PermissionDecision,
-  PermissionMode
+  PermissionMode,
+  Provider
 } from '../shared/ipc'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
@@ -39,13 +40,16 @@ export interface ConversationOptions {
   id: string
   host: ConversationHost
   /** O que vale para todo processo do Claude Code: CLI, ferramentas liberadas, persona. */
-  claude: Omit<ClaudeOptions, 'mcpConfig' | 'modeFile' | 'permissionMode' | 'model'>
+  claude: Omit<ClaudeOptions, 'mcpConfig' | 'modeFile' | 'permissionMode' | 'model' | 'provider'>
   /** O --mcp-config desta conversa (o servidor desktop com o endereço dela). */
   mcpConfig?: () => string | undefined
   /** O arquivo do modo, que o hook do Bash lê. */
   modeFile?: string
   permissionMode: PermissionMode
-  model: string | null
+  /** O modelo de cada provedor (o do config.json: model ou openrouterModel). */
+  modelFor: (provider: Provider) => string | null
+  /** Por onde a conversa começa. */
+  provider: Provider
   /** Pastas onde o Aceitar edições libera edições (as de projetos, do config.json). */
   projectRoots: () => string[]
   /** Pastas que valem mesmo sendo ocultas (o workspace do Wisp, os anexos). */
@@ -89,11 +93,33 @@ export class Conversation {
         mcpConfig: options.mcpConfig,
         modeFile: options.modeFile,
         permissionMode: options.permissionMode,
-        model: options.model,
+        model: options.modelFor(options.provider),
+        provider: options.provider,
         onSessionId: (sessionId) => this.history.setSession(sessionId)
       },
       (event) => this.deliver(event)
     )
+    this.history.provider = options.provider
+  }
+
+  get provider(): Provider {
+    return this.session.currentProvider
+  }
+
+  /**
+   * Troca o provedor da aba: a conversa recomeça (a atual fica no histórico), com o modelo
+   * escolhido para o outro lado.
+   */
+  setProvider(provider: Provider): void {
+    if (provider === this.provider) return
+    this.session.setProvider(provider)
+    this.history.provider = provider
+    this.session.setModel(this.options.modelFor(provider))
+  }
+
+  /** O modelo volta a ser o do config.json (ele pode ter sido editado à mão). */
+  syncModel(): void {
+    this.session.setModel(this.options.modelFor(this.provider))
   }
 
   get busy(): boolean {
@@ -185,6 +211,8 @@ export class Conversation {
 
   /** Reabre uma conversa do histórico: o que ela mostrava volta à página, e a próxima mensagem a retoma. */
   restore(saved: SavedConversation): ChatEvent[] {
+    // Cada provedor tem as suas sessões no Claude Code: retoma pelo mesmo lado.
+    this.setProvider(saved.provider ?? 'subscription')
     this.session.resume(saved.sessionId, { cwd: saved.cwd })
     this.history.continue(saved)
     this.title = saved.title
@@ -197,6 +225,8 @@ export class Conversation {
   continueSession(
     seed: ConversationSeed & { sessionId: string; alive: boolean; project: string }
   ): void {
+    // As sessões do terminal são do Claude Code da assinatura.
+    this.setProvider('subscription')
     this.session.resume(seed.sessionId, { cwd: seed.cwd, fork: seed.alive })
     this.history.prepare({ cwd: seed.cwd, preface: seed.preface })
     this.title = seed.project
@@ -212,14 +242,20 @@ export class Conversation {
     const events: ChatEvent[] = saved
       ? [...saved.events]
       : [...this.approvals.values()].map((approval) => approval.event)
-    events.push(this.session.modelEvent(), { type: 'mode', mode: this.mode })
+    events.push(...this.initialEvents())
     if (this.session.isBusy()) events.push({ type: 'busy', busy: true })
     return events
   }
 
-  /** O que a página recebe ao abrir: o modelo e o modo de agora. */
+  /** O que a página recebe ao abrir: o provedor, o modelo, o modo e o custo de agora. */
   initialEvents(): ChatEvent[] {
-    return [this.session.modelEvent(), { type: 'mode', mode: this.mode }]
+    const cost = this.session.costEvent()
+    return [
+      this.session.providerEvent(),
+      this.session.modelEvent(),
+      { type: 'mode', mode: this.mode },
+      ...(cost ? [cost] : [])
+    ]
   }
 
   /** Quantos cards de permissão (não perguntas) esperam resposta. */

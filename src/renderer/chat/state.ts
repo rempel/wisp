@@ -1,12 +1,14 @@
 import { formatDate } from '../../shared/format'
 import type {
   AttachmentPreview,
+  ConversationCost,
   ChatEvent,
   FileDiff,
   NoticeLevel,
   PermissionDecision,
   PermissionMode,
-  PlanUsage
+  PlanUsage,
+  Provider
 } from '../../shared/ipc'
 
 export type { AttachmentPreview }
@@ -68,6 +70,10 @@ export interface ChatState {
   usage: PlanUsage | null
   /** O modo de permissão da conversa. */
   mode: PermissionMode
+  /** Por onde a conversa vai. */
+  provider: Provider
+  /** O custo estimado (pela OpenRouter; null até a primeira resposta). */
+  cost: ConversationCost | null
 }
 
 export type Action =
@@ -80,7 +86,9 @@ export const initialState: ChatState = {
   busy: false,
   model: null,
   usage: null,
-  mode: 'default'
+  mode: 'default',
+  provider: 'subscription',
+  cost: null
 }
 
 function userItem(
@@ -114,8 +122,18 @@ export function reducer(state: ChatState, action: Action): ChatState {
 function applyEvent(state: ChatState, event: ChatEvent): ChatState {
   switch (event.type) {
     case 'reset':
-      // O modelo, o uso do plano e o modo não são da conversa: continuam.
-      return { ...initialState, model: state.model, usage: state.usage, mode: state.mode }
+      // O modelo, o uso do plano, o modo e o provedor não são da conversa: continuam.
+      return {
+        ...initialState,
+        model: state.model,
+        usage: state.usage,
+        mode: state.mode,
+        provider: state.provider
+      }
+    case 'provider':
+      return { ...state, provider: event.provider }
+    case 'cost':
+      return { ...state, cost: event.cost }
     case 'mode':
       return { ...state, mode: event.mode }
     case 'model':

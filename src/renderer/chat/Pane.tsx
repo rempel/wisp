@@ -24,6 +24,8 @@ import {
 } from './icons'
 import { Markdown } from './Markdown'
 import { ModelPill } from './ModelPill'
+import { OpenRouterModelPill } from './OpenRouterModelPill'
+import { ProviderPill } from './ProviderPill'
 import { ModePill } from './ModePill'
 import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
@@ -408,13 +410,23 @@ export function Pane({
           </div>
         )}
         <div className="composer-meta">
-          {state.model && (
-            <ModelPill
-              choice={state.model.choice}
-              active={state.model.active}
-              onPick={(model) => window.wisp.chat.setModel(conversation, model)}
-            />
-          )}
+          <ProviderPill
+            provider={state.provider}
+            onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
+          />
+          {state.model &&
+            (state.provider === 'openrouter' ? (
+              <OpenRouterModelPill
+                choice={state.model.choice}
+                onPick={(model) => window.wisp.chat.setModel(conversation, model)}
+              />
+            ) : (
+              <ModelPill
+                choice={state.model.choice}
+                active={state.model.active}
+                onPick={(model) => window.wisp.chat.setModel(conversation, model)}
+              />
+            ))}
           <ModePill
             mode={state.mode}
             onPick={(mode) => window.wisp.chat.setMode(conversation, mode)}

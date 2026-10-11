@@ -163,6 +163,15 @@ export const ModelIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** O provedor: um caminho entre dois pontos. */
+export const RouteIcon = (): JSX.Element => (
+  <Icon>
+    <circle cx="3.5" cy="12.5" r="1.6" />
+    <circle cx="12.5" cy="3.5" r="1.6" />
+    <path d="M5 12.5h4.5a2 2 0 0 0 0-4h-3a2 2 0 0 1 0-4H11" />
+  </Icon>
+)
+
 /** Modo Pedir: um escudo. */
 export const ShieldIcon = (): JSX.Element => (
   <Icon>

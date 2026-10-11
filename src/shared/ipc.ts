@@ -58,6 +58,14 @@ export const IPC = {
   chatNew: 'chat:new',
   /** chat → main: trocar o modelo. Args: (conversa, um de MODEL_CHOICES ou null). */
   chatModel: 'chat:model',
+  /** chat → main: trocar o provedor da aba (recomeça a conversa). Args: (conversa, Provider). */
+  chatProvider: 'chat:provider',
+  /** chat → main (invoke): os modelos da OpenRouter. Devolve OpenRouterModelInfo[] ou { error }. */
+  openrouterModels: 'openrouter:models',
+  /** chat → main (invoke): guarda a chave no chaveiro (conferida antes). Devolve OpenRouterKeyResult. */
+  openrouterSetKey: 'openrouter:set-key',
+  /** chat → main (invoke): apaga a chave do chaveiro. Devolve OpenRouterKeyResult. */
+  openrouterClearKey: 'openrouter:clear-key',
   /** chat → main: trocar o modo de permissão. Args: (conversa, PermissionMode). */
   chatMode: 'chat:mode',
   /**
@@ -541,6 +549,8 @@ export interface ConversationSummary {
   current: boolean
   /** Projeto de uma sessão trazida do terminal. */
   project?: string
+  /** Foi pela OpenRouter. */
+  provider?: 'openrouter'
 }
 
 /**
@@ -620,6 +630,10 @@ export type ChatEvent =
   | { type: 'model'; choice: string | null; active: string | null }
   /** O uso do plano mudou. */
   | { type: 'usage'; usage: PlanUsage }
+  /** Por onde a conversa vai (assinatura ou OpenRouter). */
+  | { type: 'provider'; provider: Provider }
+  /** O custo estimado da conversa pela OpenRouter, a cada resposta. */
+  | { type: 'cost'; cost: ConversationCost }
   /** O modo de permissão da conversa mudou (pelo usuário ou pelo Claude Code). */
   | { type: 'mode'; mode: PermissionMode }
   /**
@@ -675,6 +689,8 @@ export interface Settings {
   calendarFiles: string[]
   calendarAlertMinutes: number
   weeklySummary: boolean
+  provider: Provider
+  openrouterModel: string | null
 }
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
@@ -702,7 +718,9 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'calendar',
   'calendarFiles',
   'calendarAlertMinutes',
-  'weeklySummary'
+  'weeklySummary',
+  'provider',
+  'openrouterModel'
 ]
 
 /** O que a tela de configurações recebe. */
@@ -716,7 +734,37 @@ export interface SettingsSnapshot {
   logPath: string
   /** O que está errado no config.json (os campos inválidos caem no padrão). */
   problems: string[]
+  /** Há uma chave da OpenRouter no chaveiro (null: não deu para saber, o chaveiro não respondeu). */
+  openrouterKey: boolean | null
 }
+
+/**
+ * Por onde a conversa vai: o Claude Code com a assinatura (o padrão) ou com a API da OpenRouter
+ * (experimental), com a chave da pessoa e um modelo de lá.
+ */
+export type Provider = 'subscription' | 'openrouter'
+
+/** Um modelo da OpenRouter para a pílula, com os preços em dólares por milhão de tokens. */
+export interface OpenRouterModelInfo {
+  id: string
+  name: string
+  prompt: number | null
+  completion: number | null
+  context: number | null
+}
+
+/** O custo estimado de uma conversa pela OpenRouter: dólares (null sem preço) e tokens. */
+export interface ConversationCost {
+  usd: number | null
+  inputTokens: number
+  outputTokens: number
+  /** Quantas respostas entraram na conta. */
+  turns: number
+}
+
+/** Guardar ou conferir a chave: deu certo (com o nome que ela tem na OpenRouter) ou o motivo. */
+export type OpenRouterKeyResult =
+  { ok: true; label: string | null; note?: string } | { ok: false; message: string }
 
 /** A mudança deu certo, ou o campo que estava errado e o motivo. */
 export type SettingsResult = { ok: true } | { ok: false; field: string; message: string }
@@ -794,8 +842,13 @@ export interface WispApi {
     /** Recomeça a conversa de uma aba (Ctrl+K). */
     newConversation(conversation: string): void
     hide(): void
-    /** Troca o modelo (um de MODEL_CHOICES, ou null para o padrão). */
+    /**
+     * Troca o modelo: um de MODEL_CHOICES, ou null para o padrão; numa conversa pela OpenRouter,
+     * o id de um modelo de lá.
+     */
     setModel(conversation: string, choice: string | null): void
+    /** Troca o provedor da aba; a conversa recomeça (a atual fica no histórico). */
+    setProvider(conversation: string, provider: Provider): void
     /** Troca o modo de permissão da conversa. */
     setMode(conversation: string, mode: PermissionMode): void
     answerPermission(id: string, decision: PermissionDecision): void
@@ -863,6 +916,12 @@ export interface WispApi {
     onShow(listener: () => void): () => void
   }
   /** As configurações (a tela de configurações e o modo demonstração). */
+  /** A OpenRouter (experimental): os modelos e a chave, que fica no chaveiro do sistema. */
+  openrouter: {
+    models(): Promise<OpenRouterModelInfo[] | { error: string }>
+    setKey(key: string): Promise<OpenRouterKeyResult>
+    clearKey(): Promise<OpenRouterKeyResult>
+  }
   settings: {
     get(): Promise<SettingsSnapshot>
     set(patch: Partial<Settings> & { autostart?: boolean }): Promise<SettingsResult>

@@ -3,7 +3,7 @@
 // verdade (claude -p --input-format stream-json --output-format stream-json).
 // Cenários pela mensagem: [edit] uma edição com o diff, [lento] resposta devagar (dá para
 // parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
-// [modelo] responde o modelo, [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
+// [modelo] responde o modelo, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [plano] apresenta um plano (ExitPlanMode). O resto: uma resposta curta.
 // As decisões vão para $HOME/.fake-claude/approvals.log.
@@ -38,7 +38,19 @@ fs.appendFileSync(
     apiKey: 'ANTHROPIC_API_KEY' in process.env,
     memory: process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY,
     internal: process.env.WISP_INTERNAL,
-    cwd: process.cwd()
+    cwd: process.cwd(),
+    // O provedor: pela OpenRouter, o endereço, a chave (só o fim), a pasta e os modelos.
+    ...(process.env.ANTHROPIC_BASE_URL
+      ? {
+          baseUrl: process.env.ANTHROPIC_BASE_URL,
+          tokenTail: (process.env.ANTHROPIC_AUTH_TOKEN ?? '').slice(-4),
+          apiKeyValue: process.env.ANTHROPIC_API_KEY,
+          configDir: process.env.CLAUDE_CONFIG_DIR,
+          haiku: process.env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+          subagent: process.env.CLAUDE_CODE_SUBAGENT_MODEL,
+          nonessential: process.env.CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC
+        }
+      : {})
   }) + '\n'
 )
 const ALIASES = { haiku: 'claude-haiku-5-5', sonnet: 'claude-sonnet-5-5', opus: 'claude-opus-5-5' }
@@ -206,6 +218,12 @@ async function turn(text) {
     )
   }
   if (text.includes('[rede]')) return fail('API Error: Connection error.', 'unknown')
+  if (text.includes('[chave ruim]')) {
+    return fail(
+      'API Error: 401 {"error":{"message":"User not found.","code":401}}',
+      'authentication_failed'
+    )
+  }
   if (text.includes('[queda]')) {
     await stream('Começando a responder')
     process.stderr.write('FATAL: algo explodiu dentro do CLI\n')
@@ -277,7 +295,13 @@ async function turn(text) {
       terminal_reason: 'aborted_streaming'
     })
   } else {
-    out({ type: 'result', subtype: 'success', is_error: false, result: answer })
+    out({
+      type: 'result',
+      subtype: 'success',
+      is_error: false,
+      result: answer,
+      usage: { input_tokens: 1000, output_tokens: 50, cache_read_input_tokens: 2000 }
+    })
   }
   current = null
 }

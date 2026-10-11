@@ -90,9 +90,11 @@ import { matchApp } from './voice-commands'
 import type { QuickCommand } from './voice-commands'
 import { stepSystemVolume } from './volume'
 import { transcribe, whisperSetup } from './whisper'
+import { checkKey, listModels, looksLikeKey, OPENROUTER_SECRET } from './openrouter'
+import { deleteSecret, hasSecret, storeSecret } from './secrets'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type { NoticeLevel, VoiceTestResult } from '../shared/ipc'
+import type { NoticeLevel, OpenRouterKeyResult, VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
@@ -720,6 +722,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     }
   })
   // A tela de configurações do painel (e a pílula do modo demonstração).
+  // A chave da OpenRouter fica no chaveiro do sistema; aqui, só se ela existe (sem destrancar).
+  // O chaveiro só é consultado quando a tela de configurações abre: quem não usa a OpenRouter
+  // não tem por que acordá-lo.
+  let openrouterKey: boolean | null = null
+  let openrouterKeyAsked = false
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
     send: (snapshot) => chat?.notifySettings(snapshot),
@@ -727,7 +734,76 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       get: isAutostartEnabled,
       set: (enabled) => setAutostart(enabled, entryIcon)
     },
-    onChange: () => menu?.refresh()
+    onChange: () => menu?.refresh(),
+    openrouterKey: () => {
+      if (!openrouterKeyAsked) {
+        openrouterKeyAsked = true
+        void refreshOpenRouterKey()
+      }
+      return openrouterKey
+    }
+  })
+  const refreshOpenRouterKey = async (): Promise<void> => {
+    try {
+      openrouterKey = await hasSecret(OPENROUTER_SECRET)
+    } catch {
+      openrouterKey = null
+    }
+    settings.notify()
+  }
+  ipcMain.handle(IPC.openrouterModels, async (event) => {
+    if (!chat?.isSender(event.sender)) return { error: 'pedido inválido' }
+    try {
+      return (await listModels()).map(({ id, name, prompt, completion, context }) => ({
+        id,
+        name,
+        prompt,
+        completion,
+        context
+      }))
+    } catch (err) {
+      return { error: `Não consegui buscar os modelos da OpenRouter (${(err as Error).message}).` }
+    }
+  })
+  ipcMain.handle(
+    IPC.openrouterSetKey,
+    async (event, key: unknown): Promise<OpenRouterKeyResult> => {
+      if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+      const value = typeof key === 'string' ? key.trim() : ''
+      if (!looksLikeKey(value)) {
+        return {
+          ok: false,
+          message: 'Isso não parece uma chave da OpenRouter (elas começam com sk-or-).'
+        }
+      }
+      const checked = await checkKey(value)
+      // Sem rede, a chave é guardada mesmo assim; recusada pela OpenRouter, não.
+      const offline = !checked.ok && checked.message.startsWith('Não consegui falar')
+      if (!checked.ok && !offline) return checked
+      try {
+        await storeSecret(OPENROUTER_SECRET, 'Wisp: chave da OpenRouter', value)
+      } catch (err) {
+        return { ok: false, message: (err as Error).message }
+      }
+      openrouterKey = true
+      chat?.openrouterKeyChanged()
+      settings.notify()
+      return checked.ok
+        ? { ok: true, label: checked.label }
+        : { ok: true, label: null, note: 'Guardada, mas não deu para conferir agora (sem rede).' }
+    }
+  )
+  ipcMain.handle(IPC.openrouterClearKey, async (event): Promise<OpenRouterKeyResult> => {
+    if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    try {
+      await deleteSecret(OPENROUTER_SECRET)
+    } catch (err) {
+      return { ok: false, message: (err as Error).message }
+    }
+    openrouterKey = false
+    chat?.openrouterKeyChanged()
+    settings.notify()
+    return { ok: true, label: null }
   })
 
   menu = setupTray({

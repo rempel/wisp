@@ -33,6 +33,7 @@ import { awaitingPermission, initialState, reducer, statusText } from './state'
 import type { Action, ChatState } from './state'
 import { TabBar } from './TabBar'
 import type { TabStatus } from './TabBar'
+import { CostPill } from './CostPill'
 import { UsagePill } from './UsagePill'
 import { useSessions } from './useSessions'
 
@@ -466,7 +467,12 @@ export default function Chat(): JSX.Element {
             Demo
           </button>
         )}
-        {usage && !demo && <UsagePill usage={usage} />}
+        {!demo &&
+          (focusedState?.provider === 'openrouter' ? (
+            <CostPill cost={focusedState.cost} />
+          ) : (
+            usage && <UsagePill usage={usage} />
+          ))}
         <button
           type="button"
           className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}

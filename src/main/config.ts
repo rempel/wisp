@@ -17,8 +17,11 @@ export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
 const PointSchema = z.object({ x: z.number().int(), y: z.number().int() })
 
-/** Nome de modelo que o --model aceita. */
-export const MODEL_NAME = /^[A-Za-z0-9][\w.:[\]-]{0,99}$/
+/**
+ * Nome de modelo que o --model aceita: um apelido ("sonnet"), um nome completo, ou um modelo da
+ * OpenRouter ("provedor/modelo", às vezes com ":free" ou "@versão" no fim).
+ */
+export const MODEL_NAME = /^[A-Za-z0-9~][\w.:/@[\]-]{0,99}$/
 
 export type Point = z.infer<typeof PointSchema>
 
@@ -94,6 +97,14 @@ export interface WispConfig {
   calendarAlertMinutes: number
   /** Guarda as contagens da semana (sem conteúdo) e mostra o resumo na segunda-feira. */
   weeklySummary: boolean
+  /**
+   * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
+   * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
+   * sistema) e o modelo de openrouterModel. Cada aba troca o seu.
+   */
+  provider: 'subscription' | 'openrouter'
+  /** O modelo da OpenRouter ("provedor/modelo"); null até escolher um. */
+  openrouterModel: string | null
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -132,7 +143,9 @@ function defaults(): WispConfig {
     calendar: false,
     calendarFiles: [],
     calendarAlertMinutes: 10,
-    weeklySummary: true
+    weeklySummary: true,
+    provider: 'subscription',
+    openrouterModel: null
   }
 }
 
@@ -221,7 +234,9 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
   calendarAlertMinutes: z.number().int().min(0).max(240),
-  weeklySummary: z.boolean()
+  weeklySummary: z.boolean(),
+  provider: z.enum(['subscription', 'openrouter']),
+  openrouterModel: z.string().regex(MODEL_NAME).nullable()
 }
 
 const ConfigSchema = z.object(
@@ -324,6 +339,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   projectRoots: 'Uma pasta por linha.',
   extraAllowedTools: 'Um nome de ferramenta por linha.',
   model: 'Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).',
+  openrouterModel: 'O id do modelo na OpenRouter, como aparece no site: provedor/modelo.',
   volume: 'O volume vai de 0 a 1.',
   sleepAfterMinutes: 'Um número de minutos, 0 ou mais (0 desliga o cochilo).',
   shortcut: 'O atalho tem no máximo 60 caracteres.',

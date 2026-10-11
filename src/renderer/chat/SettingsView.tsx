@@ -1,7 +1,12 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JSX, KeyboardEvent, ReactNode } from 'react'
 import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
-import type { Settings, SettingsResult, SettingsSnapshot } from '../../shared/ipc'
+import type {
+  OpenRouterKeyResult,
+  Settings,
+  SettingsResult,
+  SettingsSnapshot
+} from '../../shared/ipc'
 import { acceleratorOf } from './accelerator'
 import { MODE_TEXT } from './modes'
 import { VoiceTest } from './VoiceTest'
@@ -275,6 +280,41 @@ export function SettingsView(): JSX.Element {
           <VoiceTest />
         </Section>
 
+        <Section title="OpenRouter (experimental)">
+          <Row
+            label="Conversas novas vão por"
+            hint="Cada aba troca a sua na pílula abaixo da caixa de texto."
+            error={errors.provider}
+          >
+            <select
+              value={values.provider}
+              onChange={(event) =>
+                void save({ provider: event.target.value as Settings['provider'] })
+              }
+            >
+              <option value="subscription">Assinatura do Claude (o seu Claude Code)</option>
+              <option value="openrouter">OpenRouter (experimental)</option>
+            </select>
+          </Row>
+          <OpenRouterKey present={snapshot.openrouterKey} />
+          <Row
+            label="Modelo"
+            hint="Qualquer modelo de openrouter.ai/models que aceite ferramentas, como provedor/modelo. A pílula do modelo busca na lista."
+            error={errors.openrouterModel}
+          >
+            <TextInput
+              value={values.openrouterModel ?? ''}
+              placeholder="provedor/modelo"
+              onCommit={(model) => save({ openrouterModel: model || null })}
+            />
+          </Row>
+          <p className="settings-hint">
+            O Claude Code continua sendo o cérebro, falando com a OpenRouter em vez da Anthropic: o
+            custo é por uso, na sua conta de lá. Ferramentas, permissões e cards funcionam igual,
+            mas modelos de outras empresas podem se sair pior com elas.
+          </p>
+        </Section>
+
         <Section title="Integrações">
           <Toggle
             label="Alertas do GitHub"
@@ -360,6 +400,86 @@ export function SettingsView(): JSX.Element {
       <div className={`settings-saved${saved ? ' show' : ''}`} role="status" aria-live="polite">
         {saved ? 'Salvo' : ''}
       </div>
+    </div>
+  )
+}
+
+/** A chave da OpenRouter: fica no chaveiro do sistema, nunca no config.json. */
+function OpenRouterKey({ present }: { present: boolean | null }): JSX.Element {
+  const [draft, setDraft] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+
+  const run = async (action: () => Promise<OpenRouterKeyResult>, done: string): Promise<void> => {
+    setBusy(true)
+    setMessage(null)
+    try {
+      const result = await action()
+      if (result.ok) {
+        setDraft('')
+        setMessage({
+          ok: true,
+          text: result.note ?? (result.label ? `${done} (${result.label}).` : `${done}.`)
+        })
+      } else {
+        setMessage({ ok: false, text: result.message })
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div className={`settings-row${message && !message.ok ? ' invalid' : ''}`}>
+      <span className="settings-label">Chave</span>
+      <div className="openrouter-key">
+        <input
+          type="password"
+          value={draft}
+          placeholder={present ? '•••••••• (guardada no chaveiro)' : 'sk-or-…'}
+          autoComplete="off"
+          spellCheck={false}
+          aria-label="Chave da OpenRouter"
+          onChange={(event) => setDraft(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && draft.trim()) {
+              void run(() => window.wisp.openrouter.setKey(draft), 'Chave conferida e guardada')
+            }
+          }}
+        />
+        <button
+          type="button"
+          className="settings-button"
+          disabled={busy || !draft.trim()}
+          onClick={() =>
+            void run(() => window.wisp.openrouter.setKey(draft), 'Chave conferida e guardada')
+          }
+        >
+          Guardar
+        </button>
+        {present && (
+          <button
+            type="button"
+            className="settings-button"
+            disabled={busy}
+            onClick={() => void run(() => window.wisp.openrouter.clearKey(), 'Chave apagada')}
+          >
+            Apagar
+          </button>
+        )}
+      </div>
+      <small className="settings-hint">
+        {present === null
+          ? 'Não consegui consultar o chaveiro do sistema (Secret Service).'
+          : present
+            ? 'Guardada no chaveiro do sistema. Nunca vai para o config.json nem para o registro.'
+            : 'Crie uma em openrouter.ai/keys. Ela fica no chaveiro do sistema, nunca no config.json.'}
+      </small>
+      {message && (
+        <small className={message.ok ? 'settings-hint' : 'settings-error'} role="status">
+          {message.text}
+        </small>
+      )}
     </div>
   )
 }

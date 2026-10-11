@@ -240,3 +240,138 @@ test('o processo caiu no meio: aviso de erro, e a próxima mensagem sobe outro',
 })
 
 process.on('exit', () => rmSync(WORK, { recursive: true, force: true }))
+
+// ---- Fase 14: pela OpenRouter ---------------------------------------------
+interface ProviderSpawn extends Spawn {
+  baseUrl?: string
+  tokenTail?: string
+  apiKeyValue?: string
+  configDir?: string
+  haiku?: string
+  subagent?: string
+  nonessential?: string
+}
+const PRICING = {
+  id: 'vendor/m',
+  name: 'M',
+  prompt: 3,
+  completion: 15,
+  cacheRead: 0.3,
+  cacheWrite: null,
+  context: null
+}
+
+test('OpenRouter: sem modelo ou sem chave, um aviso e nada roda', async () => {
+  let key: string | null = null
+  const before = spawns().length
+  const { claude, events } = session({
+    provider: 'openrouter',
+    openrouter: { key: async () => key, pricing: async () => PRICING }
+  })
+  let got = await turn(claude, events, 'oi')
+  assert.equal(outcome(got), 'error')
+  assert.match(notices(got).join('\n'), /Escolha um modelo da OpenRouter/)
+  claude.setModel('vendor/m')
+  got = await turn(claude, events, 'oi')
+  assert.match(notices(got).join('\n'), /guarde a sua chave em \*\*Configurações → OpenRouter\*\*/)
+  const locked = session({
+    provider: 'openrouter',
+    model: 'vendor/m',
+    openrouter: {
+      key: async () => {
+        throw new Error('O chaveiro continua trancado: destranque-o para eu usar a chave.')
+      },
+      pricing: async () => null
+    }
+  })
+  got = await turn(locked.claude, locked.events, 'oi')
+  assert.match(notices(got).join('\n'), /chaveiro continua trancado/)
+  assert.equal(spawns().length, before, 'nenhum processo subiu')
+  key = 'x'
+  claude.dispose()
+  locked.claude.dispose()
+})
+
+test('OpenRouter: o ambiente, o modelo, o custo, a troca de modelo e a chave recusada', async () => {
+  process.env.WISP_OPENROUTER_URL = 'http://127.0.0.1:1/api'
+  let reads = 0
+  const { claude, events } = session({
+    provider: 'openrouter',
+    model: 'vendor/m',
+    openrouter: {
+      key: async () => {
+        reads++
+        return 'sk-or-v1-abcdefghijklmnop1234'
+      },
+      pricing: async (model) => (model === 'vendor/m' ? PRICING : null)
+    }
+  })
+  const before = spawns().length
+  let got = await turn(claude, events, 'oi')
+  assert.equal(outcome(got), 'done')
+  const spawn = spawns()[before] as ProviderSpawn
+  assert.equal(spawn.baseUrl, 'http://127.0.0.1:1/api')
+  assert.equal(spawn.tokenTail, '1234', 'a chave vai no ambiente')
+  assert.equal(spawn.apiKeyValue, '', 'a ANTHROPIC_API_KEY herdada vai vazia')
+  assert.equal(spawn.configDir, join(HOME, '.local/share/wisp/openrouter-claude'))
+  assert.equal(spawn.haiku, 'vendor/m')
+  assert.equal(spawn.subagent, 'vendor/m')
+  assert.equal(spawn.nonessential, '1')
+  assert.ok(spawn.args.includes('--model=vendor/m'))
+  assert.ok(!spawn.args.join(' ').includes('sk-or-'), 'a chave nunca vai nos argumentos')
+  // O custo: 1000 de entrada, 50 de saída e 2000 lidos do cache, pelos preços da OpenRouter.
+  let cost = await waitFor(() =>
+    events.findLast((e): e is Extract<ChatEvent, { type: 'cost' }> => e.type === 'cost')
+  )
+  assert.deepEqual(cost.cost, {
+    usd: (3000 + 750 + 600) / 1e6,
+    inputTokens: 3000,
+    outputTokens: 50,
+    turns: 1
+  })
+  assert.deepEqual(claude.costEvent(), cost)
+
+  // Trocar o modelo sobe outro processo (o modelo vai no ambiente), que retoma a conversa.
+  claude.setModel('vendor/outro')
+  got = await turn(claude, events, 'de novo')
+  assert.equal(outcome(got), 'done')
+  const second = spawns()[before + 1] as ProviderSpawn
+  assert.ok(second.args.includes('--model=vendor/outro'))
+  assert.equal(second.haiku, 'vendor/outro')
+  assert.equal(flag(second.args, '--resume'), claude.ensureSessionId())
+  cost = await waitFor(() =>
+    events.findLast(
+      (e): e is Extract<ChatEvent, { type: 'cost' }> => e.type === 'cost' && e.cost.turns === 2
+    )
+  )
+  assert.equal(cost.cost.usd, null, 'sem o preço do modelo novo, o total fica sem preço')
+  assert.equal(cost.cost.outputTokens, 100)
+
+  // A chave recusada: o erro em português, e a chave é lida de novo na próxima mensagem.
+  got = await turn(claude, events, '[chave ruim]')
+  assert.equal(outcome(got), 'error')
+  assert.match(notices(got).join('\n'), /A OpenRouter recusou a chave/)
+  assert.doesNotMatch(notices(got).join('\n'), /claude \/login|faça login/i)
+  assert.equal(reads, 1)
+  await turn(claude, events, 'oi')
+  assert.equal(reads, 2)
+
+  // De volta à assinatura: a conversa recomeça, sem nada da OpenRouter no processo.
+  const from = events.length
+  claude.setProvider('subscription')
+  claude.setModel(null)
+  assert.deepEqual(events.slice(from, from + 2), [
+    { type: 'reset' },
+    { type: 'provider', provider: 'subscription' }
+  ])
+  assert.equal(claude.costEvent(), null)
+  const count = spawns().length
+  await turn(claude, events, 'oi')
+  const third = spawns()[count] as ProviderSpawn
+  assert.notEqual(third.baseUrl, 'http://127.0.0.1:1/api')
+  assert.equal(third.tokenTail ?? '', '', 'nenhum token vai junto pela assinatura')
+  assert.equal(third.configDir, undefined)
+  assert.equal(third.apiKey, false)
+  claude.dispose()
+  delete process.env.WISP_OPENROUTER_URL
+})

@@ -11,7 +11,7 @@ import {
 } from 'fs'
 import { randomUUID } from 'crypto'
 import { basename, join } from 'path'
-import type { AttachmentPreview, ChatEvent, ConversationSummary } from '../shared/ipc'
+import type { AttachmentPreview, ChatEvent, ConversationSummary, Provider } from '../shared/ipc'
 import { DATA_DIR } from './paths'
 
 /**
@@ -38,6 +38,8 @@ interface Header {
   title: string
   /** Pasta de uma sessão trazida do terminal (sem ela, o workspace do Wisp). */
   cwd?: string
+  /** A conversa foi pela OpenRouter (sem o campo, pela assinatura). */
+  provider?: 'openrouter'
 }
 
 /** O Claude Code passou a usar outro session_id (raro); o --resume usa o último. */
@@ -124,6 +126,8 @@ export interface SavedConversation {
   createdAt: number
   /** Pasta onde retomar (uma sessão trazida do terminal). */
   cwd?: string
+  /** Por onde a conversa foi: retomar pelo mesmo lado (as sessões de cada um ficam separadas). */
+  provider?: 'openrouter'
   events: ChatEvent[]
 }
 
@@ -142,6 +146,8 @@ export class History {
   private text: { blockId: string; delta: string } | null = null
   private warned = false
   private seed: ConversationSeed | null = null
+  /** Por onde vão as conversas gravadas daqui para a frente. */
+  provider: Provider = 'subscription'
 
   constructor(private readonly dir = HISTORY_DIR) {}
 
@@ -234,7 +240,8 @@ export class History {
         createdAt: header.createdAt,
         updatedAt,
         current: open.has(id) || id === this.current?.id,
-        ...(header.cwd ? { project: basename(header.cwd) } : {})
+        ...(header.cwd ? { project: basename(header.cwd) } : {}),
+        ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
       })
     }
     return conversations.sort((a, b) => b.updatedAt - a.updatedAt)
@@ -275,6 +282,7 @@ export class History {
       sessionId,
       createdAt: header.createdAt,
       ...(typeof header.cwd === 'string' && header.cwd ? { cwd: header.cwd } : {}),
+      ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
       events
     }
   }
@@ -316,7 +324,8 @@ export class History {
       id,
       createdAt: Date.now(),
       title,
-      ...(seed ? { cwd: seed.cwd } : {})
+      ...(seed ? { cwd: seed.cwd } : {}),
+      ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
     } satisfies Header)
     if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)
     for (const event of seed?.preface ?? []) this.append(event)

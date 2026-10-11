@@ -7,7 +7,15 @@ import { delimiter, dirname, join } from 'path'
 import { diffFromResult } from '../shared/diff'
 import { formatReset } from '../shared/format'
 import { PERMISSION_MODES } from '../shared/ipc'
-import type { ChatEvent, NoticeLevel, PermissionMode, PlanUsage, UsageWindow } from '../shared/ipc'
+import type {
+  ChatEvent,
+  ConversationCost,
+  NoticeLevel,
+  PermissionMode,
+  PlanUsage,
+  Provider,
+  UsageWindow
+} from '../shared/ipc'
 import {
   ATTACHMENTS_DIR,
   copyAttachments,
@@ -16,6 +24,8 @@ import {
 } from './attachments'
 import type { CopiedAttachments } from './attachments'
 import { INTERNAL_ENV } from './hooks/protocol'
+import { openrouterEnv, openrouterError, turnCost, turnTokens } from './openrouter'
+import type { OpenRouterModel, TurnUsage } from './openrouter'
 import { expandHome } from './paths'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
@@ -137,6 +147,13 @@ export interface ClaudeOptions {
   thumbnail?: (base64: string) => string | undefined
   /** No modo demonstração: o Claude Code gravado e as gravações, no lugar do CLI. */
   demo?: () => DemoPlayer | null
+  /** Por onde a conversa começa; o padrão é a assinatura. */
+  provider?: Provider
+  /** A OpenRouter: a chave (do chaveiro; lança o motivo se não deu) e os preços de um modelo. */
+  openrouter?: {
+    key(): Promise<string | null>
+    pricing(model: string): Promise<OpenRouterModel | null>
+  }
 }
 
 /** O Claude Code gravado do modo demonstração (demo/player.ts), rodado pelo Electron em modo Node. */
@@ -247,8 +264,9 @@ function isExecutableFile(path: string): boolean {
 
 /**
  * Ambiente do CLI: o do app, com alguns ajustes.
- * - Sem ANTHROPIC_API_KEY: com essa variável definida, o Claude Code cobra o uso pela API em vez
- *   de usar a assinatura.
+ * - Sem ANTHROPIC_API_KEY nem ANTHROPIC_AUTH_TOKEN: com uma delas definida, o Claude Code cobra o
+ *   uso pela API em vez de usar a assinatura. (Pela OpenRouter, a escolha é da pessoa: o token
+ *   dela entra depois, em openrouterEnv.)
  * - Sem a memória automática do Claude Code: ela grava arquivos em ~/.claude/projects/…/memory
  *   sem passar pelo card de permissão e os carrega em toda conversa, o que deixaria um texto
  *   malicioso (lido pelo WebFetch, por exemplo) plantar instruções que ficam para sempre.
@@ -264,6 +282,8 @@ function claudeEnv(bin: string): NodeJS.ProcessEnv {
     }
   }
   delete env.ANTHROPIC_API_KEY
+  // Um token herdado passaria na frente do login da assinatura do mesmo jeito.
+  delete env.ANTHROPIC_AUTH_TOKEN
   env.CLAUDE_CODE_DISABLE_AUTO_MEMORY = '1'
   // Marca os processos do Wisp: os hooks deles não viram sessões na aba Sessões.
   env[INTERNAL_ENV] = '1'
@@ -350,6 +370,8 @@ interface CliEvent {
   error?: string
   is_error?: boolean
   result?: string
+  /** Os tokens da resposta (no result). */
+  usage?: TurnUsage
   event?: {
     type: string
     index?: number
@@ -516,6 +538,12 @@ export class ClaudeSession {
   /** Modelo que o CLI recusou; pedir o mesmo de novo (ao reabrir o painel) não adianta. */
   private rejectedModel: string | null = null
   private controlSeq = 0
+  /** Por onde a conversa vai (assinatura ou OpenRouter). */
+  private provider: Provider
+  /** A chave da OpenRouter, lida do chaveiro na primeira mensagem. */
+  private secret: string | null = null
+  /** O custo estimado da conversa pela OpenRouter (null até a primeira resposta). */
+  private cost: ConversationCost | null = null
   /** Pedidos de troca de modelo esperando resposta: o modelo pedido e o que havia antes. */
   private readonly modelRequests = new Map<
     string,
@@ -528,6 +556,35 @@ export class ClaudeSession {
   ) {
     this.model = options.model
     this.mode = options.permissionMode
+    this.provider = options.provider ?? 'subscription'
+  }
+
+  get currentProvider(): Provider {
+    return this.provider
+  }
+
+  /** O provedor, como o evento que o chat recebe. */
+  providerEvent(): Extract<ChatEvent, { type: 'provider' }> {
+    return { type: 'provider', provider: this.provider }
+  }
+
+  /** O custo estimado até agora (só pela OpenRouter, depois da primeira resposta). */
+  costEvent(): Extract<ChatEvent, { type: 'cost' }> | null {
+    return this.cost ? { type: 'cost', cost: this.cost } : null
+  }
+
+  /**
+   * Troca o provedor: o processo vai embora e a conversa recomeça (cada lado tem as suas
+   * sessões). O modelo vem em seguida, pelo setModel.
+   */
+  setProvider(provider: Provider): void {
+    if (provider === this.provider) return
+    this.clear()
+    this.provider = provider
+    this.bin = null
+    this.secret = null
+    this.emit({ type: 'reset' })
+    this.emit(this.providerEvent())
   }
 
   get permissionMode(): PermissionMode {
@@ -601,6 +658,12 @@ export class ClaudeSession {
 
   /** Checa o CLI de antemão (ao abrir o chat) e avisa na conversa se faltar algo. */
   async preflight(): Promise<void> {
+    // Pela OpenRouter, só o CLI: a chave é lida do chaveiro na primeira mensagem (abrir o painel
+    // não pede a senha do chaveiro).
+    if (this.provider === 'openrouter' && !this.options.demo?.()) {
+      if (!resolveCommand(this.options.claudePath)) this.notice('warning', INSTALL_HINT)
+      return
+    }
     await this.check()
   }
 
@@ -637,7 +700,15 @@ export class ClaudeSession {
     // Só anexos, e nenhum deu certo: não há o que mandar (os avisos já explicam).
     if (!content.trim()) return this.finishTurn('error')
 
-    this.write(this.proc ?? this.start(bin), content)
+    let proc = this.proc
+    if (proc && this.provider === 'openrouter' && this.processModel !== this.model) {
+      // Pela OpenRouter, o modelo vai também no ambiente (subagentes, tarefas internas): a troca
+      // sobe outro processo, que retoma a conversa.
+      this.proc = null
+      void killProcess(proc)
+      proc = null
+    }
+    this.write(proc ?? this.start(bin), content)
   }
 
   /**
@@ -674,6 +745,18 @@ export class ClaudeSession {
     this.emit(this.modelEvent())
   }
 
+  /**
+   * A chave da OpenRouter mudou (ou saiu do chaveiro): a próxima mensagem a lê de novo. Um
+   * processo parado vai embora, porque leva a chave antiga no ambiente; a conversa continua.
+   */
+  dropSecret(): void {
+    this.secret = null
+    if (this.provider !== 'openrouter' || this.busy || !this.proc) return
+    const proc = this.proc
+    this.proc = null
+    void killProcess(proc)
+  }
+
   /** Começa uma conversa nova: encerra o processo atual e esquece a sessão. */
   reset(): void {
     this.clear()
@@ -706,6 +789,7 @@ export class ClaudeSession {
     this.turn++
     const proc = this.proc
     this.proc = null
+    this.cost = null
     this.sessionId = null
     this.sessionSaved = false
     this.restored = false
@@ -730,6 +814,7 @@ export class ClaudeSession {
   private async check(): Promise<string | null> {
     // Na demonstração, não há CLI para conferir.
     if (this.options.demo?.()) return DEMO
+    if (this.provider === 'openrouter') return this.checkOpenRouter()
     if (this.bin) return this.bin
     const result = await checkClaude(this.options.claudePath)
     if (!result.ok) {
@@ -738,6 +823,42 @@ export class ClaudeSession {
     }
     this.bin = result.bin
     return this.bin
+  }
+
+  /**
+   * Pela OpenRouter não há login a conferir (o `claude auth status` olharia a assinatura): basta
+   * o CLI, um modelo escolhido e a chave no chaveiro.
+   */
+  private async checkOpenRouter(): Promise<string | null> {
+    const bin = this.bin ?? resolveCommand(this.options.claudePath)
+    if (!bin) {
+      this.notice('warning', INSTALL_HINT)
+      return null
+    }
+    if (!this.model) {
+      this.notice(
+        'warning',
+        'Escolha um modelo da OpenRouter na pílula do modelo, logo abaixo da caixa de texto.'
+      )
+      return null
+    }
+    if (!this.secret) {
+      try {
+        this.secret = (await this.options.openrouter?.key()) ?? null
+      } catch (err) {
+        this.notice('warning', (err as Error).message)
+        return null
+      }
+      if (!this.secret) {
+        this.notice(
+          'warning',
+          'Para conversar pela OpenRouter, guarde a sua chave em **Configurações → OpenRouter**.'
+        )
+        return null
+      }
+    }
+    this.bin = bin
+    return bin
   }
 
   /** Escreve a mensagem do turno no processo, trocando antes o modelo se ele mudou. */
@@ -811,6 +932,9 @@ export class ClaudeSession {
     const demo = bin === DEMO ? this.options.demo?.() : null
     const command = demo ? process.execPath : bin
     const env = claudeEnv(command)
+    if (!demo && this.provider === 'openrouter' && this.secret && this.model) {
+      Object.assign(env, openrouterEnv(this.secret, this.model))
+    }
     if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
     if (demo) {
       env.ELECTRON_RUN_AS_NODE = '1'
@@ -1006,7 +1130,12 @@ export class ClaudeSession {
     // Uma política gerenciada (ou uma conta sem o Automático) pode impor outro modo.
     this.adoptMode(event.permissionMode, 'init')
     // "none" é o login da assinatura; qualquer outra origem é uma chave de API.
-    if (event.apiKeySource && event.apiKeySource !== 'none' && !this.warnedApiKey) {
+    if (
+      this.provider === 'subscription' &&
+      event.apiKeySource &&
+      event.apiKeySource !== 'none' &&
+      !this.warnedApiKey
+    ) {
       this.warnedApiKey = true
       this.notice(
         'warning',
@@ -1037,7 +1166,9 @@ export class ClaudeSession {
     const message = event.message
     if (event.error === 'authentication_failed') {
       this.bin = null
-      this.notice('warning', LOGIN_HINT)
+      // Pela OpenRouter, quem explica é o fim do turno (a chave recusada).
+      if (this.provider === 'openrouter') this.secret = null
+      else this.notice('warning', LOGIN_HINT)
     }
     // Uma mensagem de erro (falha da API, limite) vem só com o texto cru do erro; o fim do turno
     // traz o mesmo erro, explicado no aviso.
@@ -1084,6 +1215,7 @@ export class ClaudeSession {
 
   private onResult(event: CliEvent): void {
     if (event.session_id) this.adoptSessionId(event.session_id)
+    if (this.provider === 'openrouter' && event.usage) void this.addCost(event.usage)
     // Pedimos a interrupção: o turno acaba como parado, seja qual for o resultado.
     if (this.stopping) {
       this.clearStop()
@@ -1091,7 +1223,12 @@ export class ClaudeSession {
     }
     if (!event.is_error) return this.finishTurn('done')
     const text = describeError(event)
-    if (LOGIN_ERROR.test(text)) {
+    if (this.provider === 'openrouter') {
+      const message = openrouterError(text, this.model)
+      // A chave foi recusada: na próxima mensagem, ela é lida de novo do chaveiro.
+      if (/recusou a chave/.test(message)) this.secret = null
+      this.notice('error', message)
+    } else if (LOGIN_ERROR.test(text)) {
       this.bin = null
       this.notice('warning', LOGIN_HINT)
     } else {
@@ -1101,6 +1238,25 @@ export class ClaudeSession {
       )
     }
     this.finishTurn('error')
+  }
+
+  /** Soma o custo de uma resposta pela OpenRouter, pelos preços que ela publica. */
+  private async addCost(usage: TurnUsage): Promise<void> {
+    const model = this.model
+    const session = this.sessionId
+    const pricing = model ? await this.options.openrouter?.pricing(model).catch(() => null) : null
+    // A conversa recomeçou (ou trocou de provedor) enquanto os preços chegavam.
+    if (session !== this.sessionId || this.provider !== 'openrouter') return
+    const usd = turnCost(usage, pricing ?? null)
+    const tokens = turnTokens(usage)
+    const before = this.cost ?? { usd: 0, inputTokens: 0, outputTokens: 0, turns: 0 }
+    this.cost = {
+      usd: before.usd === null || usd === null ? null : before.usd + usd,
+      inputTokens: before.inputTokens + tokens.input,
+      outputTokens: before.outputTokens + tokens.output,
+      turns: before.turns + 1
+    }
+    this.emit({ type: 'cost', cost: this.cost })
   }
 
   /**
