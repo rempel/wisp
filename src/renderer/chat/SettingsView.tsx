@@ -166,8 +166,8 @@ export function SettingsView(): JSX.Element {
 
         <Section title="Mascote e sons">
           <Toggle
-            label="Modo compacto"
-            hint="O mascote mora na borda da tela, quase todo escondido, e espia quando o cursor passa, com o painel aberto ou quando tem algo para mostrar."
+            label="Ilha no topo"
+            hint="No lugar do mascote flutuante, uma cápsula no centro do topo da tela com o Wisp em miniatura e o que ele está fazendo. Cresce com o cursor; o clique abre o painel logo abaixo."
             checked={values.compact}
             onChange={(compact) => void save({ compact })}
           />

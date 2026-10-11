@@ -51,7 +51,7 @@ export function setupTray(actions: TrayActions): AppMenu {
         }
       },
       {
-        label: 'Modo compacto',
+        label: 'Ilha no topo',
         type: 'checkbox',
         checked: actions.compactEnabled(),
         click: (item) => actions.setCompactEnabled(item.checked)

@@ -5,8 +5,7 @@ import { basename, isAbsolute } from 'path'
 import { isThumbnail } from './attachments'
 import { getConfig, updateConfig } from './config'
 import type { Point } from './config'
-import { dockedPosition, FULL_SHAPE, nearestEdge, SLIDE_MS, tabShape } from './dock'
-import type { DockEdge } from './dock'
+import { ISLAND_ANIMATION_MS, islandBounds, islandRect, islandShape } from './island'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
 import type {
@@ -14,7 +13,7 @@ import type {
   DroppedFile,
   DroppedFiles,
   Gaze,
-  MascotDock,
+  MascotIsland,
   MascotReaction,
   MascotView,
   SoundName,
@@ -26,18 +25,12 @@ import type {
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
 const DRAG_TICK_MS = 16
-/** No compacto: o cursor saiu de cima, e ele se esconde depois disto (ms). */
-const HOVER_TUCK_MS = 1200
-/** No compacto: o que o fazia espiar acabou (o painel fechou, o pedido foi respondido) (ms). */
-const TUCK_MS = 700
-/** No compacto: ao abrir o app ou ligar o modo, ele aparece um pouco antes de se esconder (ms). */
-const FIRST_TUCK_MS = 3000
-/** No compacto: quanto ele espia com uma resposta pronta, um erro ou um lembrete (ms). */
-const MOMENT_MS: Record<'happy' | 'greet' | 'remind', number> = {
-  happy: 3000,
-  greet: 2600,
-  remind: 4000
-}
+/** Na ilha: o cursor saiu de cima, e ela recolhe depois disto (ms). */
+const HOVER_CLOSE_MS = 700
+/** Na ilha: o que a abria acabou (o pedido foi respondido) (ms). */
+const CLOSE_MS = 400
+/** Na ilha: quanto ela fica aberta numa resposta pronta e na saudação (ms). */
+const MOMENT_MS: Record<'happy' | 'greet', number> = { happy: 3000, greet: 2600 }
 
 let mascotWin: BrowserWindow | null = null
 /** O estado atual, reenviado quando a página (re)carrega. */
@@ -88,14 +81,14 @@ export function setupMascot(options: MascotHandlers): void {
     if (!fromMascot(event)) return
     event.sender.send(IPC.mascotState, view)
     event.sender.send(IPC.mascotAccessory, accessory)
-    event.sender.send(IPC.mascotDock, dockView())
+    event.sender.send(IPC.mascotIsland, islandView())
     options.ready()
     greeting.ready = true
     maybeGreet()
   })
   ipcMain.on(IPC.mascotHover, (event, inside: unknown) => {
     if (!fromMascot(event) || typeof inside !== 'boolean') return
-    holdPeek('hover', inside)
+    holdIsland('hover', inside)
     options.hover(inside)
   })
   ipcMain.on(IPC.mascotActivity, (event) => {
@@ -132,7 +125,8 @@ export function getMascotWindow(): BrowserWindow | null {
 
 /** Onde o mascote está agora (para ancorar o chat ao lado dele). */
 export function getMascotBounds(): Rectangle | null {
-  return mascotWin?.getBounds() ?? null
+  // Na ilha, a cápsula aberta (o painel abre logo abaixo dela).
+  return getIslandRect() ?? mascotWin?.getBounds() ?? null
 }
 
 /** Mostra um estado no mascote (seção 5.3). */
@@ -143,11 +137,12 @@ export function setMascotView(next: MascotView): void {
     Boolean(next.music) === Boolean(view.music)
   )
     return
-  if (next.state === 'happy' && view.state !== 'happy') peekFor(MOMENT_MS.happy)
+  if (next.state === 'happy' && view.state !== 'happy') openFor(MOMENT_MS.happy)
   view = next
-  // Um pedido de permissão ou um erro: ele sai da borda até isso passar.
-  holdPeek('attention', next.state === 'permission' || next.state === 'error')
+  // Um pedido de permissão ou um erro: a ilha abre até isso passar.
+  holdIsland('attention', next.state === 'permission' || next.state === 'error')
   mascotWin?.webContents.send(IPC.mascotState, view)
+  sendIsland()
 }
 
 /** Faz o brilho pulsar uma vez (no ritmo do texto que chega). */
@@ -162,7 +157,7 @@ export function setMascotGaze(gaze: Gaze | null): void {
 
 /** Uma reação que vem de fora da página. */
 export function reactMascot(reaction: MascotReaction): void {
-  peekFor(MOMENT_MS[reaction])
+  if (reaction === 'greet') openFor(MOMENT_MS.greet)
   mascotWin?.webContents.send(IPC.mascotReact, reaction)
 }
 
@@ -190,7 +185,9 @@ export function sendVoiceCommand(command: VoiceCommand): void {
 
 /** Em que pé está a voz (o mascote mostra que ouve, transcreve ou fala). */
 export function setMascotVoice(status: VoiceStatus): void {
-  holdPeek('voice', status.state !== 'idle')
+  voiceState = status.state
+  holdIsland('voice', status.state !== 'idle')
+  sendIsland()
   mascotWin?.webContents.send(IPC.voiceStatus, status)
 }
 
@@ -305,24 +302,18 @@ function checkDropped(value: unknown): DroppedFiles {
 }
 
 function createMascotWindow(): BrowserWindow {
-  let { x, y } = resolveMascotPosition(getConfig().mascotPosition)
-  if (getConfig().compact) {
-    const area = screen.getDisplayMatching({
-      x,
-      y,
-      width: MASCOT_SIZE,
-      height: MASCOT_SIZE
-    }).workArea
-    const edge = nearestEdge({ x, y, width: MASCOT_SIZE, height: MASCOT_SIZE }, area)
-    ;({ x, y } = dockedPosition(edge, y, area))
-    dock = newDock(edge)
-  }
+  // Na ilha, a janela é a faixa do topo; senão, o mascote flutuando onde foi deixado.
+  if (getConfig().compact) island = newIsland()
+  const bounds = island
+    ? islandBounds(screen.getPrimaryDisplay().workArea)
+    : {
+        ...resolveMascotPosition(getConfig().mascotPosition),
+        width: MASCOT_SIZE,
+        height: MASCOT_SIZE
+      }
 
   const win = new BrowserWindow({
-    width: MASCOT_SIZE,
-    height: MASCOT_SIZE,
-    x,
-    y,
+    ...bounds,
     show: false,
     frame: false,
     transparent: true,
@@ -358,12 +349,15 @@ function createMascotWindow(): BrowserWindow {
     maybeGreet()
     handlers?.moved()
   })
+  win.once('show', () => {
+    if (island) win.setShape([islandShape(island.expanded)])
+  })
   win.on('closed', () => {
     stopDrag()
     mascotWin = null
-    if (dock) {
-      clearTimeout(dock.timer ?? undefined)
-      clearTimeout(dock.moment ?? undefined)
+    if (island) {
+      clearTimeout(island.timer ?? undefined)
+      clearTimeout(island.moment ?? undefined)
     }
   })
   // Sem o renderer ninguém avisa o fim do arraste; sem isso o mascote seguiria o cursor.
@@ -427,12 +421,11 @@ function moveMascot(p: Point): void {
 function keepMascotOnScreen(): void {
   if (!mascotWin || drag) return
   const [x, y] = mascotWin.getPosition()
-  const p = resolveMascotPosition({ x, y })
-  if (dock) {
-    // No compacto, continua encostado na borda dele (o monitor pode ter mudado de tamanho).
-    redock({ ...p, width: MASCOT_SIZE, height: MASCOT_SIZE }, false)
+  if (island) {
+    // Na ilha, continua no centro do topo (o monitor pode ter mudado de tamanho).
+    mascotWin.setBounds(islandBounds(screen.getPrimaryDisplay().workArea))
   } else {
-    moveMascot(p)
+    moveMascot(resolveMascotPosition({ x, y }))
   }
 }
 
@@ -472,8 +465,9 @@ function isFiniteNumber(value: unknown): value is number {
 
 function onDragStart(event: IpcMainEvent, offsetX: unknown, offsetY: unknown): void {
   if (!fromMascot(event) || !isFiniteNumber(offsetX) || !isFiniteNumber(offsetY)) return
+  // A ilha fica no topo: não se arrasta.
+  if (island) return
   stopDrag()
-  holdPeek('drag', true)
   drag = { offset: { x: offsetX, y: offsetY }, timer: setInterval(followCursor, DRAG_TICK_MS) }
   followCursor()
 }
@@ -482,133 +476,168 @@ function onDragEnd(event: IpcMainEvent): void {
   if (!fromMascot(event) || !drag || !mascotWin) return
   followCursor()
   stopDrag()
-  if (dock) {
-    // No compacto, encosta na borda mais perto de onde foi solto.
-    redock(mascotWin.getBounds(), true)
-    holdPeek('drag', false)
-  } else {
-    const [x, y] = mascotWin.getPosition()
-    updateConfig({ mascotPosition: { x, y } })
-  }
+  const [x, y] = mascotWin.getPosition()
+  updateConfig({ mascotPosition: { x, y } })
   handlers?.moved()
 }
 
 // ---------------------------------------------------------------------------
-// Modo compacto
+// A ilha
 //
-// O mascote mora encostado na borda esquerda ou direita, guardado: a página escorrega o desenho
-// para fora da janela (só um olho e a antena ficam à vista), e a forma da janela encolhe para essa
-// aba, então o resto da borda continua recebendo os cliques de quem está atrás. Ele espia (sai
-// inteiro) enquanto houver um motivo: o cursor na aba, o painel aberto, um pedido de permissão ou
-// um erro, a voz, o arraste, ou um momento (resposta pronta, lembrete, saudação). Sem motivo
-// nenhum, volta a se guardar depois de um tempo.
+// Com o modo compacto ligado (config.compact), o mascote vira uma cápsula no centro do topo da
+// tela, com o Wisp inteiro em miniatura e uma linha de estado. A janela é uma faixa de tamanho
+// fixo; a forma dela (setShape, XShape no X11) fica só na cápsula, recolhida ou aberta, e o resto
+// da faixa deixa os cliques passarem. Ela abre enquanto houver um motivo (o cursor em cima, um
+// pedido de permissão ou um erro, a voz, um momento como uma resposta pronta ou um lembrete) e
+// recolhe sem nenhum.
 
-type PeekReason = 'hover' | 'panel' | 'attention' | 'voice' | 'drag' | 'moment'
+type IslandReason = 'hover' | 'attention' | 'voice' | 'moment'
 
-interface Dock {
-  edge: DockEdge
-  tucked: boolean
-  reasons: Set<PeekReason>
+interface Island {
+  expanded: boolean
+  reasons: Set<IslandReason>
   timer: NodeJS.Timeout | null
   moment: NodeJS.Timeout | null
+  /** Uma mensagem curta, enquanto o momento dura (um lembrete, um alerta). */
+  message: { title: string; detail: string } | null
 }
 
-let dock: Dock | null = null
+let island: Island | null = null
+/** Em que pé está a voz (a ilha diz "ouvindo…"). */
+let voiceState: VoiceStatus['state'] = 'idle'
+/** A linha de baixo quando nada acontece: o próximo compromisso, por exemplo. */
+let islandNote = ''
 
-function newDock(edge: DockEdge): Dock {
-  const created: Dock = { edge, tucked: false, reasons: new Set(), timer: null, moment: null }
-  created.timer = setTimeout(() => tuckLater(0), FIRST_TUCK_MS)
-  return created
+function newIsland(): Island {
+  return { expanded: false, reasons: new Set(), timer: null, moment: null, message: null }
 }
 
-function dockView(): MascotDock {
-  return dock ? { edge: dock.edge, tucked: dock.tucked } : null
+/** O texto da ilha: a mensagem do momento, a voz, ou o estado do mascote. */
+function islandText(): { title: string; detail: string; tone: MascotIslandTone } {
+  if (island?.message) return { ...island.message, tone: 'alert' }
+  if (voiceState === 'listening') return { title: 'ouvindo…', detail: 'pode falar', tone: 'busy' }
+  if (voiceState === 'transcribing') {
+    return { title: 'entendendo…', detail: 'transcrevendo o que você disse', tone: 'busy' }
+  }
+  if (voiceState === 'speaking') return { title: 'falando…', detail: '', tone: 'busy' }
+  switch (view.state) {
+    case 'talking':
+      return { title: 'respondendo…', detail: 'abra o painel para ver', tone: 'busy' }
+    case 'working':
+      return { title: 'trabalhando…', detail: 'abra o painel para ver', tone: 'busy' }
+    case 'permission':
+      return { title: 'esperando você', detail: 'um pedido de permissão no painel', tone: 'alert' }
+    case 'happy':
+      return { title: 'pronto!', detail: 'a resposta está no painel', tone: 'happy' }
+    case 'error':
+      return { title: 'algo deu errado', detail: 'veja no painel', tone: 'alert' }
+    case 'sleeping':
+      return { title: 'cochilando…', detail: islandNote, tone: 'calm' }
+    default:
+      return { title: 'Wisp', detail: islandNote || 'clique para conversar', tone: 'calm' }
+  }
 }
 
-function sendDock(): void {
-  mascotWin?.webContents.send(IPC.mascotDock, dockView())
+type MascotIslandTone = NonNullable<MascotIsland>['tone']
+
+function islandView(): MascotIsland {
+  return island ? { expanded: island.expanded, ...islandText() } : null
 }
 
-/** Liga ou desliga o modo compacto (o config.json, o menu, a tela de configurações). */
+function sendIsland(): void {
+  if (island) mascotWin?.webContents.send(IPC.mascotIsland, islandView())
+}
+
+/** A cápsula na tela, para o painel abrir logo abaixo dela (null: fora da ilha). */
+export function getIslandRect(): Rectangle | null {
+  return island && mascotWin ? islandRect(mascotWin.getBounds(), true) : null
+}
+
+/** Liga ou desliga a ilha (o config.json, o menu, a tela de configurações). */
 export function setCompact(enabled: boolean): void {
-  if (enabled === (dock !== null) || !mascotWin) return
-  const bounds = mascotWin.getBounds()
-  const area = screen.getDisplayMatching(bounds).workArea
+  if (enabled === (island !== null) || !mascotWin) return
   if (enabled) {
-    dock = newDock(nearestEdge(bounds, area))
-    redock(bounds, true)
+    island = newIsland()
+    mascotWin.setBounds(islandBounds(screen.getPrimaryDisplay().workArea))
+    mascotWin.setShape([islandShape(false)])
+    openFor(MOMENT_MS.greet)
   } else {
-    const edge = dock?.edge ?? nearestEdge(bounds, area)
-    if (dock) {
-      clearTimeout(dock.timer ?? undefined)
-      clearTimeout(dock.moment ?? undefined)
-    }
-    dock = null
-    mascotWin.setShape([FULL_SHAPE])
-    // Sai da borda: volta a flutuar um pouco para dentro, na mesma altura.
-    const p = {
-      x: edge === 'left' ? area.x + EDGE_MARGIN : area.x + area.width - MASCOT_SIZE - EDGE_MARGIN,
-      y: bounds.y
-    }
-    moveMascot(p)
-    updateConfig({ mascotPosition: p })
-    sendDock()
+    clearTimeout(island?.timer ?? undefined)
+    clearTimeout(island?.moment ?? undefined)
+    island = null
+    mascotWin.setShape([{ x: 0, y: 0, width: MASCOT_SIZE, height: MASCOT_SIZE }])
+    // De volta ao lugar onde o mascote flutuava antes.
+    mascotWin.setBounds({
+      ...resolveMascotPosition(getConfig().mascotPosition),
+      width: MASCOT_SIZE,
+      height: MASCOT_SIZE
+    })
+    mascotWin.webContents.send(IPC.mascotIsland, null)
   }
   handlers?.moved()
 }
 
-/** Encosta o mascote na borda mais perto de `bounds`, no monitor dele. */
-function redock(bounds: Rectangle, save: boolean): void {
-  if (!dock || !mascotWin) return
-  const area = screen.getDisplayMatching(bounds).workArea
-  dock.edge = nearestEdge(bounds, area)
-  const p = dockedPosition(dock.edge, bounds.y, area)
-  moveMascot(p)
-  if (save) updateConfig({ mascotPosition: p })
-  if (dock.tucked) mascotWin.setShape([tabShape(dock.edge)])
-  sendDock()
+/** A linha de baixo da ilha quando nada acontece (o próximo compromisso). */
+export function setIslandNote(note: string): void {
+  if (note === islandNote) return
+  islandNote = note
+  sendIsland()
 }
 
-/** Um motivo para espiar começou ou acabou. Sem motivo nenhum, ele volta para a borda. */
-export function holdPeek(reason: PeekReason, on: boolean): void {
-  if (!dock) return
+/** Uma mensagem curta na ilha, aberta e pulsando por um tempo (um lembrete, um alerta). */
+export function islandMessage(title: string, detail: string, ms = 5000): void {
+  if (!island) return
+  island.message = { title: title.slice(0, 80), detail: detail.slice(0, 160) }
+  openFor(ms, () => {
+    if (island) island.message = null
+  })
+}
+
+/** Um motivo para a ilha ficar aberta começou ou acabou. Sem motivo nenhum, ela recolhe. */
+export function holdIsland(reason: IslandReason, on: boolean): void {
+  if (!island) return
   if (on) {
-    dock.reasons.add(reason)
-    peek()
-  } else if (dock.reasons.delete(reason) && dock.reasons.size === 0) {
-    tuckLater(reason === 'hover' ? HOVER_TUCK_MS : TUCK_MS)
+    island.reasons.add(reason)
+    expand()
+  } else if (island.reasons.delete(reason) && island.reasons.size === 0) {
+    closeLater(reason === 'hover' ? HOVER_CLOSE_MS : CLOSE_MS)
   }
 }
 
-/** Espia por um momento (uma resposta pronta, um lembrete), e volta se nada mais o segurar. */
-function peekFor(ms: number): void {
-  if (!dock) return
-  clearTimeout(dock.moment ?? undefined)
-  holdPeek('moment', true)
-  dock.moment = setTimeout(() => holdPeek('moment', false), ms)
+/** Abre por um momento (uma resposta pronta, a saudação), e recolhe se nada mais a segurar. */
+function openFor(ms: number, done?: () => void): void {
+  if (!island) return
+  clearTimeout(island.moment ?? undefined)
+  holdIsland('moment', true)
+  sendIsland()
+  island.moment = setTimeout(() => {
+    done?.()
+    holdIsland('moment', false)
+    sendIsland()
+  }, ms)
 }
 
-function peek(): void {
-  if (!dock || !mascotWin) return
-  clearTimeout(dock.timer ?? undefined)
-  dock.timer = null
-  if (!dock.tucked) return
-  dock.tucked = false
-  // A janela volta inteira antes do desenho sair, senão ele apareceria cortado.
-  mascotWin.setShape([FULL_SHAPE])
-  sendDock()
+function expand(): void {
+  if (!island || !mascotWin) return
+  clearTimeout(island.timer ?? undefined)
+  island.timer = null
+  if (island.expanded) return
+  island.expanded = true
+  // A forma cresce antes da cápsula, senão ela apareceria cortada.
+  mascotWin.setShape([islandShape(true)])
+  sendIsland()
 }
 
-function tuckLater(ms: number): void {
-  if (!dock) return
-  clearTimeout(dock.timer ?? undefined)
-  dock.timer = setTimeout(() => {
-    if (!dock || !mascotWin || dock.reasons.size > 0 || drag) return
-    dock.tucked = true
-    sendDock()
-    // A forma encolhe só depois da animação de se guardar.
-    dock.timer = setTimeout(() => {
-      if (dock?.tucked) mascotWin?.setShape([tabShape(dock.edge)])
-    }, SLIDE_MS + 40)
+function closeLater(ms: number): void {
+  if (!island) return
+  clearTimeout(island.timer ?? undefined)
+  island.timer = setTimeout(() => {
+    if (!island || !mascotWin || island.reasons.size > 0) return
+    island.expanded = false
+    sendIsland()
+    // A forma encolhe só depois da animação.
+    island.timer = setTimeout(() => {
+      if (island && !island.expanded) mascotWin?.setShape([islandShape(false)])
+    }, ISLAND_ANIMATION_MS + 40)
   }, ms)
 }

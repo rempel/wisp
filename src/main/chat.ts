@@ -835,6 +835,9 @@ export function setupChat({
    * Coloca o painel ao lado do mascote (à esquerda, ou à direita se não couber), dentro da área
    * útil. `width`: a largura nova (a tela dividida mudou); sem ela, a de agora.
    */
+  /** O mascote a menos disto do topo da tela (a ilha): o painel abre embaixo dele (px). */
+  const TOP_ANCHOR = 40
+
   function placeNextToMascot(chat: BrowserWindow, width?: number): void {
     const mascot = anchor()
     if (!mascot) return
@@ -845,6 +848,17 @@ export function setupChat({
     const clamp = (value: number, min: number, max: number): number =>
       Math.min(Math.max(value, min), max)
 
+    // Colado no topo da tela (a ilha): o painel abre logo abaixo, centralizado com ela.
+    if (mascot.y - area.y < TOP_ANCHOR) {
+      const below = Math.min(height, area.y + area.height - (mascot.y + mascot.height + GAP))
+      chat.setBounds({
+        x: clamp(Math.round(mascot.x + (mascot.width - w) / 2), area.x, area.x + area.width - w),
+        y: mascot.y + mascot.height + GAP,
+        width: w,
+        height: Math.max(360, below)
+      })
+      return
+    }
     let x = mascot.x - GAP - w
     if (x < area.x) x = mascot.x + mascot.width + GAP
     x = clamp(x, area.x, area.x + area.width - w)
