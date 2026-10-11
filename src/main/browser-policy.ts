@@ -85,12 +85,19 @@ export function siteOf(url: string): string | null {
 }
 
 /**
- * A página aberta, pela seção "### Page" da resposta do Playwright ("- Page URL: …"). Conta só o
- * que está fora dos blocos de código (o texto das páginas vem dentro deles) e a última seção.
+ * A página aberta, pela seção "### Page" da resposta do Playwright, cuja primeira linha é
+ * "- Page URL: …". Devolve o endereço, null se a resposta não diz, ou 'unknown' se ela pode
+ * estar adulterada.
+ *
+ * A página consegue escrever em partes da resposta: o texto de um alert() vai cru, com quebras
+ * de linha, na seção "### Modal state", que vem depois da "### Page"; e uma mensagem de erro pode
+ * citar a página. Por isso valem só a seção "### Page" de verdade (uma só, antes de "### Modal
+ * state", fora dos blocos de código) e nenhuma depois de um "### Error".
  */
-export function currentPageUrl(output: string): string | null {
+export function currentPageUrl(output: string): string | null | 'unknown' {
   let fenced = false
-  let inPage = false
+  let pages = 0
+  let afterPage = false
   let url: string | null = null
   for (const line of output.split('\n')) {
     if (line.startsWith('```')) {
@@ -98,14 +105,22 @@ export function currentPageUrl(output: string): string | null {
       continue
     }
     if (fenced) continue
-    if (line.startsWith('### ')) {
-      inPage = line.trim() === '### Page'
-      continue
+    if (afterPage) {
+      afterPage = false
+      const match = /^- Page URL: (\S+)$/.exec(line)
+      if (match) url = match[1]
     }
-    const match = inPage ? /^- Page URL: (\S+)$/.exec(line) : null
-    if (match) url = match[1]
+    if (!line.startsWith('### ')) continue
+    const title = line.trim()
+    if (title === '### Error') return 'unknown'
+    // Daqui para a frente, só o que a página pode ter escrito (diálogos, snapshot).
+    if (title === '### Modal state' || title === '### Snapshot') break
+    if (title === '### Page') {
+      pages++
+      afterPage = true
+    }
   }
-  return url
+  return pages > 1 ? 'unknown' : url
 }
 
 const field = (input: unknown, key: string): string => {
@@ -163,7 +178,8 @@ export class BrowserPolicy {
       return
     }
     const url = currentPageUrl(event.output)
-    if (url) this.current = url === 'about:blank' ? null : siteOf(url)
+    if (url === 'unknown') this.current = null
+    else if (url) this.current = url === 'about:blank' ? null : siteOf(url)
     // Sem a seção da página numa resposta cortada (o chat guarda só o começo): pode ter havido
     // uma navegação que não dá para ver, então a página passa a ser desconhecida.
     else if (event.output.length >= TRUNCATED_AT) this.current = null
