@@ -28,6 +28,7 @@ import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './
 import type { ScreenImage } from './screenshot'
 import { IPC, MAX_PANES, MODEL_CHOICES, PERMISSION_MODES } from '../shared/ipc'
 import type {
+  AgendaItem,
   AttachmentPreview,
   ChatEvent,
   ClipboardUse,
@@ -198,6 +199,8 @@ export interface Chat {
   notifySound(settings: SoundSettings): void
   /** As configurações mudaram (a tela de configurações e a pílula da demonstração). */
   notifySettings(snapshot: SettingsSnapshot): void
+  /** O próximo compromisso da agenda (null: nenhum), para o painel vazio. */
+  setAgenda(next: AgendaItem | null): void
   /**
    * Tira o print das telas com o painel fora da frente; depois ele volta como estava. Lança
    * CaptureError com o motivo.
@@ -263,6 +266,8 @@ export function setupChat({
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
   let pageReady = false
+  /** O próximo compromisso da agenda, reenviado quando a página (re)carrega. */
+  let agendaNext: AgendaItem | null = null
   const queued: [string, ChatEvent][] = []
   let quitting = false
   let mood: MascotState = 'idle'
@@ -620,6 +625,7 @@ export function setupChat({
     showSettingsOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
     win.webContents.send(IPC.voiceStatus, voice)
+    win.webContents.send(IPC.agendaNext, agendaNext)
     if (pendingCompose !== null) win.webContents.send(IPC.chatCompose, pendingCompose)
     pendingCompose = null
     // A página (re)começou sem chip: o que estiver copiado é oferecido de novo.
@@ -1091,6 +1097,10 @@ export function setupChat({
     },
     notifySettings(snapshot) {
       if (win && pageReady) win.webContents.send(IPC.settingsChanged, snapshot)
+    },
+    setAgenda(next) {
+      agendaNext = next
+      if (win && pageReady) win.webContents.send(IPC.agendaNext, next)
     },
     capture: captureWithoutPanel,
     notice(level, text) {

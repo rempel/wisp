@@ -280,6 +280,37 @@ export function SettingsView(): JSX.Element {
             checked={values.github}
             onChange={(github) => void save({ github })}
           />
+          <Toggle
+            label="Agenda"
+            hint="Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura."
+            checked={values.calendar}
+            onChange={(calendar) => void save({ calendar })}
+          />
+          {values.calendar && (
+            <>
+              <Row
+                label="Arquivos de agenda"
+                hint="Arquivos .ics ou pastas com eles (vdirsyncer, KOrganizer), um por linha. Opcional."
+                error={errors.calendarFiles}
+              >
+                <ListInput
+                  value={values.calendarFiles}
+                  placeholder="~/.calendars"
+                  onCommit={(calendarFiles) => save({ calendarFiles })}
+                />
+              </Row>
+              <Row
+                label="Avisar antes"
+                hint="Minutos antes de cada compromisso com hora marcada. 0: não avisa."
+                error={errors.calendarAlertMinutes}
+              >
+                <NumberInput
+                  value={values.calendarAlertMinutes}
+                  onCommit={(calendarAlertMinutes) => save({ calendarAlertMinutes })}
+                />
+              </Row>
+            </>
+          )}
         </Section>
 
         <Section title="Avançado">

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { ATTACHMENT_LIMITS, MAX_PANES } from '../../shared/ipc'
 import type {
+  AgendaItem,
   AttachmentPreview,
   ChatEvent,
   ClipboardOffer,
@@ -56,6 +57,8 @@ export default function Chat(): JSX.Element {
   const [view, setView] = useState<'chat' | 'history' | 'sessions' | 'settings'>('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
+  /** O próximo compromisso da agenda (o painel vazio mostra). */
+  const [agendaNext, setAgendaNext] = useState<AgendaItem | null>(null)
   const demo = settings?.values.demo ?? false
   const sessions = useSessions()
   const requests = sessions?.sessions.reduce((sum, item) => sum + item.requests.length, 0) ?? 0
@@ -135,6 +138,7 @@ export default function Chat(): JSX.Element {
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offSettingsShow = window.wisp.settings.onShow(() => setView('settings'))
     const offSettings = window.wisp.settings.onChanged(setSettings)
+    const offAgenda = window.wisp.agenda.onNext(setAgendaNext)
     void window.wisp.settings.get().then((snapshot) => snapshot && setSettings(snapshot))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
@@ -159,6 +163,7 @@ export default function Chat(): JSX.Element {
       offSessions()
       offSettingsShow()
       offSettings()
+      offAgenda()
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCopy)
     }
@@ -568,6 +573,7 @@ export default function Chat(): JSX.Element {
                   voice={focused ? voice : { state: 'idle' }}
                   bus={bus}
                   demo={demo}
+                  agenda={agendaNext}
                   onSent={onSent(id)}
                 />
               )

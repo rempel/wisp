@@ -154,10 +154,12 @@ check('M1 a chave da demonstração', await clickSwitch('Modo demonstração'))
 await waitFor(() => config().demo === true, 4000)
 await ev(`document.querySelector('.header .icon-button[aria-label="Configurações"]').click()`)
 await waitFor(() => ev(`!!document.querySelector('.pane .composer')`), 4000)
+// A pílula e a conversa recomeçada (com o aviso) chegam por caminhos diferentes: espera os dois.
 p = await waitFor(async () => {
   const value = await pane()
-  return value.pill ? value : null
-}, 4000)
+  return value.pill && value.notices.some((n) => /Modo demonstração ligado/.test(n)) ? value : null
+}, 8000)
+p ??= await pane()
 check('M2 a pílula "Demo" no cabeçalho', p?.pill === 'Demo', JSON.stringify(p))
 check(
   'M3 a conversa recomeçou, com o aviso',

@@ -3,6 +3,7 @@ import type { Point } from 'electron'
 import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { accessoryFor, msUntilMidnight } from './accessory'
+import { Agenda, describeAgenda } from './agenda'
 import { isAutostartEnabled, refreshAutostart, setAutostart } from './autostart'
 import { cleanOldAttachments } from './attachments'
 import { findBrowser, playwrightServer } from './browser'
@@ -17,6 +18,7 @@ import {
   updateConfig
 } from './config'
 import { listApps, openApp, openInEditor } from './desktop'
+import { EdsCalendars } from './eds'
 import { describeAlert, describeSnapshot, GithubWatcher, MAX_ALERTS } from './github'
 import type { GithubAlert } from './github'
 import { deployRelay } from './hooks/install'
@@ -241,6 +243,54 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     else github.stop()
   }
 
+  // A agenda (opcional): as agendas do GNOME (EDS) e arquivos .ics. Avisa alguns minutos antes de
+  // cada compromisso, e o painel vazio mostra o próximo.
+  let eds: EdsCalendars | null = null
+  const agenda = new Agenda({
+    eds: async () => {
+      if (!eds?.alive) eds = await EdsCalendars.connect()
+      return eds
+    },
+    files: () => getConfig().calendarFiles,
+    alertMinutes: () => getConfig().calendarAlertMinutes,
+    onAlert: (event, minutes) => {
+      presence.activity()
+      reactMascot('remind')
+      sounds.play('lembrete')
+      const clock = (ms: number): string =>
+        new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+      const span =
+        event.end > event.start ? `${clock(event.start)}–${clock(event.end)}` : clock(event.start)
+      notify(
+        `Em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}: ${event.title}`,
+        event.location ? `${span} · ${event.location}` : span,
+        () => chat?.open()
+      )
+    },
+    onNext: (next) =>
+      chat?.setAgenda(
+        next
+          ? { title: next.title, start: next.start, end: next.end, location: next.location }
+          : null
+      )
+  })
+  let agendaKey = ''
+  const updateAgenda = (): void => {
+    const { calendar, calendarFiles, calendarAlertMinutes } = getConfig()
+    const key = JSON.stringify([calendar, calendarFiles, calendarAlertMinutes])
+    if (key === agendaKey) return
+    agendaKey = key
+    if (!calendar) {
+      agenda.stop()
+      eds?.close()
+      eds = null
+    } else if (agenda.enabled) {
+      void agenda.refresh()
+    } else {
+      agenda.start()
+    }
+  }
+
   let desktop: DesktopServer | null = null
   try {
     desktop = await startDesktopServer({
@@ -268,6 +318,25 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         if (problem === 'login') return 'O gh não está logado: falta rodar `gh auth login`.'
         const snapshot = github.snapshot()
         return snapshot ? describeSnapshot(snapshot) : 'Não consegui ler o GitHub agora.'
+      },
+      agenda: async (days, from) => {
+        if (!getConfig().calendar) {
+          return (
+            'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ' +
+            'agendas do GNOME e arquivos .ics).'
+          )
+        }
+        const today = new Date()
+        let start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
+        if (from) {
+          const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(from.trim())
+          if (!match) return 'Use a data no formato AAAA-MM-DD.'
+          start = new Date(+match[1], +match[2] - 1, +match[3]).getTime()
+        }
+        const end = new Date(start + days * 86_400_000 + 3_600_000).setHours(0, 0, 0, 0)
+        const list = await agenda.between(start, end)
+        const text = describeAgenda(list, start, end)
+        return agenda.problems.length ? `${text}\nAvisos: ${agenda.problems.join(' ')}` : text
       },
       media: () => media,
       screenshot: async () => {
@@ -487,6 +556,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     updateBrowser()
     setCompact(getConfig().compact)
     updateGithub()
+    updateAgenda()
   })
 
   // O navegador do Claude (opcional): o servidor do Playwright entra no --mcp-config e vale a
@@ -654,8 +724,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   powerMonitor.on('resume', () => {
     reminders.resume()
     github.refreshSoon()
+    if (agenda.enabled) void agenda.refresh()
   })
   updateGithub()
+  updateAgenda()
 
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.
