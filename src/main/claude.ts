@@ -36,7 +36,11 @@ export const SAFE_TOOLS = [
   // Música: tocar, pausar e volume do player não mudam nada na máquina.
   'mcp__desktop__media_status',
   'mcp__desktop__media_control',
-  'mcp__desktop__media_volume'
+  'mcp__desktop__media_volume',
+  // Fase 13: só leitura (os seus PRs, a agenda, o resumo da semana).
+  'mcp__desktop__github_status',
+  'mcp__desktop__list_events',
+  'mcp__desktop__weekly_summary'
 ]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */

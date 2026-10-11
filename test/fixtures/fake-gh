@@ -1,0 +1,30 @@
+#!/usr/bin/env node
+// A fake gh (GitHub CLI) for the tests: `gh api graphql -f query=...` prints the JSON in
+// FAKE_GH_RESPONSE (a file). FAKE_GH_EXIT and FAKE_GH_STDERR simulate a failure (exit 4 is "not
+// logged in"). Each call is logged to FAKE_GH_LOG: the arguments and what the environment had.
+const fs = require('fs')
+const args = process.argv.slice(2)
+if (process.env.FAKE_GH_LOG) {
+  fs.appendFileSync(
+    process.env.FAKE_GH_LOG,
+    JSON.stringify({
+      args,
+      apiKey: 'ANTHROPIC_API_KEY' in process.env,
+      prompt: process.env.GH_PROMPT_DISABLED ?? null
+    }) + '\n'
+  )
+}
+if (process.env.FAKE_GH_EXIT) {
+  process.stderr.write(process.env.FAKE_GH_STDERR || 'error')
+  process.exit(Number(process.env.FAKE_GH_EXIT))
+}
+if (
+  args[0] !== 'api' ||
+  args[1] !== 'graphql' ||
+  args[2] !== '-f' ||
+  !args[3]?.startsWith('query=')
+) {
+  process.stderr.write('unexpected arguments')
+  process.exit(2)
+}
+process.stdout.write(fs.readFileSync(process.env.FAKE_GH_RESPONSE, 'utf8'))

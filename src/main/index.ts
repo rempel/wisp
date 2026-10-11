@@ -17,6 +17,8 @@ import {
   updateConfig
 } from './config'
 import { listApps, openApp, openInEditor } from './desktop'
+import { describeAlert, describeSnapshot, GithubWatcher, MAX_ALERTS } from './github'
+import type { GithubAlert } from './github'
 import { deployRelay } from './hooks/install'
 import {
   APP_ID,
@@ -55,6 +57,7 @@ import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
 import { MascotMood } from './mood'
 import { CACHE_DIR, DATA_DIR } from './paths'
+import { findProgram } from './programs'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
@@ -185,6 +188,59 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
   // configuração do servidor; os pedidos só chegam depois que os dois existem.
   let chat: Chat | null = null
+
+  // Os alertas do GitHub (opcional), pelo gh já logado: CI e revisões dos seus PRs, e pedidos de
+  // revisão. O clique na notificação abre o PR no navegador.
+  const github = new GithubWatcher({
+    gh: () =>
+      findProgram('gh', ['gh'], ['/usr/local/bin', '/snap/bin', '/home/linuxbrew/.linuxbrew/bin']),
+    onAlerts: (alerts) => githubAlerts(alerts),
+    onProblem: (problem) => {
+      if (!problem) return chat?.notice('info', 'Os alertas do GitHub voltaram a funcionar.')
+      chat?.notice(
+        'warning',
+        problem.kind === 'missing'
+          ? 'Para os alertas do GitHub, instale o **gh** (GitHub CLI) e rode `gh auth login` no ' +
+              'terminal. O Wisp pergunta de novo de tempos em tempos.'
+          : 'O **gh** não está logado no GitHub: rode `gh auth login` no terminal. O Wisp ' +
+              'pergunta de novo de tempos em tempos.'
+      )
+    }
+  })
+  const githubAlerts = (alerts: GithubAlert[]): void => {
+    presence.activity()
+    for (const alert of alerts.slice(0, MAX_ALERTS)) {
+      const { title, body, url } = describeAlert(alert)
+      notify(title, body, () => void shell.openExternal(url))
+    }
+    if (alerts.length > MAX_ALERTS) {
+      const more = alerts.length - MAX_ALERTS
+      notify('GitHub', `E mais ${more} ${more === 1 ? 'novidade' : 'novidades'} nos seus PRs.`)
+    }
+    // O mascote reage ao mais importante: CI vermelho ou pedido de mudanças, aprovação ou CI
+    // verde, e o resto (pedido de revisão, comentário) com o sininho.
+    const bad = alerts.some(
+      (a) => a.kind === 'ci-failed' || (a.kind === 'review' && a.state === 'CHANGES_REQUESTED')
+    )
+    const good = alerts.some(
+      (a) => a.kind === 'ci-passed' || (a.kind === 'review' && a.state === 'APPROVED')
+    )
+    if (bad) {
+      mood.flashExternal('error')
+      sounds.play('erro')
+    } else if (good) {
+      mood.flashExternal('happy')
+      sounds.play('pronto')
+    } else {
+      reactMascot('remind')
+      sounds.play('lembrete')
+    }
+  }
+  const updateGithub = (): void => {
+    if (getConfig().github) github.start()
+    else github.stop()
+  }
+
   let desktop: DesktopServer | null = null
   try {
     desktop = await startDesktopServer({
@@ -197,6 +253,22 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       editorCommand: () => getConfig().editorCommand,
       terminalCommand: () => getConfig().terminalCommand,
       reminders,
+      github: async () => {
+        if (!getConfig().github) {
+          return (
+            'Os alertas do GitHub estão desligados. Dá para ligar em Configurações → ' +
+            'Integrações (precisa do gh, o GitHub CLI, logado).'
+          )
+        }
+        // Uma leitura com mais de um minuto é refeita na hora.
+        const last = github.snapshot()
+        if (!last || Date.now() - last.at > 60_000) await github.poll()
+        const problem = github.currentProblem()
+        if (problem === 'missing') return 'O gh (GitHub CLI) não está instalado.'
+        if (problem === 'login') return 'O gh não está logado: falta rodar `gh auth login`.'
+        const snapshot = github.snapshot()
+        return snapshot ? describeSnapshot(snapshot) : 'Não consegui ler o GitHub agora.'
+      },
       media: () => media,
       screenshot: async () => {
         if (!chat) throw new Error('o Wisp ainda está abrindo')
@@ -414,6 +486,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sounds.check()
     updateBrowser()
     setCompact(getConfig().compact)
+    updateGithub()
   })
 
   // O navegador do Claude (opcional): o servidor do Playwright entra no --mcp-config e vale a
@@ -578,7 +651,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   // Os lembretes vencidos com o app fechado saem depois da saudação, com o mascote já na tela.
   const remindersStart = setTimeout(() => reminders.start(), 3000)
-  powerMonitor.on('resume', () => reminders.resume())
+  powerMonitor.on('resume', () => {
+    reminders.resume()
+    github.refreshSoon()
+  })
+  updateGithub()
 
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.

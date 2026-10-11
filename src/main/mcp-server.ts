@@ -69,6 +69,8 @@ export interface DesktopServerOptions {
     list(): Reminder[]
     cancel(id: string): Reminder | null
   }
+  /** Os seus PRs no GitHub, em texto (Fase 13). */
+  github?: () => Promise<string>
 }
 
 export interface DesktopServer {
@@ -394,6 +396,23 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
           ? text(`Cancelei o lembrete "${removed.text}" (${describeWhen(removed.at)}).`)
           : { ...text(`Não achei o lembrete "${id}". Use list_reminders.`), isError: true }
       }
+    )
+  }
+
+  const github = options.github
+  if (github) {
+    server.registerTool(
+      'github_status',
+      {
+        title: 'Meus PRs no GitHub',
+        description:
+          'Os PRs abertos do usuário no GitHub (CI passou, falhou ou rodando; aprovado, ' +
+          'pediram mudanças ou esperando revisão) e os PRs em que pedem a revisão dele, com os ' +
+          'links. Lido pelo gh (GitHub CLI) do usuário. Use para "como estão meus PRs?".',
+        annotations: { readOnlyHint: true },
+        _meta: ALWAYS_LOAD
+      },
+      async () => text(await github())
     )
   }
 
