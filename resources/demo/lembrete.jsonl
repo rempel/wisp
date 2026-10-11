@@ -1,0 +1,7 @@
+{"wait": 300}
+{"type": "stream_event", "event": {"type": "message_start", "message": {"id": "msg_r1"}}}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_r1", "name": "mcp__desktop__set_reminder", "input": {}}}}
+{"type": "assistant", "message": {"id": "msg_r1", "content": [{"type": "tool_use", "id": "toolu_r1", "name": "mcp__desktop__set_reminder", "input": {"texto": "Beber água", "minutos": 30}}]}}
+{"wait": 300}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_r1", "content": "Demonstração: nenhum lembrete foi marcado de verdade.", "is_error": false}]}}
+{"say": "Combinado: daqui a 30 minutos eu avisaria para você beber água, com uma notificação e o mascote acenando. Na demonstração, nenhum lembrete foi marcado."}

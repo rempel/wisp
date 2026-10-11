@@ -1,0 +1,7 @@
+{"wait": 300}
+{"type": "stream_event", "event": {"type": "message_start", "message": {"id": "msg_w1"}}}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_w1", "name": "WebSearch", "input": {}}}}
+{"type": "assistant", "message": {"id": "msg_w1", "content": [{"type": "tool_use", "id": "toolu_w1", "name": "WebSearch", "input": {"query": "previsão do tempo amanhã"}}]}}
+{"wait": 900}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_w1", "content": "Resultados gravados para a demonstração: previsão para amanhã, parcialmente nublado, máxima de 27 °C, mínima de 18 °C, 20% de chance de chuva.", "is_error": false}]}}
+{"say": "Para amanhã (dados gravados da demonstração):\n\n| Período | Tempo | Temperatura |\n| --- | --- | --- |\n| Manhã | Sol entre nuvens | 18 °C |\n| Tarde | Parcialmente nublado | 27 °C |\n| Noite | Céu limpo | 21 °C |\n\nChance de chuva baixa, uns **20%**. Pesquisar na web não pede permissão: só lê."}

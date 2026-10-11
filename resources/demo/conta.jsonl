@@ -1,0 +1,2 @@
+{"wait": 300}
+{"say": "2³² = **4.294.967.296**.\n\nÉ o número de valores diferentes que cabem em 32 bits. Em Python:\n\n```python\nprint(2 ** 32)  # 4294967296\n```"}

@@ -10,6 +10,7 @@ import type {
   MascotReaction,
   MascotState,
   MascotView,
+  SettingsSnapshot,
   SoundName,
   SoundSettings,
   TabsState,
@@ -106,6 +107,13 @@ const api: WispApi = {
     get: () => ipcRenderer.invoke(IPC.soundGet),
     set: (enabled) => ipcRenderer.send(IPC.soundSet, enabled),
     onChanged: (listener) => subscribe<[SoundSettings]>(IPC.soundChanged, listener)
+  },
+  settings: {
+    get: () => ipcRenderer.invoke(IPC.settingsGet),
+    set: (patch) => ipcRenderer.invoke(IPC.settingsSet, patch),
+    onChanged: (listener) => subscribe<[SettingsSnapshot]>(IPC.settingsChanged, listener),
+    openFile: () => ipcRenderer.send(IPC.settingsOpenFile),
+    onShow: (listener) => subscribe<[]>(IPC.settingsShow, listener)
   },
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),

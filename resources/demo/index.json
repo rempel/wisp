@@ -1,0 +1,25 @@
+{
+  "fallback": "ajuda.jsonl",
+  "recordings": [
+    {
+      "file": "app.jsonl",
+      "keywords": ["abre", "abrir", "firefox", "navegador", "app"]
+    },
+    {
+      "file": "edit.jsonl",
+      "keywords": ["arruma", "bug", "edita", "corrige", "contador", "codigo"]
+    },
+    {
+      "file": "web.jsonl",
+      "keywords": ["pesquisa", "previsao", "tempo", "busca", "procura"]
+    },
+    {
+      "file": "lembrete.jsonl",
+      "keywords": ["lembra", "lembrete", "agua"]
+    },
+    {
+      "file": "conta.jsonl",
+      "keywords": ["quanto", "elevado", "conta", "calcula", "2^32"]
+    }
+  ]
+}

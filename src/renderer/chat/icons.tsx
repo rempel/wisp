@@ -117,6 +117,23 @@ export const TrashIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Três controles deslizantes, para as configurações. */
+export const SettingsIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M2.5 4.5H8m3 0h2.5M2.5 8H4.5m3 0h6M2.5 11.5H8.5m3 0h2" />
+    <circle cx="9.5" cy="4.5" r="1.5" />
+    <circle cx="6" cy="8" r="1.5" />
+    <circle cx="10" cy="11.5" r="1.5" />
+  </Icon>
+)
+
+/** Um "play", para o modo demonstração. */
+export const DemoIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M5.5 4.2v7.6L11.8 8z" />
+  </Icon>
+)
+
 export const BackIcon = (): JSX.Element => (
   <Icon>
     <path d="M13 8H3.5M7.5 4 3.5 8l4 4" />

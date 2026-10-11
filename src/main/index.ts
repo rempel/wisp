@@ -8,7 +8,14 @@ import { cleanOldAttachments } from './attachments'
 import { findBrowser, playwrightServer } from './browser'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
-import { CONFIG_PATH, getConfig, loadConfig, onConfigChange } from './config'
+import {
+  CONFIG_PATH,
+  getConfig,
+  loadConfig,
+  notifyConfigChange,
+  onConfigChange,
+  updateConfig
+} from './config'
 import { listApps, openApp, openInEditor } from './desktop'
 import { deployRelay } from './hooks/install'
 import {
@@ -52,6 +59,7 @@ import { ScreenLock } from './screenlock'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
 import { setupSessionsIpc } from './sessions-ipc'
+import { setupSettings } from './settings-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
 import type { ShortcutStatus } from './shortcut'
@@ -476,6 +484,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       })
     }
   })
+  // A tela de configurações do painel (e a pílula do modo demonstração).
+  const settings = setupSettings({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    send: (snapshot) => chat?.notifySettings(snapshot),
+    autostart: {
+      get: isAutostartEnabled,
+      set: (enabled) => setAutostart(enabled, entryIcon)
+    },
+    onChange: () => menu?.refresh()
+  })
+
   menu = setupTray({
     mascotVisible: isMascotVisible,
     setMascotVisible,
@@ -486,7 +505,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     setAutostartEnabled: (enabled) => {
       const problem = setAutostart(enabled, entryIcon)
       if (problem) notify('Não mudei o início com o sistema', problem)
+      settings.notify()
     },
+    demoEnabled: () => getConfig().demo,
+    setDemoEnabled: (enabled) => {
+      updateConfig({ demo: enabled })
+      notifyConfigChange()
+    },
+    openSettings: () => chat?.openSettings(),
     shortcutLabel: () => shortcutLabel('toggle'),
     voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {

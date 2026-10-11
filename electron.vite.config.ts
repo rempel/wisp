@@ -6,11 +6,12 @@ export default defineConfig({
   main: {
     build: {
       rollupOptions: {
-        // O relay dos hooks do Claude Code é um programa à parte, rodado com o Electron em modo
-        // Node (src/main/hooks/relay.ts).
+        // O relay dos hooks do Claude Code e o Claude Code gravado do modo demonstração são
+        // programas à parte, rodados com o Electron em modo Node.
         input: {
           index: resolve('src/main/index.ts'),
-          'wisp-hook': resolve('src/main/hooks/relay.ts')
+          'wisp-hook': resolve('src/main/hooks/relay.ts'),
+          'wisp-demo': resolve('src/main/demo/player.ts')
         }
       }
     }

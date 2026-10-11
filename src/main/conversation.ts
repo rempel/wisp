@@ -50,6 +50,8 @@ export interface ConversationOptions {
   projectRoots: () => string[]
   /** Pastas que valem mesmo sendo ocultas (o workspace do Wisp, os anexos). */
   trustedDirs: string[]
+  /** Modo demonstração: as respostas são gravadas, e a conversa não vai para o histórico. */
+  demo?: () => boolean
 }
 
 /** Uma prévia de anexo, para a conversa mostrar o que foi enviado. */
@@ -142,7 +144,12 @@ export class Conversation {
       this.title = titleOf(text, previews)
       this.options.host.changed(this)
     }
-    this.history.user(this.session.ensureSessionId(), text, previews, voice)
+    // Uma conversa da demonstração não vai para o histórico: não há o que retomar depois.
+    if (!this.options.demo?.()) {
+      this.history.user(this.session.ensureSessionId(), text, previews, voice)
+    } else {
+      this.session.ensureSessionId()
+    }
     void this.session.send(
       text,
       files.map((file) => file.path)

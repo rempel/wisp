@@ -7,16 +7,27 @@ import type {
   ClipboardOffer,
   MascotState,
   PlanUsage,
+  SettingsSnapshot,
   SoundSettings,
   TabsState,
   VoiceStatus
 } from '../../shared/ipc'
 import { HistoryView } from './HistoryView'
-import { Avatar, BackIcon, CloseIcon, HistoryIcon, PaperclipIcon, TerminalIcon } from './icons'
+import {
+  Avatar,
+  BackIcon,
+  CloseIcon,
+  DemoIcon,
+  HistoryIcon,
+  PaperclipIcon,
+  SettingsIcon,
+  TerminalIcon
+} from './icons'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
+import { SettingsView } from './SettingsView'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
 import type { Action, ChatState } from './state'
 import { TabBar } from './TabBar'
@@ -42,7 +53,10 @@ const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0 }
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
-  const [view, setView] = useState<'chat' | 'history' | 'sessions'>('chat')
+  const [view, setView] = useState<'chat' | 'history' | 'sessions' | 'settings'>('chat')
+  // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
+  const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
+  const demo = settings?.values.demo ?? false
   const sessions = useSessions()
   const requests = sessions?.sessions.reduce((sum, item) => sum + item.requests.length, 0) ?? 0
   const [mood, setMood] = useState<MascotState>('idle')
@@ -119,6 +133,9 @@ export default function Chat(): JSX.Element {
       if (conversation) bus.emit(conversation, { type: 'compose', text })
     })
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
+    const offSettingsShow = window.wisp.settings.onShow(() => setView('settings'))
+    const offSettings = window.wisp.settings.onChanged(setSettings)
+    void window.wisp.settings.get().then((snapshot) => snapshot && setSettings(snapshot))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
         root.current?.animate(SHOW_KEYFRAMES, {
@@ -140,6 +157,8 @@ export default function Chat(): JSX.Element {
       offCompose()
       offShown()
       offSessions()
+      offSettingsShow()
+      offSettings()
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCopy)
     }
@@ -401,9 +420,19 @@ export default function Chat(): JSX.Element {
               <BackIcon />
             </button>
             <div className="title">
-              <strong>{view === 'history' ? 'Conversas' : 'Sessões'}</strong>
+              <strong>
+                {view === 'history'
+                  ? 'Conversas'
+                  : view === 'settings'
+                    ? 'Configurações'
+                    : 'Sessões'}
+              </strong>
               <span className="status">
-                {view === 'history' ? 'guardadas neste computador' : 'do Claude Code no terminal'}
+                {view === 'history'
+                  ? 'guardadas neste computador'
+                  : view === 'settings'
+                    ? 'gravadas no config.json'
+                    : 'do Claude Code no terminal'}
               </span>
             </div>
           </>
@@ -418,7 +447,18 @@ export default function Chat(): JSX.Element {
             </div>
           </>
         )}
-        {usage && <UsagePill usage={usage} />}
+        {demo && (
+          <button
+            type="button"
+            className="demo-pill"
+            onClick={() => void window.wisp.settings.set({ demo: false })}
+            title="Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar."
+          >
+            <DemoIcon />
+            Demonstração
+          </button>
+        )}
+        {usage && !demo && <UsagePill usage={usage} />}
         <button
           type="button"
           className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
@@ -446,6 +486,16 @@ export default function Chat(): JSX.Element {
         </button>
         <button
           type="button"
+          className={`icon-button${view === 'settings' ? ' active' : ''}`}
+          onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
+          title="Configurações"
+          aria-label="Configurações"
+          aria-pressed={view === 'settings'}
+        >
+          <SettingsIcon />
+        </button>
+        <button
+          type="button"
           className="icon-button"
           onClick={() => window.wisp.chat.hide()}
           title="Fechar (Esc)"
@@ -455,7 +505,9 @@ export default function Chat(): JSX.Element {
         </button>
       </header>
 
-      {view === 'history' ? (
+      {view === 'settings' ? (
+        <SettingsView />
+      ) : view === 'history' ? (
         <HistoryView onClose={() => setView('chat')} />
       ) : view === 'sessions' ? (
         <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
@@ -514,6 +566,7 @@ export default function Chat(): JSX.Element {
                   onClipDone={() => setClip(null)}
                   voice={focused ? voice : { state: 'idle' }}
                   bus={bus}
+                  demo={demo}
                   onSent={onSent(id)}
                 />
               )

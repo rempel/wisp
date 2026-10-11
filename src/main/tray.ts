@@ -10,6 +10,10 @@ export interface TrayActions {
   setSoundEnabled(enabled: boolean): void
   autostartEnabled(): boolean
   setAutostartEnabled(enabled: boolean): void
+  demoEnabled(): boolean
+  setDemoEnabled(enabled: boolean): void
+  /** Abre a tela de configurações no painel. */
+  openSettings(): void
   /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
   shortcutLabel(): string | null
   /** O atalho de voz ("Ctrl+Alt+Space"); null sem atalho. */
@@ -60,7 +64,14 @@ export function setupTray(actions: TrayActions): AppMenu {
           refresh()
         }
       },
-      { label: 'Abrir config', click: () => actions.openConfig() },
+      {
+        label: 'Modo demonstração',
+        type: 'checkbox',
+        checked: actions.demoEnabled(),
+        click: (item) => actions.setDemoEnabled(item.checked)
+      },
+      { label: 'Configurações…', click: () => actions.openSettings() },
+      { label: 'Abrir config.json', click: () => actions.openConfig() },
       { type: 'separator' },
       {
         label: actions.shortcutLabel()
