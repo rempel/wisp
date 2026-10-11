@@ -4,6 +4,10 @@ import type { VoiceTestResult } from '../../shared/ipc'
 
 type Phase = 'idle' | 'recording' | 'transcribing'
 
+/** "3,0", "0,4": uma casa decimal, com vírgula. */
+const decimal = (n: number): string =>
+  n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
 /**
  * O "Testar voz" das configurações: grava 3 s, transcreve e mostra o que o whisper.cpp entendeu,
  * quão alto o som chegou e quanto demorou. Nada vai para a conversa.
@@ -78,8 +82,8 @@ export function VoiceTest(): JSX.Element {
           )}
           {result.seconds !== undefined && (
             <p className="settings-hint">
-              {result.seconds.toFixed(1)} s gravados, pico de {result.peakDb} dB
-              {result.ms !== undefined && `, transcritos em ${(result.ms / 1000).toFixed(1)} s`}
+              {decimal(result.seconds)} s gravados, pico de {result.peakDb} dB
+              {result.ms !== undefined && `, transcritos em ${decimal(result.ms / 1000)} s`}
             </p>
           )}
           {result.hint && <p className="voice-test-hint">{result.hint}</p>}

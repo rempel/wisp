@@ -436,7 +436,7 @@ function OpenRouterKey({ present }: { present: boolean | null }): JSX.Element {
         <input
           type="password"
           value={draft}
-          placeholder={present ? '•••••••• (guardada no chaveiro)' : 'sk-or-…'}
+          placeholder={present ? '•••••••• guardada' : 'sk-or-…'}
           autoComplete="off"
           spellCheck={false}
           aria-label="Chave da OpenRouter"

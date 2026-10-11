@@ -71,7 +71,7 @@ export function OpenRouterModelPill({
 
   return (
     <div
-      className="model"
+      className="model openrouter-model"
       ref={root}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && open) {

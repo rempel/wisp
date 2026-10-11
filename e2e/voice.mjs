@@ -72,7 +72,7 @@ const result = await waitFor(
 check('V2 mostra o que entendeu', result?.includes(`“${SAID}”`), result)
 check(
   'V3 e quanto gravou, o pico e o tempo',
-  /3\.0 s gravados, pico de -\d+ dB, transcritos em/.test(result ?? ''),
+  /3,0 s gravados, pico de -\d+ dB, transcritos em \d+,\d s/.test(result ?? ''),
   result
 )
 check('V4 sem dica: o som chegou bem', !/Quase não chegou/.test(result ?? ''), result)
