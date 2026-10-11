@@ -273,6 +273,15 @@ export function SettingsView(): JSX.Element {
           />
         </Section>
 
+        <Section title="Integrações">
+          <Toggle
+            label="Alertas do GitHub"
+            hint="CI e revisões dos seus PRs, e pedidos de revisão, a cada 3 minutos. Usa o gh (GitHub CLI) já logado: rode gh auth login antes."
+            checked={values.github}
+            onChange={(github) => void save({ github })}
+          />
+        </Section>
+
         <Section title="Avançado">
           <Toggle
             label="Navegador do Claude"

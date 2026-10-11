@@ -78,7 +78,14 @@ const sections = await ev(
 check(
   'S1 as seções',
   JSON.stringify(sections) ===
-    JSON.stringify(['Conversas', 'Mascote e sons', 'Atalhos e sistema', 'Voz', 'Avançado']),
+    JSON.stringify([
+      'Conversas',
+      'Mascote e sons',
+      'Atalhos e sistema',
+      'Voz',
+      'Integrações',
+      'Avançado'
+    ]),
   JSON.stringify(sections)
 )
 check(
