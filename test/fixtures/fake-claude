@@ -1,0 +1,233 @@
+#!/usr/bin/env node
+// Um Claude Code de mentira, para os testes: fala stream-json pelo stdin e pelo stdout como o de
+// verdade (claude -p --input-format stream-json --output-format stream-json).
+// Cenários pela mensagem: [edit] uma edição com o diff, [lento] resposta devagar (dá para
+// parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
+// [modelo] responde o modelo, [modo] responde o modo de permissão. O resto: uma resposta curta.
+// Pedidos de controle: interrupt, set_model (um nome com "naoexiste" é recusado) e
+// set_permission_mode. `auth status` diz que há login (FAKE_CLAUDE_LOGGED_OUT=1: não há).
+// Cada processo anota em $HOME/.fake-claude/spawns.log os argumentos e se recebeu a
+// ANTHROPIC_API_KEY.
+const fs = require('node:fs')
+const path = require('node:path')
+const args = process.argv.slice(2)
+if (args[0] === 'auth') {
+  console.log(
+    JSON.stringify({ loggedIn: !process.env.FAKE_CLAUDE_LOGGED_OUT, authMethod: 'claude.ai' })
+  )
+  process.exit(0)
+}
+const flag = (name) => {
+  const i = args.indexOf(name)
+  return i >= 0 ? args[i + 1] : null
+}
+const STATE = path.join(process.env.HOME, '.fake-claude')
+const SESSIONS = path.join(STATE, 'sessions')
+fs.mkdirSync(SESSIONS, { recursive: true })
+const logged = args.filter(
+  (a, i) => !['--append-system-prompt', '--settings', '--allowedTools'].includes(args[i - 1])
+)
+fs.appendFileSync(
+  path.join(STATE, 'spawns.log'),
+  JSON.stringify({
+    pid: process.pid,
+    args: logged,
+    apiKey: 'ANTHROPIC_API_KEY' in process.env,
+    memory: process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY,
+    internal: process.env.WISP_INTERNAL,
+    cwd: process.cwd()
+  }) + '\n'
+)
+const ALIASES = { haiku: 'claude-haiku-5-5', sonnet: 'claude-sonnet-5-5', opus: 'claude-opus-5-5' }
+const resolveModel = (m) => (m ? (ALIASES[m] ?? m) : 'claude-sonnet-5-5')
+let model = resolveModel(flag('--model'))
+let mode = flag('--permission-mode') ?? 'default'
+const newId = flag('--session-id')
+const resumeId = flag('--resume')
+const sessionId = newId ?? resumeId ?? '00000000-0000-4000-8000-000000000000'
+const sessionFile = path.join(SESSIONS, sessionId + '.json')
+if (newId && fs.existsSync(sessionFile)) {
+  process.stderr.write(`Error: Session ID ${newId} is already in use.\n`)
+  process.exit(1)
+}
+if (resumeId && !fs.existsSync(sessionFile)) {
+  process.stderr.write(`No conversation found with session ID: ${resumeId}\n`)
+  process.exit(1)
+}
+
+const out = (event) =>
+  process.stdout.write(JSON.stringify({ session_id: sessionId, ...event }) + '\n')
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+let n = 0
+let queue = Promise.resolve()
+let current = null
+
+async function stream(text, delay = 10) {
+  const id = `msg_${++n}`
+  out({ type: 'stream_event', event: { type: 'message_start', message: { id } } })
+  let sent = ''
+  for (const word of text.split(/(?<= )/)) {
+    if (current?.aborted) break
+    out({
+      type: 'stream_event',
+      event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: word } }
+    })
+    sent += word
+    await sleep(delay)
+  }
+  out({ type: 'assistant', message: { id, model, content: [{ type: 'text', text: sent }] } })
+}
+function fail(text, error) {
+  if (error)
+    out({
+      type: 'assistant',
+      error,
+      message: { id: `msg_${++n}`, content: [{ type: 'text', text }] }
+    })
+  out({ type: 'result', subtype: 'success', is_error: true, result: text })
+}
+async function tool(name, input, result, toolUseResult) {
+  const id = `toolu_${++n}`
+  const mid = `msg_${++n}`
+  out({ type: 'stream_event', event: { type: 'message_start', message: { id: mid } } })
+  out({
+    type: 'stream_event',
+    event: {
+      type: 'content_block_start',
+      index: 0,
+      content_block: { type: 'tool_use', id, name, input: {} }
+    }
+  })
+  out({
+    type: 'assistant',
+    message: { id: mid, model, content: [{ type: 'tool_use', id, name, input }] }
+  })
+  await sleep(20)
+  out({
+    type: 'user',
+    message: {
+      role: 'user',
+      content: [{ type: 'tool_result', tool_use_id: id, content: result, is_error: false }]
+    },
+    tool_use_result: toolUseResult
+  })
+}
+
+async function turn(text) {
+  current = { aborted: false }
+  fs.writeFileSync(sessionFile, '{}')
+  out({
+    type: 'system',
+    subtype: 'init',
+    model,
+    apiKeySource: 'none',
+    permissionMode: mode,
+    mcp_servers: []
+  })
+  if (text.includes('[limite]')) {
+    const resetsAt = Math.floor(Date.now() / 1000) + 90 * 60
+    out({
+      type: 'rate_limit_event',
+      rate_limit_info: { status: 'rejected', resetsAt, rateLimitType: 'five_hour' }
+    })
+    return fail(
+      `You've hit your limit · resets ${new Date(resetsAt * 1000).toLocaleTimeString('en-US')}`,
+      'rate_limit'
+    )
+  }
+  if (text.includes('[rede]')) return fail('API Error: Connection error.', 'unknown')
+  if (text.includes('[queda]')) {
+    await stream('Começando a responder')
+    process.stderr.write('FATAL: algo explodiu dentro do CLI\n')
+    process.exit(3)
+  }
+  if (text.includes('[edit]')) {
+    await tool(
+      'Edit',
+      {
+        file_path: '/home/u/projeto/src/app.ts',
+        old_string: 'const b = 2',
+        new_string: 'const b = 3\nconst c = 4'
+      },
+      'The file /home/u/projeto/src/app.ts has been updated.',
+      {
+        filePath: '/home/u/projeto/src/app.ts',
+        structuredPatch: [
+          {
+            oldStart: 10,
+            oldLines: 3,
+            newStart: 10,
+            newLines: 4,
+            lines: [' const a = 1', '-const b = 2', '+const b = 3', '+const c = 4', ' const d = 5']
+          }
+        ]
+      }
+    )
+  }
+  let answer = 'Oi! Tudo certo por aqui.'
+  let delay = 10
+  if (text.includes('[lento]')) {
+    answer =
+      'Esta resposta vem bem devagar, palavra por palavra, para dar tempo de parar no meio dela.'
+    delay = 150
+  }
+  if (text.includes('[modelo]')) answer = `Modelo: ${model}`
+  if (text.includes('[modo]')) answer = `Modo: ${mode}`
+  await stream(answer, delay)
+  if (current.aborted) {
+    out({
+      type: 'user',
+      message: { role: 'user', content: [{ type: 'text', text: '[Request interrupted by user]' }] }
+    })
+    out({
+      type: 'result',
+      subtype: 'error_during_execution',
+      is_error: true,
+      terminal_reason: 'aborted_streaming'
+    })
+  } else {
+    out({ type: 'result', subtype: 'success', is_error: false, result: answer })
+  }
+  current = null
+}
+
+function control({ request_id, request }) {
+  const ok = () => out({ type: 'control_response', response: { subtype: 'success', request_id } })
+  const error = (message) =>
+    out({ type: 'control_response', response: { subtype: 'error', request_id, error: message } })
+  if (request.subtype === 'interrupt') {
+    if (current) current.aborted = true
+    ok()
+  } else if (request.subtype === 'set_model') {
+    if (/naoexiste/.test(request.model ?? '')) return error(`Model '${request.model}' not found`)
+    model = resolveModel(request.model)
+    ok()
+  } else if (request.subtype === 'set_permission_mode') {
+    if (request.mode === 'bypassPermissions')
+      return error('Cannot set permission mode to bypassPermissions')
+    mode = request.mode
+    ok()
+    out({ type: 'system', subtype: 'status', status: null, permissionMode: mode })
+  }
+}
+
+let buffer = ''
+process.stdin.setEncoding('utf8')
+process.stdin.on('data', (chunk) => {
+  buffer += chunk
+  let i
+  while ((i = buffer.indexOf('\n')) >= 0) {
+    const line = buffer.slice(0, i)
+    buffer = buffer.slice(i + 1)
+    if (!line.trim()) continue
+    const message = JSON.parse(line)
+    if (message.type === 'control_request') {
+      control(message)
+      continue
+    }
+    if (message.type !== 'user') continue
+    const text = message.message.content.map((b) => b.text ?? '').join('')
+    queue = queue.then(() => turn(text))
+  }
+})
+process.stdin.on('end', () => queue.then(() => process.exit(0)))

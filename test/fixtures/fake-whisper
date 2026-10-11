@@ -1,0 +1,50 @@
+#!/usr/bin/env node
+// A fake whisper-cli: reads the WAV from stdin (like `-f -`), checks it, logs what it got and
+// prints the transcript from FAKE_WHISPER_TEXT_FILE (or FAKE_WHISPER_TEXT).
+const fs = require('fs')
+const chunks = []
+process.stdin.on('data', (c) => chunks.push(c))
+process.stdin.on('end', () => {
+  const wav = Buffer.concat(chunks)
+  const args = process.argv.slice(2)
+  const info = { args, bytes: wav.length }
+  if (
+    wav.length >= 44 &&
+    wav.toString('ascii', 0, 4) === 'RIFF' &&
+    wav.toString('ascii', 8, 12) === 'WAVE'
+  ) {
+    info.rate = wav.readUInt32LE(24)
+    info.channels = wav.readUInt16LE(22)
+    info.bits = wav.readUInt16LE(34)
+    info.dataBytes = wav.readUInt32LE(40)
+    info.seconds = info.dataBytes / 2 / info.rate
+    // 64 bytes from the middle of the audio, to look for them on disk afterwards.
+    const mid = 44 + (Math.floor(info.dataBytes / 4) & ~1)
+    info.sig = wav.subarray(mid, mid + 64).toString('hex')
+    // The loudness of each 100 ms, to check the pre-roll in the tests.
+    const pcm = new Int16Array(wav.buffer.slice(wav.byteOffset + 44, wav.byteOffset + wav.length))
+    const step = info.rate / 10
+    info.levels = []
+    for (let i = 0; i + step <= pcm.length; i += step) {
+      let sum = 0
+      for (let j = i; j < i + step; j++) sum += (pcm[j] / 32768) ** 2
+      info.levels.push(Math.round(10 * Math.log10(sum / step + 1e-12)))
+    }
+  } else info.bad = true
+  if (process.env.FAKE_WHISPER_LOG)
+    fs.appendFileSync(process.env.FAKE_WHISPER_LOG, JSON.stringify(info) + '\n')
+  if (process.env.FAKE_WHISPER_FAIL) {
+    process.stderr.write('whisper_init: failed to load model\n')
+    process.exit(3)
+  }
+  const delay = Number(process.env.FAKE_WHISPER_DELAY || 0)
+  setTimeout(() => {
+    let text = process.env.FAKE_WHISPER_TEXT || ''
+    if (process.env.FAKE_WHISPER_TEXT_FILE) {
+      try {
+        text = fs.readFileSync(process.env.FAKE_WHISPER_TEXT_FILE, 'utf8')
+      } catch {}
+    }
+    process.stdout.write(text ? ` ${text}\n` : '\n')
+  }, delay)
+})

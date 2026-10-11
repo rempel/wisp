@@ -18,5 +18,12 @@ export default defineConfig(
       ...eslintPluginReactRefresh.configs.vite.rules
     }
   },
+  // Nos testes, as funções pequenas de apoio não precisam declarar o tipo de retorno.
+  {
+    files: ['test/**/*.ts'],
+    rules: { '@typescript-eslint/explicit-function-return-type': 'off' }
+  },
+  // Os scripts CommonJS do empacotamento (build/after-pack.cjs).
+  { files: ['**/*.cjs'], rules: { '@typescript-eslint/no-require-imports': 'off' } },
   eslintConfigPrettier
 )

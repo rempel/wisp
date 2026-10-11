@@ -15,6 +15,53 @@ export const LAUNCHER_PATH = join(DATA_DIR, 'bin', 'wisp')
 /** Marca dos arquivos que o Wisp escreve fora da pasta dele: só esses ele troca ou apaga. */
 export const MARKER = 'X-Wisp-Generated=true'
 
+/**
+ * Como o Wisp está rodando: do código (`npm run dev`, `npm start`), de um AppImage ou de um
+ * pacote instalado (.deb), que já traz o .desktop e o ícone dele.
+ */
+export type InstallKind = 'dev' | 'appimage' | 'package'
+
+export function installKind(packaged: boolean, env: NodeJS.ProcessEnv = process.env): InstallKind {
+  if (!packaged) return 'dev'
+  return env.APPIMAGE && isAbsolute(env.APPIMAGE) ? 'appimage' : 'package'
+}
+
+/**
+ * O que abre o Wisp de novo, de fora: no AppImage, o próprio arquivo .AppImage (o executável de
+ * dentro fica numa montagem que muda a cada abertura e some quando o app fecha).
+ */
+export function launchTarget(kind: InstallKind, env: NodeJS.ProcessEnv = process.env): string {
+  return kind === 'appimage' && env.APPIMAGE ? env.APPIMAGE : process.execPath
+}
+
+/** Onde fica a cópia do ícone para o .desktop do AppImage (a montagem muda a cada abertura). */
+export const STABLE_ICON = join(DATA_DIR, 'icon.png')
+
+/**
+ * O ícone para os .desktop (menu de apps, início com o sistema). No AppImage, uma cópia num lugar
+ * fixo; nos outros casos, o do app.
+ */
+export function desktopIcon(kind: InstallKind, icon: string): string {
+  if (kind !== 'appimage') return icon
+  try {
+    const bytes = readFileSync(icon)
+    let current: Buffer | null = null
+    try {
+      current = readFileSync(STABLE_ICON)
+    } catch {
+      // Ainda não existe.
+    }
+    if (!current?.equals(bytes)) {
+      mkdirSync(dirname(STABLE_ICON), { recursive: true })
+      writeFileSync(STABLE_ICON, bytes, { mode: 0o644 })
+    }
+    return STABLE_ICON
+  } catch (err) {
+    console.warn('[wisp] não consegui copiar o ícone:', err)
+    return icon
+  }
+}
+
 /** O que o comando `wisp` pede ao app. */
 export type WispCommand =
   { kind: 'toggle' } | { kind: 'show' } | { kind: 'new' } | { kind: 'ask'; text: string }
@@ -119,7 +166,7 @@ export function removeOwnFile(path: string): boolean {
 }
 
 export interface LauncherTarget {
-  /** O executável do Electron (ou do app empacotado). */
+  /** O executável do Electron (ou do app empacotado, ou o arquivo .AppImage). */
   electron: string
   /** A pasta do app, no desenvolvimento; empacotado, o executável já sabe onde está. */
   appPath: string | null
@@ -128,9 +175,9 @@ export interface LauncherTarget {
 }
 
 /**
- * Escreve o comando `wisp` (um script curto) e, fora de um pacote, a entrada do Wisp no menu de
- * apps (~/.local/share/applications), que também dá o id do app aos portais. Os dois são
- * reescritos sempre que o app abre, para acompanhar o lugar dele.
+ * Escreve o comando `wisp` (um script curto) e, fora de um pacote (no código e no AppImage), a
+ * entrada do Wisp no menu de apps (~/.local/share/applications), que também dá o id do app aos
+ * portais. Os dois são reescritos sempre que o app abre, para acompanhar o lugar dele.
  */
 export function deployLauncher(target: LauncherTarget, withMenuEntry: boolean): void {
   const app = target.appPath ? ` ${shellQuote(target.appPath)}` : ''

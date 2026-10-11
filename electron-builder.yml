@@ -1,0 +1,75 @@
+# Pacotes do Wisp para Linux: .deb e AppImage. `npm run dist` monta os dois em dist/.
+appId: io.github.rempel.Wisp
+productName: Wisp
+executableName: wisp
+copyright: Copyright © 2026 rempel
+directories:
+  output: dist
+  buildResources: build
+# Tira o app padrão do Electron, que vem junto com o node_modules/electron/dist.
+afterPack: build/after-pack.cjs
+# O Electron do node_modules (o mesmo dos testes); nada é baixado.
+electronDist: node_modules/electron/dist
+# Sem asar: o relay dos hooks e o navegador do Claude (Playwright) rodam com o Electron em modo
+# Node a partir de arquivos de verdade, e os ícones vão para os .desktop e para a bandeja.
+asar: false
+files:
+  - out/**
+  - resources/**
+  - package.json
+  - '!**/*.map'
+electronFuses:
+  # O relay dos hooks e o Playwright MCP rodam com ELECTRON_RUN_AS_NODE.
+  runAsNode: true
+  # Ninguém injeta código pelo ambiente nem abre o inspetor do processo principal.
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  onlyLoadAppFromAsar: false
+  enableEmbeddedAsarIntegrityValidation: false
+linux:
+  target:
+    - deb
+    - AppImage
+  category: Utility
+  icon: build/icons
+  maintainer: rempel <rempel@users.noreply.github.com>
+  synopsis: A little light on your desktop.
+  # Também é o Comment do .desktop.
+  description: Um mascote que flutua na tela e conversa com o Claude Code
+  # O .desktop se chama io.github.rempel.Wisp.desktop (o id que os portais conferem).
+  syncDesktopName: true
+  # O mascote precisa do XWayland para ficar no topo e se posicionar.
+  executableArgs:
+    - --ozone-platform=x11
+  desktop:
+    entry:
+      Name: Wisp
+      GenericName: Assistente
+      GenericName[pt_BR]: Assistente
+      StartupWMClass: io.github.rempel.Wisp
+deb:
+  # As ações do menu de apps (clique direito no ícone). No AppImage não há caminho fixo para elas:
+  # lá, o Wisp escreve a entrada dele em ~/.local/share/applications.
+  desktop:
+    entry:
+      Actions: toggle;new;
+    desktopActions:
+      toggle:
+        Name: Abrir ou fechar o painel
+        Exec: /opt/Wisp/wisp --ozone-platform=x11 --toggle
+      new:
+        Name: Nova conversa
+        Exec: /opt/Wisp/wisp --ozone-platform=x11 --new
+  # O perfil do AppArmor (Ubuntu 23.10 em diante) vem do modelo do electron-builder: deixa o
+  # /opt/Wisp/wisp criar user namespaces, que o sandbox do Chromium usa.
+  # Abrir apps (gtk-launch, ou o gio) e o volume do sistema pela voz (wpctl, ou o pactl).
+  recommends:
+    - libgtk-3-bin | libglib2.0-bin
+    - wireplumber | pulseaudio-utils
+appImage:
+  # O AppImage com o runtime estático: roda sem o libfuse2, que o Ubuntu 24.04 não traz mais.
+  artifactName: Wisp-${version}-${arch}.AppImage
+toolsets:
+  appimage: 1.0.3
+# Sem atualização automática: os pacotes saem nos releases do GitHub.
+publish: null
