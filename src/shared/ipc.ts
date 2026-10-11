@@ -28,6 +28,7 @@ export const IPC = {
   /** main → mascote: o acessório do dia. Arg: Accessory | null. */
   mascotAccessory: 'mascot:accessory',
   mascotDock: 'mascot:dock',
+  agendaNext: 'agenda:next',
   /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
   mascotSound: 'mascot:sound',
   /**
@@ -196,6 +197,14 @@ export interface Gaze {
 
 /** Reações que o main pede ao mascote: a saudação, quando o app abre, e o toque de um lembrete. */
 export type MascotReaction = 'greet' | 'remind'
+
+/** O próximo compromisso da agenda, para o painel vazio mostrar (Fase 13). */
+export interface AgendaItem {
+  title: string
+  start: number
+  end: number
+  location: string
+}
 
 /**
  * O modo compacto, para a página do mascote: a borda em que ele mora e se está guardado (só a aba
@@ -786,6 +795,10 @@ export interface WispApi {
     get(): Promise<SoundSettings>
     set(enabled: boolean): void
     onChanged(listener: (settings: SoundSettings) => void): () => void
+  }
+  /** A agenda: o próximo compromisso, para o painel vazio (null: nenhum nas próximas horas). */
+  agenda: {
+    onNext(listener: (next: AgendaItem | null) => void): () => void
   }
   /** As configurações (a tela de configurações e o modo demonstração). */
   settings: {

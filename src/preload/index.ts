@@ -3,6 +3,7 @@ import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
 import type {
   Accessory,
+  AgendaItem,
   ChatEvent,
   ClipboardOffer,
   DroppedFiles,
@@ -109,6 +110,9 @@ const api: WispApi = {
     get: () => ipcRenderer.invoke(IPC.soundGet),
     set: (enabled) => ipcRenderer.send(IPC.soundSet, enabled),
     onChanged: (listener) => subscribe<[SoundSettings]>(IPC.soundChanged, listener)
+  },
+  agenda: {
+    onNext: (listener) => subscribe<[AgendaItem | null]>(IPC.agendaNext, listener)
   },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),

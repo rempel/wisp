@@ -2702,3 +2702,42 @@ button.link {
     transition: none;
   }
 }
+
+/* O próximo compromisso da agenda, no painel vazio. */
+.next-event {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  max-width: 280px;
+  margin: 6px 0 4px;
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  text-align: left;
+}
+
+.next-event svg {
+  flex: none;
+  margin-top: 2px;
+  color: var(--accent);
+}
+
+.next-event div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.next-event strong {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.next-event span {
+  color: var(--muted);
+  font-size: 12px;
+}

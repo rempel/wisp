@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import type { ClipboardEvent, JSX, KeyboardEvent } from 'react'
 import type {
+  AgendaItem,
   AttachmentPreview,
   ClipboardOffer,
   MascotState,
@@ -11,6 +12,7 @@ import { AttachmentList } from './AttachmentList'
 import { ClipboardChip } from './ClipboardChip'
 import {
   Avatar,
+  CalendarIcon,
   CloseIcon,
   MicIcon,
   PaperclipIcon,
@@ -104,6 +106,8 @@ export interface PaneProps {
   bus: PaneBus
   /** Modo demonstração: o painel vazio sugere o que pedir. */
   demo: boolean
+  /** O próximo compromisso da agenda, para o painel vazio (null: nenhum). */
+  agenda: AgendaItem | null
   /** O usuário mandou uma mensagem: ela aparece na hora, sem esperar o main. */
   onSent: (text: string, attachments: AttachmentPreview[]) => void
 }
@@ -133,6 +137,7 @@ export function Pane({
   voice,
   bus,
   demo,
+  agenda,
   onSent
 }: PaneProps): JSX.Element {
   const [draft, setDraft] = useState('')
@@ -334,6 +339,7 @@ export function Pane({
           <div className="empty">
             <Avatar size={64} mood={mood} />
             <p className="hello">Oi! Eu sou o Wisp.</p>
+            {agenda && <NextEvent event={agenda} />}
             {demo ? (
               <>
                 <p>
@@ -518,5 +524,55 @@ export function Pane({
         </div>
       </form>
     </section>
+  )
+}
+
+const CLOCK = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+
+/** "hoje às 14:00", "amanhã às 09:30". */
+function whenLabel(start: number, now: number): string {
+  const day = (ms: number): number => new Date(ms).setHours(0, 0, 0, 0)
+  const days = Math.round((day(start) - day(now)) / 86_400_000)
+  const prefix =
+    days === 0
+      ? 'hoje'
+      : days === 1
+        ? 'amanhã'
+        : new Date(start).toLocaleDateString('pt-BR', { weekday: 'long' })
+  return `${prefix} às ${CLOCK.format(start)}`
+}
+
+/** "em 25 min", "em 2 h", "agora", "termina em 10 min". */
+function relativeLabel(event: AgendaItem, now: number): string {
+  if (event.start > now) {
+    const minutes = Math.ceil((event.start - now) / 60_000)
+    if (minutes < 60) return `em ${minutes} min`
+    const hours = Math.floor(minutes / 60)
+    const rest = minutes % 60
+    return rest ? `em ${hours} h ${rest} min` : `em ${hours} h`
+  }
+  if (event.end > now) return `agora, até ${CLOCK.format(event.end)}`
+  return 'agora'
+}
+
+/** O próximo compromisso da agenda, no painel vazio (a hora relativa anda sozinha). */
+function NextEvent({ event }: { event: AgendaItem }): JSX.Element {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return (
+    <div className="next-event" aria-label="Próximo compromisso">
+      <CalendarIcon />
+      <div>
+        <strong>{event.title}</strong>
+        <span>
+          {event.start > now ? whenLabel(event.start, now) : 'acontecendo'} ·{' '}
+          {relativeLabel(event, now)}
+          {event.location ? ` · ${event.location}` : ''}
+        </span>
+      </div>
+    </div>
   )
 }

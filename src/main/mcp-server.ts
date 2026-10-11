@@ -71,6 +71,8 @@ export interface DesktopServerOptions {
   }
   /** Os seus PRs no GitHub, em texto (Fase 13). */
   github?: () => Promise<string>
+  /** Os compromissos da agenda, em texto: `days` dias a partir de hoje (ou de `from`, AAAA-MM-DD). */
+  agenda?: (days: number, from?: string) => Promise<string>
 }
 
 export interface DesktopServer {
@@ -413,6 +415,28 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
         _meta: ALWAYS_LOAD
       },
       async () => text(await github())
+    )
+  }
+
+  const agenda = options.agenda
+  if (agenda) {
+    server.registerTool(
+      'list_events',
+      {
+        title: 'Compromissos da agenda',
+        description:
+          'Os compromissos da agenda do usuário (as agendas do GNOME e arquivos .ics), por dia, ' +
+          'com a hora, o título, a agenda e o local. `dias`: quantos dias a partir de hoje ' +
+          '(padrão 2: hoje e amanhã; até 31). `a_partir_de`: outro dia para começar, ' +
+          '"AAAA-MM-DD". Só leitura.',
+        inputSchema: {
+          dias: z.number().int().min(1).max(31).optional(),
+          a_partir_de: z.string().optional()
+        },
+        annotations: { readOnlyHint: true },
+        _meta: ALWAYS_LOAD
+      },
+      async ({ dias, a_partir_de }) => text(await agenda(dias ?? 2, a_partir_de))
     )
   }
 

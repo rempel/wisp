@@ -127,6 +127,14 @@ export const SettingsIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Uma folhinha de calendário, para o próximo compromisso. */
+export const CalendarIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="2.5" y="3.5" width="11" height="10" rx="2" />
+    <path d="M2.5 6.5h11M5.5 2v3M10.5 2v3" />
+  </Icon>
+)
+
 /** Um "play", para o modo demonstração. */
 export const DemoIcon = (): JSX.Element => (
   <Icon>

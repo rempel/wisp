@@ -45,10 +45,10 @@ jobs:
         with:
           node-version: 22
           cache: npm
-      - name: X virtual, D-Bus e as bibliotecas do Electron
+      - name: X virtual, D-Bus, as bibliotecas do Electron e o EDS (agenda)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb xauth dbus dbus-x11 xdotool \
+          sudo apt-get install -y --no-install-recommends xvfb xauth dbus dbus-x11 xdotool evolution-data-server \
             libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
       - run: npm ci
       - run: npx install-electron
