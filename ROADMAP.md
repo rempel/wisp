@@ -518,9 +518,37 @@ de verdade, com o recorte da janela), `e2e/agenda.mjs` (com o Evolution Data Ser
 vermelho vira uma notificação que abre o PR; um compromisso daqui a 10 minutos avisa; o resumo da
 semana bate com o que aconteceu.
 
-### Fase 14: aprovar pelo celular
+### Fase 14: ajustes da validação (ilha, voz e OpenRouter)
 
-**Status:** mapeada, para depois da Fase 13.
+**Status:** em andamento. Veio da validação da Fase 13 (num Kali, pelo .deb).
+
+- **Ilha no topo (M),** no lugar do modo compacto que escondia o mascote atrás da borda (ficava
+  cortado). Como a ilha do Coucou: uma cápsula no centro do topo da tela, logo abaixo da barra do
+  sistema, com o Wisp inteiro em miniatura e uma linha de estado ("pronto", "pensando…", "pede
+  permissão", o próximo compromisso). Com o cursor em cima, ela cresce e mostra mais; o clique
+  abre o painel logo abaixo; num pedido ou numa resposta pronta, ela pulsa com a mensagem.
+- **Voz mais robusta (P):** a voz ficava "pensando" sem entender. A transcrição ganha um tempo
+  máximo, com uma mensagem clara; o erro do whisper.cpp vai para o registro; e a tela de
+  configurações ganha **Testar voz**, que grava 3 segundos e mostra o que foi entendido.
+- **OpenRouter como provedor (M, experimental):** o cérebro continua o Claude Code, mas as
+  respostas podem vir da OpenRouter (a API compatível com a da Anthropic), com qualquer modelo
+  dela:
+  - escolhido nas configurações (e por aba): a assinatura do Claude Code (o padrão) ou a
+    OpenRouter, cobrada por uso;
+  - a chave fica no chaveiro do sistema (Secret Service), nunca no `config.json` nem no registro;
+  - as conversas pela OpenRouter usam uma pasta de configuração própria do Claude Code
+    (`CLAUDE_CONFIG_DIR`): o login da assinatura não é tocado;
+  - a pílula de uso do plano vira o custo da conversa;
+  - outros modelos (GPT, Gemini, Llama…) erram mais nas ferramentas e nos cards: marcados como
+    experimentais.
+
+**Aceite:** a ilha fica no topo, inteira, cresce com o cursor e abre o painel; uma transcrição que
+trava avisa em vez de ficar pensando; uma aba pela OpenRouter responde com o modelo escolhido, e a
+assinatura continua funcionando nas outras.
+
+### Fase 15: aprovar pelo celular
+
+**Status:** mapeada, para depois da Fase 14.
 
 - **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
   escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
@@ -532,17 +560,15 @@ semana bate com o que aconteceu.
 
 ## Ideias avaliadas e deixadas de fora
 
-- **Chat com outros provedores e modelos locais.** O cérebro do Wisp é o Claude Code com a sua
-  assinatura, e dois cérebros com regras diferentes confundem. Um modelo local só faria sentido como
-  plano B offline, sem ferramentas.
+- **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
+  regras diferentes confundem. Outros modelos entram pelo próprio Claude Code, com a OpenRouter
+  como provedor (Fase 14), mantendo as ferramentas, os cards e os modos.
 - **Integrações de negócio** (Stripe, n8n, Vercel, Resend, Cal.com e outras). São nicho. Se fizerem
   falta, servidores MCP de terceiros podem ser adicionados ao Wisp em vez de código próprio. GitHub
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 14.
-- **A ilha no topo da tela.** A identidade do Wisp é o mascote flutuante. O modo compacto (Fase 13)
-  cobre quem quer o mascote fora do caminho.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 15.
 
 ## Princípios que ficam
 
