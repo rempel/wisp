@@ -1,6 +1,7 @@
 import { globalShortcut } from 'electron'
 import { Variant } from './dbus'
 import type { DBusConnection } from './dbus'
+import { XClient } from './ewmh'
 import {
   options,
   PORTAL,
@@ -12,7 +13,7 @@ import {
   token
 } from './portal'
 
-/** O atalho global e por onde ele funciona. */
+/** Um atalho global e por onde ele funciona. */
 export interface ShortcutStatus {
   /** 'x11': pelo próprio Electron; 'portal': pelo portal do desktop (Wayland); 'none': nenhum. */
   via: 'x11' | 'portal' | 'none'
@@ -20,10 +21,26 @@ export interface ShortcutStatus {
   label?: string
   /** Por que não há atalho. */
   problem?: string
+  /** O Wisp fica sabendo quando a tecla é solta (o "segure para falar"). */
+  releases?: boolean
 }
 
-const SHORTCUT_ID = 'toggle'
-const DESCRIPTION = 'Abrir ou fechar o painel do Wisp'
+/** Um atalho para ligar. */
+export interface ShortcutSpec {
+  /** O id no portal: fica guardado no desktop entre uma abertura e outra. */
+  id: string
+  /** Formato do Electron ("Ctrl+Alt+W"); null desliga. */
+  accelerator: string | null
+  /** O que o desktop mostra na janela de atalhos. */
+  description: string
+  /** A tecla foi apertada. No X11, a repetição do teclado chama de novo enquanto ela fica presa. */
+  press(): void
+  /** A tecla foi solta (só para quem precisa saber, e só onde dá). */
+  release?(): void
+}
+
+/** De quanto em quanto tempo (ms) o Wisp confere, no X11, se a tecla ainda está apertada. */
+const RELEASE_POLL_MS = 30
 
 const MODIFIERS: Record<string, string> = {
   command: 'CTRL',
@@ -72,6 +89,48 @@ const KEYS: Record<string, string> = {
   '=': 'equal'
 }
 
+/** O número dos keysyms do X11 que não são uma letra ou um algarismo. */
+const KEYSYMS: Record<string, number> = {
+  space: 0x20,
+  Return: 0xff0d,
+  Tab: 0xff09,
+  BackSpace: 0xff08,
+  Escape: 0xff1b,
+  Up: 0xff52,
+  Down: 0xff54,
+  Left: 0xff51,
+  Right: 0xff53,
+  Home: 0xff50,
+  End: 0xff57,
+  Page_Up: 0xff55,
+  Page_Down: 0xff56,
+  Insert: 0xff63,
+  Delete: 0xffff,
+  plus: 0x2b,
+  comma: 0x2c,
+  period: 0x2e,
+  slash: 0x2f,
+  semicolon: 0x3b,
+  apostrophe: 0x27,
+  bracketleft: 0x5b,
+  bracketright: 0x5d,
+  backslash: 0x5c,
+  grave: 0x60,
+  minus: 0x2d,
+  equal: 0x3d
+}
+
+/** O keysym do X11 da tecla de um acelerador (sem os modificadores); null se não houver. */
+export function acceleratorKeysym(accelerator: string): number | null {
+  const trigger = toPortalTrigger(accelerator)
+  const key = trigger?.split('+').pop()
+  if (!key) return null
+  if (/^[a-z0-9]$/.test(key)) return key.charCodeAt(0)
+  const fn = /^F([1-9]|1[0-9]|2[0-4])$/.exec(key)
+  if (fn) return 0xffbe + Number(fn[1]) - 1
+  return KEYSYMS[key] ?? null
+}
+
 /**
  * Um acelerador do Electron ("Ctrl+Alt+W") no formato da especificação de atalhos do
  * freedesktop, que o portal usa ("CTRL+ALT+w"). null se alguma parte não tiver equivalente.
@@ -100,52 +159,148 @@ export function toPortalTrigger(accelerator: string): string | null {
 
 let unbind: (() => void) | null = null
 
-/** Desfaz o atalho atual (para trocar de atalho ou ao fechar o app). */
-export function releaseShortcut(): void {
+/** Desfaz os atalhos atuais (para trocar de atalho ou ao fechar o app). */
+export function releaseShortcuts(): void {
   unbind?.()
   unbind = null
 }
 
 /**
- * Liga o atalho global que abre e fecha o painel.
- * - No X11, o próprio Electron prende a tecla.
+ * Liga os atalhos globais (abrir o painel, falar). Devolve como ficou cada um, pelo id.
+ * - No X11, o próprio Electron prende as teclas. O Electron só avisa quando a tecla é apertada;
+ *   para saber quando ela é solta, o Wisp pergunta ao servidor X, enquanto ela está apertada,
+ *   quais teclas estão para baixo.
  * - No Wayland, só o portal GlobalShortcuts funciona: o Electron roda no XWayland e só veria
  *   teclas digitadas em janelas X11. O desktop (GNOME 48+, KDE) mostra uma janela para o usuário
- *   confirmar ou escolher a tecla.
+ *   confirmar ou escolher as teclas, e avisa quando cada uma é apertada e solta.
  */
-export async function setupShortcut(
-  accelerator: string | null,
-  activate: () => void,
+export async function setupShortcuts(
+  specs: ShortcutSpec[],
   wayland = process.env.XDG_SESSION_TYPE === 'wayland'
-): Promise<ShortcutStatus> {
-  releaseShortcut()
-  if (!accelerator?.trim()) return { via: 'none', problem: 'desligado no config.json' }
+): Promise<Map<string, ShortcutStatus>> {
+  releaseShortcuts()
+  const result = new Map<string, ShortcutStatus>()
+  const active = specs.filter((spec) => {
+    if (spec.accelerator?.trim()) return true
+    result.set(spec.id, { via: 'none', problem: 'desligado no config.json' })
+    return false
+  })
+  if (!active.length) return result
   if (!wayland) {
-    try {
-      if (globalShortcut.register(accelerator, activate)) {
-        unbind = () => globalShortcut.unregister(accelerator)
-        return { via: 'x11', label: accelerator }
-      }
-      return { via: 'none', problem: `${accelerator} já é usado por outro programa` }
-    } catch {
-      return { via: 'none', problem: `"${accelerator}" não é um atalho válido` }
-    }
+    for (const [id, status] of await bindWithX11(active)) result.set(id, status)
+    return result
   }
   const bus = await portalBus()
-  if (!bus) return { via: 'none', problem: 'sem D-Bus' }
-  return bindWithPortal(bus, accelerator, activate)
+  for (const spec of active) {
+    if (!bus) result.set(spec.id, { via: 'none', problem: 'sem D-Bus' })
+  }
+  if (!bus) return result
+  for (const [id, status] of await bindWithPortal(bus, active)) result.set(id, status)
+  return result
+}
+
+async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutStatus>> {
+  const result = new Map<string, ShortcutStatus>()
+  const undo: (() => void)[] = []
+  // A conexão com o servidor X para saber quando a tecla é solta, só se alguém quiser saber.
+  const x = specs.some((spec) => spec.release) ? await XClient.open().catch(() => null) : null
+  if (x) undo.push(() => x.close())
+  const taken = new Map<string, string>()
+  for (const spec of specs) {
+    const accelerator = spec.accelerator as string
+    const same = taken.get(accelerator.toLowerCase().replace(/\s+/g, ''))
+    if (same) {
+      result.set(spec.id, { via: 'none', problem: `${accelerator} já é o atalho ${same}` })
+      continue
+    }
+    let keycodes: number[] = []
+    if (spec.release && x) {
+      const keysym = acceleratorKeysym(accelerator)
+      if (keysym !== null) keycodes = await x.keycodesOf(keysym)
+    }
+    const watcher =
+      keycodes.length && spec.release ? releaseWatcher(x!, keycodes, spec.release) : null
+    try {
+      const registered = globalShortcut.register(accelerator, () => {
+        spec.press()
+        watcher?.start()
+      })
+      if (!registered) {
+        result.set(spec.id, {
+          via: 'none',
+          problem: `${accelerator} já é usado por outro programa`
+        })
+        continue
+      }
+      undo.push(() => {
+        watcher?.stop()
+        globalShortcut.unregister(accelerator)
+      })
+      taken.set(accelerator.toLowerCase().replace(/\s+/g, ''), spec.id)
+      result.set(spec.id, { via: 'x11', label: accelerator, releases: watcher !== null })
+    } catch {
+      result.set(spec.id, { via: 'none', problem: `"${accelerator}" não é um atalho válido` })
+    }
+  }
+  unbind = () => {
+    for (const step of undo.reverse()) step()
+  }
+  return result
+}
+
+/**
+ * Confere, de RELEASE_POLL_MS em RELEASE_POLL_MS, se a tecla ainda está apertada, e avisa quando
+ * ela é solta. Só roda entre o aperto e o soltar. Se a conexão com o servidor X cair, conta como
+ * solta.
+ */
+function releaseWatcher(
+  x: XClient,
+  keycodes: number[],
+  release: () => void
+): { start(): void; stop(): void } {
+  let timer: NodeJS.Timeout | null = null
+  const down = (keymap: Buffer): boolean =>
+    keycodes.some((code) => (keymap[code >> 3] & (1 << (code & 7))) !== 0)
+  const stop = (): void => {
+    if (timer) clearInterval(timer)
+    timer = null
+  }
+  let checking = false
+  const check = async (): Promise<void> => {
+    if (checking) return
+    checking = true
+    const keymap = x.alive ? await x.keymap() : null
+    checking = false
+    if (!timer) return
+    if (!keymap || !down(keymap)) {
+      stop()
+      release()
+    }
+  }
+  return {
+    // A repetição do teclado chama o start de novo enquanto a tecla está presa: já está olhando.
+    start() {
+      if (timer) return
+      timer = setInterval(() => void check(), RELEASE_POLL_MS)
+    },
+    stop
+  }
 }
 
 async function bindWithPortal(
   bus: DBusConnection,
-  accelerator: string,
-  activate: () => void
-): Promise<ShortcutStatus> {
+  specs: ShortcutSpec[]
+): Promise<Map<string, ShortcutStatus>> {
+  const result = new Map<string, ShortcutStatus>()
+  const fail = (problem: string): Map<string, ShortcutStatus> => {
+    for (const spec of specs) result.set(spec.id, { via: 'none', problem })
+    return result
+  }
   const iface = 'org.freedesktop.portal.GlobalShortcuts'
   if ((await portalVersion(bus, iface)) === null) {
-    return { via: 'none', problem: 'este desktop não tem o portal de atalhos globais' }
+    return fail('este desktop não tem o portal de atalhos globais')
   }
-  // 1. A sessão, à qual o atalho fica preso.
+  // 1. A sessão, à qual os atalhos ficam presos.
   const handle = token()
   const sessionToken = token()
   const created = await portalRequest(
@@ -158,22 +313,45 @@ async function bindWithPortal(
     },
     handle
   )
-  if (created.response !== 0) {
-    return { via: 'none', problem: 'o desktop recusou a sessão de atalhos' }
-  }
+  if (created.response !== 0) return fail('o desktop recusou a sessão de atalhos')
   const session =
     typeof created.results.session_handle === 'string'
       ? created.results.session_handle
       : requestPath(bus, sessionToken, 'session')
-  // 2. As ativações, ouvidas antes de ligar o atalho, para a primeira não se perder.
-  const unsubscribe = await bus.subscribe(
+  // 2. As ativações e os soltar, ouvidos antes de ligar os atalhos, para nada se perder.
+  const byId = new Map(specs.map((spec) => [spec.id, spec]))
+  const unsubscribeActivated = await bus.subscribe(
     { path: PORTAL_PATH, interface: iface, member: 'Activated' },
     (signal) => {
       const [from, id] = signal.body as [string, string]
-      if (from === session && id === SHORTCUT_ID) activate()
+      if (from === session) byId.get(id)?.press()
     }
   )
-  // 3. Se o atalho já foi ligado numa abertura anterior, o desktop o devolve aqui, e não é
+  const unsubscribeDeactivated = await bus.subscribe(
+    { path: PORTAL_PATH, interface: iface, member: 'Deactivated' },
+    (signal) => {
+      const [from, id] = signal.body as [string, string]
+      if (from === session) byId.get(id)?.release?.()
+    }
+  )
+  const close = (): void => {
+    unsubscribeActivated()
+    unsubscribeDeactivated()
+    closeSession(bus, session)
+  }
+  const report = (list: unknown): Map<string, ShortcutStatus> => {
+    for (const spec of specs) {
+      const found = findShortcut(list, spec.id)
+      result.set(
+        spec.id,
+        found
+          ? { via: 'portal', ...labelOf(found), releases: Boolean(spec.release) }
+          : { via: 'none', problem: 'o desktop não ligou o atalho' }
+      )
+    }
+    return result
+  }
+  // 3. Se os atalhos já foram ligados numa abertura anterior, o desktop os devolve aqui, e não é
   //    preciso perguntar de novo (o GNOME devolve a lista vazia: lá a janela volta a aparecer).
   const listToken = token()
   const listed = await portalRequest(
@@ -187,16 +365,12 @@ async function bindWithPortal(
     listToken,
     10_000
   ).catch(() => null)
-  const known = findShortcut(listed?.response === 0 ? listed.results.shortcuts : undefined)
-  if (known) {
-    unbind = () => {
-      unsubscribe()
-      closeSession(bus, session)
-    }
-    return { via: 'portal', ...labelOf(known) }
+  const known = listed?.response === 0 ? listed.results.shortcuts : undefined
+  if (specs.every((spec) => findShortcut(known, spec.id))) {
+    unbind = close
+    return report(known)
   }
-  // 4. O atalho: o desktop mostra uma janela para o usuário confirmar ou escolher a tecla.
-  const trigger = toPortalTrigger(accelerator)
+  // 4. Os atalhos: o desktop mostra uma janela para o usuário confirmar ou escolher as teclas.
   const bindToken = token()
   const bound = await portalRequest(
     bus,
@@ -206,44 +380,41 @@ async function bindWithPortal(
       signature: 'oa(sa{sv})sa{sv}',
       body: [
         session,
-        [
-          [
-            SHORTCUT_ID,
+        specs.map((spec) => {
+          const trigger = toPortalTrigger(spec.accelerator as string)
+          return [
+            spec.id,
             {
-              description: new Variant('s', DESCRIPTION),
+              description: new Variant('s', spec.description),
               ...(trigger ? { preferred_trigger: new Variant('s', trigger) } : {})
             }
           ]
-        ],
+        }),
         '',
         options({ handle_token: bindToken })
       ]
     },
     bindToken
   )
-  const mine = findShortcut(bound.results.shortcuts)
-  if (bound.response !== 0 || !mine) {
-    unsubscribe()
-    closeSession(bus, session)
-    return {
-      via: 'none',
-      problem:
-        bound.response === 1
-          ? 'o atalho foi recusado na janela do desktop'
-          : 'o desktop não ligou o atalho'
-    }
+  if (
+    bound.response !== 0 ||
+    !specs.some((spec) => findShortcut(bound.results.shortcuts, spec.id))
+  ) {
+    close()
+    return fail(
+      bound.response === 1
+        ? 'o atalho foi recusado na janela do desktop'
+        : 'o desktop não ligou o atalho'
+    )
   }
-  unbind = () => {
-    unsubscribe()
-    closeSession(bus, session)
-  }
-  return { via: 'portal', ...labelOf(mine) }
+  unbind = close
+  return report(bound.results.shortcuts)
 }
 
-/** O atalho do Wisp numa lista de atalhos do portal (a(sa{sv}), já sem os Variant). */
-function findShortcut(list: unknown): Record<string, unknown> | null {
+/** Um atalho do Wisp numa lista de atalhos do portal (a(sa{sv}), já sem os Variant). */
+function findShortcut(list: unknown, id: string): Record<string, unknown> | null {
   if (!Array.isArray(list)) return null
-  const found = (list as [string, Record<string, unknown>][]).find(([id]) => id === SHORTCUT_ID)
+  const found = (list as [string, Record<string, unknown>][]).find(([name]) => name === id)
   return found ? (found[1] ?? {}) : null
 }
 

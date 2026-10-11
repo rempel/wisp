@@ -516,25 +516,38 @@ function decodeMessage(buffer: Buffer): DBusMessage {
 // ---------------------------------------------------------------------------
 // Conexão
 
+/** Os sockets unix de um endereço D-Bus ("unix:path=/run/user/1000/bus;…"). */
+function addressPaths(address: string): string[] {
+  const paths: string[] = []
+  for (const entry of address.split(';')) {
+    const [transport, rest = ''] = entry.split(/:(.*)/s)
+    if (transport !== 'unix') continue
+    const options = new Map(
+      rest
+        .split(',')
+        .map((pair) => pair.split(/=(.*)/s))
+        .map(([key, value = '']) => [key, decodeURIComponent(value)])
+    )
+    const path = options.get('path')
+    const abstract = options.get('abstract')
+    if (path) paths.push(path)
+    else if (abstract) paths.push(`\0${abstract}`)
+  }
+  return paths
+}
+
+/** Onde está o barramento do sistema: o DBUS_SYSTEM_BUS_ADDRESS, ou o lugar padrão. */
+export function systemBusPaths(env: NodeJS.ProcessEnv = process.env): string[] {
+  const address = env.DBUS_SYSTEM_BUS_ADDRESS
+  return address ? addressPaths(address) : ['/run/dbus/system_bus_socket']
+}
+
 /** Onde está o barramento de sessão: o DBUS_SESSION_BUS_ADDRESS, ou o padrão do systemd. */
 export function sessionBusPaths(env: NodeJS.ProcessEnv = process.env): string[] {
   const address = env.DBUS_SESSION_BUS_ADDRESS
   const paths: string[] = []
   if (address) {
-    for (const entry of address.split(';')) {
-      const [transport, rest = ''] = entry.split(/:(.*)/s)
-      if (transport !== 'unix') continue
-      const options = new Map(
-        rest
-          .split(',')
-          .map((pair) => pair.split(/=(.*)/s))
-          .map(([key, value = '']) => [key, decodeURIComponent(value)])
-      )
-      const path = options.get('path')
-      const abstract = options.get('abstract')
-      if (path) paths.push(path)
-      else if (abstract) paths.push(`\0${abstract}`)
-    }
+    paths.push(...addressPaths(address))
   } else if (env.XDG_RUNTIME_DIR) {
     paths.push(`${env.XDG_RUNTIME_DIR}/bus`)
   }
@@ -615,8 +628,17 @@ export class DBusConnection extends EventEmitter {
   }
 
   /** Conecta no barramento de sessão; null se não houver um (ou se ele recusar). */
-  static async session(env: NodeJS.ProcessEnv = process.env): Promise<DBusConnection | null> {
-    for (const path of sessionBusPaths(env)) {
+  static session(env: NodeJS.ProcessEnv = process.env): Promise<DBusConnection | null> {
+    return DBusConnection.open(sessionBusPaths(env))
+  }
+
+  /** Conecta no barramento do sistema (o do logind); null se não houver um. */
+  static system(env: NodeJS.ProcessEnv = process.env): Promise<DBusConnection | null> {
+    return DBusConnection.open(systemBusPaths(env))
+  }
+
+  private static async open(paths: string[]): Promise<DBusConnection | null> {
+    for (const path of paths) {
       const socket = await openSocket(path)
       if (!socket) continue
       if (!(await authenticate(socket))) {

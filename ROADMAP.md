@@ -269,7 +269,7 @@ O Wisp parecer vivo como o Mochi, mas do jeito dele: gotinha robô, LEDs, antena
 
 ### Fase 9: desktop ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquema de permissões.
 
@@ -332,25 +332,57 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 - "me lembra de beber água em 1 minuto" avisa na hora certa, mesmo com o app reiniciado no meio;
 - "pausa a música" funciona com o Spotify.
 
-### Fase 10: voz ("Whisper to Wisp", especificação v2)
+### Fase 10: voz ("Whisper to Wisp", especificação v2) ✅
 
-- **Apertar para falar primeiro (G).**
-  - Botão de microfone e atalho.
-  - O áudio é captado em 16 kHz mono.
-  - Um detector de voz por energia guarda 500 ms de folga antes da fala.
-  - A transcrição é local, com o whisper.cpp.
-  - O texto vai para a caixa, para você revisar, ou é enviado direto.
-- **O Wisp falando (M, opcional):** síntese de voz local (Piper, por exemplo) para respostas curtas.
-- **Palavra de ativação depois (G),** com um modelo pequeno feito para isso (openWakeWord, por
-  exemplo), e não com transcrição contínua.
-- **Comandos rápidos sem o Claude (M, opcional).** Um interpretador simples para "pausa a música",
-  "abre o Firefox" e "aumenta o volume", que responde na hora, funciona offline e poupa o plano. O
-  resto vai para o Claude.
+**Status:** pronta, esperando validação.
+
+- **Apertar para falar (G):**
+  - **Atalho de voz:** Ctrl+Alt+Espaço (`voiceShortcut`). Segurando, o Wisp ouve; soltando, ele
+    transcreve. Um toque rápido deixa as mãos livres: ele ouve até você parar de falar.
+    - No X11, o Electron só avisa quando a tecla é apertada. Para saber quando ela é solta, o
+      Wisp pergunta ao servidor X quais teclas estão para baixo (`QueryKeymap`), a cada 30 ms,
+      só enquanto ela está apertada.
+    - No Wayland, o portal avisa as duas coisas (`Activated` e `Deactivated`). Os dois atalhos
+      vão no mesmo pedido, então o desktop pergunta uma vez só.
+  - **Botão de microfone no painel:** o texto vai para a caixa, para revisar e enviar. Pelo
+    atalho, a mensagem vai direto (ou para a caixa, com `voiceReview`). As mensagens faladas
+    levam um microfone pequeno.
+  - **Captura:** na página do mascote, que está sempre carregada. Um `AudioWorklet` a 16 kHz
+    mono entrega quadros de 20 ms, e um detector de voz por energia acha o começo e o fim da
+    fala: ele mede o ruído de fundo nos primeiros 200 ms e o acompanha devagar. O áudio que vai
+    para a transcrição começa 500 ms antes da fala e termina 300 ms depois dela.
+  - **Transcrição:** local, com o whisper.cpp (`whisper-cli`). O WAV é montado na memória e vai
+    pela entrada padrão (`-f -`); a saída já vem sem as marcas de silêncio.
+- **Comandos rápidos sem o Claude (M):** "pausa a música", "próxima", "aumenta o volume" e "abre
+  o Firefox" são resolvidos no Wisp, na hora e offline (`quickCommands`).
+  - Música pelo MPRIS; volume do sistema pelo `wpctl` ou pelo `pactl` (sem eles, o do player).
+  - "Abre o X" procura o app instalado e mostra o **mesmo card** do `open_app`: nada abre sem
+    um clique. Um nome que não é de um app vai para o Claude.
+  - As frases valem inteiras: "abre o Firefox e procura gatos" vai para o Claude.
+- **O Wisp falando (M, opcional):** com `voiceReplies`, a resposta ao que foi pedido por voz é
+  falada pelo Piper, com o mascote "falando". Só o texto final, sem Markdown; das respostas
+  longas, só o começo. O texto vai pela entrada padrão e o áudio volta cru pela saída.
 - **Regras:**
-  - por voz dá para negar uma permissão, nunca aprovar;
-  - nada de áudio no disco;
-  - a escuta pausa com a tela bloqueada;
-  - a escuta contínua gasta menos de 1% de CPU com o app parado.
+  - **Por voz, só negar:** com um card esperando, "não", "nega" ou "cancela" negam o pedido;
+    "sim" ou "pode" não aprovam nada, e o Wisp lembra que é preciso clicar.
+  - **Nada de áudio no disco:** o áudio fica na memória, da captura ao whisper.cpp. O teste
+    procurou, nos arquivos que mudaram durante a escuta, 64 bytes do meio do áudio ouvido e não
+    achou nenhum.
+  - **Tela bloqueada:** o Wisp acompanha o `LockedHint` do logind e o `ActiveChanged` da
+    proteção de tela (freedesktop, GNOME, MATE, Cinnamon). Bloqueou no meio, a escuta para na
+    hora; bloqueada, o atalho não abre o microfone.
+  - **Microfone:** só abre enquanto o Wisp ouve. Das páginas do Wisp, só a do mascote pode pedir o
+    microfone, e só o áudio; câmera, captura de tela e ler a área de transferência são negados.
+  - **CPU:** não há escuta contínua (veja abaixo). Depois de ouvir, em sono fundo, o app ficou em
+    0,30%, como antes.
+
+**Ficou para depois:**
+
+- **Palavra de ativação (G):** não existe um modelo pronto para "ei, Wisp", e treinar um no
+  openWakeWord é um projeto à parte. O próprio roadmap já a punha depois do apertar para falar.
+  Quando vier, ela usa o mesmo detector de voz e a mesma regra da tela bloqueada.
+- **Os modelos de voz não vêm com o Wisp:** o README explica como baixar o do whisper.cpp e,
+  se quiser, uma voz do Piper.
 
 **Aceite:** segurar o atalho, dizer "abre o Firefox" e soltar mostra o card de permissão do app, e
 nenhum áudio é gravado em disco.

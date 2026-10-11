@@ -10,6 +10,8 @@ const INTERN_ATOM = 16
 const GET_PROPERTY = 20
 const SEND_EVENT = 25
 const GET_INPUT_FOCUS = 43
+const QUERY_KEYMAP = 44
+const GET_KEYBOARD_MAPPING = 101
 const CLIENT_MESSAGE = 33
 /** SubstructureNotify | SubstructureRedirect: como o EWMH pede para mensagens à janela raiz. */
 const ROOT_EVENT_MASK = 0x180000
@@ -46,7 +48,8 @@ export class XClient {
 
   private constructor(
     private readonly socket: Socket,
-    readonly root: number
+    readonly root: number,
+    private readonly keycodes: { min: number; max: number }
   ) {
     socket.on('data', (chunk: Buffer) => this.onData(chunk))
     socket.on('error', () => this.close())
@@ -55,7 +58,46 @@ export class XClient {
 
   static async open(env: NodeJS.ProcessEnv = process.env): Promise<XClient | null> {
     const opened = await openDisplay(env)
-    return opened && new XClient(opened.socket, opened.root)
+    return opened && new XClient(opened.socket, opened.root, opened.keycodes)
+  }
+
+  get alive(): boolean {
+    return !this.closed
+  }
+
+  /** As teclas (keycodes) que produzem este keysym, pelo mapa do teclado (GetKeyboardMapping). */
+  async keycodesOf(keysym: number): Promise<number[]> {
+    const { min, max } = this.keycodes
+    if (!min || max < min) return []
+    const data = Buffer.alloc(8)
+    data.writeUInt8(GET_KEYBOARD_MAPPING, 0)
+    data.writeUInt16LE(2, 2)
+    data.writeUInt8(min, 4)
+    data.writeUInt8(max - min + 1, 5)
+    const reply = await this.request(data, true)
+    if (!reply) return []
+    const perKeycode = reply.readUInt8(1)
+    const found: number[] = []
+    for (let key = 0; key <= max - min; key++) {
+      for (let column = 0; column < perKeycode; column++) {
+        const offset = 32 + (key * perKeycode + column) * 4
+        if (offset + 4 > reply.length) break
+        if (reply.readUInt32LE(offset) === keysym) {
+          found.push(min + key)
+          break
+        }
+      }
+    }
+    return found
+  }
+
+  /** As teclas apertadas agora (QueryKeymap): um bit por keycode, 32 bytes. null se der erro. */
+  async keymap(): Promise<Buffer | null> {
+    const data = Buffer.alloc(4)
+    data.writeUInt8(QUERY_KEYMAP, 0)
+    data.writeUInt16LE(1, 2)
+    const reply = await this.request(data, true)
+    return reply && reply.length >= 40 ? reply.subarray(8, 40) : null
   }
 
   close(): void {

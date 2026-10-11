@@ -859,6 +859,57 @@ code {
   color: var(--accent);
 }
 
+/* O microfone: vermelho enquanto ouve, com um anel que cresce com a voz (--lvl, de 0 a 1). */
+.composer .icon-button.mic {
+  position: relative;
+}
+
+.composer .icon-button.mic.listening,
+.composer .icon-button.mic.listening:hover {
+  background: var(--danger-solid);
+  color: #fff;
+}
+
+.composer .icon-button.mic.listening::before {
+  content: '';
+  position: absolute;
+  inset: 3px -1px;
+  border: 2px solid var(--danger-solid);
+  border-radius: 12px;
+  opacity: calc(0.25 + var(--lvl, 0) * 0.75);
+  transform: scale(calc(1.05 + var(--lvl, 0) * 0.3));
+  transition:
+    transform 0.1s ease-out,
+    opacity 0.1s ease-out;
+  pointer-events: none;
+}
+
+.composer .icon-button.mic.transcribing .spinner {
+  color: var(--accent);
+}
+
+.voice-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice-hint.listening {
+  color: var(--danger-text);
+}
+
+/* Mensagem falada: um microfone pequeno antes do texto. */
+.msg.user .voice-badge {
+  display: inline-flex;
+  margin-right: 6px;
+  vertical-align: -2px;
+  opacity: 0.7;
+}
+
+.msg.user .voice-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
 /* Botão de mudo, no canto da linha do modelo. */
 .composer .icon-button.sound-toggle {
   width: 26px;

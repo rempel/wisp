@@ -18,7 +18,14 @@ export type PermissionStatus = 'pending' | PermissionDecision | 'answered' | 'ca
 
 /** Um item da conversa, na ordem em que aparece. */
 export type Item =
-  | { kind: 'user'; id: string; text: string; attachments: AttachmentPreview[] }
+  | {
+      kind: 'user'
+      id: string
+      text: string
+      attachments: AttachmentPreview[]
+      /** Foi falada (o atalho de voz, um comando rápido). */
+      voice?: boolean
+    }
   /** Bloco de texto da resposta (Markdown), que cresce enquanto chega. */
   | { kind: 'text'; id: string; text: string }
   | {
@@ -64,8 +71,19 @@ export type Action =
 
 export const initialState: ChatState = { items: [], busy: false, model: null, usage: null }
 
-function userItem(items: Item[], text: string, attachments: AttachmentPreview[]): Item {
-  return { kind: 'user', id: `user-${items.length}`, text, attachments }
+function userItem(
+  items: Item[],
+  text: string,
+  attachments: AttachmentPreview[],
+  voice = false
+): Item {
+  return {
+    kind: 'user',
+    id: `user-${items.length}`,
+    text,
+    attachments,
+    ...(voice ? { voice } : {})
+  }
 }
 
 export function reducer(state: ChatState, action: Action): ChatState {
@@ -91,7 +109,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'usage':
       return { ...state, usage: event.usage }
     case 'user':
-      return append(state, userItem(state.items, event.text, event.attachments))
+      return append(state, userItem(state.items, event.text, event.attachments, event.voice))
     case 'restored': {
       // O que ficou pela metade quando a conversa foi guardada não vai terminar.
       const items = state.items.map((item): Item => {

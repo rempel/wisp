@@ -14,7 +14,10 @@ import type {
   Gaze,
   MascotReaction,
   MascotView,
-  SoundName
+  SoundName,
+  VoiceCaptureEvent,
+  VoiceCommand,
+  VoiceStatus
 } from '../shared/ipc'
 
 const MASCOT_SIZE = 128
@@ -54,6 +57,8 @@ export interface MascotHandlers {
   ready(): void
   /** O mascote apareceu ou mudou de lugar (a leitura do cursor recomeça). */
   moved(): void
+  /** O que a captura de voz (que roda na página do mascote) contou, já conferido. */
+  voice(event: VoiceCaptureEvent): void
 }
 
 /** Cria a janela do mascote e liga o arraste, os cliques e o resto do que vem da página. */
@@ -84,6 +89,11 @@ export function setupMascot(options: MascotHandlers): void {
   ipcMain.on(IPC.soundPlay, (event, name: unknown) => {
     if (fromMascot(event) && SOUND_NAMES.includes(name as SoundName))
       options.sound(name as SoundName)
+  })
+  ipcMain.on(IPC.voiceEvent, (event, sent: unknown) => {
+    if (!fromMascot(event)) return
+    const checked = checkVoiceEvent(sent)
+    if (checked) options.voice(checked)
   })
   ipcMain.on(IPC.mascotDrop, (event, dropped: unknown) => {
     if (!fromMascot(event)) return
@@ -149,6 +159,60 @@ export function playMascotSound(name: SoundName, volume: number): void {
 /** Um som da pasta do usuário (bytes) ou a volta do sintetizado (null). */
 export function sendMascotCustomSound(name: SoundName, data: Buffer | null): void {
   mascotWin?.webContents.send(IPC.mascotCustomSound, name, data)
+}
+
+/** A captura e a fala de voz, na página do mascote. */
+export function sendVoiceCommand(command: VoiceCommand): void {
+  mascotWin?.webContents.send(IPC.voiceCommand, command)
+}
+
+/** Em que pé está a voz (o mascote mostra que ouve, transcreve ou fala). */
+export function setMascotVoice(status: VoiceStatus): void {
+  mascotWin?.webContents.send(IPC.voiceStatus, status)
+}
+
+/** Até 30 s de áudio a 16 kHz, com folga. */
+const MAX_VOICE_BYTES = 40 * 16_000 * 2
+
+/** Um evento da captura de voz, conferido campo a campo (o áudio vira um ArrayBuffer só dele). */
+function checkVoiceEvent(value: unknown): VoiceCaptureEvent | null {
+  const event = (value ?? {}) as Record<string, unknown>
+  const id = event.id
+  if (typeof id !== 'number' || !Number.isInteger(id)) return null
+  switch (event.type) {
+    case 'open':
+    case 'speech':
+    case 'empty':
+    case 'said':
+      return { type: event.type, id }
+    case 'level':
+      return typeof event.level === 'number' && Number.isFinite(event.level)
+        ? { type: 'level', id, level: Math.min(1, Math.max(0, event.level)) }
+        : null
+    case 'error': {
+      const reason = event.reason
+      if (reason !== 'denied' && reason !== 'no-device' && reason !== 'failed') return null
+      const message = typeof event.message === 'string' ? event.message.slice(0, 300) : ''
+      return { type: 'error', id, reason, message }
+    }
+    case 'audio': {
+      const pcm = event.pcm
+      const bytes =
+        pcm instanceof ArrayBuffer
+          ? new Uint8Array(pcm)
+          : ArrayBuffer.isView(pcm)
+            ? new Uint8Array(pcm.buffer, pcm.byteOffset, pcm.byteLength)
+            : null
+      // Um áudio estragado vira um erro, para a escuta não ficar esperando.
+      if (!bytes || bytes.byteLength < 2 || bytes.byteLength > MAX_VOICE_BYTES) {
+        return { type: 'error', id, reason: 'failed', message: 'o áudio chegou estragado' }
+      }
+      // Uma cópia com tamanho par: amostras de 16 bits inteiras.
+      const copy = bytes.slice(0, bytes.byteLength & ~1)
+      return { type: 'audio', id, pcm: copy.buffer }
+    }
+  }
+  return null
 }
 
 /** Se o mascote deve aparecer (a janela pode ainda estar carregando). */

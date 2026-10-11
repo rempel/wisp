@@ -149,10 +149,10 @@ export class History {
   }
 
   /** Uma mensagem do usuário. A primeira de uma conversa cria o arquivo dela. */
-  user(sessionId: string, text: string, attachments: AttachmentPreview[]): void {
+  user(sessionId: string, text: string, attachments: AttachmentPreview[], voice = false): void {
     if (!this.current) this.start(sessionId, titleOf(text, attachments))
     else this.setSession(sessionId)
-    this.record({ type: 'user', text, attachments })
+    this.record({ type: 'user', text, attachments, ...(voice ? { voice } : {}) })
   }
 
   /** A conversa aberta passou a usar outro session_id (uma cópia feita pelo Claude Code). */

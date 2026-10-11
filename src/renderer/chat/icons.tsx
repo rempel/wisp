@@ -74,6 +74,14 @@ export const ScreenshotIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Microfone: a cápsula, o arco do suporte e o pé. */
+export const MicIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="5.7" y="1.8" width="4.6" height="8" rx="2.3" />
+    <path d="M3.4 7.6a4.6 4.6 0 0 0 9.2 0M8 12.2v2" />
+  </Icon>
+)
+
 export const ClipboardIcon = (): JSX.Element => (
   <Icon>
     <path d="M10.5 3.5h1a1.3 1.3 0 0 1 1.3 1.3v7.9a1.3 1.3 0 0 1-1.3 1.3h-7a1.3 1.3 0 0 1-1.3-1.3V4.8a1.3 1.3 0 0 1 1.3-1.3h1" />

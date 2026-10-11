@@ -22,15 +22,17 @@ Depois do MVP, vieram as fases do roadmap:
   sessão no chat.
 - **Fase 8 (personalidade):** o mascote reage a cliques e a carinho, os olhos seguem o cursor,
   cochila sem gastar CPU, tem sons próprios, engole os arquivos soltos nele e usa gorro no Natal.
-- **Fase 9 (desktop), pronta para validação:**
-  - um atalho global abre o painel, também no Wayland (pelo portal), e o comando `wisp` aceita
-    `--toggle`, `--new` e `--ask "…"`;
-  - inicia com o sistema, se você quiser;
-  - lembretes que avisam na hora, mesmo com o app reaberto no meio;
-  - controle da música (Spotify, Firefox, VLC…), e o mascote dança quando algo toca;
-  - print da tela e um chip com o que você copiou;
-  - abrir um terminal num projeto e trazer janelas para a frente;
-  - um navegador separado que o Claude controla (opcional), com permissão por site.
+- **Fase 9 (desktop):** um atalho global abre o painel (também no Wayland), o comando `wisp`,
+  iniciar com o sistema, lembretes, controle da música, print da tela, o chip do que você
+  copiou, terminal e janelas, e um navegador separado que o Claude controla (opcional).
+- **Fase 10 (voz), pronta para validação:**
+  - segure Ctrl+Alt+Espaço e fale; solte e o Wisp transcreve, na sua máquina, com o
+    whisper.cpp. O botão de microfone do painel põe o que você disse na caixa;
+  - "pausa a música", "aumenta o volume" e "abre o Firefox" funcionam sem o Claude e sem
+    internet (abrir um app continua pedindo o clique no card);
+  - por voz dá para negar um pedido, nunca aprovar;
+  - nenhum áudio vai para o disco, e com a tela bloqueada ele não escuta;
+  - se você quiser, o Wisp fala as respostas (Piper).
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -52,6 +54,10 @@ O que vem depois está no [ROADMAP.md](ROADMAP.md).
   5.27+). Para o print no Wayland: o portal de captura, que o GNOME e o KDE já têm
 - Para o navegador do Claude (opcional): Google Chrome, Chromium, Brave ou Edge instalado fora
   do Snap
+- Para a voz: um microfone, o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (o programa
+  `whisper-cli`) e um modelo dele (veja [Voz](#voz) abaixo). Para o "aumenta o volume": o
+  `wpctl` (PipeWire) ou o `pactl` (PulseAudio). Para o Wisp falar as respostas (opcional): o
+  [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português
 
 ## Rodando
 
@@ -60,8 +66,33 @@ npm install
 npm run dev
 ```
 
-Vindo de uma fase anterior, rode `npm install` de novo: a Fase 9 trouxe uma dependência nova
-(o `@playwright/mcp`, para o navegador do Claude).
+Vindo de uma fase anterior à 9, rode `npm install` de novo: a Fase 9 trouxe uma dependência
+nova (o `@playwright/mcp`, para o navegador do Claude). A Fase 10 não trouxe nenhuma; a voz usa
+programas instalados à parte (veja [Voz](#voz)).
+
+### Voz
+
+A transcrição roda na sua máquina, com o whisper.cpp. Para instalar e baixar o modelo `small`
+(uns 470 MB, bom para português; o `base`, de 140 MB, é mais rápido e erra mais):
+
+```sh
+git clone https://github.com/ggml-org/whisper.cpp ~/whisper.cpp
+cd ~/whisper.cpp
+cmake -B build && cmake --build build -j --config Release
+sh ./models/download-ggml-model.sh small
+mkdir -p ~/.local/share/wisp/voz
+mv models/ggml-small.bin ~/.local/share/wisp/voz/
+```
+
+O Wisp acha o `whisper-cli` no `PATH`, em `~/.local/bin` e em `~/whisper.cpp/build/bin`. Outro
+lugar ou outro modelo: `whisperPath` e `whisperModel` no `config.json`. O Arch e o Fedora têm o
+whisper.cpp nos repositórios; o pacote pode chamar o programa de `whisper-cpp`, que também
+serve.
+
+Para o Wisp falar as respostas (opcional), instale o Piper (`pipx install piper-tts`) e uma voz
+em português, como a `pt_BR-faber-medium` (o `.onnx` e o `.onnx.json`), em
+`~/.local/share/wisp/voz/`. Depois, ponha `"voiceReplies": true` no `config.json`. As vozes estão
+em [huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR).
 
 Na primeira vez, o `npm run dev` baixa o binário do Electron (~120 MB). Desde o Electron 42
 o download não acontece mais no `npm install`.
@@ -284,6 +315,31 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
 
+### Voz (Fase 10)
+
+Antes, instale o whisper.cpp e o modelo (veja [Voz](#voz)).
+
+- [ ] **Aceite:** segure Ctrl+Alt+Espaço, diga "abre o Firefox" e solte. O mascote acende a
+      lâmpada da antena em vermelho e solta ondas enquanto ouve; depois, o painel aparece com a
+      frase dita e o card de permissão do app. O Firefox só abre no **Permitir**.
+- [ ] **Nada no disco:** o áudio não é gravado em lugar nenhum. Dá para conferir com
+      `find ~ /tmp -newer <um arquivo criado antes> -type f` depois de falar: nenhum áudio.
+- [ ] **Só negar por voz:** com um card esperando, diga "sim, pode": o card continua lá e o Wisp
+      lembra que é preciso clicar. Diga "não": o pedido é negado.
+- [ ] **Um toque:** toque no atalho (sem segurar) e fale: ele ouve até você parar de falar.
+      Tocar de novo encerra antes.
+- [ ] **Botão do microfone:** no painel, clique no microfone e fale. O botão fica vermelho e
+      pulsa com a sua voz; o texto vai para a caixa, sem enviar. Esc desiste.
+- [ ] **Comandos rápidos:** "pausa a música", "próxima", "aumenta o volume" e "abaixa o volume"
+      funcionam na hora, sem o Claude (e sem internet). O resto vai para o Claude, como uma
+      mensagem; a resposta aparece no painel.
+- [ ] **Tela bloqueada:** bloqueie a tela no meio da fala (Super+L): a escuta para na hora.
+- [ ] **O Wisp falando (opcional):** com o Piper instalado e `"voiceReplies": true`, pergunte
+      algo pelo atalho: ele fala a resposta, com o mascote mexendo os olhos. Pelo teclado, ele
+      não fala.
+- [ ] **No Wayland:** o GNOME e o KDE mostram os dois atalhos (painel e voz) na mesma janela de
+      permissão.
+
 ## Visual do mascote
 
 O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
@@ -339,7 +395,16 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "clipboardChip": true,
   "terminalCommand": null,
   "browserAutomation": false,
-  "browserExecutable": null
+  "browserExecutable": null,
+  "voiceShortcut": "Ctrl+Alt+Space",
+  "voiceReview": false,
+  "whisperPath": "whisper-cli",
+  "whisperModel": "~/.local/share/wisp/voz/ggml-small.bin",
+  "voiceLanguage": "pt",
+  "quickCommands": true,
+  "voiceReplies": false,
+  "piperPath": "piper",
+  "piperModel": "~/.local/share/wisp/voz/pt_BR-faber-medium.onnx"
 }
 ```
 
@@ -352,7 +417,7 @@ sobrescreve o arquivo até você corrigir.
 Dá para editar o arquivo com o Wisp aberto:
 
 - `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes`, `accessory`,
-  `shortcut`, `clipboardChip` e `terminalCommand` valem na hora;
+  `shortcut`, `clipboardChip`, `terminalCommand` e as opções de voz valem na hora;
 - `model`, na próxima mensagem;
 - `browserAutomation` e `browserExecutable`, na próxima conversa (Ctrl+K);
 - `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
@@ -378,8 +443,8 @@ podem ser abertos. `editorCommand` é o comando do editor, com argumentos se pre
 `codium`, `flatpak run com.visualstudio.code`); a pasta do projeto vai como último argumento.
 
 Ferramentas em `extraAllowedTools` passam a rodar sem o card, além das já liberadas. Por
-exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar. Comandos `Bash` são a
-exceção: sempre pedem permissão, mesmo listados aqui.
+exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar (vale também para o "abre o X"
+falado). Comandos `Bash` são a exceção: sempre pedem permissão, mesmo listados aqui.
 
 `sound` liga e desliga os sons; o botão de mudo do painel, o Ctrl+M e o item **Sons** dos menus
 mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
@@ -411,6 +476,15 @@ próprio em `~/.local/share/wisp/navegador`, que o Claude controla pelo
 sites nela; os logins ficam só nesse perfil. `browserExecutable` é o caminho do navegador; com
 `null`, o Wisp procura o Chrome, o Chromium, o Brave, o Edge ou o Vivaldi no `PATH` (os do Snap
 não servem: o confinamento não deixa usar o perfil).
+
+`voiceShortcut` é o atalho de voz (segure enquanto fala; um toque ouve até você parar), no mesmo
+formato do `shortcut`; `null` desliga. No Wayland, os dois atalhos aparecem na mesma janela do
+sistema. O que for dito pelo atalho vai direto para o Claude; com `"voiceReview": true`, vai para
+a caixa de mensagem, para você revisar. Pelo botão do microfone do painel, sempre vai para a
+caixa. `whisperPath` e `whisperModel` são o programa e o modelo do whisper.cpp, e
+`voiceLanguage`, o idioma da fala (`"pt"`, `"en"`… ou `"auto"`). `quickCommands` liga os comandos
+rápidos (música, volume, abrir apps), que o Wisp resolve sem o Claude. `voiceReplies` faz o Wisp
+falar a resposta do que foi pedido por voz, com o Piper de `piperPath` e a voz de `piperModel`.
 
 O comando `~/.local/share/wisp/bin/wisp` abre o Wisp ou fala com o que já está aberto:
 `--toggle` abre e fecha o painel, `--show` mostra, `--new` começa uma conversa nova e
@@ -450,43 +524,51 @@ do Claude Code segue a regra dele.
 
 ## Problemas comuns
 
-| Sintoma                                     | O que fazer                                                                                                    |
-| ------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| Fecha na hora com `No usable sandbox!`      | `npm run setup:apparmor` (veja acima)                                                                          |
-| Rodando como root, recusa abrir             | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
-| Quadrado preto em vez de transparência      | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
-| Não fica no topo ou não se move             | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
-| "Não encontrei o Claude Code"               | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
-| Aviso de "chave de API, cobrada por uso"    | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
-| "Não achei um lançador de apps"             | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                              |
-| "Não achei o editor"                        | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
-| O projeto não aparece ou não abre           | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
-| "As ferramentas do desktop não conectaram"  | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
-| "… não veio de uma pasta do computador"     | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o     |
-| Sem ícone na bandeja                        | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                     |
-| O mascote sumiu                             | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                    |
-| "Você chegou ao limite de uso do seu plano" | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                     |
-| "O modelo escolhido não existe…"            | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula   |
-| "O Claude Code não tem mais esta conversa"  | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                       |
-| A pílula de uso não aparece                 | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
-| "O Wisp não está ouvindo as sessões"        | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões       |
-| A sessão do terminal não aparece            | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
-| O botão Terminal não traz a janela          | Funciona no KDE e no X11. No GNOME com Wayland não há como: use o botão **Pasta**                              |
-| Um card ficou parado na aba Sessões         | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba      |
-| Os olhos não seguem o cursor                | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)            |
-| Sem som                                     | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1        |
-| Ele cochila enquanto eu leio                | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                             |
-| O menu do mascote não fecha com Esc         | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando           |
-| O GNOME pede o atalho toda vez que abro     | É o GNOME que não lembra; use `"shortcut": null` e um atalho do sistema para `wisp --toggle` (veja acima)      |
-| "Ctrl+Alt+W já é usado por outro programa"  | Troque `shortcut` no `config.json` (por exemplo, `"Super+Space"`); vale na hora                                |
-| "Este desktop não tem o portal de atalhos"  | O Wayland do seu desktop não tem o `GlobalShortcuts`: ligue um atalho do sistema a `wisp --toggle`             |
-| O lembrete não avisou                       | O Wisp precisa estar aberto na hora; os que venceram com ele fechado avisam quando ele abre                    |
-| "Nenhum player de música aberto"            | O player precisa falar MPRIS (Spotify, Firefox, Chrome, VLC, Rhythmbox…); no navegador, a aba precisa tocar    |
-| "O sistema não deixou tirar o print"        | O print foi negado antes, e o desktop lembra. Para perguntar de novo, rode o comando abaixo da tabela          |
-| O chip do que copiei não aparece            | Ele aparece ao abrir o painel com algo novo copiado; senhas do KeePassXC não aparecem; veja `clipboardChip`    |
-| O terminal não abre, ou abre o errado       | Diga qual usar em `terminalCommand` (por exemplo, `"kitty"` ou `"konsole --workdir {dir}"`)                    |
-| "Não achei um Chrome, Chromium…"            | O navegador do Claude precisa de um Chromium fora do Snap; instale um ou diga o caminho em `browserExecutable` |
-| A janela do navegador do Claude não abre    | Ligou o `browserAutomation` com uma conversa aberta? Ele vale a partir da próxima conversa (Ctrl+K)            |
+| Sintoma                                      | O que fazer                                                                                                    |
+| -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
+| Fecha na hora com `No usable sandbox!`       | `npm run setup:apparmor` (veja acima)                                                                          |
+| Rodando como root, recusa abrir              | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
+| Quadrado preto em vez de transparência       | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
+| Não fica no topo ou não se move              | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
+| "Não encontrei o Claude Code"                | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                        |
+| Aviso de "chave de API, cobrada por uso"     | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura         |
+| "Não achei um lançador de apps"              | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                              |
+| "Não achei o editor"                         | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                   |
+| O projeto não aparece ou não abre            | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas       |
+| "As ferramentas do desktop não conectaram"   | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos |
+| "… não veio de uma pasta do computador"      | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o     |
+| Sem ícone na bandeja                         | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                     |
+| O mascote sumiu                              | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                    |
+| "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                     |
+| "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula   |
+| "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                       |
+| A pílula de uso não aparece                  | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
+| "O Wisp não está ouvindo as sessões"         | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões       |
+| A sessão do terminal não aparece             | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
+| O botão Terminal não traz a janela           | Funciona no KDE e no X11. No GNOME com Wayland não há como: use o botão **Pasta**                              |
+| Um card ficou parado na aba Sessões          | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba      |
+| Os olhos não seguem o cursor                 | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)            |
+| Sem som                                      | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1        |
+| Ele cochila enquanto eu leio                 | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                             |
+| O menu do mascote não fecha com Esc          | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando           |
+| O GNOME pede o atalho toda vez que abro      | É o GNOME que não lembra; use `"shortcut": null` e um atalho do sistema para `wisp --toggle` (veja acima)      |
+| "Ctrl+Alt+W já é usado por outro programa"   | Troque `shortcut` no `config.json` (por exemplo, `"Super+Space"`); vale na hora                                |
+| "Este desktop não tem o portal de atalhos"   | O Wayland do seu desktop não tem o `GlobalShortcuts`: ligue um atalho do sistema a `wisp --toggle`             |
+| O lembrete não avisou                        | O Wisp precisa estar aberto na hora; os que venceram com ele fechado avisam quando ele abre                    |
+| "Nenhum player de música aberto"             | O player precisa falar MPRIS (Spotify, Firefox, Chrome, VLC, Rhythmbox…); no navegador, a aba precisa tocar    |
+| "O sistema não deixou tirar o print"         | O print foi negado antes, e o desktop lembra. Para perguntar de novo, rode o comando abaixo da tabela          |
+| O chip do que copiei não aparece             | Ele aparece ao abrir o painel com algo novo copiado; senhas do KeePassXC não aparecem; veja `clipboardChip`    |
+| O terminal não abre, ou abre o errado        | Diga qual usar em `terminalCommand` (por exemplo, `"kitty"` ou `"konsole --workdir {dir}"`)                    |
+| "Não achei um Chrome, Chromium…"             | O navegador do Claude precisa de um Chromium fora do Snap; instale um ou diga o caminho em `browserExecutable` |
+| A janela do navegador do Claude não abre     | Ligou o `browserAutomation` com uma conversa aberta? Ele vale a partir da próxima conversa (Ctrl+K)            |
+| "Para eu entender a sua voz, instale…"       | Instale o whisper.cpp (veja [Voz](#voz)) ou diga onde está o `whisper-cli` em `whisperPath`                    |
+| "Falta o modelo de voz do whisper.cpp"       | Baixe o modelo (veja [Voz](#voz)) ou aponte `whisperModel` para o `ggml-*.bin` que você já tem                 |
+| "O acesso ao microfone foi negado"           | O sistema bloqueou o microfone (no GNOME: Configurações → Privacidade → Microfone)                             |
+| "Não achei um microfone"                     | Confira se o microfone aparece nas configurações de som do sistema                                             |
+| A transcrição erra muito                     | Use um modelo maior (`small` ou `medium`) e fale mais perto do microfone; confira `voiceLanguage`              |
+| Segurei o atalho e ele parou antes de soltar | Ele também para depois de 3 s de silêncio e no máximo em 30 s, caso o soltar da tecla se perca                 |
+| "Abre o X" foi para o Claude                 | O nome não bateu com o de um app instalado; o Claude procura melhor. Veja o nome com "quais apps eu tenho?"    |
+| O volume não muda                            | Instale o `wireplumber` (`wpctl`) ou o `pulseaudio-utils` (`pactl`); sem eles, muda só o volume do player      |
 
 Para o GNOME perguntar de novo se o Wisp pode tirar prints (ele guarda o "Negar"):
 
@@ -530,6 +612,13 @@ src/
 │  ├─ kwin.ts        # scripts do KWin (KDE), com o resultado de volta pelo D-Bus
 │  ├─ browser.ts     # o servidor do Playwright MCP e o navegador que ele usa
 │  ├─ browser-policy.ts # permissões do navegador por site
+│  ├─ voice.ts       # a voz: quando ouvir, o que fazer com o que foi dito, quando falar
+│  ├─ voice-commands.ts # comandos rápidos (música, volume, abrir apps) e o "não" dos cards
+│  ├─ whisper.ts     # transcrição com o whisper.cpp, pela entrada padrão
+│  ├─ piper.ts       # a fala das respostas, com o Piper
+│  ├─ volume.ts      # volume do sistema (wpctl, pactl)
+│  ├─ screenlock.ts  # tela bloqueada (logind e proteção de tela, pelo D-Bus)
+│  ├─ programs.ts    # achar programas instalados à parte (whisper-cli, piper)
 │  ├─ mascot.ts      # janela do mascote, arraste, estado mostrado e o que vem da página
 │  ├─ mood.ts        # estado do mascote a partir dos eventos da conversa
 │  ├─ presence.ts    # olhos seguindo o cursor, cochilar e acordar
@@ -559,9 +648,11 @@ src/
 ├─ shared/
 │  ├─ ipc.ts         # canais de IPC, eventos da conversa e o tipo da API
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
+│  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
-   ├─ mascot/        # Mascot.tsx (SVG e reações), mascot.css (animações), sounds.ts (WebAudio)
+   ├─ mascot/        # Mascot.tsx (SVG e reações), mascot.css (animações), sounds.ts (WebAudio),
+   │                 # voice.ts e voice-worklet.ts (microfone e fala)
    ├─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas, histórico, aba Sessões
    └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
@@ -848,3 +939,35 @@ resources/
   - rodar código na página (`browser_evaluate`, `browser_run_code_unsafe`) e mandar arquivos
     (`browser_file_upload`, `browser_drop`) pedem sempre, sem o "sempre";
   - ferramentas que o Wisp não conhece pedem, também sem o "sempre".
+- **Voz:** o microfone, a transcrição e a fala ficam todos na máquina, e o áudio só passa pela
+  memória.
+  - **Captura:** roda na página do mascote, que está sempre carregada. Ao ouvir, ela abre o
+    microfone (`getUserMedia`, com cancelamento de eco e de ruído) num `AudioContext` a 16 kHz,
+    e um `AudioWorklet` entrega quadros de 20 ms. O detector de voz (`shared/vad.ts`) mede o
+    ruído de fundo nos primeiros 200 ms e o acompanha devagar; a fala começa 12 dB acima dele
+    por três quadros seguidos e continua enquanto fica 6 dB acima. Vão para o main os quadros de
+    500 ms antes da fala até 300 ms depois dela, como PCM de 16 bits, pelo IPC. Depois, o
+    microfone fecha (o indicador de gravação do desktop apaga).
+  - **Quando parar:** segurando o atalho, quando ele é solto (com 3 s de silêncio e 30 s de
+    escuta como garantias); num toque ou pelo botão do painel, 1,2 s depois da fala; sem fala,
+    em 6 s.
+  - **Permissões do Chromium:** um `setPermissionRequestHandler` só dá o microfone à página do
+    mascote, e só o áudio. As outras permissões (câmera, captura de tela, ler a área de
+    transferência, notificações, localização) são negadas; o painel só pode escrever na área de
+    transferência, pelo botão de copiar.
+  - **Transcrição:** o `whisper.ts` monta o WAV na memória e roda
+    `whisper-cli -m <modelo> -l pt -t <núcleos> -nt -np -sns -f -`, com o WAV na entrada
+    padrão. A saída sai sem as marcas de silêncio (`[BLANK_AUDIO]`, `(música)`) e sem os
+    créditos de legenda que o modelo às vezes inventa no silêncio.
+  - **O que fazer com o texto:** com um card de permissão esperando, um "não" nega e um "sim" só
+    gera um aviso. Depois vêm os comandos rápidos, e o resto vai para o chat (direto, ou para a
+    caixa). Um "abre o X" usa a mesma lista de apps do `list_apps` e o mesmo card do
+    `open_app`.
+  - **Tela bloqueada:** o `screenlock.ts` ouve o `LockedHint` da sessão no logind (barramento do
+    sistema) e o `ActiveChanged` das proteções de tela no barramento de sessão. Bloqueou, a
+    escuta e a fala param, e uma transcrição em andamento é descartada.
+  - **Atalho de voz:** no X11, o `globalShortcut` avisa o aperto (e repete, com a repetição do
+    teclado); o soltar vem de um `QueryKeymap` na conexão própria com o servidor X, a cada 30 ms
+    enquanto a tecla está apertada. No Wayland, os sinais `Activated` e `Deactivated` do portal.
+  - **Fala:** o `piper.ts` roda `piper --model <voz> --output-raw`, com o texto na entrada padrão,
+    e manda o PCM para a página do mascote tocar.
