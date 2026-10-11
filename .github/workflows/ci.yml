@@ -1,6 +1,6 @@
-# CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; num
-# job à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes .deb e AppImage. Numa
-# tag v*, os pacotes vão para um release do GitHub.
+# CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; em
+# jobs à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes .deb e AppImage, que são
+# conferidos (o AppImage é aberto de verdade). Numa tag v*, os pacotes vão para um release.
 name: CI
 
 on:
@@ -74,6 +74,13 @@ jobs:
       - run: npx install-electron
       - run: npm run build
       - run: npx electron-builder --linux deb AppImage --publish never
+      - name: X virtual e D-Bus, para abrir o AppImage
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb xauth dbus \
+            libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libxtst6
+      # O conteúdo do .deb, e o AppImage aberto de verdade num HOME vazio.
+      - run: scripts/smoke-packages.sh
       - uses: actions/upload-artifact@v6
         with:
           name: pacotes-linux
