@@ -27,6 +27,7 @@ export const IPC = {
   mascotReact: 'mascot:react',
   /** main → mascote: o acessório do dia. Arg: Accessory | null. */
   mascotAccessory: 'mascot:accessory',
+  mascotDock: 'mascot:dock',
   /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
   mascotSound: 'mascot:sound',
   /**
@@ -195,6 +196,12 @@ export interface Gaze {
 
 /** Reações que o main pede ao mascote: a saudação, quando o app abre, e o toque de um lembrete. */
 export type MascotReaction = 'greet' | 'remind'
+
+/**
+ * O modo compacto, para a página do mascote: a borda em que ele mora e se está guardado (só a aba
+ * à vista) ou espiando (inteiro). null: fora do modo compacto.
+ */
+export type MascotDock = { edge: 'left' | 'right'; tucked: boolean } | null
 
 /**
  * Como a escuta termina: 'hold', quando o atalho for solto (o silêncio longo só por garantia);
@@ -599,6 +606,12 @@ export interface Settings {
   voiceReplies: boolean
   voiceLanguage: string
   demo: boolean
+  compact: boolean
+  github: boolean
+  calendar: boolean
+  calendarFiles: string[]
+  calendarAlertMinutes: number
+  weeklySummary: boolean
 }
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
@@ -620,7 +633,13 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'quickCommands',
   'voiceReplies',
   'voiceLanguage',
-  'demo'
+  'demo',
+  'compact',
+  'github',
+  'calendar',
+  'calendarFiles',
+  'calendarAlertMinutes',
+  'weeklySummary'
 ]
 
 /** O que a tela de configurações recebe. */
@@ -674,6 +693,8 @@ export interface WispApi {
     onGaze(listener: (gaze: Gaze | null) => void): () => void
     onReact(listener: (reaction: MascotReaction) => void): () => void
     onAccessory(listener: (accessory: Accessory | null) => void): () => void
+    /** O modo compacto: a borda e se ele está guardado (null: fora do modo compacto). */
+    onDock(listener: (dock: MascotDock) => void): () => void
     /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */
     onSound(listener: (name: SoundName, volume: number) => void): () => void
     /** Um som da pasta do usuário chegou (bytes) ou saiu (null). */

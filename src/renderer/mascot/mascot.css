@@ -1836,3 +1836,32 @@ body {
     opacity: 0.55;
   }
 }
+
+/* ---- Modo compacto ------------------------------------------------------ */
+
+/*
+ * A janela fica encostada na borda da tela. Guardado, o mascote escorrega para trás dela e se
+ * inclina, como quem espia: só um olho e a antena ficam à vista, e o main encolhe a forma da
+ * janela para essa faixa depois da animação. O deslocamento e a duração são o TUCK_SHIFT e o
+ * SLIDE_MS do dock.ts.
+ */
+.dock {
+  position: absolute;
+  inset: 0;
+  transform-origin: 64px 104px;
+  transition: transform 280ms cubic-bezier(0.3, 0.8, 0.3, 1);
+}
+
+.stage.dock-right.tucked .dock {
+  transform: translateX(58px) rotate(-10deg);
+}
+
+.stage.dock-left.tucked .dock {
+  transform: translateX(-58px) rotate(10deg);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dock {
+    transition: none;
+  }
+}

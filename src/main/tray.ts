@@ -6,6 +6,8 @@ export interface TrayActions {
   mascotVisible(): boolean
   setMascotVisible(visible: boolean): void
   newConversation(): void
+  compactEnabled(): boolean
+  setCompactEnabled(enabled: boolean): void
   soundEnabled(): boolean
   setSoundEnabled(enabled: boolean): void
   autostartEnabled(): boolean
@@ -47,6 +49,12 @@ export function setupTray(actions: TrayActions): AppMenu {
           actions.setMascotVisible(!visible)
           refresh()
         }
+      },
+      {
+        label: 'Modo compacto',
+        type: 'checkbox',
+        checked: actions.compactEnabled(),
+        click: (item) => actions.setCompactEnabled(item.checked)
       },
       { label: 'Nova conversa', click: () => actions.newConversation() },
       {

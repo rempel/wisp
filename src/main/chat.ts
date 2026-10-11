@@ -240,6 +240,8 @@ export interface ChatOptions {
   onPanel?: (change: 'open' | 'close') => void
   /** O usuário está mexendo no painel (o mascote não cochila). */
   onActivity?: () => void
+  /** A janela do painel apareceu ou sumiu, de qualquer jeito (o modo compacto acompanha). */
+  onVisible?: (visible: boolean) => void
 }
 
 /**
@@ -255,7 +257,8 @@ export function setupChat({
   onEvent,
   onClose,
   onPanel,
-  onActivity
+  onActivity,
+  onVisible
 }: ChatOptions): Chat {
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
@@ -891,6 +894,8 @@ export function setupChat({
       }
     })
 
+    chat.on('show', () => onVisible?.(true))
+    chat.on('hide', () => onVisible?.(false))
     chat.once('ready-to-show', () => {
       if (!inactive) return show(chat)
       placeNextToMascot(chat)
