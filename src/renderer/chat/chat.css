@@ -703,6 +703,79 @@ code {
 
 /* ---- Pílula do modelo ------------------------------------------------- */
 
+.experimental {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.model-pill.missing {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.model-menu-note {
+  margin: 4px 8px 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.openrouter-menu {
+  width: min(360px, calc(100vw - 32px));
+}
+
+.openrouter-search {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.openrouter-search:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.openrouter-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.openrouter-list .model-text small {
+  word-break: break-all;
+}
+
+.cost-rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 6px 0 8px;
+  font-size: 12.5px;
+}
+
+.cost-rows dt {
+  color: var(--muted);
+}
+
+.cost-rows dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
 .model {
   position: relative;
 }
@@ -2535,6 +2608,28 @@ button.link {
 .settings-button:disabled {
   cursor: default;
   opacity: 0.7;
+}
+
+.openrouter-key {
+  display: flex;
+  gap: 6px;
+}
+
+.openrouter-key input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.openrouter-key input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .voice-test {

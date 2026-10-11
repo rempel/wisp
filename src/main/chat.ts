@@ -14,6 +14,7 @@ import {
   CONFIG_PATH,
   configProblems,
   getConfig,
+  MODEL_NAME,
   onConfigChange,
   onConfigProblems,
   updateConfig
@@ -23,7 +24,9 @@ import type { ConversationHost } from './conversation'
 import { History } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
+import { listModels, OPENROUTER_SECRET } from './openrouter'
 import { DATA_DIR, runtimeDir } from './paths'
+import { readSecret } from './secrets'
 import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
 import type { ScreenImage } from './screenshot'
 import { IPC, MAX_PANES, MODEL_CHOICES, PERMISSION_MODES } from '../shared/ipc'
@@ -40,6 +43,7 @@ import type {
   PastedImage,
   PermissionDecision,
   PermissionMode,
+  Provider,
   SettingsSnapshot,
   SoundSettings,
   TabInfo,
@@ -210,6 +214,8 @@ export interface Chat {
   capture(): Promise<ScreenImage[]>
   /** Um aviso na conversa em foco (fora do histórico), como um problema na configuração. */
   notice(level: NoticeLevel, text: string): void
+  /** A chave da OpenRouter mudou: as conversas de lá a leem de novo. */
+  openrouterKeyChanged(): void
   /** Encerra os processos do Claude Code (o app está fechando). */
   dispose(): void
 }
@@ -340,7 +346,10 @@ export function setupChat({
 
   const config = getConfig()
   /** Uma conversa nova (ainda sem aba). */
-  function makeConversation(mode: PermissionMode = getConfig().permissionMode): Conversation {
+  function makeConversation(
+    mode: PermissionMode = getConfig().permissionMode,
+    provider: Provider = getConfig().provider
+  ): Conversation {
     const id = randomUUID()
     const conversation = new Conversation({
       id,
@@ -351,13 +360,21 @@ export function setupChat({
         allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
         appendSystemPrompt: APPEND_SYSTEM_PROMPT,
         thumbnail: thumbnailOfBase64,
-        demo: () => (getConfig().demo ? DEMO : null)
+        demo: () => (getConfig().demo ? DEMO : null),
+        openrouter: {
+          key: () => readSecret(OPENROUTER_SECRET),
+          // A lista é pública e fica guardada por uma hora; sem rede, o custo fica sem preço.
+          pricing: async (model) =>
+            (await listModels().catch(() => [])).find((item) => item.id === model) ?? null
+        }
       },
       demo: () => getConfig().demo,
       mcpConfig: mcpConfig ? () => mcpConfig(id) : undefined,
       modeFile: modeFileOf(id),
       permissionMode: mode,
-      model: getConfig().model,
+      provider,
+      modelFor: (which) =>
+        which === 'openrouter' ? getConfig().openrouterModel : getConfig().model,
       projectRoots: () => getConfig().projectRoots,
       trustedDirs: [WORKSPACE_DIR, ATTACHMENTS_DIR]
     })
@@ -651,10 +668,21 @@ export function setupChat({
   ipcMain.on(IPC.chatModel, (event, id: unknown, choice: unknown) => {
     const conversation = target(event, id)
     if (!conversation) return
+    if (conversation.provider === 'openrouter') {
+      // Qualquer modelo da OpenRouter, desde que o nome tenha cara de nome de modelo.
+      if (typeof choice !== 'string' || !MODEL_NAME.test(choice)) return
+      updateConfig({ openrouterModel: choice })
+      conversation.setModel(choice)
+      return
+    }
     if (choice !== null && !MODEL_CHOICES.includes(choice as (typeof MODEL_CHOICES)[number])) return
     const model = choice as string | null
     updateConfig({ model })
     conversation.setModel(model)
+  })
+  ipcMain.on(IPC.chatProvider, (event, id: unknown, provider: unknown) => {
+    if (provider !== 'subscription' && provider !== 'openrouter') return
+    target(event, id)?.setProvider(provider)
   })
   ipcMain.on(IPC.chatMode, (event, id: unknown, mode: unknown) => {
     if (isMode(mode)) target(event, id)?.setMode(mode)
@@ -881,7 +909,7 @@ export function setupChat({
   function show(chat: BrowserWindow): void {
     // Relê o config.json se ele mudou; problemas novos chegam pelo onConfigProblems, e um
     // modelo trocado no arquivo vale a partir da próxima mensagem.
-    for (const conversation of conversations()) conversation.setModel(getConfig().model)
+    for (const conversation of conversations()) conversation.syncModel()
     const appearing = !chat.isVisible()
     if (appearing) placeNextToMascot(chat)
     chat.show()
@@ -1136,6 +1164,9 @@ export function setupChat({
       if (!win || !mascot) return 'left'
       const chat = win.getBounds()
       return chat.x + chat.width / 2 < mascot.x + mascot.width / 2 ? 'left' : 'right'
+    },
+    openrouterKeyChanged() {
+      for (const conversation of conversations()) conversation.session.dropSecret()
     },
     dispose() {
       saveTabs()

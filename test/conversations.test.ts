@@ -202,7 +202,8 @@ function conversation(mode = 'default', extra = {}) {
     },
     modeFile: path.join(tmp, `mode-${Math.random()}`),
     permissionMode: mode,
-    model: null,
+    provider: 'subscription',
+    modelFor: () => null,
     projectRoots: () => extra.roots ?? [],
     trustedDirs: extra.trusted ?? []
   })
@@ -302,7 +303,10 @@ test('conversation: setMode changes the mode, emits it and writes the mode file'
     fs.readFileSync(conv.session.options?.modeFile ?? conv['options'].modeFile, 'utf8'),
     'auto'
   )
-  assert.deepStrictEqual(conv.initialEvents()[1], { type: 'mode', mode: 'auto' })
+  assert.deepStrictEqual(
+    conv.initialEvents().find((e) => e.type === 'mode'),
+    { type: 'mode', mode: 'auto' }
+  )
   conv.dispose()
 })
 test('conversation: plan card has its own buttons', async () => {

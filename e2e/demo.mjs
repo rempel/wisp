@@ -83,6 +83,7 @@ check(
       'Mascote e sons',
       'Atalhos e sistema',
       'Voz',
+      'OpenRouter (experimental)',
       'Integrações',
       'Avançado'
     ]),

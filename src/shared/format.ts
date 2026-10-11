@@ -54,3 +54,26 @@ export function formatAgo(ms: number, now = Date.now()): string {
   if (hours < 24) return `há ${hours} h`
   return formatWhen(ms, new Date(now))
 }
+
+/** "US$ 0,0123", "US$ 1,25", "< US$ 0,0001". */
+export function formatUsd(usd: number): string {
+  if (usd > 0 && usd < 0.0001) return '< US$ 0,0001'
+  const digits = usd < 1 ? 4 : 2
+  return `US$ ${usd.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: digits })}`
+}
+
+/** "12,3 mil", "850", "1,2 mi" tokens. */
+export function formatTokens(n: number): string {
+  if (n >= 1e6) return `${(n / 1e6).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mi`
+  if (n >= 1e3) return `${(n / 1e3).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} mil`
+  return String(n)
+}
+
+/** "US$ 3 / 15" por milhão de tokens (entrada / saída); "grátis"; "" sem preço. */
+export function priceLabel(model: { prompt: number | null; completion: number | null }): string {
+  if (model.prompt === null || model.completion === null) return ''
+  if (model.prompt === 0 && model.completion === 0) return 'grátis'
+  const fmt = (n: number): string =>
+    n.toLocaleString('pt-BR', { maximumFractionDigits: n < 1 ? 3 : 2 })
+  return `US$ ${fmt(model.prompt)} / ${fmt(model.completion)}`
+}

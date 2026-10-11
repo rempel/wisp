@@ -75,6 +75,8 @@ const api: WispApi = {
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
     hide: () => ipcRenderer.send(IPC.chatHide),
     setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
+    setProvider: (conversation, provider) =>
+      ipcRenderer.send(IPC.chatProvider, conversation, provider),
     setMode: (conversation, mode) => ipcRenderer.send(IPC.chatMode, conversation, mode),
     answerPermission: (id, decision) => ipcRenderer.send(IPC.chatPermission, id, decision),
     answerQuestion: (id, answers) => ipcRenderer.send(IPC.chatAnswer, id, answers),
@@ -118,6 +120,11 @@ const api: WispApi = {
   summary: {
     get: () => ipcRenderer.invoke(IPC.summaryGet),
     onShow: (listener) => subscribe<[]>(IPC.summaryShow, listener)
+  },
+  openrouter: {
+    models: () => ipcRenderer.invoke(IPC.openrouterModels),
+    setKey: (key) => ipcRenderer.invoke(IPC.openrouterSetKey, key),
+    clearKey: () => ipcRenderer.invoke(IPC.openrouterClearKey)
   },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),

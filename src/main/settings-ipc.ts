@@ -24,6 +24,8 @@ export interface SettingsOptions {
   autostart: { get(): boolean; set(enabled: boolean): string | null }
   /** Alguma configuração mudou (o menu da bandeja acompanha). */
   onChange?(): void
+  /** Há uma chave da OpenRouter no chaveiro (o que se sabe até agora). */
+  openrouterKey(): boolean | null
 }
 
 const tilde = (path: string): string =>
@@ -45,7 +47,8 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       autostart: options.autostart.get(),
       configPath: tilde(CONFIG_PATH),
       logPath: tilde(LOG_PATH),
-      problems: configProblems()
+      problems: configProblems(),
+      openrouterKey: options.openrouterKey()
     }
   }
   const notify = (): void => {
