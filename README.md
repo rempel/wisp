@@ -33,7 +33,7 @@ Depois do MVP, vieram as fases do roadmap:
   - por voz dá para negar um pedido, nunca aprovar;
   - nenhum áudio vai para o disco, e com a tela bloqueada ele não escuta;
   - se você quiser, o Wisp fala as respostas (Piper).
-- **Fase 11 (abas e modos de permissão), pronta para validação:**
+- **Fase 11 (abas e modos de permissão):**
   - várias conversas no mesmo painel, em abas, e até três lado a lado (Ctrl+T, Ctrl+W,
     Ctrl+Tab, Ctrl+\\). Cada aba tem o seu Claude Code, e o pontinho dela mostra se está
     trabalhando, esperando você ou com resposta nova;
@@ -43,6 +43,12 @@ Depois do MVP, vieram as fases do roadmap:
   - **Permitir “ls” sempre** vale para o programa (ou para o subcomando, como `git status`), e
     não só para o comando exato. Comandos compostos, perigosos ou com arquivos de segredos
     continuam pedindo.
+- **Fase 12 (distribuição e qualidade), pronta para validação:**
+  - pacotes .deb e AppImage (veja [Instalando](#instalando));
+  - uma tela de configurações no painel, no lugar de editar o `config.json`;
+  - um modo demonstração, com respostas gravadas, para ver o Wisp sem o Claude Code;
+  - um registro em `~/.local/state/wisp/wisp.log`, de até 1 MB, sem comandos nem endereços;
+  - testes de unidade (`npm test`) e de ponta a ponta (`e2e/`), e CI no GitHub Actions.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -69,7 +75,59 @@ O que vem depois está no [ROADMAP.md](ROADMAP.md).
   `wpctl` (PipeWire) ou o `pactl` (PulseAudio). Para o Wisp falar as respostas (opcional): o
   [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português
 
+## Instalando
+
+Os pacotes saem do CI a cada push (o artefato `pacotes-linux`, na execução da aba Actions do
+GitHub) e, numa tag `v*`, num release. Para montar você mesmo: `npm run dist` (os dois) ou
+`npm run dist:deb` (só o .deb), em `dist/`.
+
+### .deb (Ubuntu, Debian e derivados)
+
+```sh
+sudo apt install ./wisp_0.1.0_amd64.deb
+```
+
+- O app fica em `/opt/Wisp`, com o comando `wisp` e a entrada no menu de apps (o botão direito
+  nela tem **Abrir ou fechar o painel** e **Nova conversa**).
+- O pacote já instala o perfil do AppArmor que libera o sandbox do Chromium no Ubuntu 23.10 ou
+  mais novo: não precisa do `npm run setup:apparmor`.
+- Ele recomenda o `libgtk-3-bin` (ou o `libglib2.0-bin`), para abrir apps, e o `wireplumber` (ou
+  o `pulseaudio-utils`), para o volume por voz.
+- `sudo apt remove wisp` tira o app e o perfil. As suas configurações e conversas ficam
+  (`~/.config/wisp`, `~/.local/share/wisp`).
+
+### AppImage (qualquer distribuição)
+
+```sh
+chmod +x Wisp-0.1.0-x86_64.AppImage
+./Wisp-0.1.0-x86_64.AppImage
+```
+
+- É montado no Ubuntu 22.04, então roda nele e nos mais novos, e não precisa do `libfuse2`.
+- Na primeira vez, ele escreve o comando `wisp` e a entrada no menu de apps, que chamam o arquivo
+  `.AppImage`, e copia o ícone para `~/.local/share/wisp`. Se você mover o arquivo, abra uma vez do
+  lugar novo.
+- No Ubuntu 23.10 ou mais novo, o AppArmor bloqueia o sandbox do Chromium de um AppImage, e ele
+  fecha com `No usable sandbox!`. O AppImage roda montado numa pasta que muda a cada vez, então
+  o perfil vale para o executável `wisp` de qualquer AppImage montado (pede sudo, uma vez só):
+
+```sh
+sudo tee /etc/apparmor.d/wisp-appimage >/dev/null <<'EOF'
+abi <abi/4.0>,
+include <tunables/global>
+
+profile wisp-appimage /{tmp,var/tmp}/.mount_*/wisp flags=(unconfined) {
+  userns,
+}
+EOF
+sudo apparmor_parser -r /etc/apparmor.d/wisp-appimage
+```
+
+Prefira o .deb no Ubuntu: o perfil dele vale só para o `/opt/Wisp/wisp`.
+
 ## Rodando
+
+Do código-fonte:
 
 ```sh
 npm install
@@ -326,6 +384,35 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
 
+### Distribuição e qualidade (Fase 12)
+
+- [ ] **Pacote .deb:** `sudo apt install ./wisp_0.1.0_amd64.deb`. O Wisp aparece no menu de apps
+      e abre no Ubuntu 24.04 sem o `npm run setup:apparmor`; o botão direito no item do menu
+      tem **Abrir ou fechar o painel** e **Nova conversa**. `sudo apt remove wisp` tira tudo,
+      menos as suas configurações e conversas.
+- [ ] **AppImage:** `chmod +x` e dois cliques (no Ubuntu 23.10+, com o perfil de
+      [AppImage](#appimage-qualquer-distribuição)). Depois da primeira vez, ele está no menu de
+      apps e o comando `~/.local/share/wisp/bin/wisp --toggle` abre o painel.
+- [ ] **Tela de configurações:** o botão de ajustes no topo do painel (ou **Configurações…** no
+      menu do mascote). Troque o **Editor** e saia do campo: aparece **Salvo**, e o
+      `config.json` muda. Apague o comando: o campo fica vermelho, com o motivo, e o arquivo
+      não muda. Em **Abrir o painel**, clique no campo e aperte Ctrl+Alt+K: o atalho novo vale
+      na hora. Esc desfaz.
+- [ ] **Modo demonstração:** ligue em **Configurações → Avançado → Modo demonstração** (ou no
+      menu do mascote). A pílula **Demo** aparece no topo, as conversas recomeçam e o painel
+      sugere o que pedir. **Abre o Firefox** mostra o card de abrir um app, mas nada abre;
+      **Arruma o bug do contador** mostra o diff no card; **Pesquisa a previsão do tempo**
+      responde com uma tabela. Um clique na pílula desliga. Nada disso vai para o histórico.
+- [ ] **Sem o Claude Code:** com um `claudePath` que não existe, o aviso "Não encontrei o Claude
+      Code" sugere a demonstração.
+- [ ] **Registro:** `~/.local/state/wisp/wisp.log` começa com a versão e o tipo de instalação
+      (`dev`, `package` ou `appimage`) e tem os avisos do terminal, com `<url>` no lugar dos
+      endereços e sem os comandos. **Configurações → Avançado → Abrir o registro** abre o
+      arquivo.
+- [ ] **Testes:** `npm test` passa, e `e2e/run.sh` também (precisa do `xvfb-run` e do
+      `dbus-run-session`). No GitHub, a aba Actions mostra os jobs de tipos e testes, de ponta a
+      ponta e dos pacotes verdes, com o .deb e o AppImage para baixar.
+
 ### Abas e modos de permissão (Fase 11)
 
 - [ ] **Abas:** Ctrl+T (ou o **+** ao lado das abas) abre outra conversa. Mande algo demorado
@@ -446,9 +533,16 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "quickCommands": true,
   "voiceReplies": false,
   "piperPath": "piper",
-  "piperModel": "~/.local/share/wisp/voz/pt_BR-faber-medium.onnx"
+  "piperModel": "~/.local/share/wisp/voz/pt_BR-faber-medium.onnx",
+  "demo": false
 }
 ```
+
+A tela de configurações (o botão de ajustes no topo do painel, ou **Configurações…** no menu do
+mascote) muda quase tudo daqui, campo a campo: o que estiver errado ela recusa, com o motivo, e
+o que passar vai para o arquivo na hora, sem mexer no resto dele. Os caminhos de programas
+(`claudePath`, `browserExecutable`, `whisperPath`, `whisperModel`, `piperPath` e `piperModel`)
+ficam só no arquivo.
 
 `mascotPosition` é atualizada sempre que você solta o mascote. Para ele voltar ao canto
 padrão, troque por `null`. Se um campo tiver um valor inválido, o Wisp avisa no chat (e no
@@ -551,6 +645,15 @@ nova, se a da frente já tiver uma) e `--ask "texto"` manda uma pergunta. Ele é
 **Iniciar com o sistema** grava `~/.config/autostart/io.github.rempel.Wisp.desktop`. O Wisp nunca
 sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).
 
+`demo` liga o modo demonstração: no lugar do Claude Code, respostas gravadas (em
+`resources/demo/`) a algumas perguntas, com os cards de permissão de verdade, mas sem rodar nada.
+Serve para ver o Wisp antes de instalar o Claude Code ou de fazer login. Ligar ou desligar
+recomeça as conversas abertas, e nada da demonstração vai para o histórico.
+
+O registro fica em `~/.local/state/wisp/wisp.log` (ou em `$XDG_STATE_HOME/wisp`): o que o Wisp
+escreve no terminal, sem endereços, comandos, chaves ou tokens, e com `~` no lugar da sua pasta.
+Passando de 512 KB, ele vira `wisp.log.1` e começa outro; os dois juntos nunca passam de 1 MB.
+
 Os lembretes ficam em `~/.local/share/wisp/lembretes.json`. Os que venceram com o app fechado
 aparecem quando ele abre, com a hora em que deviam ter avisado.
 
@@ -585,6 +688,10 @@ do Claude Code segue a regra dele.
 | Sintoma                                      | O que fazer                                                                                                    |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Fecha na hora com `No usable sandbox!`       | `npm run setup:apparmor` (veja acima)                                                                          |
+| O AppImage fecha com `No usable sandbox!`    | No Ubuntu 23.10+, crie o perfil do AppImage (veja [AppImage](#appimage-qualquer-distribuição)) ou use o .deb   |
+| Quero saber o que deu errado                 | Veja `~/.local/state/wisp/wisp.log` (Configurações → Avançado → **Abrir o registro**)                          |
+| As respostas são sempre as mesmas            | É o modo demonstração: desligue na pílula **Demo** do topo ou em Configurações → Avançado                      |
+| A tela de configurações não grava            | O `config.json` tem um erro de JSON (a tela mostra qual, no topo): corrija ou apague o arquivo                 |
 | Rodando como root, recusa abrir              | `npm run dev -- --no-sandbox` (só para teste)                                                                  |
 | Quadrado preto em vez de transparência       | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`        |
 | Não fica no topo ou não se move              | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo |
@@ -643,15 +750,21 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
 ## Scripts
 
-| Comando                  | O que faz                                     |
-| ------------------------ | --------------------------------------------- |
-| `npm run dev`            | Abre o app com recarga automática             |
-| `npm start`              | Gera a build e abre a versão de produção      |
-| `npm run build`          | Typecheck + build em `out/`                   |
-| `npm run typecheck`      | Checa os tipos do main/preload e do renderer  |
-| `npm run lint`           | ESLint                                        |
-| `npm run format`         | Prettier                                      |
-| `npm run setup:apparmor` | Libera o sandbox do Electron no Ubuntu 24.04+ |
+| Comando                     | O que faz                                                            |
+| --------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`               | Abre o app com recarga automática                                    |
+| `npm start`                 | Gera a build e abre a versão de produção                             |
+| `npm run build`             | Typecheck + build em `out/`                                          |
+| `npm run typecheck`         | Checa os tipos do main/preload e do renderer                         |
+| `npm run lint`              | ESLint                                                               |
+| `npm run format`            | Prettier                                                             |
+| `npm run setup:apparmor`    | Libera o sandbox do Electron no Ubuntu 24.04+                        |
+| `npm test`                  | Testes de unidade (`test/`, com `node --test`)                       |
+| `e2e/run.sh`                | Testes de ponta a ponta (`e2e/`), num X virtual e num D-Bus só deles |
+| `npm run dist`              | Pacotes .deb e AppImage em `dist/`                                   |
+| `npm run dist:deb`          | Só o .deb                                                            |
+| `npm run icons`             | Gera os ícones de `build/icons` a partir do `resources/icon.svg`     |
+| `scripts/smoke-packages.sh` | Confere os pacotes de `dist/` e abre o AppImage de verdade           |
 
 ## Como funciona
 
@@ -705,6 +818,11 @@ src/
 │  ├─ desktop.ts     # apps (.desktop), links, projetos, terminal: o que as ferramentas fazem
 │  ├─ attachments.ts # cópia dos anexos, imagens coladas e limpeza das antigas
 │  ├─ config.ts      # ~/.config/wisp/config.json
+│  ├─ settings-ipc.ts # a tela de configurações: ler, conferir e gravar
+│  ├─ log.ts         # o registro em ~/.local/state/wisp (1 MB, sem comandos nem endereços)
+│  ├─ demo/
+│  │  ├─ player.ts   # o Claude Code gravado do modo demonstração (stream-json)
+│  │  └─ recordings.ts # qual gravação responde a qual mensagem
 │  ├─ page.ts        # carregar as páginas e recarregá-las se caírem
 │  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
 ├─ preload/          # expõe window.wisp (só funções específicas)
@@ -721,7 +839,13 @@ src/
    └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
+├─ demo/               # as gravações do modo demonstração (JSONL) e o índice delas
 └─ workspace/CLAUDE.md # persona, copiada para o workspace na 1ª vez
+test/                  # testes de unidade (node --test), com um Claude Code de mentira
+e2e/                   # testes de ponta a ponta: o app num HOME temporário, pelo DevTools
+build/                 # ícones dos pacotes e o afterPack do electron-builder
+electron-builder.yml   # os pacotes .deb e AppImage
+.github/workflows/     # o CI
 ```
 
 - **Janela do mascote:** 128×128, transparente, sem moldura e sempre no topo. O Electron
@@ -1071,3 +1195,36 @@ resources/
     enquanto a tecla está apertada. No Wayland, os sinais `Activated` e `Deactivated` do portal.
   - **Fala:** o `piper.ts` roda `piper --model <voz> --output-raw`, com o texto na entrada padrão,
     e manda o PCM para a página do mascote tocar.
+- **Modo demonstração:** com `demo` ligado, o `claude.ts` sobe o `out/main/wisp-demo.js` com o
+  próprio Electron em modo Node (`ELECTRON_RUN_AS_NODE`), no lugar do CLI e com os mesmos
+  argumentos. Ele fala stream-json pela entrada e pela saída padrão, como o `claude -p`: escolhe
+  a gravação pelas palavras da mensagem (`resources/demo/index.json`) e a toca, com pausas e o
+  texto palavra por palavra. Os pedidos de permissão vão à ferramenta `approve` do servidor MCP
+  do Wisp, pelo `--mcp-config` que a conversa recebeu, então o card é o de verdade; a gravação
+  segue pelo ramo do **Permitir** ou do **Negar**, mas a ferramenta nunca roda. As mesmas
+  gravações são o roteiro do `e2e/demo.mjs`.
+- **Tela de configurações:** a página pede o estado ao main (`settings:get`) e manda cada
+  mudança (`settings:set`). O main confere campo a campo com o mesmo formato que lê o arquivo
+  (`FIELDS`, em `config.ts`), grava só aquele campo e avisa quem acompanha a config, como numa
+  edição feita no arquivo: atalhos, sons, acessório, demonstração. Com o `config.json` quebrado,
+  ela não grava. O campo de atalho ouve as teclas e monta o atalho pelo código físico de cada uma
+  (`accelerator.ts`); sem Ctrl, Alt ou Super, só as teclas F valem.
+- **Registro:** o `log.ts` põe uma cópia por cima do `console.log`, `warn` e `error` do main.
+  O terminal recebe tudo, como antes; o arquivo, cada linha com a hora e o nível, depois do
+  `redact()`. O arquivo é 0600, numa pasta 0700, e um erro de disco só desliga o arquivo.
+- **Pacotes:** o electron-builder usa o Electron do `node_modules` e deixa o app sem asar, para o
+  relay dos hooks, o player da demonstração e o navegador do Claude rodarem de arquivos de
+  verdade com o Electron em modo Node. Por isso o fuse `RunAsNode` fica ligado; o
+  `NODE_OPTIONS` e o inspetor, desligados. O .deb leva o perfil do AppArmor (modelo do
+  electron-builder) e o `.desktop` com as ações. O AppImage usa o runtime estático (sem
+  `libfuse2`). Empacotado e aberto no Wayland sem `--ozone-platform=x11` (pelo `/usr/bin/wisp` ou
+  um clique no AppImage), o Wisp se abre de novo com a opção. No AppImage, o comando `wisp`, o
+  menu de apps e o início com o sistema chamam o arquivo `.AppImage` (`$APPIMAGE`), e o ícone é
+  copiado para fora da montagem, que muda a cada vez.
+- **Testes e CI:** os testes de unidade (`test/`) são montados com o esbuild (o código do app
+  junto) e rodam com `node --test`, cada arquivo num processo com um HOME temporário. Os de ponta
+  a ponta (`e2e/`) abrem o app montado num HOME temporário, com o Claude Code de mentira, e o
+  controlam pelo protocolo do DevTools. O CI (`.github/workflows/ci.yml`) roda tipos, lint,
+  formatação, build e unidade; os de ponta a ponta num X virtual; e monta os pacotes no Ubuntu
+  22.04, confere o .deb e abre o AppImage (`scripts/smoke-packages.sh`). Numa tag `v*`, os
+  pacotes vão para um release.

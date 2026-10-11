@@ -389,7 +389,7 @@ nenhum áudio é gravado em disco.
 
 ### Fase 11: várias conversas e modos de permissão ✅
 
-**Status:** pronta, esperando validação. Veio de um pedido de uso: o Wisp pedia permissão para
+**Status:** validada. Veio de um pedido de uso: o Wisp pedia permissão para
 tudo, o **Permitir sempre** do `Bash` só valia para o comando exato (e parecia não funcionar), e
 não dava para acompanhar várias conversas ao mesmo tempo.
 
@@ -428,27 +428,52 @@ não dava para acompanhar várias conversas ao mesmo tempo.
 **Permitir “ls” sempre** libera `ls -la` sem card; no Automático, "cria o arquivo X" roda sem
 card; no Planejar, o plano aprovado com **Aprovar e aceitar edições** segue sem mais cards.
 
-### Fase 12: distribuição e qualidade
+### Fase 12: distribuição e qualidade ✅
 
-- **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder:
-  - ícone e `.desktop`;
-  - o .deb já instala o perfil do AppArmor;
-  - o AppImage é montado na versão mais antiga do Ubuntu suportada, por causa da glibc;
-  - o relay dos hooks roda com o Electron em modo Node: o pacote precisa manter o fuse
-    `RunAsNode` ligado, ou levar o relay de outro jeito. No AppImage, o caminho muda a cada
-    montagem, então o relay precisa de um lugar fixo.
+**Status:** pronta, esperando validação.
+
+- **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder (`npm run dist`):
+  - o ícone em todos os tamanhos (`build/icons`, gerado do `resources/icon.svg`) e o `.desktop`
+    `io.github.rempel.Wisp`, com as ações **Abrir ou fechar o painel** e **Nova conversa**;
+  - o .deb instala o perfil do AppArmor (Ubuntu 23.10 em diante) para o `/opt/Wisp/wisp` e o
+    tira na remoção; para o AppImage, o README tem um perfil para colar;
+  - o AppImage é montado no Ubuntu 22.04, com o runtime estático: roda do 22.04 em diante e não
+    precisa do `libfuse2`;
+  - o fuse `RunAsNode` fica ligado (o relay dos hooks, o navegador do Claude e o player da
+    demonstração rodam com o Electron em modo Node); o `NODE_OPTIONS` e o inspetor, desligados;
+  - o relay já tinha um lugar fixo (`~/.local/share/wisp/bin/wisp-hook`, reescrito a cada
+    abertura). No AppImage, o comando `wisp`, o menu e o início com o sistema chamam o próprio
+    arquivo (`$APPIMAGE`), e o ícone é copiado para fora da montagem;
+  - aberto no Wayland sem `--ozone-platform=x11` (pelo `/usr/bin/wisp` ou um clique), o Wisp se
+    abre de novo com a opção.
 - **CI no GitHub Actions (M):**
-  - typecheck, lint e build a cada push;
-  - testes de unidade com `node --test` para o leitor do stream, os anexos, as ferramentas do
-    desktop, o config, o instalador dos hooks e o relay;
-  - os roteiros de ponta a ponta das etapas (Xvfb e DevTools) num job separado.
-- **Modo demonstração (M):** repete uma saída stream-json gravada, para quem ainda não fez login no
-  Claude Code ver o Wisp funcionando. As mesmas gravações servem de teste de interface.
-- **Tela de configurações (M),** no lugar de editar o `config.json`: pastas de projetos, editor,
-  sons, modelo, atalho e ferramentas liberadas.
-- **Logs (P):** limitados a 1 MB, sem comandos nem URLs.
-- **Cursor (P):** tirar o `xpointer.ts` quando o Electron trouxer um Chromium que volta a perguntar
-  a posição do cursor ao servidor X (ver a Fase 8).
+  - tipos, lint, formatação, build e testes de unidade a cada push e pull request;
+  - 138 testes de unidade com `node --test` (`test/`): o leitor do stream, os anexos, as
+    ferramentas do desktop, o config, o instalador e o relay dos hooks, o histórico, os
+    lembretes, o comando `wisp`, o navegador, as conversas, a voz, a demonstração, a tela de
+    configurações e o registro;
+  - os roteiros de ponta a ponta (`e2e/`: abas, painéis, modos, cards por aba, demonstração e
+    tela de configurações) num job separado, com Xvfb, D-Bus e DevTools;
+  - os pacotes montados no Ubuntu 22.04 e conferidos (`scripts/smoke-packages.sh`): o conteúdo
+    do .deb, e o AppImage aberto de verdade num HOME vazio. Numa tag `v*`, vão para um release.
+- **Modo demonstração (M):** um Claude Code gravado fala stream-json no lugar do CLI, com as
+  gravações de `resources/demo/`. Os pedidos de permissão passam pelo card de verdade, mas nada
+  roda. Os avisos de instalar e de login apontam para ele, o painel sugere o que pedir e nada vai
+  para o histórico. As mesmas gravações são o roteiro do `e2e/demo.mjs`.
+- **Tela de configurações (M),** no painel: as conversas (modelo, modo, pastas, editor,
+  terminal, ferramentas liberadas), o mascote e os sons, os atalhos (gravados apertando as
+  teclas) e o início com o sistema, a voz e o avançado. Cada campo é conferido no main, com o
+  motivo em português, gravado sem mexer no resto do arquivo e aplicado na hora.
+- **Logs (P):** `~/.local/state/wisp/wisp.log`, com no máximo 1 MB (o atual e um anterior), sem
+  URLs, comandos, chaves ou tokens, e com `~` no lugar da pasta pessoal.
+- **Cursor (P): continua bloqueado.** Testado de novo no Electron 44.7.0: o
+  `screen.getCursorScreenPoint()` ainda devolve a última posição vista e não acompanha o cursor
+  fora das janelas do app. O `xpointer.ts` fica até o Electron trazer o Chromium com a correção.
+
+**Aceite:** o .deb instala, abre no Ubuntu 24.04 sem ajuste e sai limpo; o AppImage abre num HOME
+vazio; o CI fica verde a cada push; sem o Claude Code, a demonstração mostra o Wisp funcionando;
+a tela de configurações grava e recusa com o motivo; o registro não passa de 1 MB nem guarda
+endereços.
 
 ## Ideias avaliadas e deixadas de fora
 
