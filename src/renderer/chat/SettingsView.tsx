@@ -282,8 +282,23 @@ export function SettingsView(): JSX.Element {
           />
           <p className="settings-file">
             Tudo fica em <code>{snapshot.configPath}</code>.{' '}
-            <button type="button" className="link" onClick={() => window.wisp.settings.openFile()}>
+            <button
+              type="button"
+              className="link"
+              onClick={() => window.wisp.settings.openFile('config')}
+            >
               Abrir o arquivo
+            </button>
+          </p>
+          <p className="settings-file">
+            O registro do que deu errado fica em <code>{snapshot.logPath}</code> (até 1 MB, sem
+            comandos nem endereços).{' '}
+            <button
+              type="button"
+              className="link"
+              onClick={() => window.wisp.settings.openFile('log')}
+            >
+              Abrir o registro
             </button>
           </p>
         </Section>

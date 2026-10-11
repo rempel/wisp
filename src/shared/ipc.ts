@@ -630,6 +630,8 @@ export interface SettingsSnapshot {
   autostart: boolean
   /** O config.json, com ~ no lugar da pasta pessoal. */
   configPath: string
+  /** O registro (wisp.log), com ~ no lugar da pasta pessoal. */
+  logPath: string
   /** O que está errado no config.json (os campos inválidos caem no padrão). */
   problems: string[]
 }
@@ -769,7 +771,8 @@ export interface WispApi {
     get(): Promise<SettingsSnapshot>
     set(patch: Partial<Settings> & { autostart?: boolean }): Promise<SettingsResult>
     onChanged(listener: (snapshot: SettingsSnapshot) => void): () => void
-    openFile(): void
+    /** Abre o config.json ou o registro no app padrão (ou mostra na pasta). */
+    openFile(which: 'config' | 'log'): void
     /** O menu do mascote pediu a tela de configurações. */
     onShow(listener: () => void): () => void
   }

@@ -85,6 +85,15 @@ check(
   'S2 o título no cabeçalho',
   (await ev(`document.querySelector('.header .title strong').textContent`)) === 'Configurações'
 )
+const files = await ev(
+  `[...document.querySelectorAll('.settings-file code')].map(e => e.textContent)`
+)
+check(
+  'S2b os caminhos do config.json e do registro',
+  JSON.stringify(files) ===
+    JSON.stringify(['~/.config/wisp/config.json', '~/.local/state/wisp/wisp.log']),
+  JSON.stringify(files)
+)
 // Um campo de texto: grava ao sair dele.
 await ev(
   `(() => { const row = [...document.querySelectorAll('.settings-row')].find(r => r.querySelector('.settings-label')?.textContent === 'Editor'); const input = row.querySelector('input'); input.focus(); const set = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, 'value').set; set.call(input, 'codium -n'); input.dispatchEvent(new Event('input', { bubbles: true })); input.blur() })()`
@@ -122,8 +131,12 @@ await waitFor(() => config().sound === true, 4000)
 check('S7 Sons ligado na tela vai para o arquivo', config().sound === true)
 check(
   'S8 e a chave mostra ligado',
-  await ev(
-    `[...document.querySelectorAll('.switch')].find(b => b.querySelector('.settings-label')?.textContent === 'Sons')?.getAttribute('aria-checked') === 'true'`
+  await waitFor(
+    () =>
+      ev(
+        `[...document.querySelectorAll('.switch')].find(b => b.querySelector('.settings-label')?.textContent === 'Sons')?.getAttribute('aria-checked') === 'true'`
+      ),
+    3000
   )
 )
 
@@ -222,6 +235,23 @@ check(
   JSON.stringify(p?.notices)
 )
 check('O2 sem erros no painel', chat.logs.length === 0, chat.logs.join('\n'))
+
+console.log('== O registro em arquivo')
+const logText = readFileSync(join(home.home, '.local/state/wisp/wisp.log'), 'utf8')
+check(
+  'L1 a primeira linha diz qual Wisp é',
+  /INFO {2}--- Wisp [\d.]+ \(dev\), Electron/.test(logText.split('\n')[0]),
+  logText.split('\n')[0]
+)
+check(
+  'L2 o que foi para o terminal está lá, com ~ no lugar da pasta pessoal',
+  logText.includes('[wisp] config: ~/.config/wisp/config.json')
+)
+check(
+  'L3 sem URLs nem a pasta pessoal',
+  !/\b(?:https?|wss?):\/\//.test(logText) && !logText.includes(home.home),
+  logText.slice(0, 2000)
+)
 
 await stopApp()
 home.remove()

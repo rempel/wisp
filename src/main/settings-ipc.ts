@@ -11,6 +11,7 @@ import {
   onConfigChange,
   updateConfig
 } from './config'
+import { LOG_PATH } from './log'
 import { IPC, SETTINGS_KEYS } from '../shared/ipc'
 import type { Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
 
@@ -43,6 +44,7 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       values,
       autostart: options.autostart.get(),
       configPath: tilde(CONFIG_PATH),
+      logPath: tilde(LOG_PATH),
       problems: configProblems()
     }
   }
@@ -89,11 +91,12 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
     }
     return { ok: true }
   })
-  ipcMain.on(IPC.settingsOpenFile, (event) => {
+  ipcMain.on(IPC.settingsOpenFile, (event, which: unknown) => {
     if (!options.isSender(event.sender)) return
-    // Abre no app padrão para .json; sem um, mostra o arquivo na pasta.
-    void shell.openPath(CONFIG_PATH).then((error) => {
-      if (error) shell.showItemInFolder(CONFIG_PATH)
+    const path = which === 'log' ? LOG_PATH : CONFIG_PATH
+    // Abre no app padrão do tipo; sem um (ou sem o arquivo ainda), mostra na pasta.
+    void shell.openPath(path).then((error) => {
+      if (error) shell.showItemInFolder(path)
     })
   })
   return { notify }

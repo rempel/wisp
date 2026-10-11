@@ -28,6 +28,7 @@ import {
   parseCommand
 } from './launcher'
 import type { WispCommand } from './launcher'
+import { installLog } from './log'
 import { startHookServer } from './hooks/server'
 import type { HookServer } from './hooks/server'
 import {
@@ -117,6 +118,11 @@ if (!app.requestSingleInstanceLock({ command: startCommand })) {
   })
   app.exit(0)
 } else {
+  // O que vai para o terminal também fica em ~/.local/state/wisp/wisp.log (limpo e com limite).
+  installLog(
+    `Wisp ${app.getVersion()} (${kind}), Electron ${process.versions.electron}, ` +
+      `sessão ${process.env.XDG_SESSION_TYPE || 'desconhecida'}`
+  )
   // Pedidos que chegam antes de o app ficar pronto esperam aqui.
   let runCommand: ((command: WispCommand) => void) | null = null
   let waitingCommand: WispCommand | null = startCommand
