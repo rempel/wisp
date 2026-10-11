@@ -430,7 +430,7 @@ card; no Planejar, o plano aprovado com **Aprovar e aceitar edições** segue se
 
 ### Fase 12: distribuição e qualidade ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 - **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder (`npm run dist`):
   - o ícone em todos os tamanhos (`build/icons`, gerado do `resources/icon.svg`) e o `.desktop`
@@ -475,9 +475,12 @@ vazio; o CI fica verde a cada push; sem o Claude Code, a demonstração mostra o
 a tela de configurações grava e recusa com o motivo; o registro não passa de 1 MB nem guarda
 endereços.
 
-### Fase 13: compacto, GitHub, agenda e resumo da semana
+### Fase 13: compacto, GitHub, agenda e resumo da semana ✅
 
-**Status:** em andamento. Veio das ideias deixadas para depois, escolhidas na validação da Fase 12.
+**Status:** pronta, esperando validação. Veio das ideias deixadas para depois, escolhidas na
+validação da Fase 12. Testes de ponta a ponta para cada parte: `e2e/compact.mjs` (cursor e arraste
+de verdade, com o recorte da janela), `e2e/agenda.mjs` (com o Evolution Data Server de verdade) e
+`e2e/week.mjs`; os alertas do GitHub, com um `gh` de mentira nos testes de unidade.
 
 - **Modo compacto (M):** o mascote mora na borda da tela, quase todo escondido, e espia:
   - fica encostado na borda esquerda ou direita (a mais perto), só com um olho e a antena à
@@ -505,10 +508,11 @@ endereços.
   - opcional e desligada por padrão.
 - **Resumo da semana (M),** tudo local:
   - um registro de atividade sem conteúdo (só contagens, nomes de ferramentas e de apps, pastas
-    de projetos): conversas, tempo do Claude trabalhando, arquivos editados (+N −M), comandos
-    aprovados e negados, apps abertos, sessões do terminal e lembretes;
-  - na segunda-feira, o resumo da semana anterior, comparado com a de antes; também no painel, a
-    qualquer hora, e pela ferramenta `weekly_summary`.
+    de projetos): conversas, tempo do Claude trabalhando, arquivos editados (+N −M), permissões
+    aprovadas e negadas, apps abertos, mensagens nas sessões do terminal e lembretes;
+  - na segunda-feira, uma notificação com o resumo da semana que passou; no topo do histórico, o
+    cartão da semana (comparada com a anterior), a qualquer hora; e a ferramenta
+    `weekly_summary`.
 
 **Aceite:** no compacto, o mascote some na borda, espia com o cursor e volta; um PR com CI
 vermelho vira uma notificação que abre o PR; um compromisso daqui a 10 minutos avisa; o resumo da

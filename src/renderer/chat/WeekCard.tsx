@@ -34,7 +34,7 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
             {week.conversations}
             {before && <Delta now={week.conversations} before={before.conversations} />}
           </strong>
-          <span>conversas</span>
+          <span>{week.conversations === 1 ? 'conversa' : 'conversas'}</span>
         </div>
         <div>
           <strong>{minutes(week.claudeMinutes)}</strong>
@@ -44,7 +44,9 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
           <strong>
             <em className="plus">+{week.added}</em> <em className="minus">−{week.removed}</em>
           </strong>
-          <span>linhas em {week.edits} edições</span>
+          <span>
+            linhas em {week.edits} {week.edits === 1 ? 'edição' : 'edições'}
+          </span>
         </div>
         <div>
           <strong>
@@ -58,7 +60,7 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
       {week.apps.length > 0 && <p className="week-line">Apps abertos: {list(week.apps)}</p>}
       {week.terminal > 0 && (
         <p className="week-line">
-          Terminal: {week.terminal} mensagens
+          Terminal: {week.terminal} {week.terminal === 1 ? 'mensagem' : 'mensagens'}
           {week.projects.length > 0 && ` em ${list(week.projects)}`}
         </p>
       )}

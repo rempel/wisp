@@ -10,6 +10,7 @@ import {
   formatMinutes,
   isEmpty,
   nextWeek,
+  plural,
   summarize,
   weekStart
 } from './activity'
@@ -808,7 +809,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     if (isEmpty(previous)) return
     notify(
       'O resumo da sua semana',
-      `${previous.conversations} conversas, o Claude trabalhou ${formatMinutes(previous.claudeMinutes)}, ` +
+      `${plural(previous.conversations, 'conversa', 'conversas')}, o Claude trabalhou ` +
+        `${formatMinutes(previous.claudeMinutes)}, ` +
         `+${previous.added} −${previous.removed} linhas editadas.`,
       () => chat?.openSummary()
     )

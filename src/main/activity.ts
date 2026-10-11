@@ -265,16 +265,23 @@ function delta(now: number, before: number): string {
 
 const DAY = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
 
+/** "1 conversa", "3 conversas". */
+export const plural = (n: number, one: string, many: string): string =>
+  `${n} ${n === 1 ? one : many}`
+
 /** O resumo em texto, comparado com a semana anterior (a ferramenta e a notificação). */
 export function describeWeek(current: WeekSummary, previous: WeekSummary | null): string {
   const p = previous
   const lines = [
     `Semana de ${DAY.format(current.from)} a ${DAY.format(current.to - 1)}:`,
-    `- ${current.conversations} conversas${p ? delta(current.conversations, p.conversations) : ''}, ` +
-      `${current.turns} mensagens; o Claude trabalhou ${formatMinutes(current.claudeMinutes)}` +
+    `- ${plural(current.conversations, 'conversa', 'conversas')}` +
+      `${p ? delta(current.conversations, p.conversations) : ''}, ` +
+      `${plural(current.turns, 'mensagem', 'mensagens')}; ` +
+      `o Claude trabalhou ${formatMinutes(current.claudeMinutes)}` +
       (p ? ` (antes: ${formatMinutes(p.claudeMinutes)})` : ''),
     `- Edições: ${current.edits} (+${current.added} −${current.removed} linhas)`,
-    `- Permissões: ${current.approved} aprovadas, ${current.denied} negadas`
+    `- Permissões: ${plural(current.approved, 'aprovada', 'aprovadas')}, ` +
+      plural(current.denied, 'negada', 'negadas')
   ]
   if (current.tools.length) {
     lines.push(
@@ -286,7 +293,7 @@ export function describeWeek(current: WeekSummary, previous: WeekSummary | null)
   }
   if (current.terminal) {
     lines.push(
-      `- Terminal: ${current.terminal} mensagens no Claude Code` +
+      `- Terminal: ${plural(current.terminal, 'mensagem', 'mensagens')} no Claude Code` +
         (current.projects.length
           ? `, em ${current.projects.map(([n, c]) => `${n} (${c})`).join(', ')}`
           : '')

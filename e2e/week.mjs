@@ -37,8 +37,8 @@ const card = await waitFor(
   5000
 )
 check('W1 o cartão aparece no topo do histórico', !!card, card)
-check('W2 uma conversa (+1 que a semana passada)', /^1\+1\s*conversas/m.test(card ?? ''), card)
-check('W3 as linhas da edição', /\+2\s+−1\s*linhas em 1 edições/.test(card ?? ''), card)
+check('W2 uma conversa (+1 que a semana passada)', /^1\+1\s*conversa$/m.test(card ?? ''), card)
+check('W3 as linhas da edição', /\+2\s+−1\s*linhas em 1 edição/.test(card ?? ''), card)
 check('W4 o comando aprovado', /1\s*\/ 0\s*aprovadas \/ negadas/.test(card ?? ''), card)
 check('W5 as ferramentas mais usadas', /Mais usadas: .*Edit \(1\)/.test(card ?? ''), card)
 await ev(
@@ -70,7 +70,7 @@ const data = body.split('\n').find((line) => line.startsWith('data:'))
 const summary = JSON.parse(data ? data.slice(5) : body).result.content[0].text
 check(
   'W7 weekly_summary: conversas, mensagens e linhas',
-  /1 conversas \(\+1\), 2 mensagens/.test(summary) && /\+2 −1 linhas/.test(summary),
+  /1 conversa \(\+1\), 2 mensagens/.test(summary) && /\+2 −1 linhas/.test(summary),
   summary
 )
 const log = readFileSync(join(home.home, '.local/share/wisp/atividade.jsonl'), 'utf8')

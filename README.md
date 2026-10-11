@@ -43,12 +43,22 @@ Depois do MVP, vieram as fases do roadmap:
   - **Permitir “ls” sempre** vale para o programa (ou para o subcomando, como `git status`), e
     não só para o comando exato. Comandos compostos, perigosos ou com arquivos de segredos
     continuam pedindo.
-- **Fase 12 (distribuição e qualidade), pronta para validação:**
+- **Fase 12 (distribuição e qualidade):**
   - pacotes .deb e AppImage (veja [Instalando](#instalando));
   - uma tela de configurações no painel, no lugar de editar o `config.json`;
   - um modo demonstração, com respostas gravadas, para ver o Wisp sem o Claude Code;
   - um registro em `~/.local/state/wisp/wisp.log`, de até 1 MB, sem comandos nem endereços;
   - testes de unidade (`npm test`) e de ponta a ponta (`e2e/`), e CI no GitHub Actions.
+- **Fase 13 (compacto, GitHub, agenda e semana), pronta para validação:**
+  - modo compacto: o mascote mora na borda da tela, quase todo escondido, e espia quando o
+    cursor passa, com o painel aberto ou quando tem algo para mostrar;
+  - alertas do GitHub (opcional, pelo `gh`): CI que falhou ou passou, revisões dos seus PRs e
+    pedidos de revisão, com o mascote reagindo e o clique abrindo o PR;
+  - agenda (opcional): as agendas do GNOME (inclusive Google e Microsoft) e arquivos `.ics`; o
+    Wisp avisa antes de cada compromisso e o painel mostra o próximo;
+  - resumo da semana, tudo local e sem conteúdo: no topo do histórico e numa notificação na
+    segunda;
+  - o Claude responde "como estão meus PRs?", "o que tenho amanhã?" e "como foi minha semana?".
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -74,6 +84,11 @@ O que vem depois está no [ROADMAP.md](ROADMAP.md).
   `whisper-cli`) e um modelo dele (veja [Voz](#voz) abaixo). Para o "aumenta o volume": o
   `wpctl` (PipeWire) ou o `pactl` (PulseAudio). Para o Wisp falar as respostas (opcional): o
   [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português
+- Para os alertas do GitHub (opcional): o [gh](https://cli.github.com) (GitHub CLI), logado com
+  `gh auth login`
+- Para a agenda (opcional): no GNOME, nada (o Evolution Data Server já vem com ele; as agendas do
+  Google, da Microsoft e do Nextcloud entram pelas Contas Online). Fora do GNOME, arquivos `.ics`
+  ou uma pasta sincronizada pelo [vdirsyncer](https://vdirsyncer.pimutils.org)
 
 ## Instalando
 
@@ -384,6 +399,34 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
 
+### Compacto, GitHub, agenda e semana (Fase 13)
+
+- [ ] **Modo compacto:** ligue em **Configurações → Mascote e sons** (ou **Modo compacto** no
+      menu do mascote). Ele encosta na borda mais perto e, em alguns segundos, se esconde atrás
+      dela, só com um olho e a antena à vista. O resto da borda continua clicável (a barra de
+      rolagem de uma janela atrás dele, por exemplo).
+- [ ] **Espiar:** passe o cursor na aba: ele sai inteiro; tire o cursor: ele volta. Com o painel
+      aberto, ele fica fora. Peça um comando ("roda ls"): com o card esperando, ele fica fora,
+      mesmo com o painel fechado. Uma resposta pronta e um lembrete o fazem espiar por uns
+      segundos.
+- [ ] **Outra borda:** com ele para fora, arraste-o até o outro lado da tela e solte: ele encosta
+      na borda de lá, na altura em que foi solto. Desligado o modo, ele volta a flutuar.
+- [ ] **GitHub:** com o `gh` logado, ligue **Configurações → Integrações → Alertas do GitHub**.
+      Num PR seu, quando o CI falhar (ou passar depois de rodar), alguém aprovar, pedir mudanças
+      ou comentar, vem a notificação em até 3 minutos e o mascote reage; o clique abre o PR. Um
+      pedido de revisão para você também avisa. Pergunte "como estão meus PRs?".
+- [ ] **Sem o gh:** ligado sem o `gh` (ou sem login), o painel avisa uma vez o que fazer.
+- [ ] **Agenda:** ligue **Agenda** em Integrações. Crie na Agenda do GNOME um compromisso para
+      daqui a 15 minutos: em até 5 minutos ele aparece no painel vazio ("em 15 min") e, 10
+      minutos antes, vem a notificação com o sininho. Pergunte "o que eu tenho amanhã?". Um
+      evento que se repete (toda segunda) aparece nas semanas certas.
+- [ ] **Arquivo .ics:** em **Arquivos de agenda**, ponha um `.ics` (ou a pasta do vdirsyncer):
+      os compromissos dele entram junto, com o nome do arquivo (ou da pasta).
+- [ ] **Resumo da semana:** abra **Conversas anteriores**: o cartão do topo mostra as conversas,
+      o tempo do Claude, as linhas editadas e as aprovações desta semana, e a semana passada. Na
+      segunda, depois das 9h, vem a notificação com o resumo. Pergunte "como foi minha semana?".
+      O `~/.local/share/wisp/atividade.jsonl` só tem contagens e nomes.
+
 ### Distribuição e qualidade (Fase 12)
 
 - [ ] **Pacote .deb:** `sudo apt install ./wisp_0.1.0_amd64.deb`. O Wisp aparece no menu de apps
@@ -534,7 +577,13 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "voiceReplies": false,
   "piperPath": "piper",
   "piperModel": "~/.local/share/wisp/voz/pt_BR-faber-medium.onnx",
-  "demo": false
+  "demo": false,
+  "compact": false,
+  "github": false,
+  "calendar": false,
+  "calendarFiles": [],
+  "calendarAlertMinutes": 10,
+  "weeklySummary": true
 }
 ```
 
@@ -645,6 +694,31 @@ nova, se a da frente já tiver uma) e `--ask "texto"` manda uma pergunta. Ele é
 **Iniciar com o sistema** grava `~/.config/autostart/io.github.rempel.Wisp.desktop`. O Wisp nunca
 sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).
 
+`compact` liga o modo compacto: o mascote mora na borda esquerda ou direita da tela (a mais perto
+de onde ele está), quase todo escondido, e sai inteiro quando o cursor passa pela aba, com o
+painel aberto, com um pedido de permissão, um erro ou a voz, e por alguns segundos numa resposta
+pronta ou num lembrete. Arrastado, ele encosta na borda mais perto de onde foi solto; a altura
+fica no `mascotPosition`.
+
+`github` liga os alertas do GitHub, pelo `gh` (GitHub CLI) já logado: o Wisp não guarda token
+nenhum. A cada 3 minutos ele lê os seus PRs abertos e os que pedem a sua revisão (uma consulta
+GraphQL) e avisa o que mudou: CI que falhou ou passou, aprovação, pedido de mudanças, comentário
+e pedido de revisão. A última leitura fica em `~/.local/share/wisp/github.json`, para o que mudou
+com o app fechado (até 12 horas) avisar quando ele abre. Para o GitHub Enterprise, vale o que o
+`gh` usa (`GH_HOST`).
+
+`calendar` liga a agenda, só leitura: as agendas do GNOME (pelo Evolution Data Server, as que
+estão ligadas e visíveis no app Agenda) e os arquivos de `calendarFiles`: arquivos `.ics` ou
+pastas com eles, como as do vdirsyncer (cada subpasta é uma agenda, com o nome do arquivo
+`displayname`). `calendarAlertMinutes` são os minutos de antecedência do aviso (`0` não avisa).
+Os compromissos de dia inteiro aparecem na lista, mas não avisam.
+
+`weeklySummary` guarda as contagens da semana em `~/.local/share/wisp/atividade.jsonl` (9
+semanas) e mostra o resumo no topo do histórico e numa notificação na segunda, depois das 9h.
+Guarda só números e nomes: de ferramentas (`Edit`, `Bash`), de apps abertos (`firefox`) e de
+pastas de projetos das sessões do terminal; nada do que foi escrito, nem comandos, nem caminhos.
+Desligado, nada é registrado.
+
 `demo` liga o modo demonstração: no lugar do Claude Code, respostas gravadas (em
 `resources/demo/`) a algumas perguntas, com os cards de permissão de verdade, mas sem rodar nada.
 Serve para ver o Wisp antes de instalar o Claude Code ou de fazer login. Ligar ou desligar
@@ -688,6 +762,11 @@ do Claude Code segue a regra dele.
 | Sintoma                                      | O que fazer                                                                                                    |
 | -------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
 | Fecha na hora com `No usable sandbox!`       | `npm run setup:apparmor` (veja acima)                                                                          |
+| O mascote sumiu na borda da tela             | É o modo compacto: passe o cursor na aba; para desligar, **Modo compacto** no menu do mascote                  |
+| "Para os alertas do GitHub, instale o gh"    | Instale o GitHub CLI e rode `gh auth login`; o Wisp tenta de novo a cada 15 minutos                            |
+| Os alertas do GitHub não chegam              | Rode `gh auth status`; os alertas comparam com a leitura anterior, a cada 3 minutos                            |
+| A agenda do Google não aparece               | Adicione a conta em **Configurações → Contas Online** do GNOME, com a agenda ligada, e abra o app Agenda       |
+| O compromisso aparece no horário errado      | Confira o fuso do sistema; o evento leva o fuso dele (TZID), e um fuso desconhecido vira o seu                 |
 | O AppImage fecha com `No usable sandbox!`    | No Ubuntu 23.10+, crie o perfil do AppImage (veja [AppImage](#appimage-qualquer-distribuição)) ou use o .deb   |
 | Quero saber o que deu errado                 | Veja `~/.local/state/wisp/wisp.log` (Configurações → Avançado → **Abrir o registro**)                          |
 | As respostas são sempre as mesmas            | É o modo demonstração: desligue na pílula **Demo** do topo ou em Configurações → Avançado                      |
@@ -820,6 +899,12 @@ src/
 │  ├─ config.ts      # ~/.config/wisp/config.json
 │  ├─ settings-ipc.ts # a tela de configurações: ler, conferir e gravar
 │  ├─ log.ts         # o registro em ~/.local/state/wisp (1 MB, sem comandos nem endereços)
+│  ├─ dock.ts        # o modo compacto: a borda, a posição e a aba que continua viva
+│  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
+│  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
+│  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
+│  ├─ agenda.ts      # a agenda: as fontes juntas, o aviso antes e o próximo compromisso
+│  ├─ activity.ts    # o registro da semana (só contagens) e o resumo
 │  ├─ demo/
 │  │  ├─ player.ts   # o Claude Code gravado do modo demonstração (stream-json)
 │  │  └─ recordings.ts # qual gravação responde a qual mensagem
@@ -1228,3 +1313,30 @@ electron-builder.yml   # os pacotes .deb e AppImage
   formatação, build e unidade; os de ponta a ponta num X virtual; e monta os pacotes no Ubuntu
   22.04, confere o .deb e abre o AppImage (`scripts/smoke-packages.sh`). Numa tag `v*`, os
   pacotes vão para um release.
+- **Modo compacto:** a janela do mascote fica encostada na borda da área útil do monitor. Guardado,
+  a página escorrega o desenho para fora da janela (58 px, com uma inclinação) e o main encolhe a
+  forma da janela (`setShape`, a extensão XShape do X11) para a faixa de 36 px junto da borda,
+  depois da animação: fora dela, a janela não desenha nem pega cliques, que vão para quem está
+  atrás. Para espiar, a forma volta inteira antes do desenho sair. O `mascot.ts` guarda os
+  motivos para ficar de fora (o cursor na aba, o painel visível, um pedido de permissão ou um
+  erro, a voz, o arraste, um momento) e, sem nenhum, guarda o mascote depois de um tempo (1,2 s
+  depois do cursor sair, 0,7 s no resto).
+- **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
+  Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
+  https) e compara com a leitura anterior: CI do commit mais novo de cada PR
+  (`statusCheckRollup`), a revisão mais nova de cada pessoa (`latestReviews`) e a busca
+  `review-requested:@me`. Sem leitura anterior, nada avisa. O `gh` ausente ou sem login (o gh sai
+  com 4) vira um aviso no painel, uma vez; erros de rede passam calados.
+- **Agenda:** o `eds.ts` acha o registro de fontes e a fábrica de agendas do EDS no D-Bus da sessão
+  (`org.gnome.evolution.dataserver.SourcesN` e `CalendarN`, o maior N), lista as agendas com o
+  grupo `[Calendar]`, abre cada uma e pede `GetObjectList` com
+  `(occur-in-time-range? …)`. O EDS fecha a agenda quando a conexão que a abriu sai, então uma
+  conexão só fica aberta. O `ical.ts` lê os eventos (os do EDS e os dos arquivos) e abre as
+  repetições na janela pedida, com as horas de parede convertidas pelo `Intl` no fuso de cada
+  evento. O `agenda.ts` relê a janela de um dia atrás a oito à frente de 5 em 5 minutos, marca o
+  próximo aviso e manda ao painel o próximo compromisso das próximas 24 horas.
+- **Resumo da semana:** o `activity.ts` ouve os eventos ao vivo das conversas (o histórico
+  reaberto não conta), os lembretes e as mensagens das sessões do terminal (o hook
+  `UserPromptSubmit`) e grava uma linha por coisa, com a hora. A semana vai de segunda a segunda
+  no fuso local. O cartão do histórico pede os dois resumos ao main (`summary:get`), e a
+  notificação de segunda guarda em `~/.local/share/wisp/resumo.json` a semana que já mostrou.
