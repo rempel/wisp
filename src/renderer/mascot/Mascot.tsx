@@ -3,7 +3,7 @@ import type { CSSProperties, DragEvent, JSX, PointerEvent } from 'react'
 import type {
   Accessory,
   DroppedFile,
-  MascotDock,
+  MascotIsland,
   MascotState,
   MascotView,
   SoundName,
@@ -192,7 +192,7 @@ export default function Mascot(): JSX.Element {
   const [absorbing, setAbsorbing] = useState<{ x: number; y: number; key: number } | null>(null)
   const [accessory, setAccessory] = useState<Accessory | null>(null)
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
-  const [dock, setDock] = useState<MascotDock>(null)
+  const [island, setIsland] = useState<MascotIsland>(null)
 
   // Para os timers e eventos, que não esperam o render.
   const viewRef = useRef(view)
@@ -247,7 +247,7 @@ export default function Mascot(): JSX.Element {
       }
     })
     const offAccessory = window.wisp.mascot.onAccessory(setAccessory)
-    const offDock = window.wisp.mascot.onDock(setDock)
+    const offIsland = window.wisp.mascot.onIsland(setIsland)
     const offSound = window.wisp.mascot.onSound((name, volume) => {
       player.current ??= new SoundPlayer()
       // O último som e quantos já tocaram, para depurar (e para os testes) sem ouvir.
@@ -297,7 +297,7 @@ export default function Mascot(): JSX.Element {
       offGaze()
       offReact()
       offAccessory()
-      offDock()
+      offIsland()
       offSound()
       offCustom()
       offVoice()
@@ -458,11 +458,10 @@ export default function Mascot(): JSX.Element {
     view.music && 'music',
     voice.state !== 'idle' && `voice-${voice.state}`,
     voice.heard && 'voice-heard',
-    dock && `docked dock-${dock.edge}`,
-    dock?.tucked && 'tucked'
+    island && 'in-island'
   ]
 
-  return (
+  const stageElement = (
     <div
       ref={stage}
       className={classes.filter(Boolean).join(' ')}
@@ -522,247 +521,274 @@ export default function Mascot(): JSX.Element {
         </defs>
       </svg>
 
-      {/* No modo compacto, o .dock escorrega o mascote para trás da borda da tela. */}
-      <div className="dock">
-        <div className="float">
-          {/* Pulos e tremidas dos estados ficam no .mood; os das reações, no .react; o amassado
+      <div className="float">
+        {/* Pulos e tremidas dos estados ficam no .mood; os das reações, no .react; o amassado
           do clique, no .wisp. */}
-          <div className="mood">
-            {/* A dança, quando algum player está tocando: por fora das reações, que se somam. */}
-            <div className="groove">
-              <div className="react">
-                <div
-                  className={`wisp${booping ? ' boop' : ''}`}
-                  onAnimationEnd={(e) => {
-                    if (e.animationName === 'boop') setBooping(false)
-                  }}
-                >
-                  <div className="glow-pose">
-                    <div className="glow" />
-                  </div>
-                  <div className="pulse" ref={pulse} />
-                  <Sparks layer="back" />
+        <div className="mood">
+          {/* A dança, quando algum player está tocando: por fora das reações, que se somam. */}
+          <div className="groove">
+            <div className="react">
+              <div
+                className={`wisp${booping ? ' boop' : ''}`}
+                onAnimationEnd={(e) => {
+                  if (e.animationName === 'boop') setBooping(false)
+                }}
+              >
+                <div className="glow-pose">
+                  <div className="glow" />
+                </div>
+                <div className="pulse" ref={pulse} />
+                <Sparks layer="back" />
 
-                  {/* Antena: balança a partir da base, escondida atrás do encaixe na ponta. A pose
+                {/* Antena: balança a partir da base, escondida atrás do encaixe na ponta. A pose
                 (caída no cochilo, em pé no susto) fica por fora do balanço. */}
-                  <div className="antenna-pose" aria-hidden>
-                    <div className="antenna">
+                <div className="antenna-pose" aria-hidden>
+                  <div className="antenna">
+                    <svg className="layer" viewBox="0 0 128 128">
+                      <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
+                      <circle className="led" cx="64" cy="15" r="3.3" />
+                    </svg>
+                    <div className="antenna-glow">
                       <svg className="layer" viewBox="0 0 128 128">
-                        <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
-                        <circle className="led" cx="64" cy="15" r="3.3" />
+                        <circle className="led-halo" cx="64" cy="15" r="5.5" />
                       </svg>
-                      <div className="antenna-glow">
+                    </div>
+                    {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
+                    <div className="waves">
+                      <div className="wave w1">
                         <svg className="layer" viewBox="0 0 128 128">
-                          <circle className="led-halo" cx="64" cy="15" r="5.5" />
+                          <path d="M 57.5 10 Q 55 15 57.5 20 M 70.5 10 Q 73 15 70.5 20" />
                         </svg>
                       </div>
-                      {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
-                      <div className="waves">
-                        <div className="wave w1">
-                          <svg className="layer" viewBox="0 0 128 128">
-                            <path d="M 57.5 10 Q 55 15 57.5 20 M 70.5 10 Q 73 15 70.5 20" />
-                          </svg>
-                        </div>
-                        <div className="wave w2">
-                          <svg className="layer" viewBox="0 0 128 128">
-                            <path d="M 53 6.5 Q 49 15 53 23.5 M 75 6.5 Q 79 15 75 23.5" />
-                          </svg>
-                        </div>
+                      <div className="wave w2">
+                        <svg className="layer" viewBox="0 0 128 128">
+                          <path d="M 53 6.5 Q 49 15 53 23.5 M 75 6.5 Q 79 15 75 23.5" />
+                        </svg>
                       </div>
                     </div>
-                  </div>
-
-                  {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
-                desenhado uma vez só. */}
-                  <div className="body" aria-hidden>
-                    <svg className="layer" viewBox="0 0 128 128">
-                      <path className="shell" d={DROP_PATH} />
-                      <path className="gloss" d="M 47 60 Q 50 52 57 49" />
-                      <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
-                      <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
-                      <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
-                      <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
-                      <path className="visor-glare" d="M 50 73 L 57 73" />
-                      <circle className="bolt" cx="39.4" cy="80" r="3.6" />
-                      <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
-                      <circle className="bolt" cx="88.6" cy="80" r="3.6" />
-                      <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
-                      <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
-                      <rect
-                        className="collar-light"
-                        x="61.3"
-                        y="29.6"
-                        width="5.4"
-                        height="1.1"
-                        rx="0.5"
-                      />
-                    </svg>
-                  </div>
-
-                  {/* Bochechas de LED, no carinho. */}
-                  <div className="blush" aria-hidden>
-                    <svg className="layer" viewBox="0 0 128 128">
-                      <ellipse cx="51.5" cy="87" rx="2.8" ry="1.4" />
-                      <ellipse cx="76.5" cy="87" rx="2.8" ry="1.4" />
-                    </svg>
-                  </div>
-
-                  {/* Olhos de LED. De fora para dentro: o olhar do estado (de lado, varrendo), o que
-                segue o cursor, o das reações (arregalado) e a piscada. */}
-                  <div className="eyes" aria-hidden>
-                    <div className="gaze">
-                      <div className="eyes-react">
-                        <div className="eyes-blink">
-                          <svg className="layer" viewBox="0 0 128 128">
-                            <g className="eye-leds">
-                              <rect className="led" x="52.5" y="75" width="6" height="10" rx="3" />
-                              <rect className="led" x="69.5" y="75" width="6" height="10" rx="3" />
-                            </g>
-                            <g className="eye-glyph eye-happy">
-                              <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
-                              <path d="M 69 82.5 L 72.5 77.5 L 76 82.5" />
-                            </g>
-                            <g className="eye-glyph eye-x">
-                              <path d="M 52.5 76.5 L 58.5 83.5 M 58.5 76.5 L 52.5 83.5" />
-                              <path d="M 69.5 76.5 L 75.5 83.5 M 75.5 76.5 L 69.5 83.5" />
-                            </g>
-                            <g className="eye-glyph eye-closed">
-                              <path d="M 52 80 Q 55.5 83.6 59 80" />
-                              <path d="M 69 80 Q 72.5 83.6 76 80" />
-                            </g>
-                            <g className="eye-glyph eye-squint">
-                              <path d="M 52.5 76.5 L 58 80 L 52.5 83.5" />
-                              <path d="M 75.5 76.5 L 70 80 L 75.5 83.5" />
-                            </g>
-                            <g className="eye-angry">
-                              <path
-                                className="led"
-                                d="M 52.5 75.8 L 58.5 80.4 L 58.5 83 Q 58.5 85 56.5 85 L 54.5 85 Q 52.5 85 52.5 83 Z"
-                              />
-                              <path
-                                className="led"
-                                d="M 75.5 75.8 L 69.5 80.4 L 69.5 83 Q 69.5 85 71.5 85 L 73.5 85 Q 75.5 85 75.5 83 Z"
-                              />
-                            </g>
-                            <g className="eye-glyph eye-spiral">
-                              <path className="spin" d={spiral(55.5, 80)} />
-                              <path className="spin" d={spiral(72.5, 80)} />
-                            </g>
-                          </svg>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  {accessory && <AccessoryArt kind={accessory} />}
-
-                  <Sparks layer="front" />
-
-                  <div className="burst" aria-hidden>
-                    {BURST.map((bit, index) => (
-                      <i
-                        key={index}
-                        style={
-                          {
-                            '--bx': `${bit.x}px`,
-                            '--by': `${bit.y}px`,
-                            '--bd': `${bit.delay}s`
-                          } as CSSProperties
-                        }
-                      />
-                    ))}
                   </div>
                 </div>
 
-                {/* Corações do carinho. */}
-                <svg className="layer hearts" viewBox="0 0 128 128" aria-hidden>
-                  <path className="heart h1" d={HEART} />
-                  <path className="heart h2" d={HEART} />
-                  <path className="heart h3" d={HEART} />
-                </svg>
+                {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
+                desenhado uma vez só. */}
+                <div className="body" aria-hidden>
+                  <svg className="layer" viewBox="0 0 128 128">
+                    <path className="shell" d={DROP_PATH} />
+                    <path className="gloss" d="M 47 60 Q 50 52 57 49" />
+                    <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
+                    <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
+                    <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
+                    <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
+                    <path className="visor-glare" d="M 50 73 L 57 73" />
+                    <circle className="bolt" cx="39.4" cy="80" r="3.6" />
+                    <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
+                    <circle className="bolt" cx="88.6" cy="80" r="3.6" />
+                    <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
+                    <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
+                    <rect
+                      className="collar-light"
+                      x="61.3"
+                      y="29.6"
+                      width="5.4"
+                      height="1.1"
+                      rx="0.5"
+                    />
+                  </svg>
+                </div>
 
-                {/* A veia de bravo, das cutucadas. */}
-                <svg className="layer anger" viewBox="0 0 128 128" aria-hidden>
-                  <g className="anger-mark">
-                    <path d="M -4 -1.3 Q -1.3 -1.3 -1.3 -4 M 1.3 -4 Q 1.3 -1.3 4 -1.3 M 4 1.3 Q 1.3 1.3 1.3 4 M -1.3 4 Q -1.3 1.3 -4 1.3" />
-                  </g>
-                </svg>
+                {/* Bochechas de LED, no carinho. */}
+                <div className="blush" aria-hidden>
+                  <svg className="layer" viewBox="0 0 128 128">
+                    <ellipse cx="51.5" cy="87" rx="2.8" ry="1.4" />
+                    <ellipse cx="76.5" cy="87" rx="2.8" ry="1.4" />
+                  </svg>
+                </div>
 
-                {/* Estrelinhas rodando na cabeça, quando ele fica tonto. */}
-                <div className="stars" aria-hidden>
-                  {[1, 2, 3].map((n) => (
-                    <span key={n} className={`star t${n}`}>
-                      <svg viewBox="-4 -4 8 8">
-                        <path d={STAR} />
-                      </svg>
-                    </span>
+                {/* Olhos de LED. De fora para dentro: o olhar do estado (de lado, varrendo), o que
+                segue o cursor, o das reações (arregalado) e a piscada. */}
+                <div className="eyes" aria-hidden>
+                  <div className="gaze">
+                    <div className="eyes-react">
+                      <div className="eyes-blink">
+                        <svg className="layer" viewBox="0 0 128 128">
+                          <g className="eye-leds">
+                            <rect className="led" x="52.5" y="75" width="6" height="10" rx="3" />
+                            <rect className="led" x="69.5" y="75" width="6" height="10" rx="3" />
+                          </g>
+                          <g className="eye-glyph eye-happy">
+                            <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
+                            <path d="M 69 82.5 L 72.5 77.5 L 76 82.5" />
+                          </g>
+                          <g className="eye-glyph eye-x">
+                            <path d="M 52.5 76.5 L 58.5 83.5 M 58.5 76.5 L 52.5 83.5" />
+                            <path d="M 69.5 76.5 L 75.5 83.5 M 75.5 76.5 L 69.5 83.5" />
+                          </g>
+                          <g className="eye-glyph eye-closed">
+                            <path d="M 52 80 Q 55.5 83.6 59 80" />
+                            <path d="M 69 80 Q 72.5 83.6 76 80" />
+                          </g>
+                          <g className="eye-glyph eye-squint">
+                            <path d="M 52.5 76.5 L 58 80 L 52.5 83.5" />
+                            <path d="M 75.5 76.5 L 70 80 L 75.5 83.5" />
+                          </g>
+                          <g className="eye-angry">
+                            <path
+                              className="led"
+                              d="M 52.5 75.8 L 58.5 80.4 L 58.5 83 Q 58.5 85 56.5 85 L 54.5 85 Q 52.5 85 52.5 83 Z"
+                            />
+                            <path
+                              className="led"
+                              d="M 75.5 75.8 L 69.5 80.4 L 69.5 83 Q 69.5 85 71.5 85 L 73.5 85 Q 75.5 85 75.5 83 Z"
+                            />
+                          </g>
+                          <g className="eye-glyph eye-spiral">
+                            <path className="spin" d={spiral(55.5, 80)} />
+                            <path className="spin" d={spiral(72.5, 80)} />
+                          </g>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {accessory && <AccessoryArt kind={accessory} />}
+
+                <Sparks layer="front" />
+
+                <div className="burst" aria-hidden>
+                  {BURST.map((bit, index) => (
+                    <i
+                      key={index}
+                      style={
+                        {
+                          '--bx': `${bit.x}px`,
+                          '--by': `${bit.y}px`,
+                          '--bd': `${bit.delay}s`
+                        } as CSSProperties
+                      }
+                    />
                   ))}
                 </div>
+              </div>
 
-                {/* Os "z" do cochilo: sobem um tempo e depois fica um só, parado. */}
-                <div className="zzz" aria-hidden>
-                  <span className="z z1">z</span>
-                  <span className="z z2">z</span>
-                  <span className="z z3">z</span>
-                  <span className="z z-deep">z</span>
-                </div>
+              {/* Corações do carinho. */}
+              <svg className="layer hearts" viewBox="0 0 128 128" aria-hidden>
+                <path className="heart h1" d={HEART} />
+                <path className="heart h2" d={HEART} />
+                <path className="heart h3" d={HEART} />
+              </svg>
 
-                {/* O sininho de um lembrete. */}
-                <svg className="layer bell" viewBox="0 0 128 128" aria-hidden>
-                  <g className="bell-body">
-                    <circle cx="28" cy="20.2" r="1.5" />
-                    <path d="M 28 21 C 23 21 21 25 21 30 L 21 34 L 19 37 L 37 37 L 35 34 L 35 30 C 35 25 33 21 28 21 Z" />
-                    <circle className="bell-clapper" cx="28" cy="39" r="1.9" />
-                  </g>
-                </svg>
+              {/* A veia de bravo, das cutucadas. */}
+              <svg className="layer anger" viewBox="0 0 128 128" aria-hidden>
+                <g className="anger-mark">
+                  <path d="M -4 -1.3 Q -1.3 -1.3 -1.3 -4 M 1.3 -4 Q 1.3 -1.3 4 -1.3 M 4 1.3 Q 1.3 1.3 1.3 4 M -1.3 4 Q -1.3 1.3 -4 1.3" />
+                </g>
+              </svg>
 
-                {/* "oi!" da saudação. */}
-                <div className="bubble" aria-hidden>
-                  oi!
-                </div>
-
-                {/* O arquivo solto voando para dentro da gota. */}
-                {absorbing && (
-                  <div
-                    key={absorbing.key}
-                    className="absorb"
-                    style={
-                      {
-                        '--ax': `${absorbing.x - 64}px`,
-                        '--ay': `${absorbing.y - 78}px`
-                      } as CSSProperties
-                    }
-                    onAnimationEnd={() => setAbsorbing(null)}
-                    aria-hidden
-                  >
-                    <svg viewBox="0 0 14 18">
-                      <path
-                        className="doc"
-                        d="M 2 0.5 H 9 L 13.5 5 V 16 Q 13.5 17.5 12 17.5 H 2 Q 0.5 17.5 0.5 16 V 2 Q 0.5 0.5 2 0.5 Z"
-                      />
-                      <path className="doc-fold" d="M 9 0.5 V 5 H 13.5" />
-                      <path
-                        className="doc-lines"
-                        d="M 3.5 8.5 H 10.5 M 3.5 11 H 10.5 M 3.5 13.5 H 8"
-                      />
+              {/* Estrelinhas rodando na cabeça, quando ele fica tonto. */}
+              <div className="stars" aria-hidden>
+                {[1, 2, 3].map((n) => (
+                  <span key={n} className={`star t${n}`}>
+                    <svg viewBox="-4 -4 8 8">
+                      <path d={STAR} />
                     </svg>
-                  </div>
-                )}
+                  </span>
+                ))}
               </div>
 
-              {/* Notinhas da dança. */}
-              <div className="notes" aria-hidden>
-                <span className="note n1">♪</span>
-                <span className="note n2">♫</span>
+              {/* Os "z" do cochilo: sobem um tempo e depois fica um só, parado. */}
+              <div className="zzz" aria-hidden>
+                <span className="z z1">z</span>
+                <span className="z z2">z</span>
+                <span className="z z3">z</span>
+                <span className="z z-deep">z</span>
               </div>
+
+              {/* O sininho de um lembrete. */}
+              <svg className="layer bell" viewBox="0 0 128 128" aria-hidden>
+                <g className="bell-body">
+                  <circle cx="28" cy="20.2" r="1.5" />
+                  <path d="M 28 21 C 23 21 21 25 21 30 L 21 34 L 19 37 L 37 37 L 35 34 L 35 30 C 35 25 33 21 28 21 Z" />
+                  <circle className="bell-clapper" cx="28" cy="39" r="1.9" />
+                </g>
+              </svg>
+
+              {/* "oi!" da saudação. */}
+              <div className="bubble" aria-hidden>
+                oi!
+              </div>
+
+              {/* O arquivo solto voando para dentro da gota. */}
+              {absorbing && (
+                <div
+                  key={absorbing.key}
+                  className="absorb"
+                  style={
+                    {
+                      '--ax': `${absorbing.x - 64}px`,
+                      '--ay': `${absorbing.y - 78}px`
+                    } as CSSProperties
+                  }
+                  onAnimationEnd={() => setAbsorbing(null)}
+                  aria-hidden
+                >
+                  <svg viewBox="0 0 14 18">
+                    <path
+                      className="doc"
+                      d="M 2 0.5 H 9 L 13.5 5 V 16 Q 13.5 17.5 12 17.5 H 2 Q 0.5 17.5 0.5 16 V 2 Q 0.5 0.5 2 0.5 Z"
+                    />
+                    <path className="doc-fold" d="M 9 0.5 V 5 H 13.5" />
+                    <path
+                      className="doc-lines"
+                      d="M 3.5 8.5 H 10.5 M 3.5 11 H 10.5 M 3.5 13.5 H 8"
+                    />
+                  </svg>
+                </div>
+              )}
             </div>
 
-            {/* "?" do pedido de permissão, do lado em que o painel está. */}
-            <div className="ask" aria-hidden>
-              ?
+            {/* Notinhas da dança. */}
+            <div className="notes" aria-hidden>
+              <span className="note n1">♪</span>
+              <span className="note n2">♫</span>
             </div>
           </div>
+
+          {/* "?" do pedido de permissão, do lado em que o painel está. */}
+          <div className="ask" aria-hidden>
+            ?
+          </div>
         </div>
+      </div>
+    </div>
+  )
+
+  if (!island) return stageElement
+  // A ilha: a cápsula no topo da tela, com o mascote em miniatura e a linha de estado. O clique
+  // abre o painel; o mascote dentro dela só se mostra (não se arrasta nem leva cutucadas).
+  return (
+    <div
+      className={`island tone-${island.tone}${island.expanded ? ' expanded' : ''}`}
+      role="button"
+      aria-label={`Wisp: ${island.title}`}
+      onClick={() => window.wisp.mascot.click()}
+      onPointerEnter={() => window.wisp.mascot.hover(true)}
+      onPointerLeave={() => window.wisp.mascot.hover(false)}
+      onContextMenu={(e) => {
+        e.preventDefault()
+        window.wisp.mascot.menu()
+      }}
+      onDragEnter={onDragEnter}
+      onDragOver={onDragOver}
+      onDragLeave={onDragLeave}
+      onDrop={onDrop}
+    >
+      <div className="island-mascot">
+        <div className="island-scale">{stageElement}</div>
+      </div>
+      <div className="island-text">
+        <strong>{island.title}</strong>
+        {island.detail && <span>{island.detail}</span>}
       </div>
     </div>
   )

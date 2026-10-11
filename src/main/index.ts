@@ -50,7 +50,7 @@ import {
   getMascotBounds,
   getMascotWindow,
   getVisibleMascotBounds,
-  holdPeek,
+  islandMessage,
   isMascotVisible,
   playMascotSound,
   pulseMascot,
@@ -63,6 +63,7 @@ import {
   setMascotVoice,
   sendVoiceCommand,
   setCompact,
+  setIslandNote,
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
@@ -205,6 +206,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     fire: (reminder, late) => {
       presence.activity()
       activity.record({ k: 'lembrete' })
+      islandMessage('Lembrete', reminder.text, 6000)
       reactMascot('remind')
       sounds.play('lembrete')
       const body = late ? `${reminder.text} (era para ${describeWhen(reminder.at)})` : reminder.text
@@ -241,6 +243,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   const githubAlerts = (alerts: GithubAlert[]): void => {
     presence.activity()
+    const first = describeAlert(alerts[0])
+    islandMessage(first.title, first.body, 8000)
     for (const alert of alerts.slice(0, MAX_ALERTS)) {
       const { title, body, url } = describeAlert(alert)
       notify(title, body, () => void shell.openExternal(url))
@@ -291,18 +295,26 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
       const span =
         event.end > event.start ? `${clock(event.start)}–${clock(event.end)}` : clock(event.start)
+      islandMessage(`Em ${minutes} min`, event.title, 8000)
       notify(
         `Em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}: ${event.title}`,
         event.location ? `${span} · ${event.location}` : span,
         () => chat?.open()
       )
     },
-    onNext: (next) =>
+    onNext: (next) => {
       chat?.setAgenda(
         next
           ? { title: next.title, start: next.start, end: next.end, location: next.location }
           : null
       )
+      // Na ilha, o próximo compromisso fica na linha de baixo.
+      setIslandNote(
+        next
+          ? `${new Date(next.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ${next.title}`
+          : ''
+      )
+    }
   })
   let agendaKey = ''
   const updateAgenda = (): void => {
@@ -466,9 +478,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       sounds.play(change === 'open' ? 'abrir' : 'fechar')
       updateAccessory()
     },
-    onActivity: () => presence.activity(),
-    // No modo compacto, o mascote sai da borda enquanto o painel estiver aberto.
-    onVisible: (visible) => holdPeek('panel', visible)
+    onActivity: () => presence.activity()
   })
 
   // A voz: o botão do microfone do painel e o atalho de voz. Escuta só quando pedida, e nunca com

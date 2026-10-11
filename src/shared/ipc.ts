@@ -27,7 +27,7 @@ export const IPC = {
   mascotReact: 'mascot:react',
   /** main → mascote: o acessório do dia. Arg: Accessory | null. */
   mascotAccessory: 'mascot:accessory',
-  mascotDock: 'mascot:dock',
+  mascotIsland: 'mascot:island',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
   summaryShow: 'summary:show',
@@ -238,10 +238,15 @@ export interface AgendaItem {
 }
 
 /**
- * O modo compacto, para a página do mascote: a borda em que ele mora e se está guardado (só a aba
- * à vista) ou espiando (inteiro). null: fora do modo compacto.
+ * A ilha (o modo compacto), para a página do mascote: aberta ou recolhida, o texto e o tom (calmo,
+ * ocupado, pedindo atenção, feliz). null: fora da ilha, o mascote flutuando.
  */
-export type MascotDock = { edge: 'left' | 'right'; tucked: boolean } | null
+export type MascotIsland = {
+  expanded: boolean
+  title: string
+  detail: string
+  tone: 'calm' | 'busy' | 'alert' | 'happy'
+} | null
 
 /**
  * Como a escuta termina: 'hold', quando o atalho for solto (o silêncio longo só por garantia);
@@ -733,8 +738,8 @@ export interface WispApi {
     onGaze(listener: (gaze: Gaze | null) => void): () => void
     onReact(listener: (reaction: MascotReaction) => void): () => void
     onAccessory(listener: (accessory: Accessory | null) => void): () => void
-    /** O modo compacto: a borda e se ele está guardado (null: fora do modo compacto). */
-    onDock(listener: (dock: MascotDock) => void): () => void
+    /** A ilha: aberta ou recolhida, o texto e o tom (null: fora da ilha). */
+    onIsland(listener: (island: MascotIsland) => void): () => void
     /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */
     onSound(listener: (name: SoundName, volume: number) => void): () => void
     /** Um som da pasta do usuário chegou (bytes) ou saiu (null). */
