@@ -475,6 +475,57 @@ vazio; o CI fica verde a cada push; sem o Claude Code, a demonstração mostra o
 a tela de configurações grava e recusa com o motivo; o registro não passa de 1 MB nem guarda
 endereços.
 
+### Fase 13: compacto, GitHub, agenda e resumo da semana
+
+**Status:** em andamento. Veio das ideias deixadas para depois, escolhidas na validação da Fase 12.
+
+- **Modo compacto (M):** o mascote mora na borda da tela, quase todo escondido, e espia:
+  - fica encostado na borda esquerda ou direita (a mais perto), só com um olho e a antena à
+    vista. Fora dessa aba, a janela não pega cliques (forma da janela, XShape no X11);
+  - sai inteiro quando o cursor passa pela aba, quando o painel está aberto, quando pede
+    permissão, dá erro ou ouve a sua voz, e por alguns segundos quando uma resposta fica pronta
+    ou um lembrete toca. Depois, volta a se esconder;
+  - arrastar leva ele para outra altura ou para a outra borda;
+  - liga e desliga pela tela de configurações, pelo menu do mascote ou pelo `compact` no
+    `config.json`.
+- **Alertas do GitHub (M),** pelo `gh` (GitHub CLI) já logado, sem token no Wisp:
+  - nos seus PRs abertos: CI que falhou ou passou, aprovação, pedido de mudanças e comentário
+    de revisão;
+  - PRs em que pedem a sua revisão;
+  - notificação (o clique abre o PR) e o mascote reage; a ferramenta `github_status` deixa o
+    Claude responder "como estão os meus PRs?";
+  - opcional e desligado por padrão: rede só para o que você ligar.
+- **Agenda (M):** os próximos compromissos, só leitura:
+  - do Evolution Data Server (as agendas do GNOME, inclusive as das Contas Online: Google,
+    Microsoft, Nextcloud) e de arquivos `.ics` ou pastas de `.ics` (vdirsyncer, o KOrganizer com
+    um arquivo iCal);
+  - eventos que se repetem (RRULE), dia inteiro, exceções e fusos horários;
+  - aviso alguns minutos antes, com o mascote; o próximo compromisso no painel vazio; a
+    ferramenta `list_events` para "o que eu tenho amanhã?";
+  - opcional e desligada por padrão.
+- **Resumo da semana (M),** tudo local:
+  - um registro de atividade sem conteúdo (só contagens, nomes de ferramentas e de apps, pastas
+    de projetos): conversas, tempo do Claude trabalhando, arquivos editados (+N −M), comandos
+    aprovados e negados, apps abertos, sessões do terminal e lembretes;
+  - na segunda-feira, o resumo da semana anterior, comparado com a de antes; também no painel, a
+    qualquer hora, e pela ferramenta `weekly_summary`.
+
+**Aceite:** no compacto, o mascote some na borda, espia com o cursor e volta; um PR com CI
+vermelho vira uma notificação que abre o PR; um compromisso daqui a 10 minutos avisa; o resumo da
+semana bate com o que aconteceu.
+
+### Fase 14: aprovar pelo celular
+
+**Status:** mapeada, para depois da Fase 13.
+
+- **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
+  escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
+  - um pedido por vez, ligado ao pedido exato (o card mostra o mesmo que o do painel);
+  - expira em 2 minutos; sem resposta, fica negado;
+  - sem "sempre" e sem trocar o modo da conversa pelo celular;
+  - desligado por padrão, com o pareamento feito no computador;
+  - nada de conteúdo da conversa no canal além do pedido.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais.** O cérebro do Wisp é o Claude Code com a sua
@@ -482,19 +533,12 @@ endereços.
   plano B offline, sem ferramentas.
 - **Integrações de negócio** (Stripe, n8n, Vercel, Resend, Cal.com e outras). São nicho. Se fizerem
   falta, servidores MCP de terceiros podem ser adicionados ao Wisp em vez de código próprio. GitHub
-  (alertas de CI e de revisão) e agenda (próximos compromissos) são as que valem reavaliar mais
-  tarde.
+  (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular (ntfy, KDE Connect) só com muito cuidado:
-  - um pedido por vez, ligado ao pedido exato;
-  - expira em 2 minutos;
-  - sem "sempre".
-- **Resumo semanal** (tarefas, tempo, apps abertos, aprovações, tudo local). É simpático, mas fica
-  para quando o resto estiver pronto.
-- **A ilha no topo da tela.** A identidade do Wisp é o mascote flutuante. Um modo compacto, em que o
-  mascote vira uma aba na borda da tela e espia quando o cursor passa, pode entrar mais tarde se
-  fizer falta.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 14.
+- **A ilha no topo da tela.** A identidade do Wisp é o mascote flutuante. O modo compacto (Fase 13)
+  cobre quem quer o mascote fora do caminho.
 
 ## Princípios que ficam
 
