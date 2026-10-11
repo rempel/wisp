@@ -311,6 +311,12 @@ export function SettingsView(): JSX.Element {
               </Row>
             </>
           )}
+          <Toggle
+            label="Resumo da semana"
+            hint="Conta conversas, tempo do Claude, linhas editadas e aprovações (nada do conteúdo) e mostra o resumo na segunda. Fica no histórico."
+            checked={values.weeklySummary}
+            onChange={(weeklySummary) => void save({ weeklySummary })}
+          />
         </Section>
 
         <Section title="Avançado">

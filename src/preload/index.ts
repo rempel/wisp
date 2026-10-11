@@ -114,6 +114,10 @@ const api: WispApi = {
   agenda: {
     onNext: (listener) => subscribe<[AgendaItem | null]>(IPC.agendaNext, listener)
   },
+  summary: {
+    get: () => ipcRenderer.invoke(IPC.summaryGet),
+    onShow: (listener) => subscribe<[]>(IPC.summaryShow, listener)
+  },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),
     set: (patch) => ipcRenderer.invoke(IPC.settingsSet, patch),

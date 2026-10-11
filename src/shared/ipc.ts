@@ -29,6 +29,8 @@ export const IPC = {
   mascotAccessory: 'mascot:accessory',
   mascotDock: 'mascot:dock',
   agendaNext: 'agenda:next',
+  summaryGet: 'summary:get',
+  summaryShow: 'summary:show',
   /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
   mascotSound: 'mascot:sound',
   /**
@@ -197,6 +199,35 @@ export interface Gaze {
 
 /** Reações que o main pede ao mascote: a saudação, quando o app abre, e o toque de um lembrete. */
 export type MascotReaction = 'greet' | 'remind'
+
+/** O resumo de uma semana (de segunda a segunda), só com contagens (Fase 13). */
+export interface WeekSummary {
+  from: number
+  to: number
+  conversations: number
+  turns: number
+  /** Minutos do Claude trabalhando (a soma dos turnos). */
+  claudeMinutes: number
+  stopped: number
+  errors: number
+  edits: number
+  added: number
+  removed: number
+  approved: number
+  denied: number
+  tools: [string, number][]
+  apps: [string, number][]
+  terminal: number
+  projects: [string, number][]
+  reminders: number
+}
+
+/** O que o painel recebe para o cartão da semana. */
+export interface WeekSummaries {
+  enabled: boolean
+  current: WeekSummary
+  previous: WeekSummary
+}
 
 /** O próximo compromisso da agenda, para o painel vazio mostrar (Fase 13). */
 export interface AgendaItem {
@@ -799,6 +830,12 @@ export interface WispApi {
   /** A agenda: o próximo compromisso, para o painel vazio (null: nenhum nas próximas horas). */
   agenda: {
     onNext(listener: (next: AgendaItem | null) => void): () => void
+  }
+  /** O resumo da semana: o cartão no topo do histórico. */
+  summary: {
+    get(): Promise<WeekSummaries | null>
+    /** A notificação de segunda-feira pediu o resumo. */
+    onShow(listener: () => void): () => void
   }
   /** As configurações (a tela de configurações e o modo demonstração). */
   settings: {

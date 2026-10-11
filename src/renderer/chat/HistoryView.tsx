@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import { formatWhen } from '../../shared/format'
 import type { ConversationSummary } from '../../shared/ipc'
 import { SearchIcon, TrashIcon } from './icons'
+import { WeekCard } from './WeekCard'
 
 const DAY = 86_400_000
 
@@ -67,6 +68,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
 
   return (
     <div className="history">
+      <WeekCard />
       <label className="history-search">
         <SearchIcon />
         <input
