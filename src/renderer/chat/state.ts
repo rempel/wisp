@@ -5,6 +5,7 @@ import type {
   FileDiff,
   NoticeLevel,
   PermissionDecision,
+  PermissionMode,
   PlanUsage
 } from '../../shared/ipc'
 
@@ -51,6 +52,9 @@ export type Item =
       /** Navegador: o site em jogo e até onde vai o "sempre" (veja o ChatEvent). */
       site?: string
       always?: 'site' | 'none'
+      /** Bash: o que o "Permitir sempre" libera ("git status", "ls" ou o comando exato). */
+      scope?: string
+      exact?: boolean
       /** Respostas dadas, quando é uma pergunta do Claude. */
       answers?: Record<string, string>
     }
@@ -62,6 +66,8 @@ export interface ChatState {
   model: { choice: string | null; active: string | null } | null
   /** O uso do plano (null até a primeira resposta). */
   usage: PlanUsage | null
+  /** O modo de permissão da conversa. */
+  mode: PermissionMode
 }
 
 export type Action =
@@ -69,7 +75,13 @@ export type Action =
   | { type: 'events'; events: ChatEvent[] }
   | { type: 'user-message'; text: string; attachments: AttachmentPreview[] }
 
-export const initialState: ChatState = { items: [], busy: false, model: null, usage: null }
+export const initialState: ChatState = {
+  items: [],
+  busy: false,
+  model: null,
+  usage: null,
+  mode: 'default'
+}
 
 function userItem(
   items: Item[],
@@ -102,8 +114,10 @@ export function reducer(state: ChatState, action: Action): ChatState {
 function applyEvent(state: ChatState, event: ChatEvent): ChatState {
   switch (event.type) {
     case 'reset':
-      // O modelo e o uso do plano não são da conversa: continuam.
-      return { ...initialState, model: state.model, usage: state.usage }
+      // O modelo, o uso do plano e o modo não são da conversa: continuam.
+      return { ...initialState, model: state.model, usage: state.usage, mode: state.mode }
+    case 'mode':
+      return { ...state, mode: event.mode }
     case 'model':
       return { ...state, model: { choice: event.choice, active: event.active } }
     case 'usage':
@@ -170,7 +184,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'notice':
       return append(state, notice(state.items, event.level, event.text))
     case 'permission-request': {
-      const { id, toolName, input, toolUseId, site, always } = event
+      const { id, toolName, input, toolUseId, site, always, scope, exact } = event
       const tool = toolUseId ? findItem(state, 'tool', toolUseId) : undefined
       const waiting =
         tool && tool.status === 'running'
@@ -184,7 +198,9 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         toolUseId,
         status: 'pending',
         ...(site ? { site } : {}),
-        ...(always ? { always } : {})
+        ...(always ? { always } : {}),
+        ...(scope ? { scope } : {}),
+        ...(exact ? { exact } : {})
       })
     }
     case 'permission-resolved': {
@@ -199,9 +215,8 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       const tool = request.toolUseId ? findItem(next, 'tool', request.toolUseId) : undefined
       if (
         tool?.status === 'waiting' &&
-        (event.decision === 'allow' ||
-          event.decision === 'allow-always' ||
-          event.decision === 'answered')
+        event.decision !== 'deny' &&
+        event.decision !== 'cancelled'
       ) {
         next = replaceItem(next, tool, { ...tool, status: 'running' })
       }

@@ -17,6 +17,7 @@ import {
   ErrorIcon,
   FocusIcon,
   FolderIcon,
+  SplitIcon,
   TerminalIcon,
   TrashIcon
 } from './icons'
@@ -28,7 +29,7 @@ import type { Item } from './state'
 type PermissionItem = Extract<Item, { kind: 'permission' }>
 
 /** Os tempos relativos ("há 2 min") andam sozinhos. */
-const TICK_MS = 30_000
+export const SESSION_TICK_MS = 30_000
 
 const STATE_LABEL: Record<ExternalState, string> = {
   working: 'trabalhando',
@@ -195,16 +196,22 @@ function StepRow({ step }: { step: ExternalStep }): JSX.Element {
   )
 }
 
-function SessionCard({
+export function SessionCard({
   session,
   now,
-  onContinue
+  onContinue,
+  onOpenTab,
+  expanded = false
 }: {
   session: ExternalSession
   now: number
   onContinue: () => void
+  /** Abre a sessão numa aba (só na lista da aba Sessões). */
+  onOpenTab?: () => void
+  /** Numa aba só dela: os passos já aparecem abertos. */
+  expanded?: boolean
 }): JSX.Element {
-  const [showSteps, setShowSteps] = useState(false)
+  const [showSteps, setShowSteps] = useState(expanded)
   const [focusMessage, setFocusMessage] = useState<string | null>(null)
   const running = [...session.steps]
     .reverse()
@@ -241,7 +248,9 @@ function SessionCard({
           id: request.id,
           toolName: request.toolName,
           input: request.input,
-          status: 'pending'
+          status: 'pending',
+          ...(request.scope ? { scope: request.scope } : {}),
+          ...(request.exact ? { exact: true } : {})
         }
         return (
           <div key={request.id} className="session-request">
@@ -298,6 +307,16 @@ function SessionCard({
       )}
       {focusMessage && <p className="session-hint">{focusMessage}</p>}
       <div className="session-actions">
+        {onOpenTab && (
+          <button
+            type="button"
+            onClick={onOpenTab}
+            title="Acompanhar esta sessão numa aba (dá para pôr lado a lado com outras)"
+          >
+            <SplitIcon />
+            Abrir em aba
+          </button>
+        )}
         {session.alive && (
           <button
             type="button"
@@ -358,12 +377,12 @@ export function SessionsView({
   onContinue
 }: {
   snapshot: SessionsSnapshot | null
-  /** Uma sessão foi para o chat. */
+  /** Uma sessão foi para o chat (ou para uma aba). */
   onContinue: () => void
 }): JSX.Element {
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), TICK_MS)
+    const timer = window.setInterval(() => setNow(Date.now()), SESSION_TICK_MS)
     return () => window.clearInterval(timer)
   }, [])
 
@@ -387,7 +406,16 @@ export function SessionsView({
           </div>
         ) : (
           sessions.map((session) => (
-            <SessionCard key={session.id} session={session} now={now} onContinue={onContinue} />
+            <SessionCard
+              key={session.id}
+              session={session}
+              now={now}
+              onContinue={onContinue}
+              onOpenTab={() => {
+                window.wisp.tabs.openSession(session.id)
+                onContinue()
+              }}
+            />
           ))
         ))}
     </div>

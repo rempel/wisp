@@ -117,6 +117,8 @@ function readHeader(file: string): Header | null {
 
 export interface SavedConversation {
   id: string
+  /** A primeira mensagem, encurtada (o nome da aba). */
+  title: string
   /** Com que session_id retomar no Claude Code. */
   sessionId: string
   createdAt: number
@@ -200,8 +202,11 @@ export class History {
     this.append({ type: 'text', blockId, delta })
   }
 
-  /** As conversas guardadas, da mais recente para a mais antiga. */
-  list(): ConversationSummary[] {
+  /**
+   * As conversas guardadas, da mais recente para a mais antiga. `open` são as que estão abertas
+   * em abas (cada aba grava a sua com o próprio History).
+   */
+  list(open: Set<string> = new Set()): ConversationSummary[] {
     this.flush()
     let names: string[]
     try {
@@ -228,7 +233,7 @@ export class History {
         title: header.title,
         createdAt: header.createdAt,
         updatedAt,
-        current: id === this.current?.id,
+        current: open.has(id) || id === this.current?.id,
         ...(header.cwd ? { project: basename(header.cwd) } : {})
       })
     }
@@ -266,6 +271,7 @@ export class History {
     if (!header || header.id !== id) return null
     return {
       id,
+      title: header.title,
       sessionId,
       createdAt: header.createdAt,
       ...(typeof header.cwd === 'string' && header.cwd ? { cwd: header.cwd } : {}),

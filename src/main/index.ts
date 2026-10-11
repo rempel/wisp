@@ -222,14 +222,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
 
   chat = setupChat({
     anchor: getMascotBounds,
-    mcpConfigPath: desktop?.configPath,
-    onEvent: (event) => {
+    mcpConfig: desktop ? (conversation) => desktop!.configFor(conversation) : undefined,
+    releaseMcpConfig: (conversation) => desktop?.releaseConfig(conversation),
+    sessionTitle: (id) => sessions.get(id)?.project ?? null,
+    onEvent: (event, conversation) => {
       presence.activity()
-      mood.onEvent(event)
-      voice?.onChatEvent(event)
+      mood.onEvent(event, conversation)
+      voice?.onChatEvent(event, conversation)
       const sound = soundForEvent(event)
       if (sound) sounds.play(sound)
     },
+    onClose: (conversation) => mood.forget(conversation),
     onPanel: (change) => {
       presence.activity()
       sounds.play(change === 'open' ? 'abrir' : 'fechar')
@@ -333,13 +336,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     quickCommands: () => getConfig().quickCommands,
     runQuick,
     deliver: (text, source) => {
-      if (!chat) return 'composed'
+      if (!chat) return null
       // Pelo botão do painel (ou com voiceReview), o texto fica na caixa para revisar.
       if (source === 'panel' || getConfig().voiceReview) {
         chat.compose(text)
-        return 'composed'
+        return null
       }
-      return chat.ask(text, { voice: true }) ? 'sent' : 'composed'
+      return chat.ask(text, { voice: true })
     },
     notice: voiceNotice,
     activity: () => presence.activity(),

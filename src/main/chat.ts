@@ -1,24 +1,24 @@
 import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
 import type { IpcMainEvent, IpcMainInvokeEvent, Rectangle, WebContents } from 'electron'
 import { randomUUID } from 'crypto'
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
+import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
-import { isThumbnail, saveIncoming, savePasted } from './attachments'
-import { BROWSER_PREFIX, BrowserPolicy } from './browser-policy'
-import { ClaudeSession, SAFE_TOOLS } from './claude'
+import { ATTACHMENTS_DIR, isThumbnail, saveIncoming, savePasted } from './attachments'
+import { SAFE_TOOLS } from './claude'
 import { ClipboardChip } from './clipboard'
 import { CONFIG_PATH, configProblems, getConfig, onConfigProblems, updateConfig } from './config'
+import { Conversation } from './conversation'
+import type { ConversationHost } from './conversation'
 import { History } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
-import { DATA_DIR } from './paths'
-import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
+import { DATA_DIR, runtimeDir } from './paths'
 import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
 import type { ScreenImage } from './screenshot'
-import { IPC, MODEL_CHOICES } from '../shared/ipc'
+import { IPC, MAX_PANES, MODEL_CHOICES, PERMISSION_MODES } from '../shared/ipc'
 import type {
   AttachmentPreview,
   ChatEvent,
@@ -29,14 +29,19 @@ import type {
   NoticeLevel,
   OutgoingAttachment,
   PastedImage,
+  PermissionDecision,
+  PermissionMode,
   SoundSettings,
+  TabInfo,
+  TabsState,
   VoiceStatus
 } from '../shared/ipc'
 
-type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
-
-const CHAT_WIDTH = 420
+/** Largura de cada painel (a janela cresce com a tela dividida) e altura da janela. */
+const PANE_WIDTH = 420
 const CHAT_HEIGHT = 600
+/** Largura mínima de cada painel. */
+const PANE_MIN_WIDTH = 320
 /** Distância entre o mascote e o painel. */
 const GAP = 8
 /** Fundo da janela antes de a página pintar; igual ao --bg do chat.css. */
@@ -45,8 +50,19 @@ const BACKGROUND = { dark: '#0b1418', light: '#f5fafb' }
 const PANEL_AWAY_MS = 350
 /** De quanto em quanto tempo, no máximo, a área de transferência é conferida. */
 const CLIPBOARD_CHECK_MS = 1000
+/** Quantas abas abertas, no máximo: cada conversa é um processo do Claude Code. */
+const MAX_TABS = 12
 
 const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
+/** As abas abertas, para voltarem quando o app abrir de novo. */
+const TABS_FILE = join(DATA_DIR, 'abas.json')
+const DECISIONS: PermissionDecision[] = [
+  'allow',
+  'allow-always',
+  'deny',
+  'allow-edits',
+  'allow-auto'
+]
 
 const APPEND_SYSTEM_PROMPT =
   'Você está respondendo dentro do Wisp, um painel de chat pequeno no desktop Linux do usuário. ' +
@@ -96,13 +112,27 @@ function openExternal(url: string): void {
   if (/^https?:\/\//i.test(url)) void shell.openExternal(url)
 }
 
-/**
- * Até onde vai o "Permitir sempre nesta conversa": no Bash, o mesmo comando exato (liberar todo
- * Bash por causa de um `ls` seria perigoso); nas outras ferramentas, a ferramenta toda.
- */
-function permissionScope({ toolName, input }: ApprovalRequest): string {
-  const command = (input as { command?: unknown } | null)?.command
-  return toolName === 'Bash' && typeof command === 'string' ? `Bash:${command}` : toolName
+const isMode = (value: unknown): value is PermissionMode =>
+  PERMISSION_MODES.includes(value as PermissionMode)
+
+/** O arquivo do modo de permissão de uma conversa (o hook do Bash do processo dela o lê). */
+const modeFileOf = (conversation: string): string =>
+  join(runtimeDir(), `modo-${process.pid}-${conversation}`)
+
+/** Uma aba: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
+type Tab =
+  | { id: string; kind: 'chat'; conversation: Conversation }
+  | { id: string; kind: 'session'; sessionId: string; title: string }
+
+/** Como as abas ficam guardadas no disco. */
+interface SavedTabs {
+  v: 1
+  tabs: (
+    | { kind: 'chat'; history: string | null; mode: PermissionMode }
+    | { kind: 'session'; sessionId: string; title: string }
+  )[]
+  panes: number[]
+  focused: number
 }
 
 export interface Chat {
@@ -111,17 +141,18 @@ export interface Chat {
   /** Mostra o painel e traz para a frente (sem esconder, se já estiver à vista). */
   open(): void
   /**
-   * Manda uma mensagem como se o usuário a tivesse escrito (o comando `wisp --ask`, o atalho de
-   * voz). Devolve false se não foi: o Claude ainda respondia a anterior (a falada fica na caixa).
+   * Manda uma mensagem como se o usuário a tivesse escrito, na aba em foco (o comando
+   * `wisp --ask`, o atalho de voz). Devolve a conversa, ou null se não foi: o Claude ainda
+   * respondia a anterior (a falada fica na caixa).
    */
-  ask(text: string, options?: { voice?: boolean }): boolean
-  /** Põe um texto ditado na caixa de mensagem, para o usuário revisar e enviar. */
+  ask(text: string, options?: { voice?: boolean }): string | null
+  /** Põe um texto ditado na caixa de mensagem da aba em foco, para revisar e enviar. */
   compose(text: string): void
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
-  /** Quantos cards de permissão (não perguntas) esperam resposta. */
+  /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */
   pendingApprovals(): number
-  /** Nega os cards de permissão que esperam resposta (o "não" falado). */
+  /** Nega os cards da conversa com o pedido mais recente (o "não" falado). */
   denyApprovals(): void
   /** O painel está à vista. */
   visible(): boolean
@@ -131,11 +162,11 @@ export interface Chat {
   voiceLevel(level: number): void
   /** O humor do mascote mudou: o avatar do cabeçalho acompanha. */
   setMood(state: MascotState): void
-  /** Abre o painel numa conversa nova (menu da bandeja). */
+  /** Abre o painel numa conversa nova, numa aba (menu da bandeja). */
   newConversation(): void
   /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
   side(): 'left' | 'right'
-  /** Mostra o card de permissão e resolve com a decisão do usuário. */
+  /** Mostra o card de permissão na conversa do pedido e resolve com a decisão do usuário. */
   requestApproval(request: ApprovalRequest): Promise<Approval>
   /** O IPC veio da página do painel? */
   isSender(sender: WebContents): boolean
@@ -143,7 +174,7 @@ export interface Chat {
   notifySessions(): void
   /** Uma sessão do terminal pede algo: o painel aparece (sem roubar o foco) na aba Sessões. */
   showSessions(): void
-  /** Continua no chat uma sessão do terminal. */
+  /** Continua no chat, numa aba, uma sessão do terminal. */
   continueSession(seed: SessionSeed): void
   /** Arquivos soltos no mascote: o painel aparece com eles anexados. */
   attach(dropped: DroppedFiles): void
@@ -154,9 +185,9 @@ export interface Chat {
    * CaptureError com o motivo.
    */
   capture(): Promise<ScreenImage[]>
-  /** Um aviso na conversa (fora do histórico), como um problema na configuração. */
+  /** Um aviso na conversa em foco (fora do histórico), como um problema na configuração. */
   notice(level: NoticeLevel, text: string): void
-  /** Encerra o processo do Claude Code (o app está fechando). */
+  /** Encerra os processos do Claude Code (o app está fechando). */
   dispose(): void
 }
 
@@ -174,10 +205,19 @@ export interface SessionSeed {
 export interface ChatOptions {
   /** Onde está o mascote, para ancorar o painel ao lado dele. */
   anchor: () => Rectangle | null
-  /** Liga o servidor `desktop`; sem ele, a conversa roda sem as ferramentas de desktop. */
-  mcpConfigPath?: string
-  /** Recebe cada evento da conversa (o humor do mascote acompanha a conversa por aqui). */
-  onEvent?: (event: ChatEvent) => void
+  /**
+   * O --mcp-config de uma conversa (o servidor `desktop`); sem ele, as conversas rodam sem as
+   * ferramentas de desktop.
+   */
+  mcpConfig?: (conversation: string) => string
+  /** A conversa fechou: o arquivo do --mcp-config dela sai. */
+  releaseMcpConfig?: (conversation: string) => void
+  /** O nome de uma sessão do terminal (o projeto), para a aba dela; null se ela não existe. */
+  sessionTitle?: (sessionId: string) => string | null
+  /** Recebe cada evento das conversas (o humor do mascote acompanha por aqui). */
+  onEvent?: (event: ChatEvent, conversation: string) => void
+  /** Uma aba de conversa fechou. */
+  onClose?: (conversation: string) => void
   /** O usuário abriu ou fechou o painel (os sons de abrir e fechar). */
   onPanel?: (change: 'open' | 'close') => void
   /** O usuário está mexendo no painel (o mascote não cochila). */
@@ -186,68 +226,332 @@ export interface ChatOptions {
 
 /**
  * Painel de chat: uma janela que nasce na primeira vez que é aberta e depois só é escondida,
- * para a conversa continuar lá.
+ * para as conversas continuarem lá. Cada aba é uma conversa (um processo do Claude Code) ou uma
+ * sessão do terminal; a janela mostra até MAX_PANES abas lado a lado.
  */
 export function setupChat({
   anchor,
-  mcpConfigPath,
+  mcpConfig,
+  releaseMcpConfig,
+  sessionTitle,
   onEvent,
+  onClose,
   onPanel,
   onActivity
 }: ChatOptions): Chat {
   let win: BrowserWindow | null = null
   // A página ainda não ouve eventos enquanto carrega; até lá eles esperam aqui.
   let pageReady = false
-  const queued: ChatEvent[] = []
+  const queued: [string, ChatEvent][] = []
   let quitting = false
   let mood: MascotState = 'idle'
   // Mostrar a aba Sessões assim que a página carregar (o pedido chegou antes).
   let showSessionsOnReady = false
   // Arquivos soltos no mascote antes de a página carregar.
   const pendingAttach: DroppedFiles[] = []
-  // O último uso do plano, para mostrar de novo se a página recarregar.
-  let lastUsage: Extract<ChatEvent, { type: 'usage' }> | null = null
-  const history = new History()
+  // O último uso do plano (vale para a conta toda), para mostrar de novo se a página recarregar.
+  let lastUsage: [string, Extract<ChatEvent, { type: 'usage' }>] | null = null
+  // Só lê, lista e apaga: cada conversa grava a sua com o próprio History.
+  const store = new History()
   // A oferta de "usar o que você copiou" que o painel mostra (o id), e quando foi conferida.
   const clipboardChip = new ClipboardChip()
   let clipboardOffered: string | null = null
   let clipboardCheckedAt = 0
   // Os prints, um de cada vez (o painel some e volta em cada um).
   let captureQueue: Promise<unknown> = Promise.resolve()
-  // Pedidos de permissão esperando o clique no card, e o que já foi liberado "sempre".
-  const approvals = new Map<
-    string,
-    { scope: string; resolve: (approval: Approval) => void; event: PermissionRequestEvent }
-  >()
-  const alwaysAllowed = new Set<string>()
-  // O navegador do Claude: sites liberados e em que página ele está (browser-policy.ts).
-  const browser = new BrowserPolicy()
   // A voz (o botão do microfone), reenviada quando a página recarrega; e um texto ditado que
   // chegou antes de ela carregar.
   let voice: VoiceStatus = { state: 'idle' }
   let pendingCompose: string | null = null
 
-  /** Manda um evento só para a página (as reaberturas do histórico não mexem no mascote). */
-  const toPage = (event: ChatEvent): void => {
-    if (win && pageReady) win.webContents.send(IPC.chatEvent, event)
-    else queued.push(event)
+  // As abas, os painéis à vista (ids das abas) e o painel em foco.
+  const tabs: Tab[] = []
+  let panes: string[] = []
+  let focused = 0
+  // A última aba de conversa em foco: o --ask e a voz vão para ela se o foco estiver numa sessão.
+  let lastChatTab: string | null = null
+  let saveTimer: NodeJS.Timeout | null = null
+  // A largura de cada painel (o usuário pode ter redimensionado) e quantos a janela mostra.
+  let paneWidth = PANE_WIDTH
+  let shownPanes = 1
+
+  /** Manda um evento de uma conversa para a página (ou guarda até ela carregar). */
+  const toPage = (conversation: string, event: ChatEvent): void => {
+    if (win && pageReady) win.webContents.send(IPC.chatEvent, conversation, event)
+    else queued.push([conversation, event])
   }
-  const send = (event: ChatEvent): void => {
-    onEvent?.(event)
-    toPage(event)
+
+  const host: ConversationHost = {
+    emit(conversation, event, live) {
+      if (live) {
+        if (event.type === 'usage') lastUsage = [conversation.id, event]
+        if (event.type === 'mode') scheduleSave()
+        onEvent?.(event, conversation.id)
+      }
+      toPage(conversation.id, event)
+    },
+    attention(conversation) {
+      // O Claude fica parado esperando: com o painel escondido (ou ainda nem criado, num comando
+      // de voz), ele aparece, sem roubar o foco, com a aba do pedido à vista.
+      if (win?.isVisible()) return
+      if (!panes.includes(conversation.id)) showTab(conversation.id)
+      if (!win) {
+        win = createWindow(true)
+      } else {
+        placeNextToMascot(win)
+        win.showInactive()
+      }
+    },
+    changed() {
+      sendTabs()
+      scheduleSave()
+    }
   }
+
+  const config = getConfig()
+  /** Uma conversa nova (ainda sem aba). */
+  function makeConversation(mode: PermissionMode = getConfig().permissionMode): Conversation {
+    const id = randomUUID()
+    const conversation = new Conversation({
+      id,
+      host,
+      claude: {
+        claudePath: config.claudePath,
+        workspace: prepareWorkspace,
+        allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
+        appendSystemPrompt: APPEND_SYSTEM_PROMPT,
+        thumbnail: thumbnailOfBase64
+      },
+      mcpConfig: mcpConfig ? () => mcpConfig(id) : undefined,
+      modeFile: modeFileOf(id),
+      permissionMode: mode,
+      model: getConfig().model,
+      projectRoots: () => getConfig().projectRoots,
+      trustedDirs: [WORKSPACE_DIR, ATTACHMENTS_DIR]
+    })
+    for (const event of conversation.initialEvents()) toPage(id, event)
+    return conversation
+  }
+
+  // ---- Abas e painéis ------------------------------------------------------
+
+  const tabById = (id: string | undefined): Tab | undefined => tabs.find((tab) => tab.id === id)
+  const conversations = (): Conversation[] =>
+    tabs.flatMap((tab) => (tab.kind === 'chat' ? [tab.conversation] : []))
+  const conversationById = (id: string | undefined | null): Conversation | undefined =>
+    conversations().find((conversation) => conversation.id === id)
+
+  function tabInfo(tab: Tab): TabInfo {
+    if (tab.kind === 'session') {
+      return { id: tab.id, kind: 'session', title: tab.title, sessionId: tab.sessionId }
+    }
+    const { title, project } = tab.conversation
+    return {
+      id: tab.id,
+      kind: 'chat',
+      title: title ?? 'Nova conversa',
+      ...(project ? { project } : {})
+    }
+  }
+
+  function tabsState(): TabsState {
+    return { tabs: tabs.map(tabInfo), panes: [...panes], focused }
+  }
+
+  function sendTabs(): void {
+    if (win && pageReady) win.webContents.send(IPC.tabsState, tabsState())
+  }
+
+  /** As abas mudaram: a página, o disco e o tamanho da janela acompanham. */
+  function tabsChanged(): void {
+    const focusedTab = tabById(panes[focused])
+    if (focusedTab?.kind === 'chat') lastChatTab = focusedTab.id
+    resizeForPanes()
+    sendTabs()
+    scheduleSave()
+  }
+
+  /** Abre uma conversa numa aba nova, à vista no painel em foco. */
+  function addChatTab(conversation = makeConversation()): Conversation {
+    tabs.push({ id: conversation.id, kind: 'chat', conversation })
+    if (!panes.length) panes = [conversation.id]
+    else panes[focused] = conversation.id
+    tabsChanged()
+    return conversation
+  }
+
+  /** A conversa da aba em foco, se nada foi dito nela: dá para usar em vez de abrir outra. */
+  function emptyFocusedConversation(): Conversation | null {
+    const conversation = conversationById(panes[focused])
+    return conversation && !conversation.title && !conversation.busy && !conversation.historyId
+      ? conversation
+      : null
+  }
+
+  /** Uma conversa para algo novo: a aba em foco, se estiver vazia, ou uma aba nova. */
+  function freshConversation(): Conversation {
+    return emptyFocusedConversation() ?? addChatTab()
+  }
+
+  /** Mostra a aba no painel em foco, ou foca o painel onde ela já está. */
+  function showTab(id: string): void {
+    if (!tabById(id)) return
+    const index = panes.indexOf(id)
+    if (index >= 0) focused = index
+    else panes[focused] = id
+    tabsChanged()
+  }
+
+  function closeTab(id: string): void {
+    const index = tabs.findIndex((tab) => tab.id === id)
+    if (index < 0) return
+    const [tab] = tabs.splice(index, 1)
+    if (tab.kind === 'chat') {
+      tab.conversation.dispose()
+      releaseMcpConfig?.(tab.id)
+      rmSync(modeFileOf(tab.id), { force: true })
+      onClose?.(tab.id)
+    }
+    if (lastChatTab === id) lastChatTab = null
+    if (!tabs.length) {
+      const conversation = makeConversation()
+      tabs.push({ id: conversation.id, kind: 'chat', conversation })
+    }
+    // O painel que mostrava a aba passa a mostrar outra que não está à vista (ou sai).
+    const pane = panes.indexOf(id)
+    if (pane >= 0) {
+      const hidden = tabs.find((other) => !panes.includes(other.id))
+      if (hidden) panes[pane] = hidden.id
+      else if (panes.length > 1) {
+        panes.splice(pane, 1)
+        if (focused >= panes.length) focused = panes.length - 1
+      } else panes[pane] = tabs[0].id
+    }
+    tabsChanged()
+  }
+
+  /** Mais um painel lado a lado, com uma aba que não está à vista (ou uma conversa nova). */
+  function split(): void {
+    if (panes.length >= MAX_PANES) return
+    let hidden = tabs.find((tab) => !panes.includes(tab.id))
+    if (!hidden) {
+      if (tabs.length >= MAX_TABS) return
+      const conversation = makeConversation()
+      hidden = { id: conversation.id, kind: 'chat', conversation }
+      tabs.push(hidden)
+    }
+    panes.push(hidden.id)
+    focused = panes.length - 1
+    tabsChanged()
+  }
+
+  function unsplit(pane: number): void {
+    if (panes.length <= 1 || pane < 0 || pane >= panes.length) return
+    panes.splice(pane, 1)
+    if (focused > pane || focused >= panes.length) focused = Math.max(0, focused - 1)
+    tabsChanged()
+  }
+
+  function openSessionTab(sessionId: string): void {
+    const existing = tabs.find((tab) => tab.kind === 'session' && tab.sessionId === sessionId)
+    if (existing) return showTab(existing.id)
+    const title = sessionTitle?.(sessionId)
+    if (!title || tabs.length >= MAX_TABS) return
+    const tab: Tab = { id: `sessao-${randomUUID()}`, kind: 'session', sessionId, title }
+    tabs.push(tab)
+    panes[focused] = tab.id
+    tabsChanged()
+  }
+
+  /** A conversa que recebe o --ask, a voz e os arquivos soltos: a da aba em foco. */
+  function focusedConversation(): Conversation {
+    const current = conversationById(panes[focused])
+    if (current) return current
+    // O foco está numa sessão do terminal: a última conversa vista vai para o painel em foco.
+    const last = conversationById(lastChatTab) ?? conversations()[0]
+    if (last) {
+      showTab(last.id)
+      return last
+    }
+    return addChatTab()
+  }
+
+  // ---- Guardar e trazer de volta as abas -----------------------------------
+
+  function scheduleSave(): void {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = setTimeout(saveTabs, 500)
+  }
+
+  function saveTabs(): void {
+    if (saveTimer) clearTimeout(saveTimer)
+    saveTimer = null
+    const saved: SavedTabs = {
+      v: 1,
+      tabs: tabs.map((tab) =>
+        tab.kind === 'chat'
+          ? { kind: 'chat', history: tab.conversation.historyId, mode: tab.conversation.mode }
+          : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
+      ),
+      panes: panes.map((id) => tabs.findIndex((tab) => tab.id === id)),
+      focused
+    }
+    try {
+      mkdirSync(DATA_DIR, { recursive: true })
+      writeFileSync(TABS_FILE, JSON.stringify(saved), { mode: 0o600 })
+    } catch (err) {
+      console.warn('[wisp] não consegui guardar as abas:', err)
+    }
+  }
+
+  /** As abas da última vez: as conversas voltam do histórico, prontas para continuar. */
+  function restoreTabs(): void {
+    let saved: Partial<SavedTabs> | null = null
+    try {
+      saved = JSON.parse(readFileSync(TABS_FILE, 'utf8')) as Partial<SavedTabs>
+    } catch {
+      // Primeira vez, ou um arquivo estragado: começa com uma aba vazia.
+    }
+    const entries = Array.isArray(saved?.tabs) ? saved.tabs.slice(0, MAX_TABS) : []
+    for (const entry of entries) {
+      if (entry?.kind === 'session' && typeof entry.sessionId === 'string') {
+        tabs.push({
+          id: `sessao-${randomUUID()}`,
+          kind: 'session',
+          sessionId: entry.sessionId,
+          title: typeof entry.title === 'string' ? entry.title.slice(0, 80) : 'Sessão'
+        })
+        continue
+      }
+      if (entry?.kind !== 'chat') continue
+      const conversation = makeConversation(isMode(entry.mode) ? entry.mode : undefined)
+      const old = typeof entry.history === 'string' ? store.load(entry.history) : null
+      if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
+      tabs.push({ id: conversation.id, kind: 'chat', conversation })
+    }
+    if (!tabs.length) {
+      const conversation = makeConversation()
+      tabs.push({ id: conversation.id, kind: 'chat', conversation })
+    }
+    const indexes = Array.isArray(saved?.panes) ? saved.panes.slice(0, MAX_PANES) : []
+    panes = [...new Set(indexes.filter((i) => Number.isInteger(i) && tabs[i]))].map(
+      (i) => tabs[i].id
+    )
+    if (!panes.length) panes = [tabs[0].id]
+    focused = Math.min(Math.max(Number(saved?.focused) || 0, 0), panes.length - 1)
+    const focusedTab = tabById(panes[focused])
+    lastChatTab = focusedTab?.kind === 'chat' ? focusedTab.id : (conversations()[0]?.id ?? null)
+  }
+
+  restoreTabs()
 
   // Problemas no config.json aparecem na conversa (o terminal nem sempre está à vista): ao abrir
   // o painel pela primeira vez e quando o arquivo muda com eles.
-  const configNotice = (problems: string[]): ChatEvent => ({
-    type: 'notice',
-    level: 'warning',
-    text:
-      `Encontrei problemas no \`${CONFIG_PATH.replace(homedir(), '~')}\`:\n\n` +
-      problems.map((problem) => `- ${problem}`).join('\n')
-  })
+  const configNotice = (problems: string[]): string =>
+    `Encontrei problemas no \`${CONFIG_PATH.replace(homedir(), '~')}\`:\n\n` +
+    problems.map((problem) => `- ${problem}`).join('\n')
   onConfigProblems((problems) => {
-    if (win && problems.length) send(configNotice(problems))
+    if (win && problems.length) focusedConversation().notice('warning', configNotice(problems))
   })
 
   // O tema do sistema mudou: a página troca sozinha (prefers-color-scheme); o fundo da janela,
@@ -256,56 +560,20 @@ export function setupChat({
     win?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light)
   })
 
-  const deliver = (event: ChatEvent): void => {
-    // Turno encerrado (parado, com erro) ou conversa nova: nenhum pedido aberto vai ser usado.
-    if (event.type === 'turn-end' || event.type === 'reset') cancelApprovals()
-    if (event.type === 'reset') alwaysAllowed.clear()
-    if (event.type === 'usage') lastUsage = event
-    browser.track(event)
-    history.record(event)
-    send(event)
-  }
-
-  function cancelApprovals(): void {
-    for (const [id, approval] of approvals) {
-      approval.resolve({ allow: false, message: 'O usuário parou a resposta.' })
-      deliver({ type: 'permission-resolved', id, decision: 'cancelled' })
-    }
-    approvals.clear()
-  }
-
-  /** Manda de novo para a página a conversa atual, do histórico (a página recarregou). */
-  function replayCurrent(): boolean {
-    const id = history.currentId()
-    const saved = id ? history.load(id) : null
-    if (!saved) return false
-    for (const event of saved.events) toPage(event)
-    return true
-  }
-
-  const config = getConfig()
-  const session = new ClaudeSession(
-    {
-      claudePath: config.claudePath,
-      workspace: prepareWorkspace,
-      allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
-      appendSystemPrompt: APPEND_SYSTEM_PROMPT,
-      mcpConfigPath,
-      model: config.model,
-      onSessionId: (id) => history.setSession(id),
-      thumbnail: thumbnailOfBase64
-    },
-    deliver
-  )
-
   const fromChat = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
     win !== null && event.sender === win.webContents
+  /** A conversa de um pedido da página, se ele veio da página e a conversa existe. */
+  const target = (event: IpcMainEvent, id: unknown): Conversation | undefined =>
+    fromChat(event) && typeof id === 'string' ? conversationById(id) : undefined
 
   ipcMain.on(IPC.chatReady, (event) => {
     if (!fromChat(event) || !win) return
     pageReady = true
     win.webContents.send(IPC.chatMood, mood)
-    for (const waiting of queued.splice(0)) win.webContents.send(IPC.chatEvent, waiting)
+    win.webContents.send(IPC.tabsState, tabsState())
+    for (const [conversation, waiting] of queued.splice(0)) {
+      win.webContents.send(IPC.chatEvent, conversation, waiting)
+    }
     if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
     showSessionsOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
@@ -320,28 +588,23 @@ export function setupChat({
   ipcMain.on(IPC.chatActivity, (event) => {
     if (fromChat(event)) onActivity?.()
   })
-  ipcMain.on(IPC.chatSend, (event, text: unknown, attachments: unknown) => {
-    if (!fromChat(event) || typeof text !== 'string' || session.isBusy()) return
-    const files = outgoing(attachments)
-    if (!text.trim() && !files.length) return
-    history.user(session.ensureSessionId(), text, files.map(previewOf))
-    void session.send(
-      text,
-      files.map((file) => file.path)
-    )
+  ipcMain.on(IPC.chatSend, (event, id: unknown, text: unknown, attachments: unknown) => {
+    const conversation = target(event, id)
+    if (!conversation || typeof text !== 'string') return
+    conversation.send(text, outgoing(attachments), previewOf)
   })
-  ipcMain.on(IPC.chatStop, (event) => {
-    if (fromChat(event)) session.stop()
-  })
-  ipcMain.on(IPC.chatNew, (event) => {
-    if (fromChat(event)) session.reset()
-  })
-  ipcMain.on(IPC.chatModel, (event, choice: unknown) => {
-    if (!fromChat(event)) return
+  ipcMain.on(IPC.chatStop, (event, id: unknown) => target(event, id)?.stop())
+  ipcMain.on(IPC.chatNew, (event, id: unknown) => target(event, id)?.reset())
+  ipcMain.on(IPC.chatModel, (event, id: unknown, choice: unknown) => {
+    const conversation = target(event, id)
+    if (!conversation) return
     if (choice !== null && !MODEL_CHOICES.includes(choice as (typeof MODEL_CHOICES)[number])) return
     const model = choice as string | null
     updateConfig({ model })
-    session.setModel(model)
+    conversation.setModel(model)
+  })
+  ipcMain.on(IPC.chatMode, (event, id: unknown, mode: unknown) => {
+    if (isMode(mode)) target(event, id)?.setMode(mode)
   })
   ipcMain.handle(
     IPC.chatPaste,
@@ -387,26 +650,35 @@ export function setupChat({
     // O texto vai para a área de transferência logo depois do evento de copiar.
     if (fromChat(event)) setTimeout(() => void clipboardChip.markCopied(), 200)
   })
-  ipcMain.handle(IPC.historyList, (event) => (fromChat(event) ? history.list() : []))
+  ipcMain.handle(IPC.historyList, (event) => {
+    if (!fromChat(event)) return []
+    const open = new Set(conversations().flatMap((c) => (c.historyId ? [c.historyId] : [])))
+    return store.list(open)
+  })
   ipcMain.handle(IPC.historyOpen, (event, id: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return false
-    if (id === history.currentId()) return true
-    const saved = history.load(id)
+    // Já aberta numa aba: só mostra.
+    const open = conversations().find((conversation) => conversation.historyId === id)
+    if (open) {
+      showTab(open.id)
+      return true
+    }
+    const saved = store.load(id)
     if (!saved) return false
-    // A conversa atual fecha (o 'reset' passa pelo histórico e pelos cards) e a guardada volta:
-    // primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
-    session.resume(saved.sessionId, { cwd: saved.cwd })
-    history.continue(saved)
-    for (const replayed of saved.events) toPage(replayed)
-    toPage({ type: 'restored', createdAt: saved.createdAt })
+    if (tabs.length >= MAX_TABS && !emptyFocusedConversation()) return false
+    const conversation = freshConversation()
+    // A conversa da aba recomeça (o 'reset' passa pelo histórico e pelos cards) e a guardada
+    // volta: primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
+    for (const replayed of conversation.restore(saved)) toPage(conversation.id, replayed)
+    showTab(conversation.id)
     return true
   })
   ipcMain.handle(IPC.historyDelete, (event, id: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return false
-    const current = id === history.currentId()
-    const removed = history.remove(id)
-    // Apagar a conversa aberta é começar outra.
-    if (current) session.reset()
+    const open = conversations().find((conversation) => conversation.historyId === id)
+    const removed = open ? open.history.remove(id) : store.remove(id)
+    // Apagar a conversa aberta numa aba é recomeçar a aba.
+    open?.reset()
     return removed
   })
   ipcMain.on(IPC.chatHide, (event) => {
@@ -414,43 +686,45 @@ export function setupChat({
   })
   ipcMain.on(IPC.chatPermission, (event, id: unknown, decision: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return
-    if (decision !== 'allow' && decision !== 'allow-always' && decision !== 'deny') return
-    const approval = approvals.get(id)
-    // Perguntas se respondem pelo chatAnswer: liberadas sem respostas, o Claude entenderia que o
-    // usuário não respondeu.
-    if (!approval || approval.event.toolName === QUESTION_TOOL) return
-    approvals.delete(id)
-    if (decision === 'allow-always') {
-      // No navegador, o "sempre" vale para o site; código na página e arquivos não têm "sempre".
-      const { always, site } = approval.event
-      if (always === 'site' && site) browser.allowSite(site)
-      else if (!always) alwaysAllowed.add(approval.scope)
-    }
-    approval.resolve(
-      decision === 'deny' ? { allow: false, message: 'Usuário negou' } : { allow: true }
-    )
-    deliver({ type: 'permission-resolved', id, decision })
+    if (!DECISIONS.includes(decision as PermissionDecision)) return
+    const owner = conversations().find((conversation) => conversation.owns(id))
+    owner?.answer(id, decision as PermissionDecision)
   })
   ipcMain.on(IPC.chatAnswer, (event, id: unknown, answers: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return
-    const approval = approvals.get(id)
-    if (!approval || approval.event.toolName !== QUESTION_TOOL) return
-    const input = approval.event.input as Record<string, unknown>
-    if (answers === null) {
-      approvals.delete(id)
-      approval.resolve({ allow: false, message: 'O usuário preferiu não responder.' })
-      deliver({ type: 'permission-resolved', id, decision: 'deny' })
-      return
-    }
-    const questions = parseQuestions(input)
-    const checked = questions && checkAnswers(questions, answers)
-    if (!checked) return
-    approvals.delete(id)
-    approval.resolve({ allow: true, updatedInput: { ...input, answers: checked } })
-    deliver({ type: 'permission-resolved', id, decision: 'answered', answers: checked })
+    conversations()
+      .find((conversation) => conversation.owns(id))
+      ?.answerQuestion(id, answers)
+  })
+  ipcMain.on(IPC.tabsNew, (event) => {
+    if (!fromChat(event) || tabs.length >= MAX_TABS) return
+    addChatTab()
+  })
+  ipcMain.on(IPC.tabsClose, (event, id: unknown) => {
+    if (fromChat(event) && typeof id === 'string') closeTab(id)
+  })
+  ipcMain.on(IPC.tabsShow, (event, id: unknown) => {
+    if (fromChat(event) && typeof id === 'string') showTab(id)
+  })
+  ipcMain.on(IPC.tabsFocus, (event, pane: unknown) => {
+    if (!fromChat(event) || !Number.isInteger(pane)) return
+    const index = pane as number
+    if (index < 0 || index >= panes.length || index === focused) return
+    focused = index
+    tabsChanged()
+  })
+  ipcMain.on(IPC.tabsSplit, (event) => {
+    if (fromChat(event)) split()
+  })
+  ipcMain.on(IPC.tabsUnsplit, (event, pane: unknown) => {
+    if (fromChat(event) && Number.isInteger(pane)) unsplit(pane as number)
+  })
+  ipcMain.on(IPC.tabsOpenSession, (event, sessionId: unknown) => {
+    if (fromChat(event) && typeof sessionId === 'string') openSessionTab(sessionId)
   })
   app.on('before-quit', () => {
     quitting = true
+    saveTabs()
   })
 
   /**
@@ -467,8 +741,9 @@ export function setupChat({
     if (win && pageReady) win.webContents.send(IPC.chatClipboard, offer)
   }
 
-  /** Abre o painel com um texto ditado na caixa de mensagem. */
+  /** Abre o painel com um texto ditado na caixa de mensagem da conversa em foco. */
   function compose(text: string): void {
+    focusedConversation()
     if (win && pageReady) win.webContents.send(IPC.chatCompose, text)
     else pendingCompose = pendingCompose ? `${pendingCompose} ${text}` : text
     if (!win) win = createWindow()
@@ -479,7 +754,7 @@ export function setupChat({
   function captureWithoutPanel(): Promise<ScreenImage[]> {
     const run = async (): Promise<ScreenImage[]> => {
       const chat = win?.isVisible() ? win : null
-      const focused = chat?.isFocused() ?? false
+      const wasFocused = chat?.isFocused() ?? false
       if (chat) {
         // Sem o hide(): sumir e voltar para o print não toca os sons de fechar e abrir.
         chat.hide()
@@ -489,7 +764,7 @@ export function setupChat({
         return await captureScreens()
       } finally {
         if (chat && !chat.isDestroyed()) {
-          if (focused) {
+          if (wasFocused) {
             chat.show()
             chat.focus()
           } else {
@@ -503,29 +778,43 @@ export function setupChat({
     return next
   }
 
-  /** Coloca o painel ao lado do mascote (à esquerda, ou à direita se não couber), dentro da área útil. */
-  function placeNextToMascot(chat: BrowserWindow): void {
+  /**
+   * Coloca o painel ao lado do mascote (à esquerda, ou à direita se não couber), dentro da área
+   * útil. `width`: a largura nova (a tela dividida mudou); sem ela, a de agora.
+   */
+  function placeNextToMascot(chat: BrowserWindow, width?: number): void {
     const mascot = anchor()
     if (!mascot) return
     const area = screen.getDisplayMatching(mascot).workArea
     const [currentWidth, currentHeight] = chat.getSize()
-    const width = Math.min(currentWidth, area.width)
+    const w = Math.min(width ?? currentWidth, area.width)
     const height = Math.min(currentHeight, area.height)
     const clamp = (value: number, min: number, max: number): number =>
       Math.min(Math.max(value, min), max)
 
-    let x = mascot.x - GAP - width
+    let x = mascot.x - GAP - w
     if (x < area.x) x = mascot.x + mascot.width + GAP
-    x = clamp(x, area.x, area.x + area.width - width)
+    x = clamp(x, area.x, area.x + area.width - w)
     // Alinhado pela base do mascote, crescendo para cima.
     const y = clamp(mascot.y + mascot.height - height, area.y, area.y + area.height - height)
-    chat.setBounds({ x, y, width, height })
+    chat.setBounds({ x, y, width: w, height })
+  }
+
+  /** A tela foi dividida (ou deixou de ser): a janela cresce ou encolhe, painel a painel. */
+  function resizeForPanes(): void {
+    if (!win || shownPanes === panes.length) return
+    const [width] = win.getSize()
+    // Respeita a largura que o usuário deu a cada painel.
+    paneWidth = Math.max(PANE_MIN_WIDTH, Math.round(width / shownPanes))
+    shownPanes = panes.length
+    win.setMinimumSize(PANE_MIN_WIDTH * shownPanes, 360)
+    placeNextToMascot(win, paneWidth * shownPanes)
   }
 
   function show(chat: BrowserWindow): void {
     // Relê o config.json se ele mudou; problemas novos chegam pelo onConfigProblems, e um
     // modelo trocado no arquivo vale a partir da próxima mensagem.
-    session.setModel(getConfig().model)
+    for (const conversation of conversations()) conversation.setModel(getConfig().model)
     const appearing = !chat.isVisible()
     if (appearing) placeNextToMascot(chat)
     chat.show()
@@ -535,19 +824,20 @@ export function setupChat({
     onPanel?.('open')
   }
 
-  /** Esconde o painel (a conversa continua). */
+  /** Esconde o painel (as conversas continuam). */
   function hide(chat: BrowserWindow): void {
     if (!chat.isVisible()) return
     chat.hide()
     onPanel?.('close')
   }
 
-  /** Cria o painel. `inactive`: aparece sem roubar o foco (um pedido de uma sessão do terminal). */
+  /** Cria o painel. `inactive`: aparece sem roubar o foco (um pedido, uma sessão do terminal). */
   function createWindow(inactive = false): BrowserWindow {
+    shownPanes = panes.length
     const chat = new BrowserWindow({
-      width: CHAT_WIDTH,
+      width: paneWidth * shownPanes,
       height: CHAT_HEIGHT,
-      minWidth: 320,
+      minWidth: PANE_MIN_WIDTH * shownPanes,
       minHeight: 360,
       show: false,
       frame: false,
@@ -567,7 +857,7 @@ export function setupChat({
       placeNextToMascot(chat)
       chat.showInactive()
     })
-    // Fechar (Alt+F4, botão do gerenciador de janelas) só esconde; a conversa continua.
+    // Fechar (Alt+F4, botão do gerenciador de janelas) só esconde; as conversas continuam.
     chat.on('close', (event) => {
       if (quitting) return
       event.preventDefault()
@@ -582,21 +872,18 @@ export function setupChat({
     chat.webContents.on('did-start-loading', () => {
       pageReady = false
     })
-    // Se a página cair, ela recarrega vazia: o processo do Claude Code e a conversa continuam.
-    // A conversa volta do histórico, com os cards de permissão ainda abertos, e depois o resto.
+    // Se a página cair, ela recarrega vazia: os processos do Claude Code e as conversas continuam.
+    // Cada conversa volta do histórico, com os cards ainda abertos, e depois o resto.
     reloadOnCrash(chat, () => {
       pageReady = false
-      history.flush()
-      const replayed = replayCurrent()
-      if (!replayed) for (const approval of approvals.values()) toPage(approval.event)
-      toPage(session.modelEvent())
-      if (lastUsage) toPage(lastUsage)
-      if (session.isBusy()) toPage({ type: 'busy', busy: true })
-      toPage({
-        type: 'notice',
-        level: 'warning',
-        text: 'O painel reiniciou depois de uma falha. A conversa continua.'
-      })
+      for (const conversation of conversations()) {
+        for (const event of conversation.replay()) toPage(conversation.id, event)
+      }
+      if (lastUsage) toPage(lastUsage[0], lastUsage[1])
+      focusedConversation().notice(
+        'warning',
+        'O painel reiniciou depois de uma falha. As conversas continuam.'
+      )
     })
 
     // Links da conversa abrem no navegador; a janela nunca navega para fora.
@@ -611,61 +898,18 @@ export function setupChat({
     })
 
     loadPage(chat, 'chat')
-    toPage(session.modelEvent())
-    if (configProblems().length) send(configNotice(configProblems()))
+    if (configProblems().length) {
+      focusedConversation().notice('warning', configNotice(configProblems()))
+    }
     // Já avisa no chat se o Claude Code não estiver instalado ou logado.
-    void session.preflight()
+    void focusedConversation().session.preflight()
     return chat
   }
 
   return {
     requestApproval(request) {
-      if (request.signal?.aborted) {
-        return Promise.resolve({ allow: false, message: 'O pedido foi cancelado.' })
-      }
-      let scope: Pick<PermissionRequestEvent, 'site' | 'always'> = {}
-      if (request.toolName.startsWith(BROWSER_PREFIX)) {
-        const verdict = browser.check(request.toolName, request.input)
-        if (verdict.allow) return Promise.resolve({ allow: true })
-        scope = {
-          ...(verdict.site ? { site: verdict.site } : {}),
-          always: verdict.always ? 'site' : 'none'
-        }
-      } else if (alwaysAllowed.has(permissionScope(request))) {
-        return Promise.resolve({ allow: true })
-      }
-      const id = randomUUID()
-      return new Promise<Approval>((resolve) => {
-        const event: PermissionRequestEvent = {
-          type: 'permission-request',
-          id,
-          toolName: request.toolName,
-          input: request.input,
-          toolUseId: request.toolUseId,
-          ...scope
-        }
-        approvals.set(id, { scope: permissionScope(request), resolve, event })
-        // O Claude Code desistiu (Parar, turno encerrado, conexão fechada): o card some.
-        request.signal?.addEventListener(
-          'abort',
-          () => {
-            if (!approvals.delete(id)) return
-            resolve({ allow: false, message: 'O pedido foi cancelado.' })
-            deliver({ type: 'permission-resolved', id, decision: 'cancelled' })
-          },
-          { once: true }
-        )
-        // O Claude fica parado esperando: com o painel escondido (ou ainda nem criado, num
-        // comando de voz), ele aparece, sem roubar o foco. Aparece antes do evento, para o
-        // mascote já olhar para o lado certo.
-        if (!win) {
-          win = createWindow(true)
-        } else if (!win.isVisible()) {
-          placeNextToMascot(win)
-          win.showInactive()
-        }
-        deliver(event)
-      })
+      const conversation = conversationById(request.conversation) ?? focusedConversation()
+      return conversation.requestApproval(request)
     },
     toggle() {
       if (!win) {
@@ -680,43 +924,38 @@ export function setupChat({
       else show(win)
     },
     ask(text, { voice = false } = {}) {
+      let conversation = focusedConversation()
+      // A conversa em foco está respondendo: a pergunta nova vai numa aba nova, e a outra segue.
+      if (conversation.busy && tabs.length < MAX_TABS) conversation = addChatTab()
       if (!win) win = createWindow()
       else show(win)
-      if (session.isBusy()) {
+      if (conversation.busy) {
         if (voice) compose(text)
-        deliver({
-          type: 'notice',
-          level: 'warning',
-          text: voice
+        conversation.notice(
+          'warning',
+          voice
             ? 'Ainda estou respondendo a mensagem anterior. Deixei o que você disse na caixa: mande quando eu terminar.'
             : 'Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.'
-        })
-        return false
+        )
+        return null
       }
       // O painel mostra a mensagem como se ela tivesse sido escrita nele.
-      toPage({ type: 'user', text, attachments: [], ...(voice ? { voice } : {}) })
-      history.user(session.ensureSessionId(), text, [], voice)
-      void session.send(text, [])
-      return true
+      conversation.showUser(text, voice)
+      conversation.send(text, [], previewOf, voice)
+      return conversation.id
     },
     compose,
     utterance(text) {
-      toPage({ type: 'user', text, attachments: [], voice: true })
+      focusedConversation().showUser(text, true)
     },
     pendingApprovals() {
-      let count = 0
-      for (const approval of approvals.values()) {
-        if (approval.event.toolName !== QUESTION_TOOL) count++
-      }
-      return count
+      return conversations().reduce((sum, conversation) => sum + conversation.pendingCount(), 0)
     },
     denyApprovals() {
-      for (const [id, approval] of approvals) {
-        if (approval.event.toolName === QUESTION_TOOL) continue
-        approvals.delete(id)
-        approval.resolve({ allow: false, message: 'Usuário negou' })
-        deliver({ type: 'permission-resolved', id, decision: 'deny' })
-      }
+      const latest = conversations()
+        .filter((conversation) => conversation.pendingCount() > 0)
+        .sort((a, b) => b.lastRequestAt - a.lastRequestAt)[0]
+      latest?.denyPending()
     },
     visible() {
       return win?.isVisible() ?? false
@@ -754,7 +993,14 @@ export function setupChat({
       else showSessionsOnReady = true
     },
     continueSession(seed) {
-      session.resume(seed.sessionId, { cwd: seed.cwd, fork: seed.alive })
+      if (tabs.length >= MAX_TABS && !emptyFocusedConversation()) {
+        focusedConversation().notice(
+          'warning',
+          `Já há ${MAX_TABS} abas abertas. Feche uma para continuar a sessão aqui.`
+        )
+        return
+      }
+      const conversation = freshConversation()
       // O que se viu por último no terminal, para a conversa não começar do nada.
       const preface: ChatEvent[] = []
       if (seed.prompt) preface.push({ type: 'user', text: seed.prompt, attachments: [] })
@@ -772,17 +1018,19 @@ export function setupChat({
           ? `Sessão do terminal em ${seed.project}. Ela continua aberta lá, então o Wisp segue numa cópia: as duas não se misturam.`
           : `Sessão do terminal em ${seed.project}. O Claude continua de onde parou.`
       })
-      history.prepare({ cwd: seed.cwd, preface })
-      for (const event of preface) toPage(event)
+      conversation.continueSession({ ...seed, preface })
+      for (const event of preface) toPage(conversation.id, event)
+      showTab(conversation.id)
       if (!win) win = createWindow()
       else show(win)
     },
     newConversation() {
-      session.reset()
+      if (tabs.length < MAX_TABS || emptyFocusedConversation()) showTab(freshConversation().id)
       if (!win) win = createWindow()
       else show(win)
     },
     attach(dropped) {
+      focusedConversation()
       if (win && pageReady) win.webContents.send(IPC.chatAttach, dropped)
       else pendingAttach.push(dropped)
       if (!win) win = createWindow()
@@ -793,7 +1041,7 @@ export function setupChat({
     },
     capture: captureWithoutPanel,
     notice(level, text) {
-      send({ type: 'notice', level, text })
+      focusedConversation().notice(level, text)
     },
     side() {
       const mascot = anchor()
@@ -802,8 +1050,11 @@ export function setupChat({
       return chat.x + chat.width / 2 < mascot.x + mascot.width / 2 ? 'left' : 'right'
     },
     dispose() {
-      history.flush()
-      session.dispose()
+      saveTabs()
+      for (const conversation of conversations()) {
+        conversation.dispose()
+        rmSync(modeFileOf(conversation.id), { force: true })
+      }
     }
   }
 }

@@ -1,45 +1,29 @@
-import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
-import type { ClipboardEvent, JSX, KeyboardEvent } from 'react'
-import { ATTACHMENT_LIMITS } from '../../shared/ipc'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { JSX } from 'react'
+import { ATTACHMENT_LIMITS, MAX_PANES } from '../../shared/ipc'
 import type {
+  AttachmentPreview,
   ChatEvent,
   ClipboardOffer,
   MascotState,
+  PlanUsage,
   SoundSettings,
+  TabsState,
   VoiceStatus
 } from '../../shared/ipc'
-import { AttachmentList } from './AttachmentList'
-import { ClipboardChip } from './ClipboardChip'
 import { HistoryView } from './HistoryView'
-import {
-  Avatar,
-  BackIcon,
-  CloseIcon,
-  HistoryIcon,
-  MicIcon,
-  PaperclipIcon,
-  PlusIcon,
-  ScreenshotIcon,
-  SendIcon,
-  SoundOffIcon,
-  SoundOnIcon,
-  StopIcon,
-  TerminalIcon
-} from './icons'
-import { Markdown } from './Markdown'
-import { ModelPill } from './ModelPill'
-import { PermissionCard } from './PermissionCard'
-import { QuestionCard } from './QuestionCard'
+import { Avatar, BackIcon, CloseIcon, HistoryIcon, PaperclipIcon, TerminalIcon } from './icons'
+import { Pane } from './Pane'
+import { PaneBus } from './paneBus'
+import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
-import type { Item } from './state'
-import { ToolCard } from './ToolCard'
+import type { Action, ChatState } from './state'
+import { TabBar } from './TabBar'
+import type { TabStatus } from './TabBar'
 import { UsagePill } from './UsagePill'
-import { useAttachments } from './useAttachments'
 import { useSessions } from './useSessions'
 
-/** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
-const STICK_DISTANCE = 48
 /** De quanto em quanto tempo (ms), no máximo, o painel avisa que o usuário está mexendo nele. */
 const ACTIVITY_EVERY_MS = 20_000
 
@@ -49,107 +33,90 @@ const SHOW_KEYFRAMES: Keyframe[] = [
   { transform: 'none', opacity: 1 }
 ]
 
-function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.Element {
-  switch (item.kind) {
-    case 'user':
-      return (
-        <div className="user-turn">
-          {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
-          {item.text && (
-            <div className={`msg user${item.voice ? ' spoken' : ''}`}>
-              {item.voice && (
-                <span className="voice-badge" title="Falado">
-                  <MicIcon />
-                </span>
-              )}
-              {item.text}
-            </div>
-          )}
-        </div>
-      )
-    case 'text':
-      return (
-        <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
-          <Markdown text={item.text} />
-        </div>
-      )
-    case 'tool':
-      return <ToolCard tool={item} />
-    case 'notice':
-      return (
-        <div className={`notice notice-${item.level}`}>
-          <Markdown text={item.text} />
-        </div>
-      )
-    case 'permission':
-      return item.toolName === 'AskUserQuestion' ? (
-        <QuestionCard
-          request={item}
-          onAnswer={(answers) => window.wisp.chat.answerQuestion(item.id, answers)}
-        />
-      ) : (
-        <PermissionCard
-          request={item}
-          onAnswer={(decision) => window.wisp.chat.answerPermission(item.id, decision)}
-        />
-      )
-  }
-}
+const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0 }
 
+/**
+ * O painel: o cabeçalho, as abas e até MAX_PANES painéis lado a lado, cada um com uma conversa
+ * (ou uma sessão do terminal). O estado de cada conversa fica aqui, pelo id dela.
+ */
 export default function Chat(): JSX.Element {
-  const [state, dispatch] = useReducer(reducer, initialState)
-  const [draft, setDraft] = useState('')
+  const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
+  const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<'chat' | 'history' | 'sessions'>('chat')
   const sessions = useSessions()
   const requests = sessions?.sessions.reduce((sum, item) => sum + item.requests.length, 0) ?? 0
   const [mood, setMood] = useState<MascotState>('idle')
   const [sound, setSound] = useState<SoundSettings | null>(null)
-  const attachments = useAttachments()
+  const [usage, setUsage] = useState<PlanUsage | null>(null)
   const [dragging, setDragging] = useState(false)
-  // O chip "usar o que você copiou" e o print da tela em andamento.
+  // O chip "usar o que você copiou" (mostrado no painel em foco).
   const [clip, setClip] = useState<ClipboardOffer | null>(null)
-  const [capturing, setCapturing] = useState(false)
-  // A voz: o botão do microfone acompanha (ouvindo, transcrevendo, falando).
+  // A voz: o botão do microfone do painel em foco acompanha (ouvindo, transcrevendo, falando).
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
-  const voiceRef = useRef(voice)
-  const mic = useRef<HTMLButtonElement>(null)
+  // Conversas com uma resposta nova que ainda não foi vista (o pontinho da aba).
+  const [unread, setUnread] = useState<Set<string>>(() => new Set())
   const root = useRef<HTMLDivElement>(null)
-  const list = useRef<HTMLDivElement>(null)
-  const input = useRef<HTMLTextAreaElement>(null)
-  const picker = useRef<HTMLInputElement>(null)
-  const stick = useRef(true)
-  // A vista atual, para os atalhos de teclado registrados uma vez só.
+  const [bus] = useState(() => new PaneBus())
+  // O que os atalhos e os eventos precisam ler sem esperar o render.
+  const tabsRef = useRef(tabs)
   const viewRef = useRef(view)
+  const voiceRef = useRef(voice)
+  const soundRef = useRef(sound)
   useEffect(() => {
     viewRef.current = view
   }, [view])
+  useEffect(() => {
+    soundRef.current = sound
+  }, [sound])
 
-  // O humor do mascote (o avatar acompanha) e a animação de abertura. Antes do ready(), para o
-  // main já encontrar quem ouve.
+  /** A conversa do painel em foco (null se lá estiver uma sessão do terminal). */
+  const focusedConversation = useCallback((): string | null => {
+    const state = tabsRef.current
+    const id = state.panes[state.focused]
+    return state.tabs.find((tab) => tab.id === id)?.kind === 'chat' ? id : null
+  }, [])
+
+  const apply = useCallback((conversation: string, action: Action): void => {
+    setConversations((current) => {
+      const next = new Map(current)
+      next.set(conversation, reducer(current.get(conversation) ?? initialState, action))
+      return next
+    })
+  }, [])
+
+  // O humor do mascote (o avatar acompanha), as abas, a voz e a animação de abertura. Antes do
+  // ready(), para o main já encontrar quem ouve.
   useEffect(() => {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offMood = window.wisp.chat.onMood(setMood)
     const offClipboard = window.wisp.chat.onClipboard(setClip)
+    const offTabs = window.wisp.tabs.onState((state) => {
+      tabsRef.current = state
+      setTabs(state)
+      // Abas à vista não têm nada "novo"; as fechadas saem da memória.
+      setUnread((current) => {
+        const next = new Set([...current].filter((id) => !state.panes.includes(id)))
+        return next.size === current.size ? current : next
+      })
+      setConversations((current) => {
+        const open = new Set(state.tabs.map((tab) => tab.id))
+        if ([...current.keys()].every((id) => open.has(id))) return current
+        return new Map([...current].filter(([id]) => open.has(id)))
+      })
+    })
     const offVoice = window.wisp.voice.onStatus((status) => {
       voiceRef.current = status
       setVoice(status)
-      if (status.state !== 'listening') mic.current?.style.setProperty('--lvl', '0')
+      if (status.state !== 'listening') root.current?.style.setProperty('--lvl', '0')
     })
     // O volume do microfone mexe no anel do botão direto no estilo, sem render.
     const offLevel = window.wisp.voice.onLevel((level) => {
-      mic.current?.style.setProperty('--lvl', String(level))
+      root.current?.style.setProperty('--lvl', String(level))
     })
-    // Um texto ditado vai para o fim da caixa, para revisar e enviar.
+    // Um texto ditado vai para o fim da caixa do painel em foco, para revisar e enviar.
     const offCompose = window.wisp.chat.onCompose((text) => {
-      setDraft((current) =>
-        current && !/\s$/.test(current) ? `${current} ${text}` : current + text
-      )
-      requestAnimationFrame(() => {
-        const box = input.current
-        if (!box) return
-        box.focus()
-        box.setSelectionRange(box.value.length, box.value.length)
-      })
+      const conversation = focusedConversation()
+      if (conversation) bus.emit(conversation, { type: 'compose', text })
     })
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offShown = window.wisp.chat.onShown(() => {
@@ -167,6 +134,7 @@ export default function Chat(): JSX.Element {
     return () => {
       offMood()
       offClipboard()
+      offTabs()
       offVoice()
       offLevel()
       offCompose()
@@ -175,10 +143,9 @@ export default function Chat(): JSX.Element {
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCopy)
     }
-  }, [])
+  }, [bus, focusedConversation])
 
-  // Os sons (o botão de mudo) e os arquivos soltos no mascote, que viram anexos aqui.
-  const { addPrepared } = attachments
+  // Os sons (o botão de mudo) e os arquivos soltos no mascote, que viram anexos no painel em foco.
   useEffect(() => {
     let alive = true
     void window.wisp.sound.get().then((settings) => {
@@ -186,16 +153,16 @@ export default function Chat(): JSX.Element {
     })
     const offSound = window.wisp.sound.onChanged(setSound)
     const offAttach = window.wisp.chat.onAttach((dropped) => {
-      addPrepared(dropped)
       setView('chat')
-      input.current?.focus()
+      const conversation = focusedConversation()
+      if (conversation) bus.emit(conversation, { type: 'attach', dropped })
     })
     return () => {
       alive = false
       offSound()
       offAttach()
     }
-  }, [addPrepared])
+  }, [bus, focusedConversation])
 
   // Mexer no painel (teclas, cliques, rolagem) conta como atividade: o mascote não cochila com o
   // usuário escrevendo ou lendo. O aviso vai no máximo a cada ACTIVITY_EVERY_MS.
@@ -215,18 +182,38 @@ export default function Chat(): JSX.Element {
     }
   }, [])
 
-  // Eventos do main. Os que chegam no mesmo quadro viram um render só.
+  // Eventos do main, de todas as conversas. Os que chegam no mesmo quadro viram um render só.
   useEffect(() => {
-    let queued: ChatEvent[] = []
+    let queued: [string, ChatEvent][] = []
     let frame = 0
-    const off = window.wisp.chat.onEvent((event) => {
-      if (event.type === 'reset') stick.current = true
-      queued.push(event)
+    // As conversas com um turno rodando agora (desde o busy, até o fim do turno).
+    const running = new Set<string>()
+    const off = window.wisp.chat.onEvent((conversation, event) => {
+      queued.push([conversation, event])
       frame ||= requestAnimationFrame(() => {
-        const events = queued
+        const batch = queued
         queued = []
         frame = 0
-        dispatch({ type: 'events', events })
+        const grouped = new Map<string, ChatEvent[]>()
+        for (const [id, item] of batch) grouped.set(id, [...(grouped.get(id) ?? []), item])
+        setConversations((current) => {
+          const next = new Map(current)
+          for (const [id, events] of grouped) {
+            next.set(id, reducer(current.get(id) ?? initialState, { type: 'events', events }))
+          }
+          return next
+        })
+        // Uma resposta que terminou numa aba fora da vista ganha o pontinho de "nova". Só as que
+        // rodaram agora: a conversa reaberta do histórico também traz os fins de turno dela.
+        const finished: string[] = []
+        for (const [id, item] of batch) {
+          if (item.type === 'usage') setUsage(item.usage)
+          else if (item.type === 'busy' && item.busy) running.add(id)
+          else if (item.type === 'turn-end' && running.delete(id)) {
+            if (!tabsRef.current.panes.includes(id)) finished.push(id)
+          }
+        }
+        if (finished.length) setUnread((current) => new Set([...current, ...finished]))
       })
     })
     window.wisp.chat.ready()
@@ -236,33 +223,64 @@ export default function Chat(): JSX.Element {
     }
   }, [])
 
-  // Esc fecha (ou volta do histórico); Ctrl+K começa uma conversa nova; Ctrl+M liga e desliga os
-  // sons; voltar ao painel devolve o foco para a caixa de texto (se não houver seleção).
-  const soundRef = useRef(sound)
-  useEffect(() => {
-    soundRef.current = sound
-  }, [sound])
+  const toggleSound = useCallback((current: SoundSettings): void => {
+    const next = { ...current, enabled: !current.enabled }
+    setSound(next)
+    window.wisp.sound.set(next.enabled)
+  }, [])
+
+  // Atalhos: Esc fecha (ou volta do histórico); Ctrl+K recomeça a conversa da aba; Ctrl+T abre
+  // uma aba; Ctrl+W fecha a aba; Ctrl+Tab e Ctrl+1…9 trocam de aba; Ctrl+\ divide a janela;
+  // Ctrl+M liga e desliga os sons. Voltar ao painel devolve o foco para a caixa de texto.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
-      const ctrl = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey
+      const ctrl = event.ctrlKey && !event.altKey && !event.metaKey
+      const plain = ctrl && !event.shiftKey
+      const state = tabsRef.current
+      const key = event.key.toLowerCase()
+      const focusedTab = state.panes[state.focused]
       if (event.key === 'Escape') {
         // Ouvindo, transcrevendo ou falando, o Esc só desiste disso.
         if (voiceRef.current.state !== 'idle') window.wisp.voice.cancel()
         else if (viewRef.current !== 'chat') setView('chat')
         else window.wisp.chat.hide()
-      } else if (ctrl && event.key.toLowerCase() === 'k') {
+      } else if (plain && key === 'k') {
         event.preventDefault()
-        window.wisp.chat.newConversation()
+        const conversation = focusedConversation()
+        if (conversation) window.wisp.chat.newConversation(conversation)
         setView('chat')
-        input.current?.focus()
-      } else if (ctrl && event.key.toLowerCase() === 'm') {
+      } else if (plain && key === 't') {
+        event.preventDefault()
+        window.wisp.tabs.create()
+        setView('chat')
+      } else if (plain && key === 'w') {
+        event.preventDefault()
+        if (focusedTab) window.wisp.tabs.close(focusedTab)
+      } else if (ctrl && event.key === 'Tab' && state.tabs.length > 1) {
+        event.preventDefault()
+        const index = state.tabs.findIndex((tab) => tab.id === focusedTab)
+        const step = event.shiftKey ? -1 : 1
+        const next = state.tabs[(index + step + state.tabs.length) % state.tabs.length]
+        window.wisp.tabs.show(next.id)
+        setView('chat')
+      } else if (plain && /^[1-9]$/.test(event.key)) {
+        const tab = state.tabs[Number(event.key) - 1]
+        if (!tab) return
+        event.preventDefault()
+        window.wisp.tabs.show(tab.id)
+        setView('chat')
+      } else if (plain && event.key === '\\') {
+        event.preventDefault()
+        if (state.panes.length < MAX_PANES) window.wisp.tabs.split()
+      } else if (plain && key === 'm') {
         event.preventDefault()
         const current = soundRef.current
         if (current) toggleSound(current)
       }
     }
     const onFocus = (): void => {
-      if (!window.getSelection()?.toString()) input.current?.focus()
+      const conversation = focusedConversation()
+      if (conversation) bus.emit(conversation, { type: 'focus' })
     }
     window.addEventListener('keydown', onKey)
     window.addEventListener('focus', onFocus)
@@ -270,11 +288,10 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('focus', onFocus)
     }
-  }, [])
+  }, [bus, focusedConversation, toggleSound])
 
-  // Arquivos arrastados para qualquer ponto do painel viram anexos. Sem o preventDefault, soltar
-  // um arquivo faria a janela navegar até ele.
-  const { addDropped } = attachments
+  // Arquivos arrastados para qualquer ponto da janela viram anexos do painel em foco. Sem o
+  // preventDefault, soltar um arquivo faria a janela navegar até ele.
   useEffect(() => {
     let depth = 0
     const hasFiles = (event: DragEvent): boolean =>
@@ -300,9 +317,11 @@ export default function Chat(): JSX.Element {
       setDragging(false)
       if (!hasFiles(event) || !event.dataTransfer) return
       event.preventDefault()
-      addDropped(event.dataTransfer)
+      // Soltou em cima de um painel: ele é o destino (e passa a ser o do foco).
+      const pane = (event.target as Element | null)?.closest?.('[data-conversation]')
+      const target = pane?.getAttribute('data-conversation') ?? focusedConversation()
       setView('chat')
-      input.current?.focus()
+      if (target) bus.emit(target, { type: 'drop', data: event.dataTransfer })
     }
     window.addEventListener('dragenter', onEnter)
     window.addEventListener('dragover', onOver)
@@ -314,132 +333,54 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('dragleave', onLeave)
       window.removeEventListener('drop', onDrop)
     }
-  }, [addDropped])
+  }, [bus, focusedConversation])
 
-  // Acompanha o fim da conversa, a menos que o usuário tenha subido para ler.
-  useLayoutEffect(() => {
-    const el = list.current
-    if (el && stick.current) el.scrollTop = el.scrollHeight
-  }, [state.items, state.busy, view])
+  const onSent = useCallback(
+    (conversation: string) =>
+      (text: string, attachments: AttachmentPreview[]): void =>
+        apply(conversation, { type: 'user-message', text, attachments }),
+    [apply]
+  )
 
-  // Quando a resposta termina, o foco volta para a caixa de texto (se não estiver em outro campo).
-  const wasBusy = useRef(false)
-  useEffect(() => {
-    if (wasBusy.current && !state.busy && document.hasFocus()) {
-      const active = document.activeElement
-      if (!active || active === document.body || active instanceof HTMLButtonElement) {
-        input.current?.focus()
-      }
+  // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
+  const statuses = new Map<string, TabStatus>()
+  for (const tab of tabs.tabs) {
+    if (tab.kind === 'session') {
+      const session = sessions?.sessions.find((item) => item.id === tab.sessionId)
+      const state = session?.state
+      statuses.set(
+        tab.id,
+        session?.requests.length || state === 'waiting'
+          ? 'waiting'
+          : state === 'working'
+            ? 'working'
+            : state === 'error'
+              ? 'error'
+              : 'idle'
+      )
+      continue
     }
-    wasBusy.current = state.busy
-  }, [state.busy])
-
-  function onScroll(): void {
-    const el = list.current
-    if (el) stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < STICK_DISTANCE
-  }
-
-  const canSend = draft.trim() !== '' || attachments.pending.length > 0
-
-  function send(): void {
-    if (!canSend || state.busy) return
-    const text = draft.trim()
-    const files = attachments.pending
-    dispatch({
-      type: 'user-message',
-      text,
-      attachments: files.map(({ name, size, thumbnail }) => ({ name, size, thumbnail }))
-    })
-    window.wisp.chat.send(
-      text,
-      files.map(({ path, thumbnail }) => ({ path, thumbnail }))
+    const state = conversations.get(tab.id)
+    statuses.set(
+      tab.id,
+      state && awaitingPermission(state)
+        ? 'waiting'
+        : state?.busy
+          ? 'working'
+          : unread.has(tab.id)
+            ? 'done'
+            : 'idle'
     )
-    setDraft('')
-    attachments.clear()
-    // O chip ignorado sai; volta se outra coisa for copiada.
-    setClip(null)
-    stick.current = true
   }
 
-  function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
-    if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
-      event.preventDefault()
-      send()
-    }
-  }
-
-  // Imagem copiada (um print, por exemplo) vira anexo; texto cola normalmente.
-  function onPaste(event: ClipboardEvent<HTMLTextAreaElement>): void {
-    // Colar é usar o que o chip oferecia.
-    if (clip) dismissClip(clip)
-    const files = Array.from(event.clipboardData.files)
-    if (!files.length) return
-    event.preventDefault()
-    void attachments.addPasted(files)
-  }
-
-  /** Põe o texto onde está o cursor da caixa de texto, como uma colagem. */
-  function insertText(text: string): void {
-    const box = input.current
-    const start = box?.selectionStart ?? draft.length
-    const end = box?.selectionEnd ?? draft.length
-    setDraft((current) => current.slice(0, start) + text + current.slice(end))
-    requestAnimationFrame(() => {
-      box?.focus()
-      box?.setSelectionRange(start + text.length, start + text.length)
-    })
-  }
-
-  async function takeClip(offer: ClipboardOffer): Promise<void> {
-    setClip(null)
-    const result = await window.wisp.chat.takeClipboard(offer.id)
-    if ('text' in result) insertText(result.text)
-    else if ('attachment' in result)
-      attachments.addPrepared({ files: [result.attachment], problems: [] })
-    else attachments.addPrepared({ files: [], problems: [result.error] })
-    input.current?.focus()
-  }
-
-  function dismissClip(offer: ClipboardOffer): void {
-    setClip(null)
-    window.wisp.chat.dismissClipboard(offer.id)
-  }
-
-  /** Print da tela como anexo: o painel some, a tela é capturada e ele volta com o print. */
-  async function captureScreen(): Promise<void> {
-    if (capturing) return
-    setCapturing(true)
-    try {
-      attachments.addPrepared(await window.wisp.chat.captureScreen())
-    } finally {
-      setCapturing(false)
-      input.current?.focus()
-    }
-  }
-
-  function toggleSound(current: SoundSettings): void {
-    const next = { ...current, enabled: !current.enabled }
-    setSound(next)
-    window.wisp.sound.set(next.enabled)
-  }
-
-  function newConversation(): void {
-    window.wisp.chat.newConversation()
-    setView('chat')
-    input.current?.focus()
-  }
-
-  const last = state.items[state.items.length - 1]
-  // "Pensando" enquanto ainda não há texto, ferramenta rodando ou pedido de permissão na tela.
-  const thinking =
-    state.busy &&
-    last?.kind !== 'text' &&
-    !(last?.kind === 'tool' && last.status === 'running') &&
-    !awaitingPermission(state)
-  const started = state.items.some((item) => item.kind === 'user')
+  const focusedId = tabs.panes[tabs.focused]
+  const focusedTab = tabs.tabs.find((tab) => tab.id === focusedId)
+  const focusedState =
+    focusedTab?.kind === 'chat' ? (conversations.get(focusedTab.id) ?? initialState) : null
+  const split = tabs.panes.length > 1
 
   return (
-    <div className={`chat mood-${mood}`} ref={root}>
+    <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
       {dragging && (
         <div className="drop-overlay" aria-hidden>
           <PaperclipIcon />
@@ -471,11 +412,13 @@ export default function Chat(): JSX.Element {
             <Avatar size={26} mood={mood} />
             <div className="title">
               <strong>Wisp</strong>
-              <span className={`status${state.busy ? ' busy' : ''}`}>{statusText(state)}</span>
+              <span className={`status${focusedState?.busy ? ' busy' : ''}`}>
+                {focusedState ? statusText(focusedState) : 'sessão do terminal'}
+              </span>
             </div>
           </>
         )}
-        {state.usage && <UsagePill usage={state.usage} />}
+        {usage && <UsagePill usage={usage} />}
         <button
           type="button"
           className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
@@ -504,15 +447,6 @@ export default function Chat(): JSX.Element {
         <button
           type="button"
           className="icon-button"
-          onClick={newConversation}
-          title="Nova conversa (Ctrl+K)"
-          aria-label="Nova conversa"
-        >
-          <PlusIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
           onClick={() => window.wisp.chat.hide()}
           title="Fechar (Esc)"
           aria-label="Fechar"
@@ -527,164 +461,64 @@ export default function Chat(): JSX.Element {
         <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
       ) : (
         <>
-          <div className="messages" ref={list} onScroll={onScroll}>
-            {state.items.length === 0 ? (
-              <div className="empty">
-                <Avatar size={64} mood={mood} />
-                <p className="hello">Oi! Eu sou o Wisp.</p>
-                <p>
-                  Pergunte qualquer coisa, arraste arquivos para cá ou cole uma imagem. Enter envia,
-                  Shift+Enter quebra a linha.
-                </p>
-              </div>
-            ) : (
-              // A lista só cresce (itens mudam no lugar), então a posição identifica o item.
-              state.items.map((item, index) => (
-                <Message
-                  key={`${item.kind}-${index}`}
-                  item={item}
-                  streaming={state.busy && item === last}
+          {tabs.tabs.length > 0 && <TabBar state={tabs} statuses={statuses} />}
+          <div className="panes">
+            {tabs.panes.map((id, index) => {
+              const tab = tabs.tabs.find((item) => item.id === id)
+              if (!tab) return null
+              const focused = index === tabs.focused
+              if (tab.kind === 'session') {
+                return (
+                  <section
+                    key={id}
+                    className={`pane${focused ? ' focused' : ''}`}
+                    onPointerDownCapture={() => {
+                      if (!focused) window.wisp.tabs.focus(index)
+                    }}
+                  >
+                    {split && (
+                      <div className="pane-head">
+                        <span className="pane-title">{tab.title}</span>
+                        <button
+                          type="button"
+                          className="icon-button pane-close"
+                          onClick={() => window.wisp.tabs.unsplit(index)}
+                          title="Tirar este painel da janela (a aba continua aberta)"
+                          aria-label="Tirar este painel da janela"
+                        >
+                          <CloseIcon />
+                        </button>
+                      </div>
+                    )}
+                    <SessionPane
+                      sessionId={tab.sessionId}
+                      snapshot={sessions}
+                      onClose={() => window.wisp.tabs.close(id)}
+                    />
+                  </section>
+                )
+              }
+              return (
+                <Pane
+                  key={id}
+                  conversation={id}
+                  state={conversations.get(id) ?? initialState}
+                  index={index}
+                  focused={focused}
+                  split={split}
+                  title={tab.title}
+                  mood={mood}
+                  sound={sound}
+                  onToggleSound={toggleSound}
+                  clip={focused ? clip : null}
+                  onClipDone={() => setClip(null)}
+                  voice={focused ? voice : { state: 'idle' }}
+                  bus={bus}
+                  onSent={onSent(id)}
                 />
-              ))
-            )}
-            {thinking && (
-              <div className="thinking" aria-label="Pensando">
-                <span />
-                <span />
-                <span />
-              </div>
-            )}
+              )
+            })}
           </div>
-
-          <form
-            className="composer"
-            onSubmit={(event) => {
-              event.preventDefault()
-              send()
-            }}
-          >
-            {clip && (
-              <ClipboardChip
-                offer={clip}
-                onTake={() => void takeClip(clip)}
-                onDismiss={() => dismissClip(clip)}
-              />
-            )}
-            {attachments.pending.length > 0 && (
-              <AttachmentList items={attachments.pending} onRemove={attachments.remove} />
-            )}
-            {attachments.error && (
-              <div className="attach-error" role="alert">
-                {attachments.error}
-              </div>
-            )}
-            <div className="composer-meta">
-              {state.model && <ModelPill choice={state.model.choice} active={state.model.active} />}
-              {voice.state !== 'idle' && (
-                <span className={`voice-hint ${voice.state}`} role="status">
-                  {voice.state === 'listening'
-                    ? voice.holding
-                      ? 'Ouvindo… solte o atalho quando terminar'
-                      : 'Ouvindo… (Esc desiste)'
-                    : voice.state === 'transcribing'
-                      ? 'Entendendo o que você disse…'
-                      : 'Falando… (Esc para)'}
-                </span>
-              )}
-              {sound && (
-                <button
-                  type="button"
-                  className={`icon-button sound-toggle${sound.enabled ? '' : ' off'}`}
-                  onClick={() => toggleSound(sound)}
-                  title={sound.enabled ? 'Desligar os sons (Ctrl+M)' : 'Ligar os sons (Ctrl+M)'}
-                  aria-label={sound.enabled ? 'Desligar os sons' : 'Ligar os sons'}
-                  aria-pressed={!sound.enabled}
-                >
-                  {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
-                </button>
-              )}
-            </div>
-            <div className="composer-row">
-              <button
-                type="button"
-                className="icon-button attach"
-                onClick={() => picker.current?.click()}
-                title="Anexar arquivos (ou arraste para o painel, ou cole uma imagem)"
-                aria-label="Anexar arquivos"
-              >
-                <PaperclipIcon />
-              </button>
-              <button
-                type="button"
-                className="icon-button attach"
-                onClick={() => void captureScreen()}
-                disabled={capturing}
-                title="Anexar um print da tela (o painel sai da frente)"
-                aria-label="Anexar um print da tela"
-              >
-                {capturing ? <span className="spinner" /> : <ScreenshotIcon />}
-              </button>
-              <button
-                ref={mic}
-                type="button"
-                className={`icon-button attach mic ${voice.state}`}
-                onClick={() => window.wisp.voice.toggle()}
-                disabled={voice.state === 'transcribing'}
-                title={
-                  voice.state === 'listening'
-                    ? 'Parar de ouvir e usar o que eu ouvi'
-                    : 'Falar (o texto vem para a caixa)'
-                }
-                aria-label={voice.state === 'listening' ? 'Parar de ouvir' : 'Falar'}
-                aria-pressed={voice.state === 'listening'}
-              >
-                {voice.state === 'transcribing' ? <span className="spinner" /> : <MicIcon />}
-              </button>
-              <input
-                ref={picker}
-                type="file"
-                multiple
-                hidden
-                onChange={(event) => {
-                  void attachments.add(Array.from(event.target.files ?? []))
-                  // Limpa para o mesmo arquivo poder ser escolhido de novo.
-                  event.target.value = ''
-                  input.current?.focus()
-                }}
-              />
-              <textarea
-                ref={input}
-                rows={1}
-                value={draft}
-                placeholder={started ? 'Continuar a conversa…' : 'Pergunte ao Wisp…'}
-                autoFocus
-                onChange={(event) => setDraft(event.target.value)}
-                onKeyDown={onKeyDown}
-                onPaste={onPaste}
-              />
-              {state.busy ? (
-                <button
-                  type="button"
-                  className="icon-button stop"
-                  onClick={() => window.wisp.chat.stop()}
-                  title="Parar"
-                  aria-label="Parar"
-                >
-                  <StopIcon />
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="icon-button send"
-                  disabled={!canSend}
-                  title="Enviar (Enter)"
-                  aria-label="Enviar"
-                >
-                  <SendIcon />
-                </button>
-              )}
-            </div>
-          </form>
         </>
       )}
     </div>

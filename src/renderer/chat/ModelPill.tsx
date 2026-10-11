@@ -32,10 +32,12 @@ function pillLabel(choice: string | null, active: string | null): string {
  */
 export function ModelPill({
   choice,
-  active
+  active,
+  onPick
 }: {
   choice: string | null
   active: string | null
+  onPick: (model: string | null) => void
 }): JSX.Element {
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
@@ -52,7 +54,7 @@ export function ModelPill({
 
   const pick = (model: string | null): void => {
     setOpen(false)
-    if (model !== choice) window.wisp.chat.setModel(model)
+    if (model !== choice) onPick(model)
   }
   // Um modelo do config.json fora da lista também aparece, marcado.
   const options: (string | null)[] = [null, ...MODEL_CHOICES]

@@ -49,7 +49,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
   }, [show])
 
   async function open(item: ConversationSummary): Promise<void> {
-    if (item.current) return onClose()
+    // Aberta numa aba (talvez fora da vista): o main só mostra a aba dela.
     if (await window.wisp.history.open(item.id)) return onClose()
     setError('Não consegui abrir esta conversa: o arquivo dela sumiu ou está estragado.')
     load()

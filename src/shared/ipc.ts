@@ -46,14 +46,16 @@ export const IPC = {
 
   /** chat → main: a página carregou e já ouve eventos (o main manda os que guardou). */
   chatReady: 'chat:ready',
-  /** chat → main: mensagem do usuário. Args: (texto, caminhos dos arquivos anexados). */
+  /** chat → main: mensagem do usuário. Args: (conversa, texto, anexos). */
   chatSend: 'chat:send',
-  /** chat → main: parar a resposta em andamento. */
+  /** chat → main: parar a resposta em andamento. Arg: conversa. */
   chatStop: 'chat:stop',
-  /** chat → main: começar uma conversa nova. */
+  /** chat → main: recomeçar a conversa de uma aba (Ctrl+K). Arg: conversa. */
   chatNew: 'chat:new',
-  /** chat → main: trocar o modelo. Arg: um de MODEL_CHOICES, ou null para o padrão. */
+  /** chat → main: trocar o modelo. Args: (conversa, um de MODEL_CHOICES ou null). */
   chatModel: 'chat:model',
+  /** chat → main: trocar o modo de permissão. Args: (conversa, PermissionMode). */
+  chatMode: 'chat:mode',
   /**
    * chat → main (invoke): guarda uma imagem colada (Ctrl+V) para virar anexo. Args: (bytes,
    * tipo MIME). Devolve PastedImage.
@@ -68,8 +70,25 @@ export const IPC = {
    * null para pular).
    */
   chatAnswer: 'chat:answer',
-  /** main → chat: um ChatEvent. */
+  /** main → chat: um ChatEvent de uma conversa. Args: (conversa, ChatEvent). */
   chatEvent: 'chat:event',
+
+  /** main → chat: as abas e como estão divididas na janela. Arg: TabsState. */
+  tabsState: 'tabs:state',
+  /** chat → main: abrir uma conversa nova numa aba (Ctrl+T). */
+  tabsNew: 'tabs:new',
+  /** chat → main: fechar uma aba. Arg: id da aba. */
+  tabsClose: 'tabs:close',
+  /** chat → main: mostrar uma aba no painel em foco. Arg: id da aba. */
+  tabsShow: 'tabs:show',
+  /** chat → main: o usuário mexeu num painel (ele passa a ser o do foco). Arg: índice. */
+  tabsFocus: 'tabs:focus',
+  /** chat → main: dividir a janela em mais um painel (até MAX_PANES). */
+  tabsSplit: 'tabs:split',
+  /** chat → main: fechar um painel (as abas continuam abertas). Arg: índice. */
+  tabsUnsplit: 'tabs:unsplit',
+  /** chat → main: abrir uma sessão do terminal numa aba. Arg: id da sessão. */
+  tabsOpenSession: 'tabs:open-session',
   /** main → chat: o humor do mascote mudou (o avatar do cabeçalho acompanha). Arg: MascotState. */
   chatMood: 'chat:mood',
   /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
@@ -109,7 +128,7 @@ export const IPC = {
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
-  /** chat → main (invoke): reabre uma conversa do histórico. Arg: id. Devolve boolean. */
+  /** chat → main (invoke): reabre uma conversa do histórico numa aba. Arg: id. Devolve boolean. */
   historyOpen: 'history:open',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
   historyDelete: 'history:delete',
@@ -386,6 +405,9 @@ export interface ExternalRequest {
   toolName: string
   input: unknown
   at: number
+  /** Bash: o que o "Permitir sempre" libera (veja o permission-request do chat). */
+  scope?: string
+  exact?: boolean
 }
 
 export interface ExternalSession {
@@ -431,7 +453,7 @@ export interface ConversationSummary {
   /** ms Unix. */
   createdAt: number
   updatedAt: number
-  /** É a conversa aberta no painel. */
+  /** Está aberta numa aba. */
   current: boolean
   /** Projeto de uma sessão trazida do terminal. */
   project?: string
@@ -484,6 +506,13 @@ export type ChatEvent =
        * não oferece (código na página, envio de arquivos). Sem o campo, a ferramenta ou o comando.
        */
       always?: 'site' | 'none'
+      /**
+       * Comando do Bash: o que o "Permitir sempre" libera ("git status", "ls" ou o comando
+       * inteiro, quando não dá para generalizar com segurança).
+       */
+      scope?: string
+      /** O comando inteiro é o escopo (comando composto, perigoso ou com segredos). */
+      exact?: boolean
     }
   /**
    * O pedido foi respondido, ou cancelado (o turno acabou ou o Claude desistiu). Perguntas
@@ -507,6 +536,8 @@ export type ChatEvent =
   | { type: 'model'; choice: string | null; active: string | null }
   /** O uso do plano mudou. */
   | { type: 'usage'; usage: PlanUsage }
+  /** O modo de permissão da conversa mudou (pelo usuário ou pelo Claude Code). */
+  | { type: 'mode'; mode: PermissionMode }
   /**
    * Uma mensagem do usuário, ao reabrir uma conversa do histórico. Ao vivo, o chat mostra a
    * mensagem na hora do envio, sem esperar o main; as faladas (`voice`) vêm do main.
@@ -515,8 +546,41 @@ export type ChatEvent =
   /** Fim da reabertura de uma conversa do histórico (vem depois das mensagens dela). */
   | { type: 'restored'; createdAt: number }
 
-/** "allow-always" vale até a conversa recomeçar (Permitir sempre nesta conversa). */
-export type PermissionDecision = 'allow' | 'allow-always' | 'deny'
+/**
+ * "allow-always" vale até a conversa recomeçar (Permitir sempre nesta conversa). No card do
+ * plano (ExitPlanMode), "allow" aprova e volta a pedir antes das ações, e "allow-edits" e
+ * "allow-auto" aprovam e passam para Aceitar edições ou Automático.
+ */
+export type PermissionDecision = 'allow' | 'allow-always' | 'deny' | 'allow-edits' | 'allow-auto'
+
+/**
+ * Os modos de permissão do Claude Code que o Wisp oferece, como no Shift+Tab do terminal:
+ * - 'default' (Pedir): tudo fora da lista segura vira card;
+ * - 'acceptEdits' (Aceitar edições): edições de arquivos passam direto (menos os ocultos);
+ * - 'plan' (Planejar): o Claude só lê e planeja, e o plano vem num card para aprovar;
+ * - 'auto' (Automático): o classificador do Claude Code aprova o que você pediu e barra o
+ *   arriscado; só o que ele não decidir vira card.
+ * O "bypassPermissions" (pular todas as permissões) fica de fora de propósito.
+ */
+export const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'auto'] as const
+export type PermissionMode = (typeof PERMISSION_MODES)[number]
+
+/** Quantos painéis lado a lado a janela do chat aceita. */
+export const MAX_PANES = 3
+
+/** Uma aba do painel: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
+export type TabInfo =
+  | { id: string; kind: 'chat'; title: string; project?: string }
+  | { id: string; kind: 'session'; title: string; sessionId: string }
+
+/** As abas abertas e os painéis lado a lado (cada um mostra uma aba). */
+export interface TabsState {
+  tabs: TabInfo[]
+  /** Ids das abas à vista, da esquerda para a direita (1 a MAX_PANES). */
+  panes: string[]
+  /** O painel em foco (onde vão o atalho de voz, o --ask e os arquivos soltos). */
+  focused: number
+}
 
 export type NoticeLevel = 'info' | 'warning' | 'error'
 
@@ -562,21 +626,24 @@ export interface WispApi {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
     ready(): void
     /** Manda uma mensagem com os anexos (caminhos: veja pathForFile e savePasted). */
-    send(text: string, attachments: OutgoingAttachment[]): void
+    send(conversation: string, text: string, attachments: OutgoingAttachment[]): void
     /** Caminho no disco de um File vindo de um arraste ou do seletor de arquivos ('' se não houver). */
     pathForFile(file: File): string
     /** Guarda uma imagem colada num arquivo, para ela poder ser anexada. */
     savePasted(data: ArrayBuffer, type: string): Promise<PastedImage>
-    stop(): void
-    newConversation(): void
+    stop(conversation: string): void
+    /** Recomeça a conversa de uma aba (Ctrl+K). */
+    newConversation(conversation: string): void
     hide(): void
     /** Troca o modelo (um de MODEL_CHOICES, ou null para o padrão). */
-    setModel(choice: string | null): void
+    setModel(conversation: string, choice: string | null): void
+    /** Troca o modo de permissão da conversa. */
+    setMode(conversation: string, mode: PermissionMode): void
     answerPermission(id: string, decision: PermissionDecision): void
     /** Responde uma pergunta do Claude (texto da pergunta → resposta); null pula. */
     answerQuestion(id: string, answers: Record<string, string> | null): void
-    /** Registra quem recebe os eventos da conversa; devolve a função que cancela. */
-    onEvent(listener: (event: ChatEvent) => void): () => void
+    /** Registra quem recebe os eventos das conversas; devolve a função que cancela. */
+    onEvent(listener: (conversation: string, event: ChatEvent) => void): () => void
     /** O humor do mascote, para o avatar do cabeçalho. */
     onMood(listener: (state: MascotState) => void): () => void
     /** O painel acabou de aparecer. */
@@ -597,6 +664,19 @@ export interface WispApi {
     /** Um texto ditado para a caixa de mensagem. */
     onCompose(listener: (text: string) => void): () => void
   }
+  /** As abas e os painéis lado a lado. */
+  tabs: {
+    onState(listener: (state: TabsState) => void): () => void
+    /** Uma conversa nova numa aba, no painel em foco. */
+    create(): void
+    close(id: string): void
+    /** Mostra a aba no painel em foco (ou foca o painel onde ela já está). */
+    show(id: string): void
+    focus(pane: number): void
+    split(): void
+    unsplit(pane: number): void
+    openSession(sessionId: string): void
+  }
   /** A voz: o botão do microfone do painel. */
   voice: {
     /** Começa a ouvir; se já estiver ouvindo, termina e transcreve. */
@@ -613,7 +693,7 @@ export interface WispApi {
   }
   history: {
     list(): Promise<ConversationSummary[]>
-    /** Reabre a conversa: ela chega pelo onEvent, depois de um 'reset'. */
+    /** Reabre a conversa numa aba (ou mostra a aba onde ela já está aberta). */
     open(id: string): Promise<boolean>
     remove(id: string): Promise<boolean>
   }

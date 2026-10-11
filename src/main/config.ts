@@ -10,6 +10,8 @@ import {
 import { join } from 'path'
 import { z } from 'zod'
 import { CONFIG_DIR } from './paths'
+import { PERMISSION_MODES } from '../shared/ipc'
+import type { PermissionMode } from '../shared/ipc'
 
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
@@ -28,6 +30,11 @@ export interface WispConfig {
   extraAllowedTools: string[]
   /** Modelo do Claude (apelido como "sonnet" ou nome completo); null usa o padrão do Claude Code. */
   model: string | null
+  /**
+   * O modo de permissão com que cada conversa nova começa: "default" (pede), "acceptEdits",
+   * "plan" ou "auto". Cada aba troca o seu na pílula de modo (ou com Shift+Tab).
+   */
+  permissionMode: PermissionMode
   /** Sons do Wisp ligados. */
   sound: boolean
   /** Volume dos sons, de 0 a 1. */
@@ -80,6 +87,7 @@ function defaults(): WispConfig {
     mascotPosition: null,
     extraAllowedTools: [],
     model: null,
+    permissionMode: 'default',
     sound: true,
     volume: 0.5,
     sleepAfterMinutes: 3,
@@ -156,6 +164,7 @@ const ConfigSchema = z.object({
   extraAllowedTools: field('extraAllowedTools', z.array(z.string()), () => []),
   // Só letras, números e . _ - : [ ]: apelidos ("sonnet") e nomes completos ("claude-sonnet-5-5").
   model: field('model', z.string().regex(MODEL_NAME).nullable(), () => null),
+  permissionMode: field('permissionMode', z.enum(PERMISSION_MODES), () => 'default' as const),
   sound: field('sound', z.boolean(), () => defaults().sound),
   volume: field('volume', z.number().min(0).max(1), () => defaults().volume),
   sleepAfterMinutes: field(
