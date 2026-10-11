@@ -92,7 +92,8 @@ import { stepSystemVolume } from './volume'
 import { transcribe, whisperSetup } from './whisper'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type { NoticeLevel } from '../shared/ipc'
+import type { NoticeLevel, VoiceTestResult } from '../shared/ipc'
+import { pcmStats } from '../shared/vad'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -569,7 +570,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     },
     level: (level) => chat?.voiceLevel(level),
     check: () => void whisperSetup(whisperOptions()),
-    transcribe: (pcm) => transcribe(pcm, whisperOptions()),
+    transcribe: async (pcm) => {
+      // No registro, como foi (nunca o que foi dito): quanto áudio, quão alto e quanto demorou.
+      const { seconds, peakDb } = pcmStats(pcm)
+      const started = Date.now()
+      const text = await transcribe(pcm, whisperOptions())
+      console.log(
+        `[wisp] voz: ${seconds.toFixed(1)} s de áudio, pico de ${peakDb} dB, transcrito em ` +
+          `${((Date.now() - started) / 1000).toFixed(1)} s (${text.length} caracteres)`
+      )
+      return text
+    },
     locked: () => screenLock?.locked ?? false,
     pendingApprovals: () => chat?.pendingApprovals() ?? 0,
     denyApprovals: () => chat?.denyApprovals(),
@@ -595,6 +606,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   ipcMain.on(IPC.voiceCancel, (event) => {
     if (chat?.isSender(event.sender)) voice?.cancel()
+  })
+  ipcMain.handle(IPC.voiceTest, async (event): Promise<VoiceTestResult | null> => {
+    if (!chat?.isSender(event.sender) || !voice) return null
+    return voice.test()
   })
 
   // Gorro no Natal, óculos no verão (o país do idioma do sistema diz o hemisfério).

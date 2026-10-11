@@ -790,3 +790,150 @@ test('acceleratorKeysym', () => {
 })
 
 process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }))
+
+// ---- Fase 14: a voz mais robusta -----------------------------------------
+test('pcmStats and vad.all: seconds, peak and the whole audio for the voice test', () => {
+  const pcm = new Int16Array(16000).map((_, i) => (i === 100 ? 16384 : 0))
+  assert.deepStrictEqual(V.pcmStats(pcm), { seconds: 1, peakDb: -6 })
+  assert.deepStrictEqual(V.pcmStats(new Int16Array(800)), { seconds: 0.05, peakDb: -100 })
+  const vad = new V.EnergyVad({ endSilenceMs: 0, noSpeechMs: 0, maxMs: 3000 })
+  const events = feed(
+    vad,
+    seq(150, () => frame(0.001))
+  )
+  assert.deepStrictEqual(events, [['end', 149]], 'the test mode ends only at 3 s')
+  assert.strictEqual(vad.result(), null, 'no speech')
+  assert.strictEqual(vad.all().length, 150 * FRAME, 'but the test gets all of it')
+})
+test('transcribeTimeout: 4 s per second of audio, between 30 s and 2 min', () => {
+  assert.strictEqual(W.transcribeTimeout(3), 30_000)
+  assert.strictEqual(W.transcribeTimeout(10), 50_000)
+  assert.strictEqual(W.transcribeTimeout(30), 120_000)
+})
+test('whisperError: the error line, even with exit 0', () => {
+  assert.strictEqual(
+    W.whisperError('whisper_init: loading\nerror: unknown argument: -sns\nusage: …'),
+    'error: unknown argument: -sns'
+  )
+  assert.strictEqual(W.whisperError('whisper_init: loading\nsystem_info: AVX = 1'), null)
+})
+test('transcribe: an old whisper-cli (no -sns, no stdin) still works, the WAV in the runtime dir', async () => {
+  // Another path: what a whisper-cli does not support is remembered per program.
+  const old = path.join(tmp, 'whisper-old')
+  fs.copyFileSync(path.join(BIN, 'fake-whisper'), old)
+  fs.chmodSync(old, 0o755)
+  const runtime = fs.mkdtempSync(path.join(tmp, 'run-'))
+  const saved = process.env.XDG_RUNTIME_DIR
+  process.env.XDG_RUNTIME_DIR = runtime
+  const log = path.join(tmp, 'whisper-old.log')
+  process.env.FAKE_WHISPER_LOG = log
+  process.env.FAKE_WHISPER_OLD = '1'
+  process.env.FAKE_WHISPER_TEXT = 'Abre o Firefox.'
+  const warnings = []
+  const warn = console.warn
+  console.warn = (...args) => warnings.push(args.join(' '))
+  try {
+    const options = { binary: old, model, language: 'pt' }
+    assert.strictEqual(await W.transcribe(new Int16Array(16000), options), 'Abre o Firefox.')
+    const got = JSON.parse(fs.readFileSync(log, 'utf8').trim())
+    assert.ok(!got.args.includes('-sns'))
+    assert.strictEqual(got.bytes, 44 + 32000)
+    const file = fs.readFileSync(`${log}.files`, 'utf8').trim()
+    assert.ok(file.startsWith(path.join(runtime, 'wisp', 'voz-')), file)
+    assert.ok(!fs.existsSync(file), 'the WAV is deleted right after')
+    assert.strictEqual(warnings.length, 2, warnings.join('\n'))
+    // The second time goes straight to what works.
+    assert.strictEqual(await W.transcribe(new Int16Array(16000), options), 'Abre o Firefox.')
+    assert.strictEqual(warnings.length, 2)
+    assert.deepStrictEqual(fs.readdirSync(path.join(runtime, 'wisp')), [])
+  } finally {
+    console.warn = warn
+    if (saved === undefined) delete process.env.XDG_RUNTIME_DIR
+    else process.env.XDG_RUNTIME_DIR = saved
+    delete process.env.FAKE_WHISPER_LOG
+    delete process.env.FAKE_WHISPER_OLD
+    delete process.env.FAKE_WHISPER_TEXT
+  }
+})
+test('voiceHint: a muted mic, nothing understood, a slow model', () => {
+  assert.match(VC.voiceHint({ text: '', peakDb: -60 }), /Quase não chegou som \(pico de -60 dB\)/)
+  assert.match(VC.voiceHint({ text: '', peakDb: -12 }), /não reconheceu fala/)
+  assert.match(VC.voiceHint({ text: 'oi', peakDb: -12, ms: 14_000 }), /levou 14 s.*ggml-base/)
+  assert.strictEqual(VC.voiceHint({ text: 'oi', peakDb: -12, ms: 2000 }), null)
+})
+const loud = (id) => ({
+  type: 'audio',
+  id,
+  pcm: new Int16Array(48000).map((_, i) => Math.round(Math.sin(i / 8) * 8000)).buffer
+})
+test('voice: the voice test records 3 s, transcribes and sends nothing', async () => {
+  const { voice, log } = harness({ transcribe: async () => 'Testando o Wisp.' })
+  const pending = voice.test()
+  const start = log.commands[0]
+  assert.deepStrictEqual(start, { type: 'start', id: start.id, mode: 'test' })
+  assert.strictEqual(last(log.statuses).source, 'test')
+  voice.handle(loud(start.id))
+  const result = await pending
+  assert.strictEqual(result.ok, true)
+  assert.strictEqual(result.text, 'Testando o Wisp.')
+  assert.strictEqual(result.seconds, 3)
+  assert.ok(result.peakDb > -20 && result.peakDb < 0, String(result.peakDb))
+  assert.strictEqual(typeof result.ms, 'number')
+  assert.strictEqual(result.hint, undefined)
+  assert.deepStrictEqual(log.delivered, [])
+  assert.deepStrictEqual(log.notices, [])
+  assert.strictEqual(last(log.statuses).state, 'idle')
+})
+test('voice: the voice test tells a muted mic, a setup error and a mic error', async () => {
+  let setup = null
+  const { voice, log } = harness({
+    transcribe: async () => '',
+    check: () => {
+      if (setup) throw new Error(setup)
+    }
+  })
+  let pending = voice.test()
+  voice.handle(audio(last(log.commands).id))
+  let result = await pending
+  assert.strictEqual(result.ok, true)
+  assert.strictEqual(result.text, '')
+  assert.match(result.hint, /Quase não chegou som/)
+  setup = 'Para eu entender a sua voz, instale o whisper.cpp.'
+  result = await voice.test()
+  assert.deepStrictEqual(result, { ok: false, text: '', error: setup })
+  assert.deepStrictEqual(log.notices, [], 'the test shows it, not the panel')
+  setup = null
+  pending = voice.test()
+  voice.handle({
+    type: 'error',
+    id: last(log.commands).id,
+    reason: 'no-device',
+    message: 'não achei um microfone'
+  })
+  result = await pending
+  assert.strictEqual(result.error, 'Não consegui ouvir: não achei um microfone.')
+  // Cancelled (Esc) in the middle.
+  pending = voice.test()
+  voice.cancel()
+  assert.strictEqual((await pending).error, 'O teste foi interrompido.')
+  // Busy: no test.
+  voice.togglePanel()
+  assert.match((await voice.test()).error, /Já estou ouvindo/)
+  voice.cancel()
+})
+test('voice: nothing understood from a muted mic points to the mic and the test', async () => {
+  const { voice, log } = harness({ transcribe: async () => '' })
+  voice.press(false)
+  voice.handle(audio(log.commands[0].id))
+  await tick()
+  const [level, text] = last(log.notices)
+  assert.strictEqual(level, 'warning')
+  assert.match(text, /Quase não chegou som.*Testar voz/)
+  voice.press(false)
+  voice.handle(loud(last(log.commands).id))
+  await tick()
+  assert.deepStrictEqual(last(log.notices), [
+    'info',
+    'Não entendi o que você disse. Tente de novo, mais perto do microfone.'
+  ])
+})

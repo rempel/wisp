@@ -1,13 +1,21 @@
 import { spawn } from 'child_process'
+import { randomBytes } from 'crypto'
+import { mkdirSync, unlinkSync, writeFileSync } from 'fs'
 import { availableParallelism, homedir } from 'os'
+import { basename, join } from 'path'
 import { VOICE_RATE } from '../shared/vad'
 import { expandHome } from './paths'
 import { findProgram, isFile } from './programs'
 
 // A transcrição local, com o whisper.cpp (o programa whisper-cli). O áudio vai pela entrada
-// padrão, como um WAV montado na memória: nada de áudio no disco.
+// padrão, como um WAV montado na memória: nada de áudio no disco. Um whisper-cli antigo, que não
+// lê da entrada padrão, recebe o WAV num arquivo em $XDG_RUNTIME_DIR (que fica na memória, não no
+// disco), apagado assim que ele termina.
 
-const TIMEOUT_MS = 90_000
+/** Opções que um whisper-cli antigo não conhece: sem elas, a transcrição sai do mesmo jeito. */
+const OPTIONAL_FLAGS = ['-sns']
+/** O que cada whisper-cli (pelo caminho) não aceita: opções e o stdin. Vale até o Wisp fechar. */
+const quirks = new Map<string, { flags: Set<string>; noStdin: boolean }>()
 /** Nomes do programa, do mais novo para o mais antigo, e onde o build do whisper.cpp o deixa. */
 const NAMES = ['whisper-cli', 'whisper-cpp', 'whisper.cpp']
 const BUILD_DIRS = ['~/whisper.cpp/build/bin', '~/.local/share/whisper.cpp/build/bin']
@@ -94,35 +102,55 @@ export function whisperSetup(options: WhisperOptions): { binary: string; model: 
   return { binary, model }
 }
 
-/** Transcreve o áudio (PCM de 16 bits a 16 kHz). Lança WhisperError com o motivo. */
-export function transcribe(pcm: Int16Array, options: WhisperOptions): Promise<string> {
-  const { binary, model } = whisperSetup(options)
-  const threads = String(Math.max(1, Math.min(8, availableParallelism())))
-  const args = [
-    '-m',
-    model,
-    '-l',
-    options.language.trim() || 'pt',
-    '-t',
-    threads,
-    '-nt',
-    '-np',
-    // Sem os tokens de "não fala" (risadas, música), que o modelo inventa no silêncio.
-    '-sns',
-    '-f',
-    '-'
-  ]
+/**
+ * Quanto esperar a transcrição (ms): 4 s por segundo de áudio, mais 10 s para carregar o modelo,
+ * entre 30 s e 2 min. Um modelo que demora mais que isso é pesado demais para o computador.
+ */
+export function transcribeTimeout(seconds: number): number {
+  return Math.round(Math.min(120, Math.max(30, 10 + seconds * 4)) * 1000)
+}
+
+/** A primeira linha de erro do whisper-cli ("error: …"), mesmo quando ele sai com 0. */
+export function whisperError(stderr: string): string | null {
+  const line = stderr.split('\n').find((l) => /^\s*error\b/i.test(l))
+  return line ? line.trim() : null
+}
+
+/** O stderr no registro, sem o texto: só as linhas de erro, aviso e as do fim (no máximo 6). */
+function logStderr(stderr: string, why: string): void {
+  const lines = stderr
+    .split('\n')
+    .map((l) => l.trim())
+    .filter(Boolean)
+  const shown = [
+    ...new Set([...lines.filter((l) => /error|fail|warn|unknown/i.test(l)), ...lines.slice(-3)])
+  ].slice(0, 6)
+  console.warn(`[wisp] whisper.cpp: ${why}${shown.length ? `\n  ${shown.join('\n  ')}` : ''}`)
+}
+
+interface Run {
+  code: number | null
+  stdout: string
+  stderr: string
+}
+
+function run(
+  binary: string,
+  args: string[],
+  input: Buffer | null,
+  timeoutMs: number
+): Promise<Run> {
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, args, { stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(binary, args, { stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
-      reject(new WhisperError('A transcrição demorou demais.'))
-    }, TIMEOUT_MS)
-    child.stdout.setEncoding('utf8').on('data', (chunk: string) => (stdout += chunk))
-    child.stderr.setEncoding('utf8').on('data', (chunk: string) => {
-      stderr = (stderr + chunk).slice(-2000)
+      reject(new WhisperError('timeout'))
+    }, timeoutMs)
+    child.stdout?.setEncoding('utf8').on('data', (chunk: string) => (stdout += chunk))
+    child.stderr?.setEncoding('utf8').on('data', (chunk: string) => {
+      stderr = (stderr + chunk).slice(-4000)
     })
     child.on('error', (err) => {
       clearTimeout(timer)
@@ -130,14 +158,104 @@ export function transcribe(pcm: Int16Array, options: WhisperOptions): Promise<st
     })
     child.on('close', (code) => {
       clearTimeout(timer)
-      if (code === 0) return resolve(cleanTranscript(stdout))
-      const detail = stderr.trim().split('\n').pop() ?? ''
-      reject(
-        new WhisperError(`O whisper.cpp saiu com erro (${code})${detail ? `: ${detail}` : ''}.`)
-      )
+      resolve({ code, stdout, stderr })
     })
-    // O processo pode sair antes de ler tudo (modelo inválido): o erro de escrita não importa.
-    child.stdin.on('error', () => {})
-    child.stdin.end(wavFromPcm(pcm))
+    if (input && child.stdin) {
+      // O processo pode sair antes de ler tudo (modelo inválido): o erro de escrita não importa.
+      child.stdin.on('error', () => {})
+      child.stdin.end(input)
+    }
   })
+}
+
+/** O WAV num arquivo em $XDG_RUNTIME_DIR (na memória), para um whisper-cli que não lê o stdin. */
+function runtimeWav(wav: Buffer): string {
+  const runtime = process.env.XDG_RUNTIME_DIR
+  if (!runtime) {
+    throw new WhisperError(
+      'Este whisper.cpp não lê o áudio pela entrada padrão. Atualize o whisper.cpp (a versão 1.5 ' +
+        'ou mais nova lê).'
+    )
+  }
+  const dir = join(runtime, 'wisp')
+  mkdirSync(dir, { recursive: true, mode: 0o700 })
+  const path = join(dir, `voz-${randomBytes(6).toString('hex')}.wav`)
+  writeFileSync(path, wav, { mode: 0o600 })
+  return path
+}
+
+/** Transcreve o áudio (PCM de 16 bits a 16 kHz). Lança WhisperError com o motivo. */
+export async function transcribe(pcm: Int16Array, options: WhisperOptions): Promise<string> {
+  const { binary, model } = whisperSetup(options)
+  const threads = String(Math.max(1, Math.min(8, availableParallelism())))
+  const wav = wavFromPcm(pcm)
+  const seconds = pcm.length / VOICE_RATE
+  const timeoutMs = transcribeTimeout(seconds)
+  const quirk = quirks.get(binary) ?? { flags: new Set<string>(), noStdin: false }
+  quirks.set(binary, quirk)
+  // Duas tentativas a mais, no máximo: sem uma opção que esta versão não conhece, e com o áudio
+  // num arquivo, para a que não lê o stdin.
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const flags = OPTIONAL_FLAGS.filter((flag) => !quirk.flags.has(flag))
+    const file = quirk.noStdin ? runtimeWav(wav) : null
+    const args = [
+      '-m',
+      model,
+      '-l',
+      options.language.trim() || 'pt',
+      '-t',
+      threads,
+      '-nt',
+      '-np',
+      // -sns: sem os tokens de "não fala" (risadas, música), que o modelo inventa no silêncio.
+      ...flags,
+      '-f',
+      file ?? '-'
+    ]
+    let result: Run
+    try {
+      result = await run(binary, args, file ? null : wav, timeoutMs)
+    } catch (err) {
+      if ((err as Error).message !== 'timeout') throw err
+      console.warn(
+        `[wisp] whisper.cpp: a transcrição de ${seconds.toFixed(1)} s de áudio passou de ` +
+          `${timeoutMs / 1000} s (modelo ${basename(model)}, ${threads} threads)`
+      )
+      throw new WhisperError(
+        `A transcrição passou de ${timeoutMs / 1000} s e eu desisti. O modelo ` +
+          `${basename(model)} pode ser pesado demais para este computador: um menor, como o ` +
+          'ggml-base ou o ggml-small, entende bem e responde em poucos segundos.'
+      )
+    } finally {
+      if (file) {
+        try {
+          unlinkSync(file)
+        } catch {
+          // Já foi.
+        }
+      }
+    }
+    const { code, stdout, stderr } = result
+    const error = whisperError(stderr)
+    const unknown = /unknown argument:?\s*(\S+)/i.exec(stderr)?.[1]
+    if (unknown && OPTIONAL_FLAGS.includes(unknown) && !quirk.flags.has(unknown)) {
+      console.warn(`[wisp] whisper.cpp: esta versão não conhece ${unknown}; sigo sem ela`)
+      quirk.flags.add(unknown)
+      continue
+    }
+    if (!quirk.noStdin && !stdout.trim() && /failed to (?:read|open)[^\n]*'-'/i.test(stderr)) {
+      console.warn('[wisp] whisper.cpp: esta versão não lê o stdin; sigo com um arquivo na memória')
+      quirk.noStdin = true
+      continue
+    }
+    if (code === 0 && !(error && !stdout.trim())) return cleanTranscript(stdout)
+    logStderr(stderr, `saiu com ${code}`)
+    const detail = error ?? stderr.trim().split('\n').pop() ?? ''
+    throw new WhisperError(
+      code === 0
+        ? `O whisper.cpp não transcreveu: ${detail}.`
+        : `O whisper.cpp saiu com erro (${code})${detail ? `: ${detail}` : ''}.`
+    )
+  }
+  throw new WhisperError('O whisper.cpp recusou as opções que eu uso. Atualize o whisper.cpp.')
 }

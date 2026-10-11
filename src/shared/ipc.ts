@@ -143,6 +143,8 @@ export const IPC = {
   settingsShow: 'settings:show',
   /** chat → main: desiste da escuta (Esc). */
   voiceCancel: 'voice:cancel',
+  /** chat → main (invoke): o teste de voz das configurações. Devolve VoiceTestResult. */
+  voiceTest: 'voice:test',
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
@@ -250,9 +252,9 @@ export type MascotIsland = {
 
 /**
  * Como a escuta termina: 'hold', quando o atalho for solto (o silêncio longo só por garantia);
- * 'auto', no silêncio depois da fala.
+ * 'auto', no silêncio depois da fala; 'test', depois de 3 s, com todo o áudio (o teste de voz).
  */
-export type VoiceMode = 'hold' | 'auto'
+export type VoiceMode = 'hold' | 'auto' | 'test'
 
 /** main → mascote: a captura do microfone e a fala do Wisp, que rodam na página do mascote. */
 export type VoiceCommand =
@@ -284,11 +286,27 @@ export type VoiceCaptureEvent =
   /** O volume do microfone (0 a 1), a cada 100 ms. */
   | { type: 'level'; id: number; level: number }
 
+/** O resultado do "Testar voz" das configurações: 3 s gravados e transcritos. */
+export interface VoiceTestResult {
+  ok: boolean
+  /** O que o whisper.cpp entendeu (pode ser vazio). */
+  text: string
+  /** Por que não deu (o microfone, o whisper.cpp). */
+  error?: string
+  /** O áudio gravado: segundos e pico em dBFS. */
+  seconds?: number
+  peakDb?: number
+  /** Quanto a transcrição demorou (ms). */
+  ms?: number
+  /** O que fazer, se algo parece errado. */
+  hint?: string
+}
+
 /** Em que pé está a voz, para o painel e o mascote. */
 export interface VoiceStatus {
   state: 'idle' | 'listening' | 'transcribing' | 'speaking'
-  /** De onde veio a escuta: o botão do painel ou o atalho. */
-  source?: 'panel' | 'shortcut'
+  /** De onde veio a escuta: o botão do painel, o atalho ou o teste das configurações. */
+  source?: 'panel' | 'shortcut' | 'test'
   /** Segurando o atalho (a escuta acaba quando ele for solto). */
   holding?: boolean
   /** Já ouviu fala nesta escuta. */
@@ -823,6 +841,8 @@ export interface WispApi {
     /** Começa a ouvir; se já estiver ouvindo, termina e transcreve. */
     toggle(): void
     cancel(): void
+    /** Grava 3 s e transcreve, para ver se a voz funciona (as configurações). */
+    test(): Promise<VoiceTestResult>
     onStatus(listener: (status: VoiceStatus) => void): () => void
     onLevel(listener: (level: number) => void): () => void
   }

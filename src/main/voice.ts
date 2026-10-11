@@ -4,8 +4,10 @@ import type {
   VoiceCaptureEvent,
   VoiceCommand,
   VoiceMode,
-  VoiceStatus
+  VoiceStatus,
+  VoiceTestResult
 } from '../shared/ipc'
+import { pcmStats, QUIET_PEAK_DB } from '../shared/vad'
 import { speakable } from './piper'
 import type { Speech } from './piper'
 import { isApprove, isDeny, parseQuickCommand } from './voice-commands'
@@ -18,7 +20,33 @@ import type { QuickCommand } from './voice-commands'
 // Por voz dá para negar um pedido de permissão, nunca aprovar: o "sim" de alguém na sala, ou
 // de um vídeo tocando, não pode liberar nada.
 
-export type VoiceSource = 'panel' | 'shortcut'
+export type VoiceSource = 'panel' | 'shortcut' | 'test'
+
+/** Uma transcrição que passa disto (ms) é lenta: vale um modelo menor. */
+const SLOW_MS = 8000
+
+/** O que fazer quando a voz não vai bem: o microfone quase mudo, nada entendido, lentidão. */
+export function voiceHint(result: { text: string; peakDb: number; ms?: number }): string | null {
+  if (result.peakDb < QUIET_PEAK_DB) {
+    return (
+      `Quase não chegou som (pico de ${result.peakDb} dB). Confira nas configurações de som do ` +
+      'sistema qual microfone está como entrada, e se ele não está mudo ou com o volume baixo.'
+    )
+  }
+  if (!result.text) {
+    return (
+      'Chegou som, mas o whisper.cpp não reconheceu fala. Fale perto do microfone e confira o ' +
+      'idioma da fala.'
+    )
+  }
+  if (result.ms !== undefined && result.ms > SLOW_MS) {
+    return (
+      `A transcrição levou ${Math.round(result.ms / 1000)} s: um modelo menor (o ggml-base ou o ` +
+      'ggml-small) responde bem mais rápido.'
+    )
+  }
+  return null
+}
 
 /** Soltar o atalho antes disso (ms) é um toque: a escuta segue até o silêncio depois da fala. */
 const TAP_MS = 350
@@ -75,6 +103,8 @@ export class Voice {
   private reply: { blockId: string; text: string } | null = null
   /** A conversa (aba) de onde se espera a resposta para falar. */
   private awaitingReply: string | null = null
+  /** O teste de voz em andamento: quem espera o resultado. */
+  private testing: ((result: VoiceTestResult) => void) | null = null
 
   constructor(private readonly deps: VoiceDeps) {}
 
@@ -84,6 +114,26 @@ export class Voice {
       ...(this.state === 'listening' ? { source: this.source, heard: this.heard } : {}),
       ...(this.state === 'listening' && this.holding ? { holding: true } : {})
     }
+  }
+
+  /**
+   * O "Testar voz" das configurações: grava 3 s (com fala ou sem), transcreve e conta o que
+   * chegou, quão alto e quanto demorou. Nada vai para a conversa.
+   */
+  test(): Promise<VoiceTestResult> {
+    if (this.state === 'listening' || this.state === 'transcribing') {
+      return Promise.resolve({
+        ok: false,
+        text: '',
+        error: 'Já estou ouvindo: tente daqui a pouco.'
+      })
+    }
+    // A fala de uma resposta para antes, para não entrar no teste.
+    if (this.state === 'speaking') this.cancel()
+    return new Promise((resolve) => {
+      this.testing = resolve
+      if (!this.start('test', 'test')) this.endTest({ ok: false, text: '', error: this.refused })
+    })
   }
 
   /** O botão do microfone do painel: começa a ouvir; ouvindo, termina. */
@@ -153,23 +203,29 @@ export class Voice {
         return
       case 'empty':
         if (this.state !== 'listening') return
-        if (this.source === 'panel') this.deps.notice('info', 'Não ouvi nada.')
+        if (this.source === 'test') {
+          this.endTest({ ok: false, text: '', error: 'O microfone abriu, mas não mandou áudio.' })
+        } else if (this.source === 'panel') {
+          this.deps.notice('info', 'Não ouvi nada.')
+        }
         this.reset()
         return
-      case 'error':
+      case 'error': {
         if (this.state !== 'listening') return
-        this.deps.notice(
-          'warning',
+        const message =
           event.reason === 'denied'
             ? 'Não consegui ouvir: o acesso ao microfone foi negado. Confira as permissões de ' +
-                'microfone do sistema.'
+              'microfone do sistema.'
             : `Não consegui ouvir: ${event.message}.`
-        )
+        if (this.source === 'test') this.endTest({ ok: false, text: '', error: message })
+        else this.deps.notice('warning', message)
         this.reset()
         return
+      }
       case 'audio':
         if (this.state !== 'listening') return
-        void this.transcribe(new Int16Array(event.pcm))
+        if (this.source === 'test') void this.runTest(new Int16Array(event.pcm))
+        else void this.transcribe(new Int16Array(event.pcm))
         return
       case 'said':
         if (this.state === 'speaking') this.reset()
@@ -194,19 +250,24 @@ export class Voice {
     }
   }
 
-  private start(source: VoiceSource, mode: VoiceMode): void {
+  /** Por que a última escuta não começou (para o teste de voz). */
+  private refused = ''
+
+  /** Começa a ouvir; false (e o motivo em `refused`) se não deu. */
+  private start(source: VoiceSource, mode: VoiceMode): boolean {
     if (this.state === 'speaking') this.cancel()
-    if (this.deps.locked()) {
+    const refuse = (level: NoticeLevel, message: string): false => {
       this.holding = false
-      this.deps.notice('info', 'Com a tela bloqueada, eu não escuto.')
-      return
+      this.refused = message
+      // O teste mostra o motivo nele mesmo.
+      if (source !== 'test') this.deps.notice(level, message)
+      return false
     }
+    if (this.deps.locked()) return refuse('info', 'Com a tela bloqueada, eu não escuto.')
     try {
       this.deps.check()
     } catch (err) {
-      this.holding = false
-      this.deps.notice('warning', (err as Error).message)
-      return
+      return refuse('warning', (err as Error).message)
     }
     this.id++
     this.source = source
@@ -218,10 +279,43 @@ export class Voice {
     const id = this.id
     this.openTimer = setTimeout(() => {
       if (this.id !== id || this.state !== 'listening') return
-      this.deps.notice('warning', 'Não consegui ouvir: o microfone não abriu.')
+      const message = 'Não consegui ouvir: o microfone não abriu.'
+      if (this.source === 'test') this.endTest({ ok: false, text: '', error: message })
+      else this.deps.notice('warning', message)
       this.cancel()
     }, OPEN_TIMEOUT_MS)
     this.emit()
+    return true
+  }
+
+  /** O teste de voz: transcreve os 3 s e conta como foi. */
+  private async runTest(pcm: Int16Array): Promise<void> {
+    const id = this.id
+    this.clearOpenTimer()
+    this.state = 'transcribing'
+    this.emit()
+    const stats = pcmStats(pcm)
+    const started = Date.now()
+    let result: VoiceTestResult
+    try {
+      const text = await this.deps.transcribe(pcm)
+      const ms = Date.now() - started
+      result = { ok: true, text, ...stats, ms }
+      const hint = voiceHint({ text, peakDb: stats.peakDb, ms })
+      if (hint) result.hint = hint
+    } catch (err) {
+      result = { ok: false, text: '', error: (err as Error).message, ...stats }
+      if (stats.peakDb < QUIET_PEAK_DB) result.hint = voiceHint({ text: '', ...stats }) ?? undefined
+    }
+    if (this.id !== id) return
+    this.endTest(result)
+    this.reset()
+  }
+
+  private endTest(result: VoiceTestResult): void {
+    const done = this.testing
+    this.testing = null
+    done?.(result)
   }
 
   /** Acabou a escuta (o atalho solto, o botão de novo): a página manda o que ouviu. */
@@ -233,6 +327,7 @@ export class Voice {
   private async transcribe(pcm: Int16Array): Promise<void> {
     const id = this.id
     const source = this.source
+    const { peakDb } = pcmStats(pcm)
     this.clearOpenTimer()
     this.holding = false
     this.state = 'transcribing'
@@ -249,15 +344,19 @@ export class Voice {
     // Cancelada (Esc, tela bloqueada) enquanto transcrevia.
     if (this.id !== id || this.state !== 'transcribing') return
     this.reset()
-    await this.route(text, source)
+    await this.route(text, source, peakDb)
   }
 
   /** O que fazer com o que foi dito. */
-  private async route(text: string, source: VoiceSource): Promise<void> {
+  private async route(text: string, source: VoiceSource, peakDb: number): Promise<void> {
     if (!text) {
+      // Com o áudio quase mudo, o problema é o microfone, não a dicção.
       this.deps.notice(
-        'info',
-        'Não entendi o que você disse. Tente de novo, mais perto do microfone.'
+        peakDb < QUIET_PEAK_DB ? 'warning' : 'info',
+        peakDb < QUIET_PEAK_DB
+          ? `Não entendi o que você disse. ${voiceHint({ text, peakDb })} O **Testar voz**, nas ` +
+              'configurações, ajuda a achar o problema.'
+          : 'Não entendi o que você disse. Tente de novo, mais perto do microfone.'
       )
       return
     }
@@ -309,6 +408,7 @@ export class Voice {
 
   /** De volta ao repouso; o que ainda chegar da escuta anterior é ignorado. */
   private reset(): void {
+    this.endTest({ ok: false, text: '', error: 'O teste foi interrompido.' })
     this.clearOpenTimer()
     if (this.sayTimer) clearTimeout(this.sayTimer)
     this.sayTimer = null

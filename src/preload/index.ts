@@ -103,6 +103,7 @@ const api: WispApi = {
   voice: {
     toggle: () => ipcRenderer.send(IPC.voiceToggle),
     cancel: () => ipcRenderer.send(IPC.voiceCancel),
+    test: () => ipcRenderer.invoke(IPC.voiceTest),
     onStatus: (listener) => subscribe<[VoiceStatus]>(IPC.voiceStatus, listener),
     onLevel: (listener) => subscribe<[number]>(IPC.voiceLevel, listener)
   },

@@ -13,7 +13,9 @@ const LIMITS: Record<VoiceMode, VadOptions> = {
   // para o caso de o soltar se perder (um desktop que não avisa, uma conexão que caiu).
   hold: { endSilenceMs: 3000, noSpeechMs: 10_000, maxMs: 30_000 },
   // O botão do painel e um toque no atalho: acaba no silêncio depois da fala.
-  auto: { endSilenceMs: 1200, noSpeechMs: 6000, maxMs: 30_000 }
+  auto: { endSilenceMs: 1200, noSpeechMs: 6000, maxMs: 30_000 },
+  // O teste de voz das configurações: 3 s, com fala ou sem, e todo o áudio vai.
+  test: { endSilenceMs: 0, noSpeechMs: 0, maxMs: 3000 }
 }
 /** A cada quantos quadros (de 20 ms) vai o volume para o painel e o mascote. */
 const LEVEL_EVERY = 5
@@ -25,6 +27,7 @@ function levelOf(db: number): number {
 
 interface Listening {
   id: number
+  mode: VoiceMode
   stream: MediaStream
   context: AudioContext
   vad: EnergyVad
@@ -118,6 +121,7 @@ export class VoiceCapture {
     })
     const listening: Listening = {
       id,
+      mode: request.mode,
       stream,
       context,
       vad: new EnergyVad(LIMITS[request.mode]),
@@ -143,7 +147,10 @@ export class VoiceCapture {
   /** O atalho foi solto logo (um toque): a escuta segue até o silêncio. */
   setMode(id: number, mode: VoiceMode): void {
     if (this.opening?.id === id) this.opening.mode = mode
-    if (this.current?.id === id) this.current.vad.setOptions(LIMITS[mode])
+    if (this.current?.id === id) {
+      this.current.mode = mode
+      this.current.vad.setOptions(LIMITS[mode])
+    }
   }
 
   /** Acabou: manda o que ouviu (ou que não houve fala). */
@@ -156,7 +163,7 @@ export class VoiceCapture {
     const listening = this.current
     if (!listening || listening.id !== id) return
     this.close()
-    const pcm = listening.vad.result()
+    const pcm = listening.mode === 'test' ? listening.vad.all() : listening.vad.result()
     if (pcm) {
       const bytes = pcm.buffer.slice(pcm.byteOffset, pcm.byteOffset + pcm.byteLength) as ArrayBuffer
       this.emit({ type: 'audio', id, pcm: bytes })
