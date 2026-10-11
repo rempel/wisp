@@ -1,12 +1,33 @@
 #!/usr/bin/env node
 // A fake whisper-cli: reads the WAV from stdin (like `-f -`), checks it, logs what it got and
-// prints the transcript from FAKE_WHISPER_TEXT_FILE (or FAKE_WHISPER_TEXT).
+// prints the transcript from FAKE_WHISPER_TEXT_FILE (or FAKE_WHISPER_TEXT). FAKE_WHISPER_OLD plays
+// an old version: no -sns and no stdin, and like the real one it says so and exits with 0.
 const fs = require('fs')
-const chunks = []
-process.stdin.on('data', (c) => chunks.push(c))
-process.stdin.on('end', () => {
-  const wav = Buffer.concat(chunks)
-  const args = process.argv.slice(2)
+const args = process.argv.slice(2)
+const input = args[args.indexOf('-f') + 1]
+if (process.env.FAKE_WHISPER_OLD) {
+  if (args.includes('-sns')) {
+    process.stderr.write(
+      'error: unknown argument: -sns\n\nusage: whisper-cli [options] file0 ...\n'
+    )
+    process.exit(0)
+  }
+  if (input === '-') {
+    process.stderr.write("error: failed to read audio file '-'\n")
+    process.exit(0)
+  }
+}
+if (input !== '-') {
+  if (process.env.FAKE_WHISPER_LOG) {
+    fs.appendFileSync(process.env.FAKE_WHISPER_LOG + '.files', input + '\n')
+  }
+  handle(fs.readFileSync(input))
+} else {
+  const chunks = []
+  process.stdin.on('data', (c) => chunks.push(c))
+  process.stdin.on('end', () => handle(Buffer.concat(chunks)))
+}
+function handle(wav) {
   const info = { args, bytes: wav.length }
   if (
     wav.length >= 44 &&
@@ -47,4 +68,4 @@ process.stdin.on('end', () => {
     }
     process.stdout.write(text ? ` ${text}\n` : '\n')
   }, delay)
-})
+}

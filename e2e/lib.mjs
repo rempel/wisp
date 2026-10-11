@@ -127,14 +127,14 @@ export function appEnv({ home, runtime }, extra = {}) {
 
 let app = null
 
-/** Abre o Wisp e espera o mascote aparecer. */
-export async function startApp(home, extra = {}) {
+/** Abre o Wisp e espera o mascote aparecer (`args`: opções a mais do Chromium). */
+export async function startApp(home, extra = {}, args = []) {
   await stopApp()
   // A saída do app fica num arquivo do HOME de teste, para ver o que houve se algo falhar.
   const log = openSync(join(home.home, 'wisp.log'), 'a')
   app = spawn(
     ELECTRON,
-    [ROOT, '--no-sandbox', '--ozone-platform=x11', `--remote-debugging-port=${PORT}`],
+    [ROOT, '--no-sandbox', '--ozone-platform=x11', `--remote-debugging-port=${PORT}`, ...args],
     { env: appEnv(home, extra), stdio: ['ignore', log, log], detached: true }
   )
   let mascot

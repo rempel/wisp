@@ -41,6 +41,34 @@ export function frameDb(frame: Float32Array): number {
   return rms > 0 ? Math.max(-100, 20 * Math.log10(rms)) : -100
 }
 
+/** Quanto áudio e quão alto ele chegou: os segundos e o pico, em dBFS (-100 para silêncio). */
+export function pcmStats(pcm: Int16Array, rate = VOICE_RATE): { seconds: number; peakDb: number } {
+  let peak = 0
+  for (let i = 0; i < pcm.length; i++) {
+    const value = Math.abs(pcm[i])
+    if (value > peak) peak = value
+  }
+  return {
+    seconds: pcm.length / rate,
+    peakDb: peak > 0 ? Math.max(-100, Math.round(20 * Math.log10(peak / 0x8000))) : -100
+  }
+}
+
+/** Um pico abaixo disso (dBFS) é quase nada: o microfone errado, mudo ou com o volume no zero. */
+export const QUIET_PEAK_DB = -40
+
+function toPcm(frames: Float32Array[]): Int16Array {
+  const out = new Int16Array(frames.length * FRAME)
+  let offset = 0
+  for (const frame of frames) {
+    for (let j = 0; j < frame.length; j++) {
+      const sample = Math.max(-1, Math.min(1, frame[j]))
+      out[offset++] = sample < 0 ? sample * 0x8000 : sample * 0x7fff
+    }
+  }
+  return out.subarray(0, offset)
+}
+
 export class EnergyVad {
   private readonly frames: Float32Array[] = []
   private floor = -60
@@ -116,15 +144,11 @@ export class EnergyVad {
     if (this.speechStart < 0) return null
     const first = Math.max(0, this.speechStart - PRE_ROLL_FRAMES)
     const last = Math.min(this.frames.length - 1, this.lastSpeech + TAIL_FRAMES)
-    const out = new Int16Array((last - first + 1) * FRAME)
-    let offset = 0
-    for (let i = first; i <= last; i++) {
-      const frame = this.frames[i]
-      for (let j = 0; j < frame.length; j++) {
-        const sample = Math.max(-1, Math.min(1, frame[j]))
-        out[offset++] = sample < 0 ? sample * 0x8000 : sample * 0x7fff
-      }
-    }
-    return out.subarray(0, offset)
+    return toPcm(this.frames.slice(first, last + 1))
+  }
+
+  /** Todo o áudio, com ou sem fala (o teste de voz das configurações). */
+  all(): Int16Array {
+    return toPcm(this.frames)
   }
 }

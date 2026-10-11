@@ -4,6 +4,7 @@ import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type { Settings, SettingsResult, SettingsSnapshot } from '../../shared/ipc'
 import { acceleratorOf } from './accelerator'
 import { MODE_TEXT } from './modes'
+import { VoiceTest } from './VoiceTest'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
 type Save = (patch: Patch) => Promise<void>
@@ -271,6 +272,7 @@ export function SettingsView(): JSX.Element {
             checked={values.voiceReplies}
             onChange={(voiceReplies) => void save({ voiceReplies })}
           />
+          <VoiceTest />
         </Section>
 
         <Section title="Integrações">
