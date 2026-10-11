@@ -838,10 +838,13 @@ resources/
   - ler a página (snapshot, print, console, rede, abas) passa direto;
   - abrir um endereço pede, e o card oferece liberar o site (e os subdomínios) nesta conversa;
   - clicar, digitar, preencher e afins passam direto se a página aberta é de um site liberado.
-    A página aberta vem da seção `### Page` (`- Page URL: …`) das respostas do Playwright, lida
-    só fora dos blocos de código e só das ferramentas em que a página não escreve fora deles.
-    Depois de rodar código na página, ou numa resposta cortada sem essa seção, a página passa a
-    ser desconhecida e a próxima ação pede;
+    A página aberta vem da seção `### Page` das respostas do Playwright (`- Page URL: …` na
+    primeira linha). A página consegue escrever em partes da resposta: o texto de um `alert()`
+    sai cru, com quebras de linha, na seção `### Modal state`, logo depois da `### Page`. Por
+    isso vale só uma seção `### Page`, antes da `### Modal state` e fora dos blocos de código, e
+    só das ferramentas em que a página não escreve antes dela. Duas seções, um `### Error`, um
+    código rodado na página ou uma resposta cortada sem essa seção deixam a página desconhecida,
+    e a próxima ação pede;
   - rodar código na página (`browser_evaluate`, `browser_run_code_unsafe`) e mandar arquivos
     (`browser_file_upload`, `browser_drop`) pedem sempre, sem o "sempre";
   - ferramentas que o Wisp não conhece pedem, também sem o "sempre".
