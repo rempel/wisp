@@ -1,9 +1,17 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CSSProperties, DragEvent, JSX, PointerEvent } from 'react'
-import type { Accessory, DroppedFile, MascotState, MascotView, SoundName } from '../../shared/ipc'
+import type {
+  Accessory,
+  DroppedFile,
+  MascotState,
+  MascotView,
+  SoundName,
+  VoiceStatus
+} from '../../shared/ipc'
 import { makeThumbnail } from '../common/thumbnail'
 import { AccessoryArt } from './Accessory'
 import { SoundPlayer } from './sounds'
+import { VoiceCapture, VoiceSpeaker } from './voice'
 
 /** Movimento (px) a partir do qual o gesto deixa de ser clique e vira arraste. */
 const DRAG_THRESHOLD = 5
@@ -182,6 +190,7 @@ export default function Mascot(): JSX.Element {
   const [dropOver, setDropOver] = useState(false)
   const [absorbing, setAbsorbing] = useState<{ x: number; y: number; key: number } | null>(null)
   const [accessory, setAccessory] = useState<Accessory | null>(null)
+  const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
 
   // Para os timers e eventos, que não esperam o render.
   const viewRef = useRef(view)
@@ -248,6 +257,36 @@ export default function Mascot(): JSX.Element {
       player.current ??= new SoundPlayer()
       player.current.setCustom(name, data)
     })
+    // A voz: o microfone abre só quando o main pede, e o volume do que ele ouve mexe nas ondas
+    // da antena (direto no estilo, sem render).
+    const capture = new VoiceCapture(
+      (event) => window.wisp.mascot.voiceEvent(event),
+      (level) => stage.current?.style.setProperty('--vl', String(level ?? 0))
+    )
+    const speaker = new VoiceSpeaker((id) => window.wisp.mascot.voiceEvent({ type: 'said', id }))
+    const offVoice = window.wisp.mascot.onVoice((command) => {
+      switch (command.type) {
+        case 'start':
+          void capture.start(command.id, command.mode)
+          break
+        case 'mode':
+          capture.setMode(command.id, command.mode)
+          break
+        case 'stop':
+          capture.finish(command.id)
+          break
+        case 'cancel':
+          capture.cancel(command.id)
+          break
+        case 'say':
+          speaker.say(command.id, command.pcm, command.rate)
+          break
+        case 'hush':
+          speaker.hush()
+          break
+      }
+    })
+    const offVoiceStatus = window.wisp.mascot.onVoiceStatus(setVoice)
     window.wisp.mascot.ready()
     return () => {
       offState()
@@ -257,6 +296,10 @@ export default function Mascot(): JSX.Element {
       offAccessory()
       offSound()
       offCustom()
+      offVoice()
+      offVoiceStatus()
+      capture.cancel()
+      speaker.hush()
       window.clearTimeout(reactTimer.current)
       window.clearTimeout(petTimer.current)
     }
@@ -402,7 +445,9 @@ export default function Mascot(): JSX.Element {
     gazing && 'gazing',
     dropOver && 'drop-over',
     accessory && `acc-${accessory}`,
-    view.music && 'music'
+    view.music && 'music',
+    voice.state !== 'idle' && `voice-${voice.state}`,
+    voice.heard && 'voice-heard'
   ]
 
   return (
@@ -496,6 +541,19 @@ export default function Mascot(): JSX.Element {
                       <svg className="layer" viewBox="0 0 128 128">
                         <circle className="led-halo" cx="64" cy="15" r="5.5" />
                       </svg>
+                    </div>
+                    {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
+                    <div className="waves">
+                      <div className="wave w1">
+                        <svg className="layer" viewBox="0 0 128 128">
+                          <path d="M 57.5 10 Q 55 15 57.5 20 M 70.5 10 Q 73 15 70.5 20" />
+                        </svg>
+                      </div>
+                      <div className="wave w2">
+                        <svg className="layer" viewBox="0 0 128 128">
+                          <path d="M 53 6.5 Q 49 15 53 23.5 M 75 6.5 Q 79 15 75 23.5" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 </div>

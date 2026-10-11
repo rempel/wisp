@@ -29,7 +29,8 @@ import type {
   NoticeLevel,
   OutgoingAttachment,
   PastedImage,
-  SoundSettings
+  SoundSettings,
+  VoiceStatus
 } from '../shared/ipc'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
@@ -109,8 +110,25 @@ export interface Chat {
   toggle(): void
   /** Mostra o painel e traz para a frente (sem esconder, se já estiver à vista). */
   open(): void
-  /** Manda uma mensagem como se o usuário a tivesse escrito (o comando `wisp --ask`). */
-  ask(text: string): void
+  /**
+   * Manda uma mensagem como se o usuário a tivesse escrito (o comando `wisp --ask`, o atalho de
+   * voz). Devolve false se não foi: o Claude ainda respondia a anterior (a falada fica na caixa).
+   */
+  ask(text: string, options?: { voice?: boolean }): boolean
+  /** Põe um texto ditado na caixa de mensagem, para o usuário revisar e enviar. */
+  compose(text: string): void
+  /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
+  utterance(text: string): void
+  /** Quantos cards de permissão (não perguntas) esperam resposta. */
+  pendingApprovals(): number
+  /** Nega os cards de permissão que esperam resposta (o "não" falado). */
+  denyApprovals(): void
+  /** O painel está à vista. */
+  visible(): boolean
+  /** Em que pé está a voz (o botão do microfone acompanha). */
+  voiceStatus(status: VoiceStatus): void
+  /** O volume do microfone enquanto ouve. */
+  voiceLevel(level: number): void
   /** O humor do mascote mudou: o avatar do cabeçalho acompanha. */
   setMood(state: MascotState): void
   /** Abre o painel numa conversa nova (menu da bandeja). */
@@ -204,6 +222,10 @@ export function setupChat({
   const alwaysAllowed = new Set<string>()
   // O navegador do Claude: sites liberados e em que página ele está (browser-policy.ts).
   const browser = new BrowserPolicy()
+  // A voz (o botão do microfone), reenviada quando a página recarrega; e um texto ditado que
+  // chegou antes de ela carregar.
+  let voice: VoiceStatus = { state: 'idle' }
+  let pendingCompose: string | null = null
 
   /** Manda um evento só para a página (as reaberturas do histórico não mexem no mascote). */
   const toPage = (event: ChatEvent): void => {
@@ -287,6 +309,9 @@ export function setupChat({
     if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
     showSessionsOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
+    win.webContents.send(IPC.voiceStatus, voice)
+    if (pendingCompose !== null) win.webContents.send(IPC.chatCompose, pendingCompose)
+    pendingCompose = null
     // A página (re)começou sem chip: o que estiver copiado é oferecido de novo.
     clipboardOffered = null
     clipboardCheckedAt = 0
@@ -440,6 +465,14 @@ export function setupChat({
     if ((offer?.id ?? null) === clipboardOffered) return
     clipboardOffered = offer?.id ?? null
     if (win && pageReady) win.webContents.send(IPC.chatClipboard, offer)
+  }
+
+  /** Abre o painel com um texto ditado na caixa de mensagem. */
+  function compose(text: string): void {
+    if (win && pageReady) win.webContents.send(IPC.chatCompose, text)
+    else pendingCompose = pendingCompose ? `${pendingCompose} ${text}` : text
+    if (!win) win = createWindow()
+    else show(win)
   }
 
   /** Tira o print com o painel fora da frente e depois o devolve como estava. */
@@ -622,9 +655,12 @@ export function setupChat({
           },
           { once: true }
         )
-        // O Claude fica parado esperando: com o painel escondido, ele aparece, sem roubar o foco.
-        // Aparece antes do evento, para o mascote já olhar para o lado certo.
-        if (win && !win.isVisible()) {
+        // O Claude fica parado esperando: com o painel escondido (ou ainda nem criado, num
+        // comando de voz), ele aparece, sem roubar o foco. Aparece antes do evento, para o
+        // mascote já olhar para o lado certo.
+        if (!win) {
+          win = createWindow(true)
+        } else if (!win.isVisible()) {
           placeNextToMascot(win)
           win.showInactive()
         }
@@ -643,21 +679,54 @@ export function setupChat({
       if (!win) win = createWindow()
       else show(win)
     },
-    ask(text) {
+    ask(text, { voice = false } = {}) {
       if (!win) win = createWindow()
       else show(win)
       if (session.isBusy()) {
+        if (voice) compose(text)
         deliver({
           type: 'notice',
           level: 'warning',
-          text: 'Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.'
+          text: voice
+            ? 'Ainda estou respondendo a mensagem anterior. Deixei o que você disse na caixa: mande quando eu terminar.'
+            : 'Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.'
         })
-        return
+        return false
       }
       // O painel mostra a mensagem como se ela tivesse sido escrita nele.
-      toPage({ type: 'user', text, attachments: [] })
-      history.user(session.ensureSessionId(), text, [])
+      toPage({ type: 'user', text, attachments: [], ...(voice ? { voice } : {}) })
+      history.user(session.ensureSessionId(), text, [], voice)
       void session.send(text, [])
+      return true
+    },
+    compose,
+    utterance(text) {
+      toPage({ type: 'user', text, attachments: [], voice: true })
+    },
+    pendingApprovals() {
+      let count = 0
+      for (const approval of approvals.values()) {
+        if (approval.event.toolName !== QUESTION_TOOL) count++
+      }
+      return count
+    },
+    denyApprovals() {
+      for (const [id, approval] of approvals) {
+        if (approval.event.toolName === QUESTION_TOOL) continue
+        approvals.delete(id)
+        approval.resolve({ allow: false, message: 'Usuário negou' })
+        deliver({ type: 'permission-resolved', id, decision: 'deny' })
+      }
+    },
+    visible() {
+      return win?.isVisible() ?? false
+    },
+    voiceStatus(status) {
+      voice = status
+      if (win && pageReady) win.webContents.send(IPC.voiceStatus, status)
+    },
+    voiceLevel(level) {
+      if (win && pageReady && win.isVisible()) win.webContents.send(IPC.voiceLevel, level)
     },
     setMood(state) {
       mood = state

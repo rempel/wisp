@@ -49,6 +49,24 @@ export interface WispConfig {
   browserAutomation: boolean
   /** O navegador para isso (um Chrome ou Chromium); null procura sozinho. */
   browserExecutable: string | null
+  /** Atalho global de voz: segure enquanto fala (ou toque e fale); null desliga. */
+  voiceShortcut: string | null
+  /** O que for dito pelo atalho vai para a caixa de mensagem, para revisar, em vez de seguir direto. */
+  voiceReview: boolean
+  /** O programa do whisper.cpp (nome no PATH ou caminho). */
+  whisperPath: string
+  /** O modelo do whisper.cpp (um ggml-*.bin). */
+  whisperModel: string
+  /** O idioma da fala ("pt", "en"…) ou "auto". */
+  voiceLanguage: string
+  /** Comandos rápidos por voz, sem o Claude: música, volume e abrir apps. */
+  quickCommands: boolean
+  /** O Wisp fala as respostas do que foi pedido por voz (Piper). */
+  voiceReplies: boolean
+  /** O programa do Piper (nome no PATH ou caminho). */
+  piperPath: string
+  /** A voz do Piper (o .onnx; o .onnx.json fica ao lado). */
+  piperModel: string
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -70,7 +88,16 @@ function defaults(): WispConfig {
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
-    browserExecutable: null
+    browserExecutable: null,
+    voiceShortcut: 'Ctrl+Alt+Space',
+    voiceReview: false,
+    whisperPath: 'whisper-cli',
+    whisperModel: '~/.local/share/wisp/voz/ggml-small.bin',
+    voiceLanguage: 'pt',
+    quickCommands: true,
+    voiceReplies: false,
+    piperPath: 'piper',
+    piperModel: '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx'
   }
 }
 
@@ -141,7 +168,25 @@ const ConfigSchema = z.object({
   clipboardChip: field('clipboardChip', z.boolean(), () => defaults().clipboardChip),
   terminalCommand: field('terminalCommand', z.string().max(300).nullable(), () => null),
   browserAutomation: field('browserAutomation', z.boolean(), () => false),
-  browserExecutable: field('browserExecutable', z.string().max(500).nullable(), () => null)
+  browserExecutable: field('browserExecutable', z.string().max(500).nullable(), () => null),
+  voiceShortcut: field(
+    'voiceShortcut',
+    z.string().max(60).nullable(),
+    () => defaults().voiceShortcut
+  ),
+  voiceReview: field('voiceReview', z.boolean(), () => false),
+  whisperPath: field('whisperPath', z.string().min(1).max(500), () => defaults().whisperPath),
+  whisperModel: field('whisperModel', z.string().min(1).max(500), () => defaults().whisperModel),
+  // Um código de idioma do whisper.cpp ("pt", "en", "zh"…) ou "auto".
+  voiceLanguage: field(
+    'voiceLanguage',
+    z.string().regex(/^(?:[a-z]{2,3}|auto)$/),
+    () => defaults().voiceLanguage
+  ),
+  quickCommands: field('quickCommands', z.boolean(), () => true),
+  voiceReplies: field('voiceReplies', z.boolean(), () => false),
+  piperPath: field('piperPath', z.string().min(1).max(500), () => defaults().piperPath),
+  piperModel: field('piperModel', z.string().min(1).max(500), () => defaults().piperModel)
 })
 
 let config: WispConfig = defaults()

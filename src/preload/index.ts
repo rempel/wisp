@@ -12,6 +12,8 @@ import type {
   MascotView,
   SoundName,
   SoundSettings,
+  VoiceCommand,
+  VoiceStatus,
   WispApi
 } from '../shared/ipc'
 
@@ -53,7 +55,10 @@ const api: WispApi = {
     playSound: (name) => ipcRenderer.send(IPC.soundPlay, name),
     drop: (dropped) => ipcRenderer.send(IPC.mascotDrop, dropped),
     pathForFile: (file) => webUtils.getPathForFile(file),
-    menu: () => ipcRenderer.send(IPC.mascotMenu)
+    menu: () => ipcRenderer.send(IPC.mascotMenu),
+    onVoice: (listener) => subscribe<[VoiceCommand]>(IPC.voiceCommand, listener),
+    voiceEvent: (event) => ipcRenderer.send(IPC.voiceEvent, event),
+    onVoiceStatus: (listener) => subscribe<[VoiceStatus]>(IPC.voiceStatus, listener)
   },
   chat: {
     ready: () => ipcRenderer.send(IPC.chatReady),
@@ -75,7 +80,14 @@ const api: WispApi = {
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
-    copied: () => ipcRenderer.send(IPC.chatCopied)
+    copied: () => ipcRenderer.send(IPC.chatCopied),
+    onCompose: (listener) => subscribe<[string]>(IPC.chatCompose, listener)
+  },
+  voice: {
+    toggle: () => ipcRenderer.send(IPC.voiceToggle),
+    cancel: () => ipcRenderer.send(IPC.voiceCancel),
+    onStatus: (listener) => subscribe<[VoiceStatus]>(IPC.voiceStatus, listener),
+    onLevel: (listener) => subscribe<[number]>(IPC.voiceLevel, listener)
   },
   sound: {
     get: () => ipcRenderer.invoke(IPC.soundGet),

@@ -1,4 +1,4 @@
-import { app, ipcMain, Notification, powerMonitor, screen, shell } from 'electron'
+import { app, ipcMain, Notification, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
 import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
@@ -9,7 +9,7 @@ import { findBrowser, playwrightServer } from './browser'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
 import { CONFIG_PATH, getConfig, loadConfig, onConfigChange } from './config'
-import { openInEditor } from './desktop'
+import { listApps, openApp, openInEditor } from './desktop'
 import { deployRelay } from './hooks/install'
 import { APP_ID, checkCommand, deployLauncher, parseCommand } from './launcher'
 import type { WispCommand } from './launcher'
@@ -28,6 +28,8 @@ import {
   setMascotGaze,
   setMascotView,
   setMascotVisible,
+  setMascotVoice,
+  sendVoiceCommand,
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
@@ -35,18 +37,26 @@ import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
 import { MascotMood } from './mood'
 import { CACHE_DIR, DATA_DIR } from './paths'
+import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
+import { ScreenLock } from './screenlock'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
 import { setupSessionsIpc } from './sessions-ipc'
 import { soundForEvent, Sounds } from './sounds'
-import { releaseShortcut, setupShortcut } from './shortcut'
+import { releaseShortcuts, setupShortcuts } from './shortcut'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
+import { Voice } from './voice'
+import { matchApp } from './voice-commands'
+import type { QuickCommand } from './voice-commands'
+import { stepSystemVolume } from './volume'
+import { transcribe, whisperSetup } from './whisper'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
+import type { NoticeLevel } from '../shared/ipc'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -100,6 +110,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   loadConfig()
   console.log(`[wisp] config: ${CONFIG_PATH}`)
   void cleanOldAttachments()
+  guardPermissions()
 
   // Os players de música (MPRIS): ferramentas do Claude e a dança do mascote. Conecta mais
   // abaixo; até lá, as ferramentas respondem que não há D-Bus.
@@ -183,13 +194,19 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     cursor,
     gaze: setMascotGaze,
     sleep: (asleep) => mood.setAsleep(asleep),
-    canSleep: () => mood.quiet,
+    canSleep: () => mood.quiet && voice?.current.state === 'idle',
     sleepAfter: () => getConfig().sleepAfterMinutes * 60_000
   })
   // Os sons tocam na página do mascote; quem decide se tocam é o main.
   let menu: AppMenu | null = null
-  // O atalho global (ligado mais abaixo); o menu mostra qual é.
-  let shortcut: ShortcutStatus = { via: 'none' }
+  // Os atalhos globais (ligados mais abaixo); o menu mostra quais são.
+  let shortcuts = new Map<string, ShortcutStatus>()
+  const shortcutLabel = (id: string): string | null => {
+    const status = shortcuts.get(id)
+    return !status || status.via === 'none' ? null : (status.label ?? 'ligado')
+  }
+  // A voz (criada mais abaixo, com o chat).
+  let voice: Voice | null = null
   const sounds = new Sounds({
     play: playMascotSound,
     custom: sendMascotCustomSound,
@@ -209,6 +226,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     onEvent: (event) => {
       presence.activity()
       mood.onEvent(event)
+      voice?.onChatEvent(event)
       const sound = soundForEvent(event)
       if (sound) sounds.play(sound)
     },
@@ -218,6 +236,122 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       updateAccessory()
     },
     onActivity: () => presence.activity()
+  })
+
+  // A voz: o botão do microfone do painel e o atalho de voz. Escuta só quando pedida, e nunca com
+  // a tela bloqueada.
+  let screenLock: ScreenLock | null = null
+  void ScreenLock.watch().then((watching) => {
+    screenLock = watching
+    watching.on('change', (locked: boolean) => voice?.setLocked(locked))
+  })
+  const whisperOptions = (): { binary: string; model: string; language: string } => {
+    const config = getConfig()
+    return {
+      binary: config.whisperPath,
+      model: config.whisperModel,
+      language: config.voiceLanguage
+    }
+  }
+  /** Um aviso da voz: no painel e, com ele escondido, numa notificação (menos os informativos). */
+  const voiceNotice = (level: NoticeLevel, text: string): void => {
+    chat?.notice(level, text)
+    if (level !== 'info' && !chat?.visible()) notify('Wisp', text.replace(/\*\*|`/g, ''))
+  }
+  /** Um comando rápido de voz, feito aqui mesmo; false se é para o Claude. */
+  const runQuick = async (command: QuickCommand, text: string): Promise<boolean> => {
+    if (!chat) return false
+    try {
+      return await quick(command, text)
+    } catch (err) {
+      chat.utterance(text)
+      voiceNotice('warning', `Não consegui: ${(err as Error).message}.`)
+      return true
+    }
+  }
+  const quick = async (command: QuickCommand, text: string): Promise<boolean> => {
+    if (!chat) return false
+    const done = (ok: boolean, message: string): true => {
+      chat?.utterance(text)
+      if (ok) {
+        chat?.notice('info', message)
+        mood.flashExternal('happy')
+      } else {
+        voiceNotice('warning', message)
+      }
+      return true
+    }
+    switch (command.kind) {
+      case 'media': {
+        if (!media || !(await media.players()).length) {
+          return done(false, 'Nenhum player de música aberto.')
+        }
+        return done(true, (await media.control(command.action)) || 'Feito.')
+      }
+      case 'volume': {
+        const level = await stepSystemVolume(command.direction)
+        if (level !== null) return done(true, `Volume do sistema em ${level}%.`)
+        if (media && (await media.players()).length) {
+          return done(true, await media.volume(undefined, command.direction * 10))
+        }
+        return done(false, 'Não consegui mudar o volume: não achei o wpctl nem o pactl.')
+      }
+      case 'open': {
+        // Um nome que não é de um app instalado vai para o Claude, que sabe procurar melhor.
+        const found = matchApp(command.name, listApps())
+        if (!found) return false
+        chat.utterance(text)
+        // O mesmo card do open_app do Claude: nada abre sem um clique (a não ser que o open_app
+        // esteja em extraAllowedTools, como para o Claude).
+        const allowed = getConfig().extraAllowedTools.includes('mcp__desktop__open_app')
+        const approval = allowed
+          ? { allow: true }
+          : await chat.requestApproval({
+              toolName: 'mcp__desktop__open_app',
+              input: { id: found.id }
+            })
+        if (!approval.allow) return true
+        const outcome = await openApp(found.id)
+        chat.notice(outcome.ok ? 'info' : 'warning', outcome.message)
+        if (outcome.ok) mood.flashExternal('happy')
+        return true
+      }
+    }
+  }
+  voice = new Voice({
+    command: sendVoiceCommand,
+    status: (status) => {
+      setMascotVoice(status)
+      chat?.voiceStatus(status)
+    },
+    level: (level) => chat?.voiceLevel(level),
+    check: () => void whisperSetup(whisperOptions()),
+    transcribe: (pcm) => transcribe(pcm, whisperOptions()),
+    locked: () => screenLock?.locked ?? false,
+    pendingApprovals: () => chat?.pendingApprovals() ?? 0,
+    denyApprovals: () => chat?.denyApprovals(),
+    quickCommands: () => getConfig().quickCommands,
+    runQuick,
+    deliver: (text, source) => {
+      if (!chat) return 'composed'
+      // Pelo botão do painel (ou com voiceReview), o texto fica na caixa para revisar.
+      if (source === 'panel' || getConfig().voiceReview) {
+        chat.compose(text)
+        return 'composed'
+      }
+      return chat.ask(text, { voice: true }) ? 'sent' : 'composed'
+    },
+    notice: voiceNotice,
+    activity: () => presence.activity(),
+    replies: () => getConfig().voiceReplies,
+    synthesize: (text) =>
+      synthesize(text, { binary: getConfig().piperPath, model: getConfig().piperModel })
+  })
+  ipcMain.on(IPC.voiceToggle, (event) => {
+    if (chat?.isSender(event.sender)) voice?.togglePanel()
+  })
+  ipcMain.on(IPC.voiceCancel, (event) => {
+    if (chat?.isSender(event.sender)) voice?.cancel()
   })
 
   // Gorro no Natal, óculos no verão (o país do idioma do sistema diz o hemisfério).
@@ -326,7 +460,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       const problem = setAutostart(enabled, appIcon)
       if (problem) notify('Não mudei o início com o sistema', problem)
     },
-    shortcutLabel: () => (shortcut.via === 'none' ? null : (shortcut.label ?? 'ligado')),
+    shortcutLabel: () => shortcutLabel('toggle'),
+    voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {
       // Abre no app padrão para .json; sem um, mostra o arquivo na pasta.
       void shell.openPath(CONFIG_PATH).then((error) => {
@@ -351,8 +486,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       if (win) menu?.popup(win)
     },
     sound: (name) => sounds.play(name),
-    ready: () => sounds.resend(),
-    moved: () => presence.start()
+    ready: () => {
+      sounds.resend()
+      // A página recarregou: o que ela ouvia se perdeu.
+      voice?.cancel()
+      if (voice) setMascotVoice(voice.current)
+    },
+    moved: () => presence.start(),
+    voice: (event) => voice?.handle(event)
   })
   sounds.watch()
   void Media.connect().then((connected) => {
@@ -380,22 +521,41 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     },
     !app.isPackaged
   )
-  // O atalho global abre e fecha o painel. Trocado no config.json, vale na hora (no Wayland, o
-  // desktop pergunta de novo).
-  let boundAccelerator: string | null | undefined
-  const bindShortcut = async (): Promise<void> => {
-    const accelerator = getConfig().shortcut
-    if (accelerator === boundAccelerator) return
-    boundAccelerator = accelerator
-    shortcut = await setupShortcut(accelerator, () => {
-      presence.activity()
-      chat?.toggle()
-    })
-    if (shortcut.problem) console.warn(`[wisp] sem atalho global: ${shortcut.problem}.`)
+  // Os atalhos globais: um abre e fecha o painel; o outro, segurado, ouve. Trocados no
+  // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
+  let boundShortcuts: string | undefined
+  const bindShortcuts = async (): Promise<void> => {
+    const { shortcut, voiceShortcut } = getConfig()
+    const key = JSON.stringify([shortcut, voiceShortcut])
+    if (key === boundShortcuts) return
+    boundShortcuts = key
+    shortcuts = await setupShortcuts([
+      {
+        id: 'toggle',
+        accelerator: shortcut,
+        description: 'Abrir ou fechar o painel do Wisp',
+        press: () => {
+          presence.activity()
+          chat?.toggle()
+        }
+      },
+      {
+        id: 'voice',
+        accelerator: voiceShortcut,
+        description: 'Falar com o Wisp (segure enquanto fala)',
+        press: () => voice?.press(shortcuts.get('voice')?.releases ?? false),
+        release: () => voice?.release()
+      }
+    ])
+    for (const [id, status] of shortcuts) {
+      if (status.problem) console.warn(`[wisp] sem o atalho ${id}: ${status.problem}.`)
+    }
     menu?.refresh()
   }
-  void bindShortcut().catch((err: unknown) => console.warn('[wisp] erro no atalho global:', err))
-  onConfigChange(() => void bindShortcut().catch(() => {}))
+  void bindShortcuts().catch((err: unknown) =>
+    console.warn('[wisp] erro nos atalhos globais:', err)
+  )
+  onConfigChange(() => void bindShortcuts().catch(() => {}))
   refreshAutostart(appIcon)
 
   ready((command) => {
@@ -419,7 +579,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     clearTimeout(remindersStart)
     media?.dispose()
     reminders.dispose()
-    releaseShortcut()
+    releaseShortcuts()
+    voice?.cancel()
+    screenLock?.dispose()
     if (midnight) clearTimeout(midnight)
     presence.dispose()
     xpointer?.close()
@@ -429,6 +591,28 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     hooks?.close()
     chat?.dispose()
     desktop?.close()
+  })
+}
+
+/**
+ * As permissões que as páginas do Wisp podem pedir ao Chromium: o microfone, só para a página do
+ * mascote (onde roda a captura de voz) e só o áudio; e escrever na área de transferência (o botão
+ * de copiar do painel). Câmera, tela, localização, notificações e o resto são negados.
+ */
+function guardPermissions(): void {
+  const isMascot = (contents: Electron.WebContents | null): boolean =>
+    contents !== null && contents === getMascotWindow()?.webContents
+  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
+    if (permission === 'media') {
+      const types = (details as { mediaTypes?: string[] }).mediaTypes ?? []
+      callback(isMascot(contents) && types.length > 0 && types.every((type) => type === 'audio'))
+      return
+    }
+    callback(permission === 'clipboard-sanitized-write')
+  })
+  session.defaultSession.setPermissionCheckHandler((contents, permission, _origin, details) => {
+    if (permission !== 'media') return true
+    return isMascot(contents) && (details as { mediaType?: string }).mediaType === 'audio'
   })
 }
 

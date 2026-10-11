@@ -1662,6 +1662,140 @@ body {
   stroke-linecap: round;
 }
 
+/* ---- Voz -------------------------------------------------------------- */
+
+/*
+ * Ouvindo: a lâmpada da antena fica vermelha, como a de um gravador, e ondas saem dela, maiores
+ * quanto mais alto se fala (--vl, de 0 a 1, vem da captura a cada 100 ms). Os olhos olham para
+ * cima, atentos. Transcrevendo, a lâmpada pisca âmbar e os bits correm, como quem pensa.
+ */
+.waves,
+.wave {
+  position: absolute;
+  inset: 0;
+}
+
+.waves {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.wave {
+  transform-origin: 64px 15px;
+  transition:
+    transform 0.12s ease-out,
+    opacity 0.12s ease-out;
+}
+
+.wave path {
+  fill: none;
+  stroke: #f87171;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px rgb(248 113 113 / 0.9));
+}
+
+.voice-listening .waves {
+  opacity: 1;
+}
+
+.voice-listening .w1 {
+  transform: scale(calc(0.85 + var(--vl, 0) * 0.3));
+  opacity: calc(0.45 + var(--vl, 0) * 0.55);
+}
+
+.voice-listening .w2 {
+  transform: scale(calc(0.75 + var(--vl, 0) * 0.45));
+  opacity: calc(0.15 + var(--vl, 0) * 0.85);
+}
+
+.voice-listening .antenna .led,
+.voice-transcribing .antenna .led {
+  fill: #ef4444;
+}
+
+.voice-listening .led-halo,
+.voice-transcribing .led-halo {
+  fill: #f87171;
+}
+
+/* Em pé e parada, como quem presta atenção (mesmo se estava cochilando). */
+.voice-listening .antenna-pose,
+.voice-transcribing .antenna-pose {
+  transform: none;
+}
+
+.voice-listening .antenna {
+  animation-duration: 7s;
+}
+
+.voice-listening .antenna-glow {
+  animation: none;
+  opacity: calc(0.55 + var(--vl, 0) * 0.45);
+}
+
+.voice-listening .eyes {
+  animation: none;
+  transform: translateY(-1.5px);
+}
+
+.voice-listening.voice-heard .eyes-react {
+  transform: scale(1.08);
+}
+
+.voice-transcribing .antenna .led {
+  fill: #f59e0b;
+}
+
+.voice-transcribing .led-halo {
+  fill: #fbbf24;
+}
+
+.voice-transcribing .antenna-glow {
+  animation-duration: 0.45s;
+}
+
+.voice-transcribing .eyes {
+  animation: scan 1.6s ease-in-out infinite;
+}
+
+.voice-transcribing .s1 {
+  --dur: 1.5s;
+}
+
+.voice-transcribing .s2 {
+  --dur: 1.9s;
+}
+
+.voice-transcribing .s3 {
+  --dur: 2.3s;
+}
+
+/* Falando uma resposta: como quando o texto chega. */
+.voice-speaking .glow {
+  animation-duration: 1.2s;
+}
+
+.voice-speaking .eyes-blink {
+  animation: chatter 0.24s ease-in-out infinite alternate;
+}
+
+/* Acordado para ouvir: nada do cochilo fica parado ou apagado. */
+.voice-listening.state-sleeping .float,
+.voice-listening.state-sleeping .glow,
+.voice-listening.state-sleeping .antenna,
+.voice-transcribing.state-sleeping .float,
+.voice-transcribing.state-sleeping .antenna {
+  animation-play-state: running;
+}
+
+.voice-listening.state-sleeping .antenna .led,
+.voice-listening.state-sleeping .antenna-glow svg,
+.voice-transcribing.state-sleeping .antenna .led,
+.voice-transcribing.state-sleeping .antenna-glow svg {
+  opacity: 1;
+}
+
 /* ---- Menos movimento -------------------------------------------------- */
 
 @media (prefers-reduced-motion: reduce) {

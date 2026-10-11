@@ -89,6 +89,11 @@ export function setupRequest(cookie: Buffer | null): Buffer {
   return request
 }
 
+/** As teclas que o servidor usa (min-keycode e max-keycode), na resposta de conexão aceita. */
+export function keycodesFromSetup(reply: Buffer): { min: number; max: number } {
+  return { min: reply.readUInt8(34), max: reply.readUInt8(35) }
+}
+
 /** A janela raiz da primeira tela, na resposta de conexão aceita. */
 export function rootFromSetup(reply: Buffer): number {
   const vendorLength = reply.readUInt16LE(24)
@@ -173,7 +178,7 @@ export class XPointer {
  */
 export async function openDisplay(
   env: NodeJS.ProcessEnv = process.env
-): Promise<{ socket: Socket; root: number } | null> {
+): Promise<{ socket: Socket; root: number; keycodes: { min: number; max: number } } | null> {
   const display = parseDisplay(env.DISPLAY)
   if (!display) return null
   let cookie: Buffer | null = null
@@ -187,12 +192,12 @@ export async function openDisplay(
   // O caminho no disco; se não existir, o do namespace abstrato do Linux.
   const socket = (await connectTo(path)) ?? (await connectTo(`\0${path}`))
   if (!socket) return null
-  const root = await handshake(socket, cookie)
-  if (root === null) {
+  const setup = await handshake(socket, cookie)
+  if (setup === null) {
     socket.destroy()
     return null
   }
-  return { socket, root }
+  return { socket, ...setup }
 }
 
 function connectTo(path: string): Promise<Socket | null> {
@@ -206,16 +211,22 @@ function connectTo(path: string): Promise<Socket | null> {
   })
 }
 
-/** Manda o pedido de conexão e espera a resposta; devolve a janela raiz, ou null se recusado. */
-function handshake(socket: Socket, cookie: Buffer | null): Promise<number | null> {
+/**
+ * Manda o pedido de conexão e espera a resposta; devolve a janela raiz e as teclas, ou null se
+ * recusado.
+ */
+function handshake(
+  socket: Socket,
+  cookie: Buffer | null
+): Promise<{ root: number; keycodes: { min: number; max: number } } | null> {
   return new Promise((resolve) => {
     let buffer = Buffer.alloc(0)
-    const done = (root: number | null): void => {
+    const done = (setup: { root: number; keycodes: { min: number; max: number } } | null): void => {
       clearTimeout(timer)
       socket.off('data', onData)
       socket.off('error', onFail)
       socket.off('close', onFail)
-      resolve(root)
+      resolve(setup)
     }
     const onFail = (): void => done(null)
     const onData = (chunk: Buffer): void => {
@@ -226,7 +237,7 @@ function handshake(socket: Socket, cookie: Buffer | null): Promise<number | null
       // 1: aceita. 0 (recusada) e 2 (pede outra autenticação): sem cursor por aqui.
       if (buffer.readUInt8(0) !== 1) return done(null)
       try {
-        done(rootFromSetup(buffer))
+        done({ root: rootFromSetup(buffer), keycodes: keycodesFromSetup(buffer) })
       } catch {
         done(null)
       }

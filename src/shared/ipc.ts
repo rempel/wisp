@@ -91,6 +91,21 @@ export const IPC = {
   chatClipboardDismiss: 'chat:clipboard-dismiss',
   /** chat → main: o usuário copiou algo do painel (não é para oferecer de volta). */
   chatCopied: 'chat:copied',
+  /** main → chat: um texto ditado, para a caixa de mensagem (o usuário revisa e envia). */
+  chatCompose: 'chat:compose',
+
+  /** main → mascote: o que fazer com o microfone e com a fala do Wisp. Arg: VoiceCommand. */
+  voiceCommand: 'voice:command',
+  /** mascote → main: o que a captura ouviu (ou por que não deu). Arg: VoiceCaptureEvent. */
+  voiceEvent: 'voice:event',
+  /** main → chat e mascote: em que pé está a voz. Arg: VoiceStatus. */
+  voiceStatus: 'voice:status',
+  /** main → chat: o volume do que o microfone ouve, de 0 a 1 (o botão do microfone pulsa). */
+  voiceLevel: 'voice:level',
+  /** chat → main: o botão do microfone (começa a ouvir; ouvindo, termina). */
+  voiceToggle: 'voice:toggle',
+  /** chat → main: desiste da escuta (Esc). */
+  voiceCancel: 'voice:cancel',
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
@@ -147,6 +162,53 @@ export interface Gaze {
 
 /** Reações que o main pede ao mascote: a saudação, quando o app abre, e o toque de um lembrete. */
 export type MascotReaction = 'greet' | 'remind'
+
+/**
+ * Como a escuta termina: 'hold', quando o atalho for solto (o silêncio longo só por garantia);
+ * 'auto', no silêncio depois da fala.
+ */
+export type VoiceMode = 'hold' | 'auto'
+
+/** main → mascote: a captura do microfone e a fala do Wisp, que rodam na página do mascote. */
+export type VoiceCommand =
+  | { type: 'start'; id: number; mode: VoiceMode }
+  /** O atalho foi solto logo (um toque): a escuta segue até o silêncio. */
+  | { type: 'mode'; id: number; mode: VoiceMode }
+  /** Acabou (o atalho foi solto): manda o que ouviu. */
+  | { type: 'stop'; id: number }
+  /** Desiste: o microfone fecha e o áudio é descartado. */
+  | { type: 'cancel'; id: number }
+  /** Fala uma resposta: PCM de 16 bits, mono, nesta taxa. */
+  | { type: 'say'; id: number; pcm: Uint8Array; rate: number }
+  /** Para de falar. */
+  | { type: 'hush' }
+
+/** mascote → main: o que aconteceu na captura (e na fala). */
+export type VoiceCaptureEvent =
+  /** O microfone abriu. */
+  | { type: 'open'; id: number }
+  /** Começou a fala (o detector de voz ouviu alguém). */
+  | { type: 'speech'; id: number }
+  /** O áudio da fala, de 500 ms antes dela até o fim: PCM de 16 bits a 16 kHz. */
+  | { type: 'audio'; id: number; pcm: ArrayBuffer }
+  /** Acabou sem fala. */
+  | { type: 'empty'; id: number }
+  | { type: 'error'; id: number; reason: 'denied' | 'no-device' | 'failed'; message: string }
+  /** Acabou de falar a resposta. */
+  | { type: 'said'; id: number }
+  /** O volume do microfone (0 a 1), a cada 100 ms. */
+  | { type: 'level'; id: number; level: number }
+
+/** Em que pé está a voz, para o painel e o mascote. */
+export interface VoiceStatus {
+  state: 'idle' | 'listening' | 'transcribing' | 'speaking'
+  /** De onde veio a escuta: o botão do painel ou o atalho. */
+  source?: 'panel' | 'shortcut'
+  /** Segurando o atalho (a escuta acaba quando ele for solto). */
+  holding?: boolean
+  /** Já ouviu fala nesta escuta. */
+  heard?: boolean
+}
 
 /** Acessórios por data: gorro no Natal, óculos no verão. */
 export type Accessory = 'christmas' | 'summer'
@@ -447,9 +509,9 @@ export type ChatEvent =
   | { type: 'usage'; usage: PlanUsage }
   /**
    * Uma mensagem do usuário, ao reabrir uma conversa do histórico. Ao vivo, o chat mostra a
-   * mensagem na hora do envio, sem esperar o main.
+   * mensagem na hora do envio, sem esperar o main; as faladas (`voice`) vêm do main.
    */
-  | { type: 'user'; text: string; attachments: AttachmentPreview[] }
+  | { type: 'user'; text: string; attachments: AttachmentPreview[]; voice?: boolean }
   /** Fim da reabertura de uma conversa do histórico (vem depois das mensagens dela). */
   | { type: 'restored'; createdAt: number }
 
@@ -489,6 +551,12 @@ export interface WispApi {
     pathForFile(file: File): string
     /** Abre o menu do mascote (botão direito). */
     menu(): void
+    /** O main pede para ouvir, parar de ouvir ou falar. */
+    onVoice(listener: (command: VoiceCommand) => void): () => void
+    /** O que a captura ouviu. */
+    voiceEvent(event: VoiceCaptureEvent): void
+    /** Em que pé está a voz (para o mascote mostrar que ouve). */
+    onVoiceStatus(listener: (status: VoiceStatus) => void): () => void
   }
   chat: {
     /** Avisa que a página está pronta. Chame depois de registrar o onEvent. */
@@ -526,6 +594,16 @@ export interface WispApi {
     dismissClipboard(id: string): void
     /** O usuário copiou algo do painel. */
     copied(): void
+    /** Um texto ditado para a caixa de mensagem. */
+    onCompose(listener: (text: string) => void): () => void
+  }
+  /** A voz: o botão do microfone do painel. */
+  voice: {
+    /** Começa a ouvir; se já estiver ouvindo, termina e transcreve. */
+    toggle(): void
+    cancel(): void
+    onStatus(listener: (status: VoiceStatus) => void): () => void
+    onLevel(listener: (level: number) => void): () => void
   }
   /** Os sons do Wisp (o botão de mudo do painel). */
   sound: {

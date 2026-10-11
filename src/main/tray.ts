@@ -12,6 +12,8 @@ export interface TrayActions {
   setAutostartEnabled(enabled: boolean): void
   /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
   shortcutLabel(): string | null
+  /** O atalho de voz ("Ctrl+Alt+Space"); null sem atalho. */
+  voiceShortcutLabel(): string | null
   openConfig(): void
   quit(): void
 }
@@ -66,6 +68,9 @@ export function setupTray(actions: TrayActions): AppMenu {
           : 'Atalho: wisp --toggle (veja o README)',
         enabled: false
       },
+      ...(actions.voiceShortcutLabel()
+        ? [{ label: `Falar: ${actions.voiceShortcutLabel()} (segure)`, enabled: false }]
+        : []),
       { type: 'separator' },
       { label: 'Sair', click: () => actions.quit() }
     ]

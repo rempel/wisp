@@ -1,7 +1,13 @@
 import { useEffect, useLayoutEffect, useReducer, useRef, useState } from 'react'
 import type { ClipboardEvent, JSX, KeyboardEvent } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
-import type { ChatEvent, ClipboardOffer, MascotState, SoundSettings } from '../../shared/ipc'
+import type {
+  ChatEvent,
+  ClipboardOffer,
+  MascotState,
+  SoundSettings,
+  VoiceStatus
+} from '../../shared/ipc'
 import { AttachmentList } from './AttachmentList'
 import { ClipboardChip } from './ClipboardChip'
 import { HistoryView } from './HistoryView'
@@ -10,6 +16,7 @@ import {
   BackIcon,
   CloseIcon,
   HistoryIcon,
+  MicIcon,
   PaperclipIcon,
   PlusIcon,
   ScreenshotIcon,
@@ -48,7 +55,16 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
       return (
         <div className="user-turn">
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
-          {item.text && <div className="msg user">{item.text}</div>}
+          {item.text && (
+            <div className={`msg user${item.voice ? ' spoken' : ''}`}>
+              {item.voice && (
+                <span className="voice-badge" title="Falado">
+                  <MicIcon />
+                </span>
+              )}
+              {item.text}
+            </div>
+          )}
         </div>
       )
     case 'text':
@@ -93,6 +109,10 @@ export default function Chat(): JSX.Element {
   // O chip "usar o que você copiou" e o print da tela em andamento.
   const [clip, setClip] = useState<ClipboardOffer | null>(null)
   const [capturing, setCapturing] = useState(false)
+  // A voz: o botão do microfone acompanha (ouvindo, transcrevendo, falando).
+  const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
+  const voiceRef = useRef(voice)
+  const mic = useRef<HTMLButtonElement>(null)
   const root = useRef<HTMLDivElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
@@ -110,6 +130,27 @@ export default function Chat(): JSX.Element {
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offMood = window.wisp.chat.onMood(setMood)
     const offClipboard = window.wisp.chat.onClipboard(setClip)
+    const offVoice = window.wisp.voice.onStatus((status) => {
+      voiceRef.current = status
+      setVoice(status)
+      if (status.state !== 'listening') mic.current?.style.setProperty('--lvl', '0')
+    })
+    // O volume do microfone mexe no anel do botão direto no estilo, sem render.
+    const offLevel = window.wisp.voice.onLevel((level) => {
+      mic.current?.style.setProperty('--lvl', String(level))
+    })
+    // Um texto ditado vai para o fim da caixa, para revisar e enviar.
+    const offCompose = window.wisp.chat.onCompose((text) => {
+      setDraft((current) =>
+        current && !/\s$/.test(current) ? `${current} ${text}` : current + text
+      )
+      requestAnimationFrame(() => {
+        const box = input.current
+        if (!box) return
+        box.focus()
+        box.setSelectionRange(box.value.length, box.value.length)
+      })
+    })
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offShown = window.wisp.chat.onShown(() => {
       if (!reducedMotion.matches) {
@@ -126,6 +167,9 @@ export default function Chat(): JSX.Element {
     return () => {
       offMood()
       offClipboard()
+      offVoice()
+      offLevel()
+      offCompose()
       offShown()
       offSessions()
       document.removeEventListener('copy', onCopy)
@@ -202,7 +246,9 @@ export default function Chat(): JSX.Element {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       const ctrl = event.ctrlKey && !event.altKey && !event.shiftKey && !event.metaKey
       if (event.key === 'Escape') {
-        if (viewRef.current !== 'chat') setView('chat')
+        // Ouvindo, transcrevendo ou falando, o Esc só desiste disso.
+        if (voiceRef.current.state !== 'idle') window.wisp.voice.cancel()
+        else if (viewRef.current !== 'chat') setView('chat')
         else window.wisp.chat.hide()
       } else if (ctrl && event.key.toLowerCase() === 'k') {
         event.preventDefault()
@@ -534,6 +580,17 @@ export default function Chat(): JSX.Element {
             )}
             <div className="composer-meta">
               {state.model && <ModelPill choice={state.model.choice} active={state.model.active} />}
+              {voice.state !== 'idle' && (
+                <span className={`voice-hint ${voice.state}`} role="status">
+                  {voice.state === 'listening'
+                    ? voice.holding
+                      ? 'Ouvindo… solte o atalho quando terminar'
+                      : 'Ouvindo… (Esc desiste)'
+                    : voice.state === 'transcribing'
+                      ? 'Entendendo o que você disse…'
+                      : 'Falando… (Esc para)'}
+                </span>
+              )}
               {sound && (
                 <button
                   type="button"
@@ -566,6 +623,22 @@ export default function Chat(): JSX.Element {
                 aria-label="Anexar um print da tela"
               >
                 {capturing ? <span className="spinner" /> : <ScreenshotIcon />}
+              </button>
+              <button
+                ref={mic}
+                type="button"
+                className={`icon-button attach mic ${voice.state}`}
+                onClick={() => window.wisp.voice.toggle()}
+                disabled={voice.state === 'transcribing'}
+                title={
+                  voice.state === 'listening'
+                    ? 'Parar de ouvir e usar o que eu ouvi'
+                    : 'Falar (o texto vem para a caixa)'
+                }
+                aria-label={voice.state === 'listening' ? 'Parar de ouvir' : 'Falar'}
+                aria-pressed={voice.state === 'listening'}
+              >
+                {voice.state === 'transcribing' ? <span className="spinner" /> : <MicIcon />}
               </button>
               <input
                 ref={picker}
