@@ -3,29 +3,14 @@ import type { JSX } from 'react'
 import { PERMISSION_MODES } from '../../shared/ipc'
 import type { PermissionMode } from '../../shared/ipc'
 import { BoltIcon, CheckIcon, ChevronDownIcon, PencilIcon, PlanIcon, ShieldIcon } from './icons'
+import { MODE_TEXT } from './modes'
 
-/** Os modos de permissão, como aparecem na pílula e no menu. */
-const MODES: Record<PermissionMode, { label: string; hint: string; icon: () => JSX.Element }> = {
-  default: {
-    label: 'Pedir',
-    hint: 'pede antes de cada comando, edição ou app',
-    icon: ShieldIcon
-  },
-  acceptEdits: {
-    label: 'Aceitar edições',
-    hint: 'edita arquivos sem pedir (menos os ocultos); comandos pedem',
-    icon: PencilIcon
-  },
-  plan: {
-    label: 'Planejar',
-    hint: 'só lê e monta um plano para você aprovar',
-    icon: PlanIcon
-  },
-  auto: {
-    label: 'Automático',
-    hint: 'o Claude Code faz o que você pediu e barra o arriscado',
-    icon: BoltIcon
-  }
+/** O ícone de cada modo. */
+const ICONS: Record<PermissionMode, () => JSX.Element> = {
+  default: ShieldIcon,
+  acceptEdits: PencilIcon,
+  plan: PlanIcon,
+  auto: BoltIcon
 }
 
 /**
@@ -52,8 +37,8 @@ export function ModePill({
     return () => document.removeEventListener('mousedown', onDown)
   }, [open])
 
-  const current = MODES[mode]
-  const Icon = current.icon
+  const current = MODE_TEXT[mode]
+  const Icon = ICONS[mode]
   return (
     <div
       className="model mode"
@@ -82,7 +67,7 @@ export function ModePill({
         <div className="model-menu" role="menu">
           {PERMISSION_MODES.map((option) => {
             const selected = option === mode
-            const OptionIcon = MODES[option].icon
+            const OptionIcon = ICONS[option]
             return (
               <button
                 key={option}
@@ -97,8 +82,8 @@ export function ModePill({
               >
                 <span className="model-check">{selected ? <CheckIcon /> : <OptionIcon />}</span>
                 <span className="model-text">
-                  <strong>{MODES[option].label}</strong>
-                  <small>{MODES[option].hint}</small>
+                  <strong>{MODE_TEXT[option].label}</strong>
+                  <small>{MODE_TEXT[option].hint}</small>
                 </span>
               </button>
             )

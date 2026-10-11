@@ -74,6 +74,11 @@ export interface WispConfig {
   piperPath: string
   /** A voz do Piper (o .onnx; o .onnx.json fica ao lado). */
   piperModel: string
+  /**
+   * Modo demonstração: as respostas vêm de gravações, e nada roda de verdade. Para ver o Wisp
+   * funcionando antes de instalar o Claude Code ou de fazer login.
+   */
+  demo: boolean
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -105,7 +110,8 @@ function defaults(): WispConfig {
     quickCommands: true,
     voiceReplies: false,
     piperPath: 'piper',
-    piperModel: '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx'
+    piperModel: '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx',
+    demo: false
   }
 }
 
@@ -156,47 +162,49 @@ function field<T>(key: keyof WispConfig, schema: z.ZodType<T>, fallback: () => T
   })
 }
 
-const ConfigSchema = z.object({
-  claudePath: field('claudePath', z.string().min(1), () => defaults().claudePath),
-  editorCommand: field('editorCommand', z.string().min(1), () => defaults().editorCommand),
-  projectRoots: field('projectRoots', z.array(z.string()), () => defaults().projectRoots),
-  mascotPosition: field('mascotPosition', PointSchema.nullable(), () => null),
-  extraAllowedTools: field('extraAllowedTools', z.array(z.string()), () => []),
+/**
+ * O formato de cada campo. Na leitura do arquivo, um valor inválido cai no padrão do campo (sem
+ * descartar o resto); na tela de configurações, ele é recusado com o motivo.
+ */
+const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
+  claudePath: z.string().trim().min(1),
+  editorCommand: z.string().trim().min(1),
+  projectRoots: z.array(z.string()),
+  mascotPosition: PointSchema.nullable(),
+  extraAllowedTools: z.array(z.string()),
   // Só letras, números e . _ - : [ ]: apelidos ("sonnet") e nomes completos ("claude-sonnet-5-5").
-  model: field('model', z.string().regex(MODEL_NAME).nullable(), () => null),
-  permissionMode: field('permissionMode', z.enum(PERMISSION_MODES), () => 'default' as const),
-  sound: field('sound', z.boolean(), () => defaults().sound),
-  volume: field('volume', z.number().min(0).max(1), () => defaults().volume),
-  sleepAfterMinutes: field(
-    'sleepAfterMinutes',
-    z.number().min(0),
-    () => defaults().sleepAfterMinutes
-  ),
-  accessory: field('accessory', z.enum(ACCESSORY_SETTINGS), () => defaults().accessory),
-  shortcut: field('shortcut', z.string().max(60).nullable(), () => defaults().shortcut),
-  clipboardChip: field('clipboardChip', z.boolean(), () => defaults().clipboardChip),
-  terminalCommand: field('terminalCommand', z.string().max(300).nullable(), () => null),
-  browserAutomation: field('browserAutomation', z.boolean(), () => false),
-  browserExecutable: field('browserExecutable', z.string().max(500).nullable(), () => null),
-  voiceShortcut: field(
-    'voiceShortcut',
-    z.string().max(60).nullable(),
-    () => defaults().voiceShortcut
-  ),
-  voiceReview: field('voiceReview', z.boolean(), () => false),
-  whisperPath: field('whisperPath', z.string().min(1).max(500), () => defaults().whisperPath),
-  whisperModel: field('whisperModel', z.string().min(1).max(500), () => defaults().whisperModel),
+  model: z.string().regex(MODEL_NAME).nullable(),
+  permissionMode: z.enum(PERMISSION_MODES),
+  sound: z.boolean(),
+  volume: z.number().min(0).max(1),
+  sleepAfterMinutes: z.number().min(0),
+  accessory: z.enum(ACCESSORY_SETTINGS),
+  shortcut: z.string().max(60).nullable(),
+  clipboardChip: z.boolean(),
+  terminalCommand: z.string().max(300).nullable(),
+  browserAutomation: z.boolean(),
+  browserExecutable: z.string().max(500).nullable(),
+  voiceShortcut: z.string().max(60).nullable(),
+  voiceReview: z.boolean(),
+  whisperPath: z.string().min(1).max(500),
+  whisperModel: z.string().min(1).max(500),
   // Um código de idioma do whisper.cpp ("pt", "en", "zh"…) ou "auto".
-  voiceLanguage: field(
-    'voiceLanguage',
-    z.string().regex(/^(?:[a-z]{2,3}|auto)$/),
-    () => defaults().voiceLanguage
-  ),
-  quickCommands: field('quickCommands', z.boolean(), () => true),
-  voiceReplies: field('voiceReplies', z.boolean(), () => false),
-  piperPath: field('piperPath', z.string().min(1).max(500), () => defaults().piperPath),
-  piperModel: field('piperModel', z.string().min(1).max(500), () => defaults().piperModel)
-})
+  voiceLanguage: z.string().regex(/^(?:[a-z]{2,3}|auto)$/),
+  quickCommands: z.boolean(),
+  voiceReplies: z.boolean(),
+  piperPath: z.string().min(1).max(500),
+  piperModel: z.string().min(1).max(500),
+  demo: z.boolean()
+}
+
+const ConfigSchema = z.object(
+  Object.fromEntries(
+    (Object.keys(FIELDS) as (keyof WispConfig)[]).map((key) => [
+      key,
+      field(key, FIELDS[key] as z.ZodType<unknown>, () => defaults()[key])
+    ])
+  )
+)
 
 let config: WispConfig = defaults()
 // Conteúdo do arquivo como foi lido. Ao salvar, só as chaves alteradas são trocadas:
@@ -262,7 +270,7 @@ export function loadConfig(): WispConfig {
 
   fileData = json as Record<string, unknown>
   fieldProblems = []
-  config = ConfigSchema.parse(fileData)
+  config = ConfigSchema.parse(fileData) as unknown as WispConfig
   setProblems(fieldProblems)
   writable = true
   loaded = true
@@ -280,6 +288,57 @@ function refresh(): void {
 export function getConfig(): WispConfig {
   refresh()
   return config
+}
+
+/** O que cada campo espera, para o aviso de um valor recusado na tela de configurações. */
+const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
+  claudePath: 'Diga o comando ou o caminho do Claude Code.',
+  editorCommand: 'Diga o comando do editor (code, codium…).',
+  projectRoots: 'Uma pasta por linha.',
+  extraAllowedTools: 'Um nome de ferramenta por linha.',
+  model: 'Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).',
+  volume: 'O volume vai de 0 a 1.',
+  sleepAfterMinutes: 'Um número de minutos, 0 ou mais (0 desliga o cochilo).',
+  shortcut: 'O atalho tem no máximo 60 caracteres.',
+  voiceShortcut: 'O atalho tem no máximo 60 caracteres.',
+  terminalCommand: 'O comando do terminal tem no máximo 300 caracteres.',
+  voiceLanguage: 'Um código de idioma (pt, en, es…) ou auto.'
+}
+
+/**
+ * Confere uma mudança vinda da tela de configurações: só campos conhecidos, cada um no formato
+ * dele. Devolve o motivo (em português) do primeiro campo errado.
+ */
+export function checkSettings(
+  patch: unknown
+): { ok: true; patch: Partial<WispConfig> } | { ok: false; field: string; message: string } {
+  if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
+    return { ok: false, field: '', message: 'mudança inválida' }
+  }
+  const checked: Record<string, unknown> = {}
+  for (const [key, value] of Object.entries(patch)) {
+    if (!Object.hasOwn(FIELDS, key)) return { ok: false, field: key, message: 'campo desconhecido' }
+    const result = FIELDS[key as keyof WispConfig].safeParse(value)
+    if (!result.success) {
+      return {
+        ok: false,
+        field: key,
+        message: EXPECTED[key as keyof WispConfig] ?? 'valor inválido'
+      }
+    }
+    checked[key] = result.data
+  }
+  return { ok: true, patch: checked as Partial<WispConfig> }
+}
+
+/** Dá para gravar no config.json? (Não, se ele existe mas não é um JSON válido.) */
+export function isConfigWritable(): boolean {
+  return writable
+}
+
+/** Avisa quem acompanha a config, depois de uma mudança feita pelo próprio app. */
+export function notifyConfigChange(): void {
+  for (const listener of changeListeners) listener(config)
 }
 
 export function updateConfig(patch: Partial<WispConfig>): void {

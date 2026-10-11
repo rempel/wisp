@@ -102,9 +102,20 @@ export interface PaneProps {
   /** A voz (só no painel em foco o microfone mostra que ouve). */
   voice: VoiceStatus
   bus: PaneBus
+  /** Modo demonstração: o painel vazio sugere o que pedir. */
+  demo: boolean
   /** O usuário mandou uma mensagem: ela aparece na hora, sem esperar o main. */
   onSent: (text: string, attachments: AttachmentPreview[]) => void
 }
+
+/** O que a demonstração sugere pedir (cada um tem uma resposta gravada). */
+const DEMO_PROMPTS = [
+  'O que você faz?',
+  'Abre o Firefox',
+  'Arruma o bug do contador',
+  'Pesquisa a previsão do tempo',
+  'Me lembra de beber água'
+]
 
 /** Uma conversa: as mensagens, os cards e a caixa de texto com anexos, microfone e pílulas. */
 export function Pane({
@@ -121,6 +132,7 @@ export function Pane({
   onClipDone,
   voice,
   bus,
+  demo,
   onSent
 }: PaneProps): JSX.Element {
   const [draft, setDraft] = useState('')
@@ -212,6 +224,14 @@ export function Pane({
     attachments.clear()
     // O chip ignorado sai; volta se outra coisa for copiada.
     if (clip) onClipDone()
+    stick.current = true
+  }
+
+  /** Manda um texto pronto (uma sugestão da demonstração). */
+  function sendText(text: string): void {
+    if (state.busy) return
+    onSent(text, [])
+    window.wisp.chat.send(conversation, text, [])
     stick.current = true
   }
 
@@ -309,25 +329,47 @@ export function Pane({
         </div>
       )}
       <div className="messages" ref={list} onScroll={onScroll}>
-        {state.items.length === 0 ? (
+        {/* Na demonstração, as sugestões ficam até a primeira pergunta (os avisos não as tiram). */}
+        {(state.items.length === 0 || (demo && !started)) && (
           <div className="empty">
             <Avatar size={64} mood={mood} />
             <p className="hello">Oi! Eu sou o Wisp.</p>
-            <p>
-              Pergunte qualquer coisa, arraste arquivos para cá ou cole uma imagem. Enter envia,
-              Shift+Enter quebra a linha e Shift+Tab troca o modo de permissão.
-            </p>
+            {demo ? (
+              <>
+                <p>
+                  Esta é a <strong>demonstração</strong>: as respostas são gravadas, e nada roda de
+                  verdade no seu computador. Experimente:
+                </p>
+                <div className="demo-prompts">
+                  {DEMO_PROMPTS.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      className="demo-prompt"
+                      onClick={() => sendText(prompt)}
+                      disabled={state.busy}
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p>
+                Pergunte qualquer coisa, arraste arquivos para cá ou cole uma imagem. Enter envia,
+                Shift+Enter quebra a linha e Shift+Tab troca o modo de permissão.
+              </p>
+            )}
           </div>
-        ) : (
-          // A lista só cresce (itens mudam no lugar), então a posição identifica o item.
-          state.items.map((item, position) => (
-            <Message
-              key={`${item.kind}-${position}`}
-              item={item}
-              streaming={state.busy && item === last}
-            />
-          ))
         )}
+        {/* A lista só cresce (itens mudam no lugar), então a posição identifica o item. */}
+        {state.items.map((item, position) => (
+          <Message
+            key={`${item.kind}-${position}`}
+            item={item}
+            streaming={state.busy && item === last}
+          />
+        ))}
         {thinking && (
           <div className="thinking" aria-label="Pensando">
             <span />

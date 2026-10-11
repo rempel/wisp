@@ -1,6 +1,7 @@
 // Testes de unidade: cada test/*.test.ts vira um arquivo CommonJS em out/test (esbuild, com o
-// código do app junto) e roda com `node --test`, um processo por arquivo. O relay dos hooks também
-// é montado, para o teste dele rodá-lo como o Claude Code roda.
+// código do app junto) e roda com `node --test`, um processo por arquivo. O relay dos hooks e o
+// Claude Code gravado da demonstração também são montados, para os testes rodarem os dois como o
+// app roda.
 // Uso: npm test [-- nomes dos arquivos, sem .test.ts]
 import { spawnSync } from 'node:child_process'
 import { readdirSync, rmSync } from 'node:fs'
@@ -36,6 +37,11 @@ await build({
   ...common,
   entryPoints: [join(root, 'src/main/hooks/relay.ts')],
   outfile: join(out, 'wisp-hook.cjs')
+})
+await build({
+  ...common,
+  entryPoints: [join(root, 'src/main/demo/player.ts')],
+  outfile: join(out, 'wisp-demo.cjs')
 })
 
 const result = spawnSync(

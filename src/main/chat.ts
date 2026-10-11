@@ -8,8 +8,16 @@ import appIcon from '../../resources/icon.png?asset'
 import workspaceClaudeMd from '../../resources/workspace/CLAUDE.md?raw'
 import { ATTACHMENTS_DIR, isThumbnail, saveIncoming, savePasted } from './attachments'
 import { SAFE_TOOLS } from './claude'
+import type { DemoPlayer } from './claude'
 import { ClipboardChip } from './clipboard'
-import { CONFIG_PATH, configProblems, getConfig, onConfigProblems, updateConfig } from './config'
+import {
+  CONFIG_PATH,
+  configProblems,
+  getConfig,
+  onConfigChange,
+  onConfigProblems,
+  updateConfig
+} from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { History } from './history'
@@ -31,6 +39,7 @@ import type {
   PastedImage,
   PermissionDecision,
   PermissionMode,
+  SettingsSnapshot,
   SoundSettings,
   TabInfo,
   TabsState,
@@ -56,6 +65,11 @@ const MAX_TABS = 12
 const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
 /** As abas abertas, para voltarem quando o app abrir de novo. */
 const TABS_FILE = join(DATA_DIR, 'abas.json')
+/** O Claude Code gravado do modo demonstração e as gravações dele. */
+const DEMO: DemoPlayer = {
+  player: join(__dirname, 'wisp-demo.js'),
+  recordings: join(__dirname, '../../resources/demo')
+}
 const DECISIONS: PermissionDecision[] = [
   'allow',
   'allow-always',
@@ -164,6 +178,8 @@ export interface Chat {
   setMood(state: MascotState): void
   /** Abre o painel numa conversa nova, numa aba (menu da bandeja). */
   newConversation(): void
+  /** Abre o painel na tela de configurações (menu do mascote). */
+  openSettings(): void
   /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
   side(): 'left' | 'right'
   /** Mostra o card de permissão na conversa do pedido e resolve com a decisão do usuário. */
@@ -180,6 +196,8 @@ export interface Chat {
   attach(dropped: DroppedFiles): void
   /** Os sons foram ligados ou desligados (o botão de mudo acompanha). */
   notifySound(settings: SoundSettings): void
+  /** As configurações mudaram (a tela de configurações e a pílula da demonstração). */
+  notifySettings(snapshot: SettingsSnapshot): void
   /**
    * Tira o print das telas com o painel fora da frente; depois ele volta como estava. Lança
    * CaptureError com o motivo.
@@ -247,6 +265,7 @@ export function setupChat({
   let mood: MascotState = 'idle'
   // Mostrar a aba Sessões assim que a página carregar (o pedido chegou antes).
   let showSessionsOnReady = false
+  let showSettingsOnReady = false
   // Arquivos soltos no mascote antes de a página carregar.
   const pendingAttach: DroppedFiles[] = []
   // O último uso do plano (vale para a conta toda), para mostrar de novo se a página recarregar.
@@ -320,8 +339,10 @@ export function setupChat({
         workspace: prepareWorkspace,
         allowedTools: [...SAFE_TOOLS, ...config.extraAllowedTools],
         appendSystemPrompt: APPEND_SYSTEM_PROMPT,
-        thumbnail: thumbnailOfBase64
+        thumbnail: thumbnailOfBase64,
+        demo: () => (getConfig().demo ? DEMO : null)
       },
+      demo: () => getConfig().demo,
       mcpConfig: mcpConfig ? () => mcpConfig(id) : undefined,
       modeFile: modeFileOf(id),
       permissionMode: mode,
@@ -545,6 +566,22 @@ export function setupChat({
 
   restoreTabs()
 
+  // O modo demonstração ligou ou desligou (no menu, na tela de configurações, no arquivo): as
+  // conversas recomeçam, para respostas gravadas e de verdade não se misturarem.
+  let demoOn = getConfig().demo
+  onConfigChange((config) => {
+    if (config.demo === demoOn) return
+    demoOn = config.demo
+    for (const conversation of conversations()) conversation.reset()
+    focusedConversation().notice(
+      'info',
+      demoOn
+        ? 'Modo demonstração ligado: as respostas são gravadas, e nada roda de verdade. ' +
+            'Experimente "abre o Firefox" ou "arruma o bug do contador".'
+        : 'Modo demonstração desligado: as próximas respostas vêm do Claude Code de verdade.'
+    )
+  })
+
   // Problemas no config.json aparecem na conversa (o terminal nem sempre está à vista): ao abrir
   // o painel pela primeira vez e quando o arquivo muda com eles.
   const configNotice = (problems: string[]): string =>
@@ -576,6 +613,8 @@ export function setupChat({
     }
     if (showSessionsOnReady) win.webContents.send(IPC.sessionsShow)
     showSessionsOnReady = false
+    if (showSettingsOnReady) win.webContents.send(IPC.settingsShow)
+    showSettingsOnReady = false
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
     win.webContents.send(IPC.voiceStatus, voice)
     if (pendingCompose !== null) win.webContents.send(IPC.chatCompose, pendingCompose)
@@ -923,6 +962,12 @@ export function setupChat({
       if (!win) win = createWindow()
       else show(win)
     },
+    openSettings() {
+      if (win && pageReady) win.webContents.send(IPC.settingsShow)
+      else showSettingsOnReady = true
+      if (!win) win = createWindow()
+      else show(win)
+    },
     ask(text, { voice = false } = {}) {
       let conversation = focusedConversation()
       // A conversa em foco está respondendo: a pergunta nova vai numa aba nova, e a outra segue.
@@ -1038,6 +1083,9 @@ export function setupChat({
     },
     notifySound(settings) {
       if (win && pageReady) win.webContents.send(IPC.soundChanged, settings)
+    },
+    notifySettings(snapshot) {
+      if (win && pageReady) win.webContents.send(IPC.settingsChanged, snapshot)
     },
     capture: captureWithoutPanel,
     notice(level, text) {

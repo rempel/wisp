@@ -123,6 +123,20 @@ export const IPC = {
   voiceLevel: 'voice:level',
   /** chat → main: o botão do microfone (começa a ouvir; ouvindo, termina). */
   voiceToggle: 'voice:toggle',
+
+  /** chat → main (invoke): as configurações de agora. Devolve SettingsSnapshot. */
+  settingsGet: 'settings:get',
+  /**
+   * chat → main (invoke): muda configurações (um Partial<Settings>, e `autostart`). Devolve
+   * SettingsResult; deu certo, o settingsChanged traz o novo estado.
+   */
+  settingsSet: 'settings:set',
+  /** main → chat: as configurações mudaram (pela tela, pelo menu ou no arquivo). */
+  settingsChanged: 'settings:changed',
+  /** chat → main: abre o config.json (no editor de JSON, ou a pasta dele). */
+  settingsOpenFile: 'settings:open-file',
+  /** main → chat: mostra a tela de configurações (o item do menu do mascote). */
+  settingsShow: 'settings:show',
   /** chat → main: desiste da escuta (Esc). */
   voiceCancel: 'voice:cancel',
 
@@ -563,6 +577,65 @@ export type PermissionDecision = 'allow' | 'allow-always' | 'deny' | 'allow-edit
  * O "bypassPermissions" (pular todas as permissões) fica de fora de propósito.
  */
 export const PERMISSION_MODES = ['default', 'acceptEdits', 'plan', 'auto'] as const
+
+/** Os campos do config.json que a tela de configurações mostra e muda. */
+export interface Settings {
+  projectRoots: string[]
+  editorCommand: string
+  terminalCommand: string | null
+  model: string | null
+  permissionMode: PermissionMode
+  extraAllowedTools: string[]
+  sound: boolean
+  volume: number
+  sleepAfterMinutes: number
+  accessory: 'auto' | 'none' | 'christmas' | 'summer'
+  shortcut: string | null
+  voiceShortcut: string | null
+  clipboardChip: boolean
+  browserAutomation: boolean
+  voiceReview: boolean
+  quickCommands: boolean
+  voiceReplies: boolean
+  voiceLanguage: string
+  demo: boolean
+}
+
+export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
+  'projectRoots',
+  'editorCommand',
+  'terminalCommand',
+  'model',
+  'permissionMode',
+  'extraAllowedTools',
+  'sound',
+  'volume',
+  'sleepAfterMinutes',
+  'accessory',
+  'shortcut',
+  'voiceShortcut',
+  'clipboardChip',
+  'browserAutomation',
+  'voiceReview',
+  'quickCommands',
+  'voiceReplies',
+  'voiceLanguage',
+  'demo'
+]
+
+/** O que a tela de configurações recebe. */
+export interface SettingsSnapshot {
+  values: Settings
+  /** Iniciar com o sistema (um arquivo em ~/.config/autostart, fora do config.json). */
+  autostart: boolean
+  /** O config.json, com ~ no lugar da pasta pessoal. */
+  configPath: string
+  /** O que está errado no config.json (os campos inválidos caem no padrão). */
+  problems: string[]
+}
+
+/** A mudança deu certo, ou o campo que estava errado e o motivo. */
+export type SettingsResult = { ok: true } | { ok: false; field: string; message: string }
 export type PermissionMode = (typeof PERMISSION_MODES)[number]
 
 /** Quantos painéis lado a lado a janela do chat aceita. */
@@ -690,6 +763,15 @@ export interface WispApi {
     get(): Promise<SoundSettings>
     set(enabled: boolean): void
     onChanged(listener: (settings: SoundSettings) => void): () => void
+  }
+  /** As configurações (a tela de configurações e o modo demonstração). */
+  settings: {
+    get(): Promise<SettingsSnapshot>
+    set(patch: Partial<Settings> & { autostart?: boolean }): Promise<SettingsResult>
+    onChanged(listener: (snapshot: SettingsSnapshot) => void): () => void
+    openFile(): void
+    /** O menu do mascote pediu a tela de configurações. */
+    onShow(listener: () => void): () => void
   }
   history: {
     list(): Promise<ConversationSummary[]>

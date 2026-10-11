@@ -1,0 +1,7 @@
+{"wait": 300}
+{"type": "stream_event", "event": {"type": "message_start", "message": {"id": "msg_a1"}}}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_a1", "name": "mcp__desktop__list_apps", "input": {}}}}
+{"type": "assistant", "message": {"id": "msg_a1", "content": [{"type": "tool_use", "id": "toolu_a1", "name": "mcp__desktop__list_apps", "input": {"busca": "firefox"}}]}}
+{"wait": 500}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_a1", "content": "[{\"id\":\"firefox\",\"nome\":\"Firefox\",\"descricao\":\"Navegador web\"}]", "is_error": false}]}}
+{"approve": {"tool": "mcp__desktop__open_app", "input": {"id": "firefox"}}, "allow": [{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "TOOL_USE_ID", "content": "Demonstração: nada foi aberto de verdade.", "is_error": false}]}}, {"say": "Pronto! Numa conversa de verdade, o Firefox abriria agora. Na demonstração, eu só mostro o pedido: nada foi aberto."}], "deny": [{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "TOOL_USE_ID", "content": "Usuário negou", "is_error": true}]}}, {"say": "Tudo bem, não abro. Nada que muda o seu computador acontece sem um clique seu."}]}

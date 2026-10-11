@@ -18,6 +18,8 @@ files:
   - resources/**
   - package.json
   - '!**/*.map'
+  # Os testes de unidade montados (npm test) não vão no pacote.
+  - '!out/test/**'
 electronFuses:
   # O relay dos hooks e o Playwright MCP rodam com ELECTRON_RUN_AS_NODE.
   runAsNode: true

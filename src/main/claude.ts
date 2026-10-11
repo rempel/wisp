@@ -131,14 +131,33 @@ export interface ClaudeOptions {
    * ferramenta mostrar o que o Claude viu (um print da tela, por exemplo).
    */
   thumbnail?: (base64: string) => string | undefined
+  /** No modo demonstração: o Claude Code gravado e as gravações, no lugar do CLI. */
+  demo?: () => DemoPlayer | null
 }
 
+/** O Claude Code gravado do modo demonstração (demo/player.ts), rodado pelo Electron em modo Node. */
+export interface DemoPlayer {
+  /** O script do reprodutor (out/main/wisp-demo.js). */
+  player: string
+  /** A pasta das gravações (resources/demo). */
+  recordings: string
+}
+
+/** O "executável" do modo demonstração, no lugar do caminho do CLI. */
+const DEMO = 'wisp-demo'
+
+/** Como ver o Wisp funcionando antes de instalar o Claude Code ou de fazer login. */
+const DEMO_HINT =
+  'Para ver o Wisp funcionando antes, ligue o **Modo demonstração** no menu do mascote (clique ' +
+  'com o botão direito nele).'
+
 export const LOGIN_HINT =
-  'Rode `claude` no terminal e faça login. Depois é só mandar a mensagem de novo.'
+  'Rode `claude` no terminal e faça login. Depois é só mandar a mensagem de novo. ' + DEMO_HINT
 export const INSTALL_HINT =
   'Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ' +
   'login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ' +
-  'caminho em `claudePath` no `~/.config/wisp/config.json`.'
+  'caminho em `claudePath` no `~/.config/wisp/config.json`. ' +
+  DEMO_HINT
 
 /**
  * Ferramentas que não viram card de ferramenta: o ToolSearch só carrega outras ferramentas, as
@@ -705,6 +724,8 @@ export class ClaudeSession {
   }
 
   private async check(): Promise<string | null> {
+    // Na demonstração, não há CLI para conferir.
+    if (this.options.demo?.()) return DEMO
     if (this.bin) return this.bin
     const result = await checkClaude(this.options.claudePath)
     if (!result.ok) {
@@ -782,9 +803,16 @@ export class ClaudeSession {
 
     ensureAttachmentsDir()
     this.writeModeFile()
-    const env = claudeEnv(bin)
+    // Na demonstração, o Claude Code gravado roda com o próprio Electron em modo Node.
+    const demo = bin === DEMO ? this.options.demo?.() : null
+    const command = demo ? process.execPath : bin
+    const env = claudeEnv(command)
     if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
-    const proc = spawn(bin, args, {
+    if (demo) {
+      env.ELECTRON_RUN_AS_NODE = '1'
+      env.WISP_DEMO_DIR = demo.recordings
+    }
+    const proc = spawn(command, demo ? [demo.player, ...args] : args, {
       cwd: this.cwd ?? this.options.workspace(),
       env
     })
