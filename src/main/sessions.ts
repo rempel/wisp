@@ -11,6 +11,8 @@ import type {
 import type { RelayEvent, RelayReply } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import { DATA_DIR } from './paths'
+import { permissionScope } from './permission-scope'
+import type { Scope } from './permission-scope'
 import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
 
 /** ~/.local/share/wisp/sessoes.json: as sessões recentes, para a lista sobreviver ao app fechar. */
@@ -41,8 +43,8 @@ interface Request {
   input: unknown
   at: number
   inputHash: string | null
-  /** Até onde o "Permitir sempre" vale (o mesmo comando, no Bash; a ferramenta, no resto). */
-  scope: string
+  /** Até onde o "Permitir sempre" vale (permission-scope.ts). */
+  scope: Scope
   pending: PendingReply
   /** Tamanho do transcript depois de assentar; se crescer, o pedido foi respondido no terminal. */
   transcriptSize: number | null
@@ -116,12 +118,6 @@ function sizeOf(path: string | null): number | null {
   } catch {
     return null
   }
-}
-
-/** No Bash, o comando exato; nas outras ferramentas, a ferramenta toda (como no chat). */
-function scopeOf(toolName: string, input: unknown): string {
-  const command = (input as { command?: unknown } | null)?.command
-  return toolName === 'Bash' && typeof command === 'string' ? `Bash:${command}` : toolName
 }
 
 /**
@@ -264,7 +260,7 @@ export class ExternalSessions {
       if (question && answer.decision !== 'terminal') return false
       switch (answer.decision) {
         case 'allow-always':
-          session.alwaysAllowed.add(request.scope)
+          session.alwaysAllowed.add(request.scope.key)
           reply = { decision: 'allow' }
           break
         case 'allow':
@@ -393,8 +389,8 @@ export class ExternalSessions {
   private request(session: Tracked, message: RelayEvent, pending: PendingReply): void {
     const input = message.input
     const toolName = str(input.tool_name, 200) ?? '?'
-    const scope = scopeOf(toolName, input.tool_input)
-    if (toolName !== QUESTION_TOOL && session.alwaysAllowed.has(scope)) {
+    const scope = permissionScope(toolName, input.tool_input)
+    if (toolName !== QUESTION_TOOL && session.alwaysAllowed.has(scope.key)) {
       pending.reply({ decision: 'allow' })
       return
     }
@@ -503,11 +499,13 @@ export class ExternalSessions {
       error: session.error,
       model: session.model,
       steps: session.steps,
-      requests: session.requests.map(({ id, toolName, input, at }) => ({
+      requests: session.requests.map(({ id, toolName, input, at, scope }) => ({
         id,
         toolName,
         input,
-        at
+        at,
+        ...(scope.label ? { scope: scope.label } : {}),
+        ...(scope.exact ? { exact: true } : {})
       })),
       alive: session.alive && session.state !== 'ended'
     }

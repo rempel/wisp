@@ -138,6 +138,45 @@ export const ModelIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Modo Pedir: um escudo. */
+export const ShieldIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M8 1.8 13 3.8v4c0 3-2.1 5.3-5 6.4-2.9-1.1-5-3.4-5-6.4v-4Z" />
+  </Icon>
+)
+
+/** Modo Aceitar edições: um lápis. */
+export const PencilIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M10.6 2.6a1.6 1.6 0 0 1 2.3 2.3L5.6 12.2l-3 .8.8-3Z" />
+    <path d="m9.6 3.6 2.3 2.3" />
+  </Icon>
+)
+
+/** Modo Planejar: uma lista com marcas. */
+export const PlanIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M6.5 4h7M6.5 8h7M6.5 12h7" />
+    <path d="m2.4 4 .8.8 1.4-1.6M2.4 8l.8.8 1.4-1.6" />
+    <circle cx="3.4" cy="12" r="0.9" />
+  </Icon>
+)
+
+/** Modo Automático: um raio. */
+export const BoltIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M9 1.8 3.4 9h4.2L7 14.2 12.6 7H8.4Z" />
+  </Icon>
+)
+
+/** Dividir a janela: duas colunas. */
+export const SplitIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="2" y="2.8" width="12" height="10.4" rx="1.6" />
+    <path d="M8 2.8v10.4" />
+  </Icon>
+)
+
 /** Um terminal, para a aba Sessões. */
 export const TerminalIcon = (): JSX.Element => (
   <Icon>

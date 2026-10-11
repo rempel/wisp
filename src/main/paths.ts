@@ -20,3 +20,12 @@ export const CACHE_DIR = join(xdgHome('XDG_CACHE_HOME', '.cache'), 'wisp')
 export function expandHome(path: string): string {
   return path === '~' || path.startsWith('~/') ? join(homedir(), path.slice(1)) : path
 }
+
+/**
+ * Pasta só do usuário para arquivos de vida curta (o token do MCP, o modo de cada conversa):
+ * $XDG_RUNTIME_DIR (tmpfs) ou o cache.
+ */
+export function runtimeDir(): string {
+  const xdg = process.env.XDG_RUNTIME_DIR
+  return xdg && isAbsolute(xdg) ? join(xdg, 'wisp') : CACHE_DIR
+}

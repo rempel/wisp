@@ -12,6 +12,7 @@ import type {
   MascotView,
   SoundName,
   SoundSettings,
+  TabsState,
   VoiceCommand,
   VoiceStatus,
   WispApi
@@ -62,16 +63,18 @@ const api: WispApi = {
   },
   chat: {
     ready: () => ipcRenderer.send(IPC.chatReady),
-    send: (text, attachments) => ipcRenderer.send(IPC.chatSend, text, attachments),
+    send: (conversation, text, attachments) =>
+      ipcRenderer.send(IPC.chatSend, conversation, text, attachments),
     pathForFile: (file) => webUtils.getPathForFile(file),
     savePasted: (data, type) => ipcRenderer.invoke(IPC.chatPaste, data, type),
-    stop: () => ipcRenderer.send(IPC.chatStop),
-    newConversation: () => ipcRenderer.send(IPC.chatNew),
+    stop: (conversation) => ipcRenderer.send(IPC.chatStop, conversation),
+    newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
     hide: () => ipcRenderer.send(IPC.chatHide),
-    setModel: (choice) => ipcRenderer.send(IPC.chatModel, choice),
+    setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
+    setMode: (conversation, mode) => ipcRenderer.send(IPC.chatMode, conversation, mode),
     answerPermission: (id, decision) => ipcRenderer.send(IPC.chatPermission, id, decision),
     answerQuestion: (id, answers) => ipcRenderer.send(IPC.chatAnswer, id, answers),
-    onEvent: (listener) => subscribe<[ChatEvent]>(IPC.chatEvent, listener),
+    onEvent: (listener) => subscribe<[string, ChatEvent]>(IPC.chatEvent, listener),
     onMood: (listener) => subscribe<[MascotState]>(IPC.chatMood, listener),
     onShown: (listener) => subscribe<[]>(IPC.chatShown, listener),
     onAttach: (listener) => subscribe<[DroppedFiles]>(IPC.chatAttach, listener),
@@ -82,6 +85,16 @@ const api: WispApi = {
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
     copied: () => ipcRenderer.send(IPC.chatCopied),
     onCompose: (listener) => subscribe<[string]>(IPC.chatCompose, listener)
+  },
+  tabs: {
+    onState: (listener) => subscribe<[TabsState]>(IPC.tabsState, listener),
+    create: () => ipcRenderer.send(IPC.tabsNew),
+    close: (id) => ipcRenderer.send(IPC.tabsClose, id),
+    show: (id) => ipcRenderer.send(IPC.tabsShow, id),
+    focus: (pane) => ipcRenderer.send(IPC.tabsFocus, pane),
+    split: () => ipcRenderer.send(IPC.tabsSplit),
+    unsplit: (pane) => ipcRenderer.send(IPC.tabsUnsplit, pane),
+    openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId)
   },
   voice: {
     toggle: () => ipcRenderer.send(IPC.voiceToggle),

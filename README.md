@@ -33,6 +33,16 @@ Depois do MVP, vieram as fases do roadmap:
   - por voz dá para negar um pedido, nunca aprovar;
   - nenhum áudio vai para o disco, e com a tela bloqueada ele não escuta;
   - se você quiser, o Wisp fala as respostas (Piper).
+- **Fase 11 (abas e modos de permissão), pronta para validação:**
+  - várias conversas no mesmo painel, em abas, e até três lado a lado (Ctrl+T, Ctrl+W,
+    Ctrl+Tab, Ctrl+\\). Cada aba tem o seu Claude Code, e o pontinho dela mostra se está
+    trabalhando, esperando você ou com resposta nova;
+  - as sessões do terminal também abrem numa aba, com os pedidos delas;
+  - uma pílula de modo em cada conversa, como o Shift+Tab do Claude Code: **Pedir**,
+    **Aceitar edições**, **Planejar** e **Automático**. O plano aprovado já escolhe como seguir;
+  - **Permitir “ls” sempre** vale para o programa (ou para o subcomando, como `git status`), e
+    não só para o comando exato. Comandos compostos, perigosos ou com arquivos de segredos
+    continuam pedindo.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -154,8 +164,9 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] "roda `ls` no terminal": aparece o card **Rodar um comando no terminal** com o comando,
       e o cabeçalho mostra "esperando sua permissão…". Todo comando pede permissão, até os que
       só leem.
-- [ ] **Permitir sempre nesta conversa** libera o mesmo comando (no `Bash`) ou a mesma
-      ferramenta (nas outras) até você clicar no **+**; depois disso, pede de novo.
+- [ ] **Permitir sempre nesta conversa** libera a mesma ferramenta até você recomeçar a
+      conversa (Ctrl+K); depois disso, pede de novo. No `Bash`, vale para o programa (veja a
+      Fase 11).
 - [ ] Com o painel escondido (Esc), um pedido de permissão faz ele reaparecer, sem roubar o
       foco da janela em que você está.
 - [ ] Parar com um card esperando marca o card como **Cancelado**.
@@ -315,6 +326,36 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
 
+### Abas e modos de permissão (Fase 11)
+
+- [ ] **Abas:** Ctrl+T (ou o **+** ao lado das abas) abre outra conversa. Mande algo demorado
+      nela e volte para a primeira (Ctrl+1): o pontinho da outra pulsa enquanto ela trabalha e
+      fica verde quando a resposta chega. Ctrl+Tab passa para a próxima, Ctrl+W fecha.
+- [ ] **Lado a lado:** Ctrl+\\ (ou o botão ao lado do **+**) põe mais um painel, com outra aba;
+      a janela alarga. Até três. O **x** no topo de um painel tira ele da janela, e a aba
+      continua aberta.
+- [ ] **Cada conversa com os seus pedidos:** em dois painéis, peça um comando em cada um. Cada
+      card aparece no painel da sua conversa, e a aba de cada um fica âmbar.
+- [ ] **Permitir sempre, de verdade:** "roda `ls ~/projetos`" e clique em **Permitir “ls”
+      sempre nesta conversa**. Depois, "roda `ls -la ~/projetos`" passa sem card. Um `git
+status` liberado não libera `git push`, e `ls; rm x` pede de novo.
+- [ ] **Automático:** na pílula **Pedir** (ou com Shift+Tab na caixa de texto), escolha
+      **Automático** e peça "cria o arquivo ~/projetos/oi.txt com oi": nada de card. Só aquela
+      aba muda.
+- [ ] **Aceitar edições:** criar ou editar arquivos na pasta pessoal passa sem card; um arquivo
+      oculto (`~/.bashrc`, `.env`, `.git/…`) e os comandos continuam pedindo.
+- [ ] **Planejar:** peça uma mudança. O Claude só lê e mostra o card **O plano está pronto**,
+      com o plano formatado e os botões **Aprovar**, **Aprovar e aceitar edições**, **Aprovar
+      no automático** e **Continuar planejando**. A pílula acompanha o modo escolhido.
+- [ ] **Sessões do terminal em abas:** na aba Sessões, **Abrir em aba** põe uma sessão numa aba,
+      que dá para deixar ao lado de uma conversa. Os pedidos dela aparecem ali.
+- [ ] **Pergunta com a aba ocupada:** com uma resposta longa em andamento, mande
+      `wisp --ask "que horas são?"` (ou fale pelo atalho): ela vai numa aba nova, e a outra
+      continua.
+- [ ] **Voltam do jeito que estavam:** feche o Wisp com várias abas lado a lado e abra de novo:
+      as abas, os painéis e o modo de cada conversa voltam, e nenhum Claude Code sobe até você
+      mandar uma mensagem.
+
 ### Voz (Fase 10)
 
 Antes, instale o whisper.cpp e o modelo (veja [Voz](#voz)).
@@ -387,6 +428,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "mascotPosition": null,
   "extraAllowedTools": [],
   "model": null,
+  "permissionMode": "default",
   "sound": true,
   "volume": 0.5,
   "sleepAfterMinutes": 3,
@@ -426,6 +468,21 @@ Dá para editar o arquivo com o Wisp aberto:
 de texto troca entre `"haiku"`, `"sonnet"`, `"opus"` e `"fable"`. No arquivo, também vale o nome
 completo de um modelo (`"claude-sonnet-5-5"`).
 
+`permissionMode` é o modo com que as conversas novas começam: `"default"` (Pedir),
+`"acceptEdits"` (Aceitar edições), `"plan"` (Planejar) ou `"auto"` (Automático). A pílula ao
+lado da do modelo troca o modo de cada conversa na hora (Shift+Tab na caixa de texto passa para o
+próximo), e as abas guardam o seu ao fechar o Wisp. O modo que pula todas as permissões
+(`bypassPermissions`) não existe no Wisp.
+
+- **Pedir:** todo comando, edição e app passa pelo card.
+- **Aceitar edições:** criar e editar arquivos na pasta pessoal e nas `projectRoots` passa sem
+  card, menos os ocultos e o que fica dentro de pastas ocultas (`~/.bashrc`, `~/.config`,
+  `.git`, `.env`). Comandos e apps continuam pedindo.
+- **Planejar:** o Claude só lê e pesquisa, e mostra o plano num card para você aprovar.
+- **Automático:** o classificador do Claude Code decide: o que você pediu roda sem card, e o
+  que parece arriscado ou fora do pedido ele barra ou pergunta. Os apps (`open_app`), o print
+  da tela e as outras ferramentas do Wisp continuam pedindo.
+
 `claudePath` é o comando do Claude Code. Um app aberto pelo menu do sistema recebe um `PATH` curto,
 então um nome simples é procurado em vários lugares:
 
@@ -444,7 +501,8 @@ podem ser abertos. `editorCommand` é o comando do editor, com argumentos se pre
 
 Ferramentas em `extraAllowedTools` passam a rodar sem o card, além das já liberadas. Por
 exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar (vale também para o "abre o X"
-falado). Comandos `Bash` são a exceção: sempre pedem permissão, mesmo listados aqui.
+falado). Comandos `Bash` são a exceção: pedem permissão mesmo listados aqui, menos no modo
+Automático, em que quem decide é o Claude Code.
 
 `sound` liga e desliga os sons; o botão de mudo do painel, o Ctrl+M e o item **Sons** dos menus
 mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
@@ -487,8 +545,8 @@ rápidos (música, volume, abrir apps), que o Wisp resolve sem o Claude. `voiceR
 falar a resposta do que foi pedido por voz, com o Piper de `piperPath` e a voz de `piperModel`.
 
 O comando `~/.local/share/wisp/bin/wisp` abre o Wisp ou fala com o que já está aberto:
-`--toggle` abre e fecha o painel, `--show` mostra, `--new` começa uma conversa nova e
-`--ask "texto"` manda uma pergunta. Ele é reescrito a cada abertura do app, assim como o
+`--toggle` abre e fecha o painel, `--show` mostra, `--new` começa uma conversa nova (numa aba
+nova, se a da frente já tiver uma) e `--ask "texto"` manda uma pergunta. Ele é reescrito a cada abertura do app, assim como o
 `~/.local/share/applications/io.github.rempel.Wisp.desktop` (a entrada no menu de apps). O
 **Iniciar com o sistema** grava `~/.config/autostart/io.github.rempel.Wisp.desktop`. O Wisp nunca
 sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).
@@ -542,6 +600,9 @@ do Claude Code segue a regra dele.
 | "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                     |
 | "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula   |
 | "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                       |
+| "O Claude Code começou no modo …"            | Uma política do `settings.json` (ou da empresa) escolheu outro modo, ou a sua conta não tem o Automático       |
+| O modo voltou para Pedir sozinho             | Um plano aprovado com **Aprovar** volta para o Pedir, como no Claude Code. Use **Aprovar e aceitar edições**   |
+| O "Permitir sempre" não pegou                | Comandos compostos (`;`, `&&`, `\|`), perigosos (`rm`, `sudo`, `curl`…) ou com segredos valem só exatos        |
 | A pílula de uso não aparece                  | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                |
 | "O Wisp não está ouvindo as sessões"         | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões       |
 | A sessão do terminal não aparece             | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem          |
@@ -626,7 +687,9 @@ src/
 │  ├─ sounds.ts      # quem decide os sons, e a pasta de sons do usuário
 │  ├─ accessory.ts   # acessório do dia (gorro, óculos)
 │  ├─ tray.ts        # menu da bandeja (o mesmo do botão direito no mascote)
-│  ├─ chat.ts        # janela do chat, workspace, IPC da conversa e pedidos de permissão
+│  ├─ chat.ts        # janela do chat, abas e painéis, workspace e o IPC das conversas
+│  ├─ conversation.ts # uma conversa (aba): processo, histórico, cards, "sempre" e modo
+│  ├─ permission-scope.ts # até onde vai o "Permitir sempre" e o que o Aceitar edições libera
 │  ├─ claude.ts      # processo `claude -p`, leitura do stream-json e pedidos de controle
 │  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
 │  ├─ hooks/
@@ -653,7 +716,8 @@ src/
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG e reações), mascot.css (animações), sounds.ts (WebAudio),
    │                 # voice.ts e voice-worklet.ts (microfone e fala)
-   ├─ chat/          # Chat.tsx, Markdown, cards, anexos, pílulas, histórico, aba Sessões
+   ├─ chat/          # Chat.tsx (abas e painéis), Pane.tsx (uma conversa), Markdown, cards,
+   │                 # anexos, pílulas do modelo e do modo, histórico, aba Sessões
    └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
@@ -730,14 +794,27 @@ resources/
   (`--permission-prompt-tool mcp__desktop__approve`), que mostra o card e espera o clique:
   **Permitir** responde `{"behavior":"allow","updatedInput":…}` e **Negar** responde
   `{"behavior":"deny","message":"Usuário negou"}`. **Permitir sempre nesta conversa** fica só
-  na memória do app e vale até a conversa recomeçar; no `Bash`, só para o mesmo comando exato.
+  na memória do app e vale até a conversa recomeçar (`permission-scope.ts`):
+  - nas ferramentas, vale para a ferramenta;
+  - no `Bash`, para o programa (`ls`, `cat`) ou, nos que têm subcomandos (`git`, `npm`,
+    `docker`, `systemctl`…), para o programa com o subcomando (`git status` não libera
+    `git push`);
+  - só o comando exato quando ele é composto ou redireciona (`;`, `&&`, `|`, `>`, `$(…)`,
+    crases), quando o programa apaga, sobe privilégio, roda outro código ou manda dados para
+    fora (`rm`, `sudo`, `curl`, `bash`, `python`, `npx`, `find`, `sed`…), quando o programa
+    não é um nome simples (`./x.sh`, `VAR=1 x`) e quando o comando menciona arquivos de
+    segredos.
+
   Três detalhes fecham as brechas:
-  - `--permission-mode default`: numa instalação nova, o Claude Code pode começar no modo
-    `auto`, em que um classificador aprova sozinho o que parece pedido pelo usuário (abrir um
-    app passava sem card), e o `settings.json` do usuário pode definir outro modo. Se mesmo
-    assim o Claude Code informar outro modo, a conversa avisa.
+  - `--permission-mode` com o modo da aba (`default` se você não escolheu outro): numa
+    instalação nova, o Claude Code pode começar no modo `auto`, e o `settings.json` do usuário
+    pode definir outro modo. Se mesmo assim o Claude Code informar outro modo, a conversa avisa.
   - Um hook `PreToolUse` (via `--settings`) manda todo `Bash` para o card; sem ele, o Claude
-    Code roda sozinho comandos que considera só de leitura, como `ls` e `whoami`.
+    Code roda sozinho comandos que considera só de leitura, como `ls` e `whoami`. No modo
+    Automático, o hook fica quieto e quem decide é o classificador do Claude Code. Como o modo
+    muda no meio da conversa e o `--settings` não, o hook lê o modo de um arquivo
+    (`$XDG_RUNTIME_DIR/wisp/modo-<pid>-<conversa>`, 0600), cujo caminho vai na variável
+    `WISP_PERMISSION_MODE_FILE`.
   - Regras `ask` para `Read` em arquivos de segredos (`~/.ssh`, `~/.gnupg`, `~/.aws`,
     `~/.kube`, chaveiros, perfis de navegador, `.env`…): sem elas, um texto malicioso numa
     página lida pelo `WebFetch` poderia levar o Claude a ler uma chave sem ninguém ver.
@@ -745,8 +822,30 @@ resources/
     ela grava arquivos em `~/.claude/projects/…/memory/` sem passar pelo card e os carrega em
     toda conversa. Para o Wisp lembrar de algo entre conversas, o Claude pede para editar o
     `CLAUDE.md` do workspace, com card.
+
 - **Painel e pedidos:** um pedido que chega com o painel escondido faz ele reaparecer sem
-  roubar o foco. Parar a resposta ou começar outra conversa cancela os pedidos abertos.
+  roubar o foco, com a aba do pedido à vista. Parar a resposta ou começar outra conversa cancela
+  os pedidos abertos.
+- **Modos de permissão:** a pílula manda ao processo da conversa um pedido de controle
+  `set_permission_mode`, que vale na hora, mesmo com uma resposta em andamento; sem processo, o
+  modo vai no `--permission-mode` do próximo. O Claude Code confirma com um evento `status`, e é
+  ele que a pílula mostra. No modo Planejar, o plano chega como pedido da ferramenta
+  `ExitPlanMode`. **Aprovar** volta para o Pedir (o Claude Code faz isso sozinho); **Aprovar e
+  aceitar edições** e **Aprovar no automático** respondem com
+  `updatedPermissions: [{"type":"setMode","mode":…,"destination":"session"}]`; **Continuar
+  planejando** nega, e o Claude pergunta o que mudar. No Aceitar edições, o Claude Code só
+  libera sozinho as edições na pasta de trabalho dele (o workspace); as da pasta pessoal chegam
+  ao `approve`, e o Wisp libera as que não são ocultas.
+- **Abas e painéis:** cada aba é uma `Conversation` (`conversation.ts`) com o seu processo do
+  Claude Code, o seu histórico, os seus cards e o seu "sempre". O servidor MCP atende em
+  `/mcp/<conversa>`, e cada conversa recebe o seu `--mcp-config`
+  (`mcp-<pid>-<conversa>.json`, com o mesmo token): assim o `approve` sabe de que aba é o
+  pedido. Quem decide as abas e os painéis é o main; a página só mostra e pede. A janela fica
+  com a largura de um painel vezes quantos estão à vista. O `--ask`, a voz e os arquivos soltos
+  no mascote vão para a conversa do painel em foco; se ela estiver respondendo, o `--ask` e a voz
+  abrem uma aba nova. As abas (com o histórico de cada conversa e
+  o modo) ficam em `~/.local/share/wisp/abas.json`; ao abrir, elas voltam sem subir nenhum
+  processo. Os arquivos de config e de modo de um Wisp que caiu são apagados no próximo início.
 - **Anexos:** o preload descobre o caminho de cada arquivo escolhido ou arrastado
   (`webUtils.getPathForFile`), e o renderer gera as miniaturas num canvas, como data URLs
   pequenos (o CSP do chat só aceita imagens `data:`). Ao enviar, o main copia os arquivos para
@@ -756,8 +855,9 @@ resources/
   espaço de trabalho dele com `--add-dir`. Os limites são 20 arquivos por mensagem e 50 MB por
   arquivo, conferidos ao anexar e de novo ao copiar. Como o id da conversa já existe antes da
   primeira resposta, a pasta dos anexos tem o mesmo id da sessão do Claude Code.
-- **Estados do mascote:** o `mood.ts` acompanha os eventos da conversa e escolhe o estado, nesta
-  ordem de prioridade:
+- **Estados do mascote:** o `mood.ts` acompanha os eventos das conversas (de todas as abas: basta
+  uma trabalhando, ou um card esperando em qualquer uma) e escolhe o estado, nesta ordem de
+  prioridade:
   1. pedindo permissão, enquanto há um card esperando;
   2. feliz (uns 2 s) ou erro (uns 5 s) quando o turno acaba;
   3. falando, enquanto o texto chega, ou trabalhando, no resto do turno;

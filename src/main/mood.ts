@@ -16,7 +16,9 @@ export interface MoodOutput {
 }
 
 /**
- * O humor do mascote (seção 5.3 da especificação): traduz os eventos da conversa num estado.
+ * O humor do mascote (seção 5.3 da especificação): traduz os eventos das conversas (uma por aba)
+ * num estado. Basta uma conversa trabalhando para ele trabalhar, e um card esperando em qualquer
+ * uma para ele pedir.
  * Vale o primeiro que se aplicar:
  * 1. pedindo permissão, enquanto houver um card esperando;
  * 2. feliz ou erro, por alguns segundos depois que o turno acaba;
@@ -25,10 +27,12 @@ export interface MoodOutput {
  * 5. ocioso.
  */
 export class MascotMood {
-  private busy = false
+  /** As conversas com um turno em andamento. */
+  private readonly busy = new Set<string>()
   private talking = false
   private flash: 'happy' | 'error' | null = null
-  private readonly pending = new Set<string>()
+  /** Cards esperando resposta → a conversa de cada um. */
+  private readonly pending = new Map<string, string>()
   /** Pedidos de sessões do terminal esperando resposta. */
   private externalPending = 0
   private asleep = false
@@ -43,10 +47,11 @@ export class MascotMood {
     return this.current
   }
 
-  onEvent(event: ChatEvent): void {
+  onEvent(event: ChatEvent, conversation = ''): void {
     switch (event.type) {
       case 'busy':
-        this.busy = event.busy
+        if (event.busy) this.busy.add(conversation)
+        else this.busy.delete(conversation)
         // Uma mensagem nova encerra o feliz ou o erro da anterior.
         if (event.busy) this.setFlash(null)
         else this.setTalking(false)
@@ -60,13 +65,13 @@ export class MascotMood {
         this.setTalking(false)
         break
       case 'permission-request':
-        this.pending.add(event.id)
+        this.pending.set(event.id, conversation)
         break
       case 'permission-resolved':
         this.pending.delete(event.id)
         break
       case 'turn-end':
-        this.pending.clear()
+        this.clearPending(conversation)
         this.setTalking(false)
         if (event.outcome === 'done') this.setFlash('happy', HAPPY_MS)
         else if (event.outcome === 'error') this.setFlash('error', ERROR_MS)
@@ -75,13 +80,24 @@ export class MascotMood {
         if (event.level === 'error') this.setFlash('error', ERROR_MS)
         break
       case 'reset':
-        this.busy = false
-        this.pending.clear()
+        this.busy.delete(conversation)
+        this.clearPending(conversation)
         this.setTalking(false)
         this.setFlash(null)
         break
     }
     this.update()
+  }
+
+  /** Uma conversa fechou (a aba saiu): nada dela segura o humor. */
+  forget(conversation: string): void {
+    this.busy.delete(conversation)
+    this.clearPending(conversation)
+    this.update()
+  }
+
+  private clearPending(conversation: string): void {
+    for (const [id, owner] of this.pending) if (owner === conversation) this.pending.delete(id)
   }
 
   /** Quantos pedidos das sessões do terminal esperam resposta (o mascote pede atenção). */
@@ -98,12 +114,14 @@ export class MascotMood {
 
   /** Nada acontecendo: sem turno, pedido nem o feliz ou o erro do fim de um turno. */
   get quiet(): boolean {
-    return !this.busy && !this.flash && this.pending.size === 0 && this.externalPending === 0
+    return (
+      this.busy.size === 0 && !this.flash && this.pending.size === 0 && this.externalPending === 0
+    )
   }
 
   /** Uma sessão do terminal terminou (feliz) ou deu erro. A conversa do chat tem a vez. */
   flashExternal(kind: 'happy' | 'error'): void {
-    if (this.busy) return
+    if (this.busy.size) return
     this.setFlash(kind, kind === 'happy' ? HAPPY_MS : ERROR_MS)
     this.update()
   }
@@ -149,7 +167,13 @@ export class MascotMood {
       this.pending.size > 0 || this.externalPending > 0
         ? 'permission'
         : (this.flash ??
-          (this.busy ? (this.talking ? 'talking' : 'working') : this.asleep ? 'sleeping' : 'idle'))
+          (this.busy.size
+            ? this.talking
+              ? 'talking'
+              : 'working'
+            : this.asleep
+              ? 'sleeping'
+              : 'idle'))
     if (next === this.current) return
     this.current = next
     this.output.state(next)

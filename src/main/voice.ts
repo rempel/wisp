@@ -48,10 +48,10 @@ export interface VoiceDeps {
   /** Faz um comando rápido; false se não deu para fazer aqui (vai para o Claude). */
   runQuick(command: QuickCommand, text: string): Promise<boolean>
   /**
-   * O que foi dito vai para a conversa: 'sent' se foi direto para o Claude, 'composed' se ficou na
-   * caixa de mensagem para revisar.
+   * O que foi dito vai para a conversa: devolve a conversa, se foi direto para o Claude, ou null
+   * se ficou na caixa de mensagem para revisar.
    */
-  deliver(text: string, source: VoiceSource): 'sent' | 'composed'
+  deliver(text: string, source: VoiceSource): string | null
   notice(level: NoticeLevel, text: string): void
   /** O usuário está mexendo com o Wisp (o mascote acorda). */
   activity(): void
@@ -73,7 +73,8 @@ export class Voice {
   private sayTimer: NodeJS.Timeout | null = null
   /** A resposta à mensagem falada, enquanto ela chega: o último bloco de texto. */
   private reply: { blockId: string; text: string } | null = null
-  private awaitingReply = false
+  /** A conversa (aba) de onde se espera a resposta para falar. */
+  private awaitingReply: string | null = null
 
   constructor(private readonly deps: VoiceDeps) {}
 
@@ -176,9 +177,9 @@ export class Voice {
     }
   }
 
-  /** Acompanha a conversa, para falar a resposta do que foi pedido por voz. */
-  onChatEvent(event: ChatEvent): void {
-    if (!this.awaitingReply) return
+  /** Acompanha as conversas, para falar a resposta do que foi pedido por voz. */
+  onChatEvent(event: ChatEvent, conversation: string): void {
+    if (this.awaitingReply === null || conversation !== this.awaitingReply) return
     if (event.type === 'text') {
       if (this.reply?.blockId !== event.blockId) this.reply = { blockId: event.blockId, text: '' }
       this.reply.text += event.delta
@@ -187,7 +188,7 @@ export class Voice {
       this.reply = null
     } else if (event.type === 'turn-end' || event.type === 'reset') {
       const text = event.type === 'turn-end' && event.outcome === 'done' ? this.reply?.text : ''
-      this.awaitingReply = false
+      this.awaitingReply = null
       this.reply = null
       if (text) void this.speak(text)
     }
@@ -274,8 +275,9 @@ export class Voice {
       const quick = parseQuickCommand(text)
       if (quick && (await this.deps.runQuick(quick, text))) return
     }
-    if (this.deps.deliver(text, source) === 'sent') {
-      this.awaitingReply = this.deps.replies()
+    const sent = this.deps.deliver(text, source)
+    if (sent !== null) {
+      this.awaitingReply = this.deps.replies() ? sent : null
       this.reply = null
     }
   }

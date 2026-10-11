@@ -387,7 +387,48 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 **Aceite:** segurar o atalho, dizer "abre o Firefox" e soltar mostra o card de permissão do app, e
 nenhum áudio é gravado em disco.
 
-### Fase 11: distribuição e qualidade
+### Fase 11: várias conversas e modos de permissão ✅
+
+**Status:** pronta, esperando validação. Veio de um pedido de uso: o Wisp pedia permissão para
+tudo, o **Permitir sempre** do `Bash` só valia para o comando exato (e parecia não funcionar), e
+não dava para acompanhar várias conversas ao mesmo tempo.
+
+- **Abas e painéis lado a lado (G):**
+  - cada aba é uma conversa com o seu processo do Claude Code, o seu histórico, os seus cards e o
+    seu "sempre". Até 12 abas e 3 painéis lado a lado; a janela alarga junto;
+  - o pontinho de cada aba diz se ela está trabalhando, esperando você, com erro ou com resposta
+    nova (a que terminou fora da vista);
+  - os pedidos de permissão vão para a aba certa: o servidor MCP atende em `/mcp/<conversa>`, e
+    cada processo recebe o seu `--mcp-config`;
+  - as sessões do Claude Code no terminal também abrem numa aba, com os pedidos delas, para
+    acompanhar lado a lado com as conversas;
+  - atalhos: Ctrl+T, Ctrl+W, Ctrl+Tab, Ctrl+1…9 e Ctrl+\\ (dividir);
+  - as abas voltam como estavam ao abrir o Wisp de novo, sem subir nenhum processo antes da
+    primeira mensagem;
+  - o mascote olha para todas: trabalha se alguma trabalha e pede atenção se alguma espera você;
+  - o `--ask`, a voz e os arquivos soltos no mascote vão para o painel em foco.
+- **Modos de permissão (M),** como o Shift+Tab do Claude Code, numa pílula ao lado da do modelo:
+  - **Pedir** (o de sempre), **Aceitar edições**, **Planejar** e **Automático**, por conversa e na
+    hora (`set_permission_mode`), mesmo no meio de uma resposta; `permissionMode` no
+    `config.json` escolhe o das conversas novas;
+  - **Planejar:** o plano chega num card, formatado, com **Aprovar**, **Aprovar e aceitar
+    edições**, **Aprovar no automático** e **Continuar planejando**;
+  - **Aceitar edições** libera as edições na pasta pessoal e nos projetos, menos os arquivos e as
+    pastas ocultas;
+  - **Automático** deixa o classificador do Claude Code decidir o que é seguro; as ferramentas do
+    Wisp (abrir apps, print da tela…) continuam pedindo;
+  - o modo que pula todas as permissões (`bypassPermissions`) não existe no Wisp, como manda a
+    especificação.
+- **"Permitir sempre" que funciona (P):** no `Bash`, vale para o programa (`ls`) ou para o
+  subcomando (`git status`, `npm test`). Comandos compostos, com redirecionamento, que apagam,
+  sobem privilégio, rodam outro código ou mandam dados para fora, e os que mencionam arquivos de
+  segredos, continuam só pelo comando exato. Vale também para os pedidos das sessões do terminal.
+
+**Aceite:** com duas conversas lado a lado, cada card aparece no painel da sua conversa;
+**Permitir “ls” sempre** libera `ls -la` sem card; no Automático, "cria o arquivo X" roda sem
+card; no Planejar, o plano aprovado com **Aprovar e aceitar edições** segue sem mais cards.
+
+### Fase 12: distribuição e qualidade
 
 - **Pacotes .deb e AppImage (M, especificação v2),** com o electron-builder:
   - ícone e `.desktop`;
@@ -434,7 +475,9 @@ nenhum áudio é gravado em disco.
 
 Do MVP e do que o Coucou faz bem:
 
-- Nada que muda a máquina roda sem um clique seu. Por voz dá para negar, nunca aprovar.
+- Nada que muda a máquina roda sem um clique seu. Por voz dá para negar, nunca aprovar. Os
+  modos Aceitar edições e Automático são esse clique, dado de uma vez, por conversa e à vista na
+  pílula; pular todas as permissões não existe.
 - Nenhum arquivo de configuração do usuário é alterado sem backup, diff e confirmação.
 - Sem telemetria. Rede só para o que você configurou. Segredos no Secret Service.
 - Parado, o Wisp não gasta CPU perceptível.

@@ -3,13 +3,13 @@ import type { IncomingMessage, ServerResponse } from 'http'
 import { randomBytes, timingSafeEqual } from 'crypto'
 import { chmodSync, mkdirSync, readdirSync, rmSync, writeFileSync } from 'fs'
 import type { AddressInfo } from 'net'
-import { isAbsolute, join } from 'path'
+import { join } from 'path'
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js'
 import { z } from 'zod'
 import { listApps, listProjects, openApp, openProject, openTerminalIn, openUrl } from './desktop'
 import type { Outcome } from './desktop'
-import { CACHE_DIR } from './paths'
+import { runtimeDir } from './paths'
 import { describeTrack } from './media'
 import type { Media, MediaAction } from './media'
 import { describeIn, describeWhen, parseWhen } from './reminders'
@@ -21,13 +21,24 @@ export interface ApprovalRequest {
   toolName: string
   input: unknown
   toolUseId?: string
+  /** A conversa (aba) de onde veio o pedido: cada processo do Claude Code tem o seu endereço. */
+  conversation?: string
   /** Disparado se o Claude Code desistir do pedido (turno interrompido, conexão fechada). */
   signal?: AbortSignal
 }
 
 /** A decisão. `updatedInput` troca a entrada da ferramenta (as respostas de uma pergunta). */
 export type Approval =
-  { allow: true; updatedInput?: Record<string, unknown> } | { allow: false; message: string }
+  | {
+      allow: true
+      updatedInput?: Record<string, unknown>
+      /**
+       * Mudanças nas permissões da sessão do Claude Code, como `setMode` (aprovar o plano e
+       * passar para Aceitar edições).
+       */
+      updatedPermissions?: Record<string, unknown>[]
+    }
+  | { allow: false; message: string }
 
 /** Um print pronto para o Claude: a imagem em base64 e o tamanho. */
 export interface ScreenshotImage {
@@ -61,15 +72,24 @@ export interface DesktopServerOptions {
 }
 
 export interface DesktopServer {
-  /** Arquivo para o --mcp-config. Só o dono lê: ele tem o token. */
-  configPath: string
   /**
-   * Outros servidores MCP no mesmo arquivo (o navegador do Playwright). Vale para os próximos
+   * O arquivo do --mcp-config de uma conversa (aba). Cada uma tem o seu endereço no servidor
+   * (`/mcp/<conversa>`), para os pedidos de permissão chegarem à aba certa. Só o dono lê: ele tem
+   * o token. É gravado de novo a cada chamada, com os servidores extras de agora.
+   */
+  configFor(conversation: string): string
+  /** A conversa fechou: o arquivo dela sai. */
+  releaseConfig(conversation: string): void
+  /**
+   * Outros servidores MCP nos arquivos (o navegador do Playwright). Vale para os próximos
    * processos do Claude Code, ou seja, a partir da próxima conversa.
    */
   setExtraServers(servers: Record<string, unknown>): void
   close(): void
 }
+
+/** Ids de conversa que podem ir no endereço e no nome do arquivo. */
+const CONVERSATION_ID = /^[\w-]{1,64}$/
 
 /**
  * Pede ao Claude Code para pôr a ferramenta direto no prompt. Sem isso ela fica atrás do
@@ -90,7 +110,7 @@ const outcome = (result: Outcome): ReturnType<typeof text> & { isError: boolean 
 })
 
 /** As ferramentas da seção 6. As descrições são o que o Claude lê para decidir quando usá-las. */
-function buildMcpServer(options: DesktopServerOptions): McpServer {
+function buildMcpServer(options: DesktopServerOptions, conversation?: string): McpServer {
   const server = new McpServer({ name: 'desktop', version: '1.0.0' })
 
   server.registerTool(
@@ -489,10 +509,17 @@ function buildMcpServer(options: DesktopServerOptions): McpServer {
         toolName: tool_name,
         input,
         toolUseId: tool_use_id,
-        signal: extra.signal
+        signal: extra.signal,
+        ...(conversation ? { conversation } : {})
       })
       const decision = approval.allow
-        ? { behavior: 'allow', updatedInput: approval.updatedInput ?? input }
+        ? {
+            behavior: 'allow',
+            updatedInput: approval.updatedInput ?? input,
+            ...(approval.updatedPermissions
+              ? { updatedPermissions: approval.updatedPermissions }
+              : {})
+          }
         : { behavior: 'deny', message: approval.message }
       return text(JSON.stringify(decision))
     }
@@ -523,7 +550,10 @@ function reply(res: ServerResponse, status: number, headers: Record<string, stri
   res.writeHead(status, headers).end()
 }
 
-/** Apaga os arquivos de configuração de Wisps que fecharam sem apagar (um kill, uma queda). */
+/**
+ * Apaga os arquivos de configuração (mcp-<pid>-…) e de modo de permissão (modo-<pid>-…) de
+ * Wisps que fecharam sem apagar (um kill, uma queda).
+ */
 function removeStaleConfigs(dir: string): void {
   let names: string[]
   try {
@@ -532,7 +562,9 @@ function removeStaleConfigs(dir: string): void {
     return
   }
   for (const name of names) {
-    const pid = Number(/^mcp-(\d+)\.json$/.exec(name)?.[1])
+    const pid = Number(
+      /^(?:mcp-(\d+)(?:-[\w-]+)?\.json|modo-(\d+)-[\w-]+)$/.exec(name)?.slice(1).find(Boolean)
+    )
     if (!pid || pid === process.pid) continue
     try {
       process.kill(pid, 0)
@@ -540,12 +572,6 @@ function removeStaleConfigs(dir: string): void {
       if ((err as NodeJS.ErrnoException).code === 'ESRCH') rmSync(join(dir, name), { force: true })
     }
   }
-}
-
-/** Pasta só do usuário para o arquivo com o token: $XDG_RUNTIME_DIR (tmpfs) ou o cache. */
-function runtimeDir(): string {
-  const xdg = process.env.XDG_RUNTIME_DIR
-  return xdg && isAbsolute(xdg) ? join(xdg, 'wisp') : CACHE_DIR
 }
 
 /**
@@ -562,7 +588,10 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
     const auth = Buffer.from(req.headers.authorization ?? '')
     if (auth.length !== expected.length || !timingSafeEqual(auth, expected)) return reply(res, 401)
     if (req.headers.host !== `127.0.0.1:${port}`) return reply(res, 403)
-    if (req.url !== '/mcp') return reply(res, 404)
+    // /mcp/<conversa>: os pedidos de permissão vão para essa aba.
+    const route = /^\/mcp(?:\/([\w-]{1,64}))?$/.exec(req.url ?? '')
+    if (!route) return reply(res, 404)
+    const conversation = route[1]
     // Sem sessões, não há stream de notificações (GET) nem sessão para encerrar (DELETE).
     if (req.method !== 'POST') return reply(res, 405, { Allow: 'POST' })
 
@@ -572,7 +601,7 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
     } catch {
       return reply(res, 400)
     }
-    const server = buildMcpServer(options)
+    const server = buildMcpServer(options, conversation)
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined })
     res.on('close', () => {
       void transport.close()
@@ -600,26 +629,37 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
   const dir = runtimeDir()
   mkdirSync(dir, { recursive: true, mode: 0o700 })
   removeStaleConfigs(dir)
-  const configPath = join(dir, `mcp-${process.pid}.json`)
-  const desktop = {
-    type: 'http',
-    url: `http://127.0.0.1:${port}/mcp`,
-    headers: { Authorization: `Bearer ${token}` }
-  }
-  const write = (extra: Record<string, unknown>): void => {
-    const config = { mcpServers: { ...extra, desktop } }
-    writeFileSync(configPath, JSON.stringify(config), { mode: 0o600 })
-    chmodSync(configPath, 0o600)
-  }
-  write({})
+  let extra: Record<string, unknown> = {}
+  const written = new Set<string>()
+  const pathFor = (conversation: string): string =>
+    join(dir, `mcp-${process.pid}-${conversation}.json`)
 
   return {
-    configPath,
-    setExtraServers: write,
+    configFor(conversation) {
+      if (!CONVERSATION_ID.test(conversation)) throw new Error('id de conversa inválido')
+      const desktop = {
+        type: 'http',
+        url: `http://127.0.0.1:${port}/mcp/${conversation}`,
+        headers: { Authorization: `Bearer ${token}` }
+      }
+      const path = pathFor(conversation)
+      writeFileSync(path, JSON.stringify({ mcpServers: { ...extra, desktop } }), { mode: 0o600 })
+      chmodSync(path, 0o600)
+      written.add(conversation)
+      return path
+    },
+    releaseConfig(conversation) {
+      if (!written.delete(conversation)) return
+      rmSync(pathFor(conversation), { force: true })
+    },
+    setExtraServers(servers) {
+      extra = servers
+    },
     close() {
       http.close()
       http.closeAllConnections()
-      rmSync(configPath, { force: true })
+      for (const conversation of written) rmSync(pathFor(conversation), { force: true })
+      written.clear()
     }
   }
 }

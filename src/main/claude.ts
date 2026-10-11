@@ -1,12 +1,13 @@
 import { spawn } from 'child_process'
 import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
 import { randomUUID } from 'crypto'
-import { accessSync, constants, readdirSync, statSync } from 'fs'
+import { accessSync, constants, mkdirSync, readdirSync, statSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { delimiter, dirname, join } from 'path'
 import { diffFromResult } from '../shared/diff'
 import { formatReset } from '../shared/format'
-import type { ChatEvent, NoticeLevel, PlanUsage, UsageWindow } from '../shared/ipc'
+import { PERMISSION_MODES } from '../shared/ipc'
+import type { ChatEvent, NoticeLevel, PermissionMode, PlanUsage, UsageWindow } from '../shared/ipc'
 import {
   ATTACHMENTS_DIR,
   copyAttachments,
@@ -69,10 +70,15 @@ const SENSITIVE_PATHS = [
   '//**/.env.*'
 ]
 
+/** Variável com o arquivo do modo de permissão da conversa, que o hook do Bash lê. */
+export const MODE_FILE_ENV = 'WISP_PERMISSION_MODE_FILE'
+
 /**
  * Configurações extras da sessão (--settings):
  * - um hook que manda todo comando Bash para a aprovação. Sem ele o Claude Code roda sozinho
- *   comandos que considera só de leitura (ps, whoami, ls na pasta de trabalho).
+ *   comandos que considera só de leitura (ps, whoami, ls na pasta de trabalho, e também um `cat`
+ *   de uma chave). No modo Automático ele fica quieto: quem decide é o classificador do Claude
+ *   Code. O modo vem de um arquivo, porque muda no meio da conversa e o --settings não.
  * - as regras "ask" dos arquivos de segredos.
  */
 const ASK_FOR_BASH = JSON.stringify({
@@ -82,14 +88,19 @@ const ASK_FOR_BASH = JSON.stringify({
     permissionDecisionReason: 'O Wisp pede aprovação para todo comando.'
   }
 })
+const BASH_HOOK = `[ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ] || printf %s '${ASK_FOR_BASH}'`
 const SESSION_SETTINGS = JSON.stringify({
   permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
   hooks: {
-    PreToolUse: [
-      { matcher: 'Bash', hooks: [{ type: 'command', command: `printf %s '${ASK_FOR_BASH}'` }] }
-    ]
+    PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: BASH_HOOK }] }]
   }
 })
+
+/** O modo como o CLI o informa: "manual" é o nome novo do "default". */
+export function modeOf(value: unknown): PermissionMode | null {
+  if (value === 'manual') return 'default'
+  return PERMISSION_MODES.includes(value as PermissionMode) ? (value as PermissionMode) : null
+}
 
 export interface ClaudeOptions {
   /** Comando ou caminho do CLI (config.claudePath). */
@@ -102,10 +113,15 @@ export interface ClaudeOptions {
   allowedTools: string[]
   appendSystemPrompt: string
   /**
-   * Arquivo do --mcp-config com o servidor `desktop`. Sem ele (o servidor não subiu), a
-   * conversa funciona sem as ferramentas de desktop, e o que pediria permissão é negado.
+   * O arquivo do --mcp-config com o servidor `desktop` desta conversa, pedido a cada processo
+   * novo. Sem ele (o servidor não subiu), a conversa funciona sem as ferramentas de desktop, e o
+   * que pediria permissão é negado.
    */
-  mcpConfigPath?: string
+  mcpConfig?: () => string | undefined
+  /** O modo de permissão com que a conversa começa. */
+  permissionMode: PermissionMode
+  /** Onde gravar o modo atual, para o hook do Bash ler (em $XDG_RUNTIME_DIR, só do usuário). */
+  modeFile?: string
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */
@@ -125,10 +141,11 @@ export const INSTALL_HINT =
   'caminho em `claudePath` no `~/.config/wisp/config.json`.'
 
 /**
- * Ferramentas que não viram card de ferramenta: o ToolSearch só carrega outras ferramentas, e as
- * perguntas (AskUserQuestion) já aparecem no card de pergunta.
+ * Ferramentas que não viram card de ferramenta: o ToolSearch só carrega outras ferramentas, as
+ * perguntas (AskUserQuestion) já aparecem no card de pergunta e o plano (ExitPlanMode), no card
+ * do plano.
  */
-const HIDDEN_TOOLS = new Set(['ToolSearch', 'AskUserQuestion'])
+const HIDDEN_TOOLS = new Set(['ToolSearch', 'AskUserQuestion', 'ExitPlanMode'])
 
 const MAX_TOOL_OUTPUT = 4000
 /** Imagens de um resultado que viram miniatura no card. */
@@ -461,7 +478,10 @@ export class ClaudeSession {
   private readonly hiddenToolUses = new Set<string>()
   private warnedApiKey = false
   private warnedMcp = false
-  private warnedMode = false
+  /** O modo de permissão escolhido; o processo sobe com ele e recebe as trocas pelo stdin. */
+  private mode: PermissionMode
+  /** Pedidos de troca de modo esperando resposta, com o modo de antes. */
+  private readonly modeRequests = new Map<string, PermissionMode>()
   /** O CLI avisou (rate_limit_event) que o limite do plano foi atingido; até quando, se disse. */
   private planLimit: { resetsAt: number | null } | null = null
   /** Modelo escolhido na pílula; null é o padrão do Claude Code. */
@@ -484,6 +504,61 @@ export class ClaudeSession {
     private readonly emit: (event: ChatEvent) => void
   ) {
     this.model = options.model
+    this.mode = options.permissionMode
+  }
+
+  get permissionMode(): PermissionMode {
+    return this.mode
+  }
+
+  /**
+   * Troca o modo de permissão. Com o processo vivo, vale na hora (control_request
+   * set_permission_mode); senão, o próximo processo já sobe com ele.
+   */
+  setPermissionMode(mode: PermissionMode): void {
+    if (mode === this.mode) return
+    const previous = this.mode
+    this.mode = mode
+    this.writeModeFile()
+    if (this.proc) {
+      this.modeRequests.set(
+        this.control(this.proc, { subtype: 'set_permission_mode', mode }),
+        previous
+      )
+    }
+    this.emit({ type: 'mode', mode })
+  }
+
+  /** O modo vai para o arquivo que o hook do Bash lê. */
+  private writeModeFile(): void {
+    const file = this.options.modeFile
+    if (!file) return
+    try {
+      mkdirSync(dirname(file), { recursive: true, mode: 0o700 })
+      writeFileSync(file, this.mode, { mode: 0o600 })
+    } catch (err) {
+      console.warn('[wisp] não consegui gravar o modo de permissão:', err)
+    }
+  }
+
+  /** O CLI mudou de modo sozinho (o plano aprovado volta para o Pedir) ou não aceitou o pedido. */
+  private adoptMode(value: unknown, source: 'init' | 'status'): void {
+    const mode = modeOf(value)
+    if (!mode || mode === this.mode) return
+    // Uma troca pedida ainda não chegou ao CLI: o modo velho no init é só atraso.
+    if (source === 'init' && this.modeRequests.size) return
+    const requested = this.mode
+    this.mode = mode
+    this.writeModeFile()
+    this.emit({ type: 'mode', mode })
+    // Na largada, um modo diferente do pedido vem de uma política da empresa ou de um modo que a
+    // conta não tem (o Automático, por exemplo).
+    if (source === 'init') {
+      this.notice(
+        'warning',
+        `O Claude Code começou no modo "${mode}", e não no "${requested}" que você escolheu.`
+      )
+    }
   }
 
   /** Se há uma resposta em andamento (do envio até o fim do turno). */
@@ -618,6 +693,7 @@ export class ClaudeSession {
     this.streamedMessages.clear()
     this.hiddenToolUses.clear()
     this.modelRequests.clear()
+    this.modeRequests.clear()
     this.setBusy(false)
     if (proc) void killProcess(proc)
   }
@@ -676,20 +752,20 @@ export class ClaudeSession {
       '--add-dir',
       ATTACHMENTS_DIR,
       // O modo padrão do CLI nem sempre é o "default": numa instalação nova ele pode começar no
-      // "auto", em que um classificador aprova sozinho o que parece pedido pelo usuário (abrir
-      // apps e projetos passava sem o card), e o settings.json do usuário pode definir outro
-      // defaultMode. Fixado aqui, tudo fora da lista segura passa pelo card.
+      // "auto", e o settings.json do usuário pode definir outro defaultMode. Aqui vale sempre o
+      // modo escolhido na conversa (Pedir, se ninguém escolheu outro).
       '--permission-mode',
-      'default',
+      this.mode,
       '--append-system-prompt',
       this.options.appendSystemPrompt,
       '--settings',
       SESSION_SETTINGS
     ]
-    if (this.options.mcpConfigPath) {
+    const mcpConfig = this.options.mcpConfig?.()
+    if (mcpConfig) {
       args.push(
         '--mcp-config',
-        this.options.mcpConfigPath,
+        mcpConfig,
         // Só o servidor do Wisp: os servidores MCP configurados no Claude Code do usuário ficam
         // de fora, para o Wisp não depender deles.
         '--strict-mcp-config',
@@ -705,9 +781,12 @@ export class ClaudeSession {
     if (this.sessionId && this.sessionSaved && this.fork) args.push('--fork-session')
 
     ensureAttachmentsDir()
+    this.writeModeFile()
+    const env = claudeEnv(bin)
+    if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
     const proc = spawn(bin, args, {
       cwd: this.cwd ?? this.options.workspace(),
-      env: claudeEnv(bin)
+      env
     })
     this.proc = proc
 
@@ -823,6 +902,23 @@ export class ClaudeSession {
   private onControlResponse(event: CliEvent): void {
     const response = event.response
     const id = response?.request_id
+    if (id && this.modeRequests.has(id)) {
+      const previous = this.modeRequests.get(id) as PermissionMode
+      this.modeRequests.delete(id)
+      if (response.subtype !== 'error') return
+      // O processo continua no modo de antes, e a pílula volta para ele.
+      const wanted = this.mode
+      this.mode = previous
+      this.writeModeFile()
+      this.emit({ type: 'mode', mode: previous })
+      this.notice(
+        'warning',
+        `O Claude Code não aceitou o modo "${wanted}"` +
+          (response.error ? ` (${response.error.replace(/`/g, "'")})` : '') +
+          '. A conversa continua no modo de antes.'
+      )
+      return
+    }
     const request = id ? this.modelRequests.get(id) : undefined
     if (!id || !request) return
     this.modelRequests.delete(id)
@@ -855,6 +951,8 @@ export class ClaudeSession {
   }
 
   private onSystem(event: CliEvent): void {
+    // O CLI troca de modo sozinho: aprovar o plano, por exemplo, volta para o Pedir.
+    if (event.subtype === 'status') return this.adoptMode(event.permissionMode, 'status')
     if (event.subtype !== 'init') return
     if (event.session_id) {
       this.adoptSessionId(event.session_id)
@@ -865,7 +963,7 @@ export class ClaudeSession {
       this.emit(this.modelEvent())
     }
     const desktop = event.mcp_servers?.find((server) => server.name === 'desktop')
-    if (this.options.mcpConfigPath && desktop?.status !== 'connected' && !this.warnedMcp) {
+    if (this.options.mcpConfig && desktop?.status !== 'connected' && !this.warnedMcp) {
       this.warnedMcp = true
       this.notice(
         'warning',
@@ -873,16 +971,8 @@ export class ClaudeSession {
           `funcionar nesta conversa (${desktop?.status ?? 'servidor ausente'}).`
       )
     }
-    // Uma política gerenciada pode impor outro modo, mesmo com o --permission-mode.
-    const mode = event.permissionMode
-    if (mode && mode !== 'default' && mode !== 'manual' && !this.warnedMode) {
-      this.warnedMode = true
-      this.notice(
-        'warning',
-        `O Claude Code está no modo de permissão "${mode}": algumas ações podem rodar sem ` +
-          'pedir a sua aprovação.'
-      )
-    }
+    // Uma política gerenciada (ou uma conta sem o Automático) pode impor outro modo.
+    this.adoptMode(event.permissionMode, 'init')
     // "none" é o login da assinatura; qualquer outra origem é uma chave de API.
     if (event.apiKeySource && event.apiKeySource !== 'none' && !this.warnedApiKey) {
       this.warnedApiKey = true
