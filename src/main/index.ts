@@ -11,7 +11,15 @@ import type { Chat } from './chat'
 import { CONFIG_PATH, getConfig, loadConfig, onConfigChange } from './config'
 import { listApps, openApp, openInEditor } from './desktop'
 import { deployRelay } from './hooks/install'
-import { APP_ID, checkCommand, deployLauncher, parseCommand } from './launcher'
+import {
+  APP_ID,
+  checkCommand,
+  deployLauncher,
+  desktopIcon,
+  installKind,
+  launchTarget,
+  parseCommand
+} from './launcher'
 import type { WispCommand } from './launcher'
 import { startHookServer } from './hooks/server'
 import type { HookServer } from './hooks/server'
@@ -65,11 +73,15 @@ app.setPath('userData', join(CACHE_DIR, 'electron'))
 // portais conferem (o GNOME 50 recusa o atalho global de um id sem .desktop instalado).
 app.setDesktopName(APP_ID)
 
-if (
+const kind = installKind(app.isPackaged)
+/** Numa sessão Wayland sem --ozone-platform=x11, o Wisp seria um app Wayland nativo. */
+const waylandNative =
   process.platform === 'linux' &&
   process.env.XDG_SESSION_TYPE === 'wayland' &&
   app.commandLine.getSwitchValue('ozone-platform') !== 'x11'
-) {
+/** Marca da reabertura com o X11, contra um laço se a opção não pegar. */
+const RELAUNCH_ENV = 'WISP_X11_RELAUNCH'
+if (waylandNative && (kind === 'dev' || process.env[RELAUNCH_ENV])) {
   console.warn(
     '[wisp] Rodando como app Wayland nativo: o mascote não consegue se posicionar nem ficar ' +
       'sempre no topo. Inicie com --ozone-platform=x11 (o `npm run dev` já faz isso).'
@@ -86,6 +98,16 @@ process.on('unhandledRejection', (reason) => {
 const startCommand = parseCommand(process.argv)
 if (!app.requestSingleInstanceLock({ command: startCommand })) {
   app.quit()
+} else if (waylandNative && kind !== 'dev' && !process.env[RELAUNCH_ENV]) {
+  // Empacotado, o Wisp precisa do XWayland para ficar no topo e se posicionar. Aberto sem a opção
+  // (pelo /usr/bin/wisp, por um clique no AppImage), ele se abre de novo com ela. No AppImage, pelo
+  // próprio arquivo: a montagem deste processo some quando ele sai.
+  process.env[RELAUNCH_ENV] = '1'
+  app.relaunch({
+    execPath: launchTarget(kind),
+    args: [...process.argv.slice(1), '--ozone-platform=x11']
+  })
+  app.exit(0)
 } else {
   // Pedidos que chegam antes de o app ficar pronto esperam aqui.
   let runCommand: ((command: WispCommand) => void) | null = null
@@ -107,6 +129,8 @@ if (!app.requestSingleInstanceLock({ command: startCommand })) {
 
 /** Sobe o app. `ready` recebe quem executa os pedidos da linha de comando. */
 async function start(ready: (run: (command: WispCommand) => void) => void): Promise<void> {
+  // O ícone dos .desktop que o Wisp escreve (menu de apps, início com o sistema).
+  const entryIcon = desktopIcon(kind, appIcon)
   loadConfig()
   console.log(`[wisp] config: ${CONFIG_PATH}`)
   void cleanOldAttachments()
@@ -460,7 +484,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     setSoundEnabled: (enabled) => sounds.setEnabled(enabled),
     autostartEnabled: isAutostartEnabled,
     setAutostartEnabled: (enabled) => {
-      const problem = setAutostart(enabled, appIcon)
+      const problem = setAutostart(enabled, entryIcon)
       if (problem) notify('Não mudei o início com o sistema', problem)
     },
     shortcutLabel: () => shortcutLabel('toggle'),
@@ -516,13 +540,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
 
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.
+  // No AppImage, o comando chama o arquivo .AppImage, e o ícone vai para um lugar fixo.
   deployLauncher(
     {
-      electron: process.execPath,
-      appPath: app.isPackaged ? null : app.getAppPath(),
-      icon: appIcon
+      electron: launchTarget(kind),
+      appPath: kind === 'dev' ? app.getAppPath() : null,
+      icon: entryIcon
     },
-    !app.isPackaged
+    kind !== 'package'
   )
   // Os atalhos globais: um abre e fecha o painel; o outro, segurado, ouve. Trocados no
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
@@ -559,7 +584,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     console.warn('[wisp] erro nos atalhos globais:', err)
   )
   onConfigChange(() => void bindShortcuts().catch(() => {}))
-  refreshAutostart(appIcon)
+  refreshAutostart(entryIcon)
 
   ready((command) => {
     switch (command.kind) {

@@ -1,0 +1,18 @@
+#!/usr/bin/env node
+// A fake piper: reads the text from stdin (like `--model M --output-raw`), logs it and writes
+// 0.4 s of a 440 Hz tone as raw 16-bit PCM at 22050 Hz.
+const fs = require('fs')
+let text = ''
+process.stdin.setEncoding('utf8').on('data', (c) => (text += c))
+process.stdin.on('end', () => {
+  if (process.env.FAKE_PIPER_LOG)
+    fs.appendFileSync(
+      process.env.FAKE_PIPER_LOG,
+      JSON.stringify({ args: process.argv.slice(2), text }) + '\n'
+    )
+  const n = Math.round(22050 * 0.4),
+    out = Buffer.alloc(n * 2)
+  for (let i = 0; i < n; i++)
+    out.writeInt16LE(Math.round(Math.sin((2 * Math.PI * 440 * i) / 22050) * 8000), i * 2)
+  process.stdout.write(out)
+})

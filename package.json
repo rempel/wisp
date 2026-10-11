@@ -19,7 +19,11 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web",
     "lint": "eslint --cache .",
     "format": "prettier --write .",
-    "setup:apparmor": "bash scripts/setup-apparmor.sh"
+    "setup:apparmor": "bash scripts/setup-apparmor.sh",
+    "dist": "npm run build && electron-builder --linux",
+    "dist:deb": "npm run build && electron-builder --linux deb",
+    "icons": "node scripts/icons.mjs",
+    "test": "node scripts/test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.32.1",
@@ -35,7 +39,9 @@
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^5.2.0",
     "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
+    "esbuild": "^0.28.2",
     "eslint": "^10.12.0",
     "eslint-plugin-react-hooks": "^7.1.1",
     "eslint-plugin-react-refresh": "^0.5.7",
@@ -46,5 +52,11 @@
     "remark-gfm": "^4.0.1",
     "typescript": "^5.9.3",
     "vite": "^7.3.7"
+  },
+  "homepage": "https://github.com/rempel/wisp",
+  "desktopName": "io.github.rempel.Wisp.desktop",
+  "author": {
+    "name": "rempel",
+    "email": "rempel@users.noreply.github.com"
   }
 }
