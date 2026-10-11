@@ -20,7 +20,7 @@ export default defineConfig(
   },
   // Nos testes, as funções pequenas de apoio não precisam declarar o tipo de retorno.
   {
-    files: ['test/**/*.ts'],
+    files: ['test/**/*.ts', 'e2e/**/*.mjs', 'scripts/**/*.mjs'],
     rules: { '@typescript-eslint/explicit-function-return-type': 'off' }
   },
   // Os scripts CommonJS do empacotamento (build/after-pack.cjs).

@@ -3,11 +3,14 @@
 // verdade (claude -p --input-format stream-json --output-format stream-json).
 // Cenários pela mensagem: [edit] uma edição com o diff, [lento] resposta devagar (dá para
 // parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
-// [modelo] responde o modelo, [modo] responde o modo de permissão. O resto: uma resposta curta.
+// [modelo] responde o modelo, [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
+// (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
+// COMANDO no Bash, [plano] apresenta um plano (ExitPlanMode). O resto: uma resposta curta.
+// As decisões vão para $HOME/.fake-claude/approvals.log.
 // Pedidos de controle: interrupt, set_model (um nome com "naoexiste" é recusado) e
 // set_permission_mode. `auth status` diz que há login (FAKE_CLAUDE_LOGGED_OUT=1: não há).
 // Cada processo anota em $HOME/.fake-claude/spawns.log os argumentos e se recebeu a
-// ANTHROPIC_API_KEY.
+// ANTHROPIC_API_KEY, e em controls.log os pedidos de controle.
 const fs = require('node:fs')
 const path = require('node:path')
 const args = process.argv.slice(2)
@@ -42,6 +45,7 @@ const ALIASES = { haiku: 'claude-haiku-5-5', sonnet: 'claude-sonnet-5-5', opus: 
 const resolveModel = (m) => (m ? (ALIASES[m] ?? m) : 'claude-sonnet-5-5')
 let model = resolveModel(flag('--model'))
 let mode = flag('--permission-mode') ?? 'default'
+const mcpConfig = flag('--mcp-config')
 const newId = flag('--session-id')
 const resumeId = flag('--resume')
 const sessionId = newId ?? resumeId ?? '00000000-0000-4000-8000-000000000000'
@@ -113,6 +117,72 @@ async function tool(name, input, result, toolUseResult) {
   })
 }
 
+// Pede ao Wisp pelo servidor MCP dele, como o --permission-prompt-tool faz.
+async function approve(toolName, input, toolUseId) {
+  const desktop = JSON.parse(fs.readFileSync(mcpConfig, 'utf8')).mcpServers.desktop
+  const res = await fetch(desktop.url, {
+    method: 'POST',
+    headers: {
+      ...desktop.headers,
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream'
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name: 'approve', arguments: { tool_name: toolName, input, tool_use_id: toolUseId } }
+    })
+  })
+  const body = await res.text()
+  const line = body.split('\n').find((l) => l.startsWith('data:'))
+  const message = JSON.parse(line ? line.slice(5) : body)
+  const decision = JSON.parse(message.result.content[0].text)
+  fs.appendFileSync(
+    path.join(STATE, 'approvals.log'),
+    `${process.pid} ${desktop.url.split('/').pop()} ${toolName} ${JSON.stringify(input)} ${JSON.stringify(decision)}\n`
+  )
+  return decision
+}
+async function askTool(name, input, ok) {
+  const id = `toolu_${++n}`
+  const mid = `msg_${++n}`
+  out({ type: 'stream_event', event: { type: 'message_start', message: { id: mid } } })
+  out({
+    type: 'stream_event',
+    event: {
+      type: 'content_block_start',
+      index: 0,
+      content_block: { type: 'tool_use', id, name, input: {} }
+    }
+  })
+  out({
+    type: 'assistant',
+    message: { id: mid, model, content: [{ type: 'tool_use', id, name, input }] }
+  })
+  const decision = await approve(name, input, id)
+  const allowed = decision.behavior === 'allow'
+  out({
+    type: 'user',
+    message: {
+      role: 'user',
+      content: [
+        {
+          type: 'tool_result',
+          tool_use_id: id,
+          content: allowed ? ok : decision.message,
+          is_error: !allowed
+        }
+      ]
+    }
+  })
+  return decision
+}
+function setMode(next) {
+  mode = next
+  out({ type: 'system', subtype: 'status', status: null, permissionMode: mode })
+}
+
 async function turn(text) {
   current = { aborted: false }
   fs.writeFileSync(sessionFile, '{}')
@@ -171,6 +241,27 @@ async function turn(text) {
       'Esta resposta vem bem devagar, palavra por palavra, para dar tempo de parar no meio dela.'
     delay = 150
   }
+  const asked = /\[pede ([^\]]+)\]/.exec(text)
+  if (asked) {
+    const decision = await askTool(
+      'Bash',
+      { command: asked[1], description: 'Comando de teste' },
+      `saída de ${asked[1]}`
+    )
+    answer = decision.behavior === 'allow' ? `Rodei ${asked[1]}.` : `Não rodei ${asked[1]}.`
+  }
+  if (text.includes('[plano]')) {
+    const decision = await askTool(
+      'ExitPlanMode',
+      { plan: '# Plano\n\n1. Ler o código\n2. **Mudar** o arquivo', planFilePath: '/tmp/plano.md' },
+      'Plano aprovado.'
+    )
+    if (decision.behavior === 'allow') {
+      const change = decision.updatedPermissions?.find((p) => p.type === 'setMode')
+      setMode(change ? change.mode : 'default')
+      answer = `Plano aprovado; modo ${mode}.`
+    } else answer = 'Vou continuar planejando.'
+  }
   if (text.includes('[modelo]')) answer = `Modelo: ${model}`
   if (text.includes('[modo]')) answer = `Modo: ${mode}`
   await stream(answer, delay)
@@ -192,6 +283,10 @@ async function turn(text) {
 }
 
 function control({ request_id, request }) {
+  fs.appendFileSync(
+    path.join(STATE, 'controls.log'),
+    JSON.stringify({ pid: process.pid, ...request }) + '\n'
+  )
   const ok = () => out({ type: 'control_response', response: { subtype: 'success', request_id } })
   const error = (message) =>
     out({ type: 'control_response', response: { subtype: 'error', request_id, error: message } })
@@ -205,9 +300,8 @@ function control({ request_id, request }) {
   } else if (request.subtype === 'set_permission_mode') {
     if (request.mode === 'bypassPermissions')
       return error('Cannot set permission mode to bypassPermissions')
-    mode = request.mode
     ok()
-    out({ type: 'system', subtype: 'status', status: null, permissionMode: mode })
+    setMode(request.mode)
   }
 }
 
