@@ -696,6 +696,7 @@ code {
 }
 
 .composer-meta {
+  position: relative;
   display: flex;
   align-items: center;
   margin-bottom: -2px;
@@ -715,6 +716,13 @@ code {
   letter-spacing: 0.02em;
 }
 
+.model-pill span {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .model-pill.missing {
   border-color: var(--accent);
   color: var(--accent);
@@ -727,8 +735,15 @@ code {
   line-height: 1.4;
 }
 
+/* O menu dos modelos é largo: fica preso à linha das pílulas, e não à pílula do modelo, para
+   não passar da borda do painel. */
+.model.openrouter-model {
+  position: static;
+}
+
 .openrouter-menu {
-  width: min(360px, calc(100vw - 32px));
+  right: 0;
+  max-width: 400px;
 }
 
 .openrouter-search {

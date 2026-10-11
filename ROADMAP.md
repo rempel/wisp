@@ -477,12 +477,14 @@ endereços.
 
 ### Fase 13: compacto, GitHub, agenda e resumo da semana ✅
 
-**Status:** pronta, esperando validação. Veio das ideias deixadas para depois, escolhidas na
-validação da Fase 12. Testes de ponta a ponta para cada parte: `e2e/compact.mjs` (cursor e arraste
-de verdade, com o recorte da janela), `e2e/agenda.mjs` (com o Evolution Data Server de verdade) e
-`e2e/week.mjs`; os alertas do GitHub, com um `gh` de mentira nos testes de unidade.
+**Status:** validada (num Kali, pelo .deb), com dois ajustes que viraram a Fase 14: o modo
+compacto deixava o mascote cortado (virou a ilha) e a voz ficava "pensando". Veio das ideias
+deixadas para depois, escolhidas na validação da Fase 12. Testes de ponta a ponta:
+`e2e/agenda.mjs` (com o Evolution Data Server de verdade) e `e2e/week.mjs`; os alertas do GitHub,
+com um `gh` de mentira nos testes de unidade.
 
-- **Modo compacto (M):** o mascote mora na borda da tela, quase todo escondido, e espia:
+- **Modo compacto (M), trocado pela ilha na Fase 14:** o mascote mora na borda da tela, quase
+  todo escondido, e espia:
   - fica encostado na borda esquerda ou direita (a mais perto), só com um olho e a antena à
     vista. Fora dessa aba, a janela não pega cliques (forma da janela, XShape no X11);
   - sai inteiro quando o cursor passa pela aba, quando o painel está aberto, quando pede
@@ -518,9 +520,25 @@ de verdade, com o recorte da janela), `e2e/agenda.mjs` (com o Evolution Data Ser
 vermelho vira uma notificação que abre o PR; um compromisso daqui a 10 minutos avisa; o resumo da
 semana bate com o que aconteceu.
 
-### Fase 14: ajustes da validação (ilha, voz e OpenRouter)
+### Fase 14: ajustes da validação (ilha, voz e OpenRouter) ✅
 
-**Status:** em andamento. Veio da validação da Fase 13 (num Kali, pelo .deb).
+**Status:** pronta, esperando validação. Veio da validação da Fase 13 (num Kali, pelo .deb).
+Testes de ponta a ponta: `e2e/island.mjs` (cursor e clique de verdade, com o recorte da janela),
+`e2e/voice.mjs` (o microfone falso do Chromium e um whisper.cpp antigo de mentira) e
+`e2e/openrouter.mjs` (um chaveiro e uma OpenRouter de mentira). A OpenRouter também foi conferida
+com o Claude Code de verdade contra uma OpenRouter de mentira local: a chave vai como `Bearer`, o
+modelo chega como escolhido e as ferramentas do desktop são oferecidas ao modelo.
+
+Notas da entrega:
+
+- a voz que "ficava pensando" não deu para reproduzir aqui. As causas prováveis ganharam
+  tratamento: um whisper.cpp antigo, que recusa o `-sns` (e sai com 0, sem texto) ou não lê a
+  entrada padrão; um modelo pesado demais; e o microfone errado (áudio quase mudo). O registro
+  passa a contar como foi cada transcrição, e o **Testar voz** mostra onde está o problema;
+- o custo pela OpenRouter é estimado pelos preços da lista pública dela; o `total_cost_usd` do
+  Claude Code usa a tabela da Anthropic e não serve para outros modelos;
+- pela assinatura, um `ANTHROPIC_AUTH_TOKEN` herdado também sai do ambiente (ele passaria na
+  frente do login, como a `ANTHROPIC_API_KEY`).
 
 - **Ilha no topo (M),** no lugar do modo compacto que escondia o mascote atrás da borda (ficava
   cortado). Como a ilha do Coucou: uma cápsula no centro do topo da tela, logo abaixo da barra do

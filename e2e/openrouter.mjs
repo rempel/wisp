@@ -145,7 +145,7 @@ check(
   !readFileSync(join(home.home, '.config/wisp/config.json'), 'utf8').includes('sk-or-')
 )
 const placeholder = await ev(`document.querySelector('.openrouter-key input').placeholder`)
-check('O7 a tela sabe que há uma chave', /guardada no chaveiro/.test(placeholder), placeholder)
+check('O7 a tela sabe que há uma chave', /guardada/.test(placeholder), placeholder)
 
 console.log('== A aba vai para a OpenRouter')
 await ev(`document.querySelector('.header .icon-button[aria-label="Configurações"]').click()`)

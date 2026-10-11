@@ -83,8 +83,8 @@ export interface WispConfig {
    */
   demo: boolean
   /**
-   * Modo compacto: o mascote mora na borda da tela, quase todo escondido, e espia quando o cursor
-   * passa ou quando tem algo a mostrar.
+   * A ilha (o nome no arquivo ficou do modo compacto da Fase 13): no lugar do mascote flutuante,
+   * uma cápsula no centro do topo da tela, que abre com o cursor ou quando tem algo a mostrar.
    */
   compact: boolean
   /** Alertas do GitHub (CI e revisões dos seus PRs), pelo `gh` já logado. Desligado por padrão. */
