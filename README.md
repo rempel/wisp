@@ -79,7 +79,9 @@ Depois do MVP, vieram as fases do roadmap:
     uma aba para a borda de um painel, ajustar as divisórias, até 8 painéis, e tudo volta igual;
   - maximizar e restaurar no cabeçalho, e a janela reabre onde você a deixou (com um botão para
     voltar para perto do mascote);
-  - a linha das pílulas rola de lado num painel estreito, e anexar e print viram um **+**.
+  - a linha das pílulas rola de lado num painel estreito, e anexar e print viram um **+**;
+  - o contexto de cada conversa numa pílula (quanto da janela do modelo já está ocupado) e o
+    **Compactar agora**, o `/compact` do Claude Code, com instruções do que manter.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -227,6 +229,17 @@ reparte o espaço que ela tem.
 **Caixa de texto:** o **+** à esquerda da caixa tem **Anexar arquivos** e **Print da tela**
 (arrastar arquivos e colar imagens continuam valendo). A linha das pílulas (provedor, modelo,
 modo) rola de lado quando o painel fica estreito.
+
+### Contexto da conversa
+
+Depois da primeira resposta, a pílula com um anel, abaixo da caixa, mostra quanto da janela de
+contexto do modelo a conversa ocupa: verde, âmbar a partir de 60% e vermelha a partir de 85%. É
+o que o Claude tem em mente agora (as mensagens, o que as ferramentas devolveram, os arquivos
+lidos), contado na última chamada ao modelo. Clique nela para ver os tokens e **Compactar
+agora**: o `/compact` do Claude Code troca o que veio antes por um resumo, e a conversa segue com
+bem menos contexto. No campo de cima, diga o que o resumo deve manter (por exemplo, "as decisões
+sobre o banco"). O painel continua mostrando a conversa inteira; um aviso marca onde ela foi
+compactada. Perto do limite, o Claude Code compacta sozinho, e o aviso diz isso também.
 
 ### Pastas e skills
 
@@ -518,6 +531,13 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] **Volta igual:** feche e abra o Wisp: a grade, os tamanhos e as abas de cada painel voltam.
 - [ ] **Caixa de texto:** num painel estreito, a linha das pílulas rola de lado e os menus delas
       aparecem inteiros. O **+** tem **Anexar arquivos** e **Print da tela**.
+- [ ] **Contexto:** depois da primeira resposta, a pílula do anel mostra o percentual. Peça para
+      ler alguns arquivos grandes e veja ele subir. Clique nela: os tokens aparecem; enquanto o
+      Claude responde, **Compactar agora** fica desligado.
+- [ ] **Compactar:** escreva o que manter e clique em **Compactar agora**: a pílula mostra
+      "compactando…", o aviso "Conversa compactada (X → Y tokens)" aparece e o percentual cai.
+      Pergunte algo do começo da conversa: o Claude lembra pelo resumo. Feche e reabra a conversa
+      pelo histórico: o aviso continua lá.
 
 ### Pastas e skills (Fase 15)
 
@@ -976,6 +996,7 @@ do Claude Code segue a regra dele.
 | O mascote sumiu                              | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                      |
 | "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                       |
 | "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula     |
+| A pílula do contexto não aparece             | Ela surge depois da primeira resposta da conversa (e não aparece na demonstração)                                |
 | "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                         |
 | "O Claude Code começou no modo …"            | Uma política do `settings.json` (ou da empresa) escolheu outro modo, ou a sua conta não tem o Automático         |
 | O modo voltou para Pedir sozinho             | Um plano aprovado com **Aprovar** volta para o Pedir, como no Claude Code. Use **Aprovar e aceitar edições**     |
@@ -1160,6 +1181,14 @@ electron-builder.yml   # os pacotes .deb e AppImage
   próxima mensagem, que já sai no modelo novo, com o contexto inteiro. Sem modelo, o CLI volta ao
   padrão. O nome do modelo que respondeu vem do evento `init` de cada turno. Se o CLI recusar a
   troca, a conversa avisa e a pílula volta ao modelo de antes.
+- **Contexto:** cada mensagem do assistente no stream traz o `usage` da chamada ao modelo; o que
+  entrou (com o cache lido e o criado) mais o que saiu é o tamanho do contexto agora. O tamanho
+  da janela vem do `modelUsage[modelo].contextWindow` do `result`. As mensagens dos subagentes
+  não contam (eles têm o contexto deles). Compactar manda `/compact <instruções>` (numa linha, até
+  500 caracteres) como uma mensagem comum pelo stdin; o CLI responde com um `status`
+  `compacting`, um `compact_boundary` com os tokens antes e depois (e se foi manual ou
+  automático) e um `result` sem texto. O resumo que ele devolve não vai para o painel; o
+  `compacted` vai para o histórico, e o aviso volta com a conversa.
 - **Uso do plano:** o stream do Claude Code manda um `rate_limit_event` a cada resposta, com o uso
   das janelas de 5 horas e de 7 dias e o horário em que cada uma reinicia. A pílula mostra a
   maior das duas. Não é preciso instalar nada no Claude Code do usuário.

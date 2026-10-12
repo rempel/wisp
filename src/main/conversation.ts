@@ -262,6 +262,18 @@ export class Conversation {
     this.session.reset()
   }
 
+  /** Compacta a conversa (o /compact do Claude Code). */
+  compact(instructions?: string): void {
+    if (!this.session.compact(instructions)) {
+      this.notice(
+        'info',
+        this.session.isBusy()
+          ? 'Espere a resposta terminar para compactar.'
+          : 'Ainda não há o que compactar nesta conversa.'
+      )
+    }
+  }
+
   setModel(model: string | null): void {
     this.session.setModel(model)
   }
@@ -313,12 +325,14 @@ export class Conversation {
   /** O que a página recebe ao abrir: o provedor, o modelo, o modo e o custo de agora. */
   initialEvents(): ChatEvent[] {
     const cost = this.session.costEvent()
+    const context = this.session.contextEvent()
     return [
       this.session.providerEvent(),
       { type: 'folder', folder: this.folderPath ? tilde(this.folderPath) : null },
       this.session.modelEvent(),
       { type: 'mode', mode: this.mode },
-      ...(cost ? [cost] : [])
+      ...(cost ? [cost] : []),
+      ...(context ? [context] : [])
     ]
   }
 

@@ -58,7 +58,8 @@ const KEPT = new Set<ChatEvent['type']>([
   'turn-end',
   'notice',
   'permission-request',
-  'permission-resolved'
+  'permission-resolved',
+  'compacted'
 ])
 
 const isString = (value: unknown): value is string => typeof value === 'string'
@@ -86,6 +87,8 @@ function validEvent(value: unknown): value is ChatEvent {
       return isString(event.id) && isString(event.toolName)
     case 'permission-resolved':
       return isString(event.id) && isString(event.decision)
+    case 'compacted':
+      return event.trigger === 'manual' || event.trigger === 'auto'
     default:
       return false
   }

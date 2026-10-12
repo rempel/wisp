@@ -22,6 +22,7 @@ import {
 } from './icons'
 import { Markdown } from './Markdown'
 import { ComposerMenu } from './ComposerMenu'
+import { ContextPill } from './ContextPill'
 import { ModelPill } from './ModelPill'
 import { OpenRouterModelPill } from './OpenRouterModelPill'
 import { ProviderPill } from './ProviderPill'
@@ -433,6 +434,13 @@ export function Pane({
                   onPick={(model) => window.wisp.chat.setModel(conversation, model)}
                 />
               ))}
+            {state.context && !demo && (
+              <ContextPill
+                context={state.context}
+                busy={state.busy}
+                onCompact={(instructions) => window.wisp.chat.compact(conversation, instructions)}
+              />
+            )}
             <ModePill
               mode={state.mode}
               onPick={(mode) => window.wisp.chat.setMode(conversation, mode)}

@@ -62,6 +62,8 @@ export const IPC = {
   chatModel: 'chat:model',
   /** chat → main: trocar o provedor da aba (recomeça a conversa). Args: (conversa, Provider). */
   chatProvider: 'chat:provider',
+  /** chat → main: compactar a conversa. Args: (conversa, instruções opcionais). */
+  chatCompact: 'chat:compact',
   /** chat → main (invoke): os modelos da OpenRouter. Devolve OpenRouterModelInfo[] ou { error }. */
   openrouterModels: 'openrouter:models',
   /** chat → main (invoke): guarda a chave no chaveiro (conferida antes). Devolve OpenRouterKeyResult. */
@@ -665,6 +667,15 @@ export type ChatEvent =
   | { type: 'folder'; folder: string | null }
   /** O custo estimado da conversa pela OpenRouter, a cada resposta. */
   | { type: 'cost'; cost: ConversationCost }
+  /** Quanto da janela de contexto a conversa ocupa (a cada resposta e ao compactar). */
+  | { type: 'context'; context: ContextUsage }
+  /** A conversa foi compactada (por você ou sozinha, perto do limite): tokens antes e depois. */
+  | {
+      type: 'compacted'
+      trigger: 'manual' | 'auto'
+      before: number | null
+      after: number | null
+    }
   /** O modo de permissão da conversa mudou (pelo usuário ou pelo Claude Code). */
   | { type: 'mode'; mode: PermissionMode }
   /**
@@ -820,6 +831,14 @@ export interface ConversationCost {
   turns: number
 }
 
+/** O contexto da conversa: tokens ocupados, o tamanho da janela (null até o CLI contar) e se está
+ * compactando agora. */
+export interface ContextUsage {
+  used: number
+  window: number | null
+  compacting: boolean
+}
+
 /** Guardar ou conferir a chave: deu certo (com o nome que ela tem na OpenRouter) ou o motivo. */
 export type OpenRouterKeyResult =
   { ok: true; label: string | null; note?: string } | { ok: false; message: string }
@@ -920,6 +939,8 @@ export interface WispApi {
     setModel(conversation: string, choice: string | null): void
     /** Troca o provedor da aba; a conversa recomeça (a atual fica no histórico). */
     setProvider(conversation: string, provider: Provider): void
+    /** Compacta a conversa (o /compact do Claude Code), com instruções opcionais do que manter. */
+    compact(conversation: string, instructions?: string): void
     /** Troca o modo de permissão da conversa. */
     setMode(conversation: string, mode: PermissionMode): void
     answerPermission(id: string, decision: PermissionDecision): void

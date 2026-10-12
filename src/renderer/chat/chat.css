@@ -723,6 +723,82 @@ code {
 
 .composer-meta .model-menu {
   max-width: calc(100% - 8px);
+  /* A linha das pílulas não quebra; os menus dela, sim. */
+  white-space: normal;
+}
+
+.context-ring {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+}
+
+.context-ring svg {
+  width: 14px;
+  height: 14px;
+  transform: rotate(-90deg);
+}
+
+.context-track,
+.context-fill {
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.context-track {
+  stroke: var(--border);
+}
+
+.context-fill {
+  stroke: var(--ok);
+  stroke-linecap: round;
+}
+
+.context-mid .context-fill {
+  stroke: var(--warning-text);
+}
+
+.context-high .context-fill {
+  stroke: var(--danger-text);
+}
+
+.context-pill.context-high {
+  border-color: var(--danger-solid);
+  color: var(--danger-text);
+}
+
+.context-pill.compacting .context-ring {
+  animation: spin 1.2s linear infinite;
+}
+
+.context-card {
+  width: min(320px, calc(100% - 8px));
+  padding: 10px 12px;
+}
+
+.context-bar {
+  margin: 6px 0 4px;
+}
+
+.context-numbers {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.context-card .model-menu-note {
+  margin: 0 0 8px;
+}
+
+.context-instructions,
+.context-compact {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.context-compact {
+  margin-top: 6px;
 }
 
 .composer-menu {

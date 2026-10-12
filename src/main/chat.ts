@@ -797,6 +797,9 @@ export function setupChat({
     updateConfig({ model })
     conversation.setModel(model)
   })
+  ipcMain.on(IPC.chatCompact, (event, id: unknown, instructions: unknown) => {
+    target(event, id)?.compact(typeof instructions === 'string' ? instructions : '')
+  })
   ipcMain.on(IPC.chatProvider, (event, id: unknown, provider: unknown) => {
     if (provider !== 'subscription' && provider !== 'openrouter') return
     target(event, id)?.setProvider(provider)
