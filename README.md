@@ -25,7 +25,8 @@ mantido por ela.
 [Privacidade e segurança](#privacidade-e-segurança) ·
 [Problemas comuns](#problemas-comuns) ·
 [Desenvolvimento](#desenvolvimento) ·
-[Como funciona](#como-funciona)
+[Como funciona](#como-funciona) ·
+[Licença](#licença)
 
 ## A ideia
 
@@ -1109,6 +1110,8 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
   Wisp parado sem gastar CPU.
 - O trabalho vai por fases, cada uma com um aceite que dá para conferir. Ideias novas entram no
   ROADMAP primeiro.
+- Ao contribuir, você concorda que a sua contribuição sai sob a mesma licença do projeto, a
+  [GPL-3.0 ou mais nova](#licença).
 
 ### Publicando uma versão
 
@@ -1144,3 +1147,23 @@ O Wisp existe por causa do [Claude Code](https://docs.claude.com/en/docs/claude-
 [Playwright MCP](https://github.com/microsoft/playwright-mcp), o
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) e o [Piper](https://github.com/OHF-Voice/piper1-gpl).
 O mascote e a ideia de um companheiro de mesa se inspiraram no Coucou (veja o [ROADMAP](ROADMAP.md)).
+
+## Licença
+
+O Wisp é software livre, sob a **GNU General Public License, versão 3 ou mais nova**
+(GPL-3.0-or-later). O texto completo está em [LICENSE](LICENSE).
+
+Na prática: você pode usar o Wisp para o que quiser, estudar o código, mudá-lo e distribuir cópias,
+com ou sem mudanças, inclusive vendendo. Quem distribuir uma versão (modificada ou não) precisa
+entregar junto o código-fonte dela, sob a mesma licença, e manter os avisos de licença. Não há
+garantia nenhuma.
+
+A escolha segue a ideia do projeto: um assistente que mexe no seu computador precisa ser
+auditável. Com a GPL, toda versão do Wisp que chegar a alguém, inclusive uma derivada, traz o
+código junto: dá sempre para conferir que ela pede licença antes de agir, que não manda nada para
+fora e que guarda os segredos no chaveiro. As melhorias de quem distribui voltam para a comunidade.
+
+As bibliotecas que vão no pacote têm licenças próprias, todas permissivas e compatíveis com a GPL
+(MIT, ISC, Apache-2.0 e BSD). O Claude Code, o whisper.cpp, o Piper e o navegador do Claude são
+programas à parte, que você instala e que seguem as licenças e os termos deles; usar o Claude Code
+segue os termos da Anthropic.
