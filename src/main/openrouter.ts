@@ -10,7 +10,7 @@
 //   cada resposta. O total_cost_usd do Claude Code não serve: ele usa a tabela de preços da
 //   Anthropic, que não vale para outros modelos.
 
-import { existsSync, lstatSync, mkdirSync, symlinkSync } from 'fs'
+import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { DATA_DIR } from './paths'
 import { claudeConfigDir } from './skills'
@@ -52,6 +52,45 @@ export function openrouterEnv(key: string, model: string): Record<string, string
     CLAUDE_CODE_SUBAGENT_MODEL: model,
     // Nada de telemetria nem de chamadas à Anthropic por fora: só a OpenRouter.
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+  }
+}
+
+/**
+ * O modo terminal pela OpenRouter (Fase 17): a pasta de configuração é do Wisp, então ela já
+ * começa sem as boas-vindas do Claude Code (o tema, o tour) e com a pasta da conversa marcada
+ * como confiável (o Wisp já conferiu, com o card dele, as pastas que rodam coisas sozinhas).
+ */
+export function seedTerminalConfig(cwd: string, configDir = OPENROUTER_CONFIG_DIR): void {
+  const file = join(configDir, '.claude.json')
+  let config: Record<string, unknown> = {}
+  try {
+    const parsed: unknown = JSON.parse(readFileSync(file, 'utf8'))
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return
+    config = parsed as Record<string, unknown>
+  } catch (err) {
+    // Um arquivo estragado fica como está; só um que não existe é criado.
+    if ((err as NodeJS.ErrnoException).code !== 'ENOENT') return
+  }
+  const projects =
+    config.projects && typeof config.projects === 'object'
+      ? (config.projects as Record<string, Record<string, unknown>>)
+      : {}
+  const project = projects[cwd] ?? {}
+  if (config.hasCompletedOnboarding === true && project.hasTrustDialogAccepted === true) return
+  const next = {
+    ...config,
+    hasCompletedOnboarding: true,
+    theme: config.theme ?? 'dark',
+    projects: {
+      ...projects,
+      [cwd]: { ...project, hasTrustDialogAccepted: true, hasCompletedProjectOnboarding: true }
+    }
+  }
+  try {
+    mkdirSync(configDir, { recursive: true, mode: 0o700 })
+    writeFileSync(file, JSON.stringify(next, null, 2), { mode: 0o600 })
+  } catch (err) {
+    console.warn('[wisp] não consegui preparar o Claude Code da OpenRouter:', err)
   }
 }
 

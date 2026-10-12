@@ -11,6 +11,18 @@ export const RELAY_NAME = 'wisp-hook'
 /** Variável que marca os processos do próprio Wisp: os hooks deles não viram sessões. */
 export const INTERNAL_ENV = 'WISP_INTERNAL'
 
+/**
+ * O modo terminal de uma aba (Fase 17): o Claude Code dela roda o relay com `--tab <ficha>
+ * <Evento>` (os hooks) e `--status <ficha>` (a linha de status), pelo --settings do processo. A
+ * ficha diz de que aba é o evento, e esses vão para a aba, não para a aba Sessões.
+ */
+export const TAB_ARG = '--tab'
+export const STATUS_ARG = '--status'
+/** O nome do evento da linha de status (não é um hook do Claude Code). */
+export const STATUS_EVENT = 'StatusLine'
+/** O formato da ficha de uma aba. */
+export const TAB_TOKEN = /^[a-f0-9]{16,64}$/
+
 /** Quanto o Claude Code espera uma decisão de permissão antes de desistir do relay (s). */
 export const DECISION_TIMEOUT_S = 300
 
@@ -70,6 +82,8 @@ export interface RelayEvent {
    * resultado da mesma chamada, que chega se o pedido foi respondido no terminal.
    */
   inputHash?: string
+  /** A ficha da aba do modo terminal que mandou o evento (veja TAB_ARG). */
+  tab?: string
 }
 
 /**
@@ -77,7 +91,8 @@ export interface RelayEvent {
  * nada e quem decide é o diálogo do próprio terminal.
  */
 export type RelayReply =
-  | { decision: 'allow' }
+  /** `permissions`: o que muda junto (aprovar o plano e passar para outro modo, por exemplo). */
+  | { decision: 'allow'; permissions?: Record<string, unknown>[] }
   | { decision: 'deny'; message: string }
   /** Respostas a uma pergunta (AskUserQuestion): texto da pergunta → resposta. */
   | { decision: 'answer'; answers: Record<string, string> }

@@ -64,6 +64,11 @@ export const IPC = {
   chatProvider: 'chat:provider',
   /** chat → main: compactar a conversa. Args: (conversa, instruções opcionais). */
   chatCompact: 'chat:compact',
+  chatView: 'chat:view',
+  tuiAttach: 'tui:attach',
+  tuiInput: 'tui:input',
+  tuiResize: 'tui:resize',
+  tuiData: 'tui:data',
   /** chat → main (invoke): os modelos da OpenRouter. Devolve OpenRouterModelInfo[] ou { error }. */
   openrouterModels: 'openrouter:models',
   /** chat → main (invoke): guarda a chave no chaveiro (conferida antes). Devolve OpenRouterKeyResult. */
@@ -680,9 +685,31 @@ export type ChatEvent =
   | { type: 'mode'; mode: PermissionMode }
   /**
    * Uma mensagem do usuário, ao reabrir uma conversa do histórico. Ao vivo, o chat mostra a
-   * mensagem na hora do envio, sem esperar o main; as faladas (`voice`) vêm do main.
+   * mensagem na hora do envio, sem esperar o main; as faladas (`voice`) vêm do main. `queued`:
+   * mandada com o Claude trabalhando, espera ele pegar (o user-delivered avisa).
    */
-  | { type: 'user'; text: string; attachments: AttachmentPreview[]; voice?: boolean }
+  | {
+      type: 'user'
+      text: string
+      attachments: AttachmentPreview[]
+      voice?: boolean
+      queued?: boolean
+    }
+  /** A mais antiga das mensagens mandadas com o Claude trabalhando chegou a ele. */
+  | { type: 'user-delivered' }
+  /** As mensagens que esperavam o Claude não chegaram (a resposta parou, o processo caiu). */
+  | { type: 'queue-dropped' }
+  /** Um passo de um subagente (o card do Agente mostra a lista). */
+  | { type: 'subagent-step'; parent: string; id: string; name: string; input: unknown }
+  | { type: 'subagent-step-end'; parent: string; id: string; isError: boolean }
+  /** Uma tarefa do Claude Code começou ou mudou (um comando em segundo plano, por exemplo). */
+  | { type: 'task'; task: TaskInfo }
+  /** Os comandos com barra que o Claude Code aceita nesta conversa (skills e comandos). */
+  | { type: 'commands'; commands: string[] }
+  /** A aba passou a mostrar o chat ou o terminal (o Claude Code de verdade). */
+  | { type: 'view'; view: ConversationView }
+  /** Como está o Claude Code do modo terminal: rodando, encerrado (com o código) ou parado. */
+  | { type: 'terminal'; terminal: TerminalStatus }
   /** Fim da reabertura de uma conversa do histórico (vem depois das mensagens dela). */
   | { type: 'restored'; createdAt: number }
 
@@ -839,6 +866,22 @@ export interface ContextUsage {
   compacting: boolean
 }
 
+/** Uma tarefa do Claude Code (um comando rodando, um subagente em segundo plano). */
+export interface TaskInfo {
+  id: string
+  description: string
+  status: 'running' | 'completed' | 'failed' | 'stopped'
+  /** Roda em segundo plano: a resposta segue sem esperar por ela. */
+  background: boolean
+}
+
+/** O que a aba mostra: o chat do Wisp ou o Claude Code de verdade, num terminal. */
+export type ConversationView = 'chat' | 'terminal'
+
+/** O processo do modo terminal. */
+export type TerminalStatus =
+  { state: 'idle' } | { state: 'running' } | { state: 'exited'; code: number | null }
+
 /** Guardar ou conferir a chave: deu certo (com o nome que ela tem na OpenRouter) ou o motivo. */
 export type OpenRouterKeyResult =
   { ok: true; label: string | null; note?: string } | { ok: false; message: string }
@@ -941,6 +984,8 @@ export interface WispApi {
     setProvider(conversation: string, provider: Provider): void
     /** Compacta a conversa (o /compact do Claude Code), com instruções opcionais do que manter. */
     compact(conversation: string, instructions?: string): void
+    /** A aba mostra o chat ou o Claude Code de verdade, num terminal (mesma conversa). */
+    setView(conversation: string, view: ConversationView): void
     /** Troca o modo de permissão da conversa. */
     setMode(conversation: string, mode: PermissionMode): void
     answerPermission(id: string, decision: PermissionDecision): void
@@ -967,6 +1012,17 @@ export interface WispApi {
     copied(): void
     /** Um texto ditado para a caixa de mensagem. */
     onCompose(listener: (text: string) => void): () => void
+  }
+  /** O modo terminal: o Claude Code de verdade numa aba (Fase 17). */
+  tui: {
+    /** O que o terminal da conversa já mostrou (e sobe o processo, se preciso). */
+    attach(conversation: string): Promise<string>
+    /** O que foi digitado no terminal. */
+    input(conversation: string, data: string): void
+    /** O tamanho do terminal na página, em colunas e linhas. */
+    resize(conversation: string, cols: number, rows: number): void
+    /** A saída dos terminais (de qualquer conversa). */
+    onData(listener: (conversation: string, data: string) => void): () => void
   }
   /** As abas e os painéis lado a lado. */
   tabs: {

@@ -24,12 +24,15 @@ for path in \
   ./opt/Wisp/resources/app/out/main/wisp-hook.js \
   ./opt/Wisp/resources/app/out/main/wisp-demo.js \
   ./opt/Wisp/resources/app/resources/demo/index.json \
+  ./opt/Wisp/resources/app/node_modules/node-pty/build/Release/pty.node \
+  ./opt/Wisp/resources/app/node_modules/node-pty/lib/index.js \
   ./usr/share/applications/io.github.rempel.Wisp.desktop \
   ./usr/share/icons/hicolor/256x256/apps/wisp.png; do
   grep -qxF "$path" "$work/deb.txt" || fail "o .deb não tem $path"
 done
-ok "o app, o relay dos hooks, a demonstração, o .desktop e o ícone"
+ok "o app, o relay dos hooks, a demonstração, o node-pty (modo terminal), o .desktop e o ícone"
 ! grep -q '/out/test/' "$work/deb.txt" || fail "o .deb leva os testes de unidade"
+! grep -q 'node-pty/prebuilds/' "$work/deb.txt" || fail "o .deb leva os binários do node-pty de outros sistemas"
 ! grep -q 'default_app.asar' "$work/deb.txt" || fail "o .deb leva o app padrão do Electron"
 ok "sem os testes e sem o app padrão do Electron"
 dpkg-deb -e "$deb" "$work/control"
@@ -51,6 +54,15 @@ ls "$root"/*.desktop >/dev/null 2>&1 || fail "o AppImage não tem um .desktop"
 electron=$(ELECTRON_RUN_AS_NODE=1 "$root/wisp" -e 'console.log(process.versions.electron)') ||
   fail "o fuse RunAsNode está desligado (o relay dos hooks não rodaria)"
 ok "RunAsNode ligado (Electron $electron): o relay dos hooks e o navegador rodam"
+pty=$(ELECTRON_RUN_AS_NODE=1 "$root/wisp" -e '
+  const pty = require(process.argv[1] + "/resources/app/node_modules/node-pty")
+  const p = pty.spawn("/bin/sh", ["-c", "stty size"], { cols: 77, rows: 22, env: { PATH: "/usr/bin:/bin" } })
+  let out = ""
+  p.onData((d) => (out += d))
+  p.onExit(() => console.log(out.trim()))
+' "$root") || fail "o node-pty não carrega no Electron do pacote"
+[ "$pty" = "22 77" ] || fail "o pty do modo terminal não abriu ($pty)"
+ok "o node-pty abre um terminal no Electron do pacote (o modo terminal)"
 NODE_OPTIONS=--require=/nao/existe.js ELECTRON_RUN_AS_NODE=1 "$root/wisp" -e '' ||
   fail "o NODE_OPTIONS ainda vale (o fuse deveria desligá-lo)"
 ok "NODE_OPTIONS ignorado"

@@ -647,9 +647,50 @@ divisórias ajustadas, voltam iguais depois de fechar e abrir o Wisp; maximizar 
 funcionam no KDE e no GNOME; numa conversa longa, a pílula mostra o contexto subindo e
 compactar o faz cair, com o Claude lembrando do começo pelo resumo.
 
-### Fase 17: aprovar pelo celular
+### Fase 17: modo terminal e o chat como o CLI ✅
 
-**Status:** mapeada, para depois da Fase 16.
+**Status:** pronta, esperando validação. Veio de um pedido de uso: no chat, não dava para mandar
+nada com o Claude trabalhando nem ver direito os agentes; o pedido era um comportamento quase
+igual ao do Claude Code no terminal, ou um "modo CLI" com tudo o que o Wisp já faz. Antes de
+implementar, o comportamento foi conferido no Claude Code de verdade (2.1), contra um servidor de
+mentira: a mensagem no meio do turno, os hooks e a linha de status pelo `--settings`, o
+`PermissionRequest` junto com o diálogo do terminal. Testes de ponta a ponta: `e2e/terminal.mjs` e
+`e2e/fila.mjs`, com o Claude Code de mentira, que ganhou um modo interativo.
+
+- **Chat como o CLI (C):**
+  - mandar com o Claude trabalhando: a mensagem fica **na fila** e entra na próxima pausa, sem
+    parar a resposta (ou vira a seguinte); a voz também entra na fila;
+  - os passos dos subagentes dentro do card do Agente;
+  - as tarefas em segundo plano acima da caixa;
+  - o menu dos comandos com barra: os do Wisp (`/compact`, `/clear`) e os do Claude Code, com as
+    skills e os comandos do projeto.
+- **Modo terminal (T):** um botão **Chat | Terminal** por aba. No terminal, o Claude Code de
+  verdade (node-pty e xterm.js), na mesma conversa, com:
+  - o provedor (a OpenRouter também), o modelo, o modo, a pasta e as ferramentas do desktop;
+    trocar recomeça o terminal na mesma sessão;
+  - os cards do Wisp por cima do terminal, junto com o diálogo dele (vale o primeiro);
+  - a voz, o `--ask`, os anexos e o print colados no terminal;
+  - o contexto, o custo, o mascote, a ilha e o histórico;
+  - a aba volta no modo terminal ao abrir o Wisp.
+- **Distribuição:** o node-pty vai nos pacotes (só o binário do Linux); o teste dos pacotes abre
+  um terminal com ele no Electron do AppImage.
+
+Notas da entrega:
+
+- o primeiro teste com o terminal de verdade mostrou que os hooks em segundo plano podem chegar
+  fora de ordem (a mensagem depois do pedido de permissão que ela causou): o hook da mensagem
+  passou a rodar sem `async` no modo terminal;
+- respondido no terminal, o Claude Code encerra o shell do hook, e o relay podia ficar órfão (e o
+  card, aberto): o relay agora sai quando perde o pai, e o card some também quando a ferramenta
+  roda ou a resposta acaba.
+
+**Aceite:** com o Claude rodando os testes, uma mensagem mandada no meio entra na mesma resposta;
+numa aba no terminal, pela OpenRouter, o Claude Code de verdade pede um comando, o card do Wisp
+aparece e libera, e voltando ao chat a conversa está lá, inteira.
+
+### Fase 18: aprovar pelo celular
+
+**Status:** mapeada, para depois da Fase 17.
 
 - **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
   escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
@@ -669,7 +710,7 @@ compactar o faz cair, com o Claude lembrando do começo pelo resumo.
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 17.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18.
 
 ## Princípios que ficam
 

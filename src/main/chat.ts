@@ -22,6 +22,8 @@ import {
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { History } from './history'
+import type { RelayEvent } from './hooks/protocol'
+import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { listProjects } from './desktop'
@@ -52,6 +54,7 @@ import type {
   AttachmentPreview,
   ChatEvent,
   ClipboardUse,
+  ConversationView,
   DroppedFile,
   DroppedFiles,
   MascotState,
@@ -170,7 +173,14 @@ type Tab =
 interface SavedTabs {
   v: 1 | 2
   tabs: (
-    | { kind: 'chat'; history: string | null; mode: PermissionMode; folder?: string }
+    | {
+        kind: 'chat'
+        history: string | null
+        mode: PermissionMode
+        folder?: string
+        /** A aba estava no modo terminal (Fase 17). */
+        view?: ConversationView
+      }
     | { kind: 'session'; sessionId: string; title: string }
   )[]
   panes?: number[]
@@ -253,6 +263,11 @@ export interface Chat {
   notice(level: NoticeLevel, text: string): void
   /** A chave da OpenRouter mudou: as conversas de lá a leem de novo. */
   openrouterKeyChanged(): void
+  /**
+   * Um evento dos hooks do Claude Code do modo terminal de uma aba (pela ficha dele). false: não
+   * é de nenhuma aba aberta.
+   */
+  terminalEvent(event: RelayEvent, pending: PendingReply | null): boolean
   /** Encerra os processos do Claude Code (o app está fechando). */
   dispose(): void
 }
@@ -394,6 +409,9 @@ export function setupChat({
         place(win)
         win.showInactive()
       }
+    },
+    terminalData(conversation, chunk) {
+      if (win && pageReady) win.webContents.send(IPC.tuiData, conversation.id, chunk)
     },
     changed() {
       sendTabs()
@@ -619,7 +637,8 @@ export function setupChat({
               kind: 'chat',
               history: tab.conversation.historyId,
               mode: tab.conversation.mode,
-              ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {})
+              ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {}),
+              ...(tab.conversation.view === 'terminal' ? { view: 'terminal' as const } : {})
             }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),
@@ -663,6 +682,8 @@ export function setupChat({
       )
       const old = typeof entry.history === 'string' ? store.load(entry.history) : null
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
+      // No modo terminal, o Claude Code sobe quando a aba aparece.
+      if (entry.view === 'terminal') conversation.presetView('terminal')
       tabs.push({ id: conversation.id, kind: 'chat', conversation })
     }
     if (!tabs.length) {
@@ -744,7 +765,10 @@ export function setupChat({
   const fromChat = (event: IpcMainEvent | IpcMainInvokeEvent): boolean =>
     win !== null && event.sender === win.webContents
   /** A conversa de um pedido da página, se ele veio da página e a conversa existe. */
-  const target = (event: IpcMainEvent, id: unknown): Conversation | undefined =>
+  const target = (
+    event: IpcMainEvent | IpcMainInvokeEvent,
+    id: unknown
+  ): Conversation | undefined =>
     fromChat(event) && typeof id === 'string' ? conversationById(id) : undefined
 
   ipcMain.on(IPC.chatReady, (event) => {
@@ -796,6 +820,19 @@ export function setupChat({
     const model = choice as string | null
     updateConfig({ model })
     conversation.setModel(model)
+  })
+  ipcMain.on(IPC.chatView, (event, id: unknown, view: unknown) => {
+    if (view !== 'chat' && view !== 'terminal') return
+    void target(event, id)?.setView(view)
+  })
+  ipcMain.handle(IPC.tuiAttach, (event, id: unknown) => target(event, id)?.attachTerminal() ?? '')
+  ipcMain.on(IPC.tuiInput, (event, id: unknown, data: unknown) => {
+    if (typeof data !== 'string' || data.length > 1_000_000) return
+    target(event, id)?.terminalInput(data)
+  })
+  ipcMain.on(IPC.tuiResize, (event, id: unknown, cols: unknown, rows: unknown) => {
+    if (typeof cols !== 'number' || typeof rows !== 'number') return
+    target(event, id)?.resizeTerminal(Math.floor(cols), Math.floor(rows))
   })
   ipcMain.on(IPC.chatCompact, (event, id: unknown, instructions: unknown) => {
     target(event, id)?.compact(typeof instructions === 'string' ? instructions : '')
@@ -1328,11 +1365,13 @@ export function setupChat({
     },
     ask(text, { voice = false } = {}) {
       let conversation = focusedConversation()
-      // A conversa em foco está respondendo: a pergunta nova vai numa aba nova, e a outra segue.
-      if (conversation.busy && tabs.length < MAX_TABS) conversation = addChatTab()
+      // A conversa em foco está respondendo: o que foi falado entra na fila dela, como no
+      // terminal; uma pergunta do --ask vai numa aba nova, e a outra segue.
+      const queue = voice && conversation.busy && conversation.canSend
+      if (conversation.busy && !queue && tabs.length < MAX_TABS) conversation = addChatTab()
       if (!win) win = createWindow()
       else show(win)
-      if (conversation.busy) {
+      if (conversation.busy && !queue) {
         if (voice) compose(text)
         conversation.notice(
           'warning',
@@ -1461,6 +1500,12 @@ export function setupChat({
     },
     openrouterKeyChanged() {
       for (const conversation of conversations()) conversation.session.dropSecret()
+    },
+    terminalEvent(event, pending) {
+      const conversation = conversations().find((c) => c.terminalToken === event.tab)
+      if (!conversation) return false
+      conversation.terminalEvent(event, pending)
+      return true
     },
     dispose() {
       saveTabs()

@@ -3,13 +3,16 @@ import type {
   AttachmentPreview,
   ContextUsage,
   ConversationCost,
+  ConversationView,
   ChatEvent,
   FileDiff,
   NoticeLevel,
   PermissionDecision,
   PermissionMode,
   PlanUsage,
-  Provider
+  Provider,
+  TaskInfo,
+  TerminalStatus
 } from '../../shared/ipc'
 
 export type { AttachmentPreview }
@@ -29,6 +32,12 @@ export type Item =
       attachments: AttachmentPreview[]
       /** Foi falada (o atalho de voz, um comando rápido). */
       voice?: boolean
+      /** Mandada com o Claude trabalhando: espera ele pegar (na fila). */
+      queued?: boolean
+      /** Ficou na fila e não chegou (a resposta parou). */
+      dropped?: boolean
+      /** Entrou no meio de um turno: os itens dele continuam depois dela. */
+      midTurn?: boolean
     }
   /** Bloco de texto da resposta (Markdown), que cresce enquanto chega. */
   | { kind: 'text'; id: string; text: string }
@@ -43,6 +52,8 @@ export type Item =
       diff?: FileDiff
       /** Miniaturas das imagens que a ferramenta devolveu (um print da tela). */
       images?: string[]
+      /** Os passos de um subagente (o card do Agente). */
+      steps?: SubagentStep[]
     }
   | { kind: 'notice'; id: string; level: NoticeLevel; text: string }
   | {
@@ -62,6 +73,14 @@ export type Item =
       answers?: Record<string, string>
     }
 
+/** Uma ferramenta que um subagente chamou. */
+export interface SubagentStep {
+  id: string
+  name: string
+  input: unknown
+  status: 'running' | 'done' | 'error'
+}
+
 export interface ChatState {
   items: Item[]
   busy: boolean
@@ -79,6 +98,14 @@ export interface ChatState {
   folder: string | null
   /** Quanto da janela de contexto a conversa ocupa (null até a primeira resposta). */
   context: ContextUsage | null
+  /** As tarefas em segundo plano rodando agora. */
+  tasks: TaskInfo[]
+  /** Os comandos com barra que o Claude Code aceita (skills e comandos do projeto). */
+  commands: string[]
+  /** O que a aba mostra: o chat ou o terminal. */
+  view: ConversationView
+  /** O Claude Code do modo terminal. */
+  terminal: TerminalStatus
 }
 
 export type Action =
@@ -95,30 +122,37 @@ export const initialState: ChatState = {
   provider: 'subscription',
   cost: null,
   folder: null,
-  context: null
+  context: null,
+  tasks: [],
+  commands: [],
+  view: 'chat',
+  terminal: { state: 'idle' }
 }
 
 function userItem(
   items: Item[],
   text: string,
   attachments: AttachmentPreview[],
-  voice = false
+  voice = false,
+  queued = false
 ): Item {
   return {
     kind: 'user',
     id: `user-${items.length}`,
     text,
     attachments,
-    ...(voice ? { voice } : {})
+    ...(voice ? { voice } : {}),
+    ...(queued ? { queued, midTurn: true } : {})
   }
 }
 
 export function reducer(state: ChatState, action: Action): ChatState {
   switch (action.type) {
     case 'user-message':
-      // Fica ocupado na hora, sem esperar o main, para um segundo Enter não mandar outra.
+      // Fica ocupado na hora, sem esperar o main. Com o Claude trabalhando, a mensagem entra na
+      // fila: ele a pega na próxima pausa.
       return {
-        ...append(state, userItem(state.items, action.text, action.attachments)),
+        ...append(state, userItem(state.items, action.text, action.attachments, false, state.busy)),
         busy: true
       }
     case 'events':
@@ -136,7 +170,10 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         usage: state.usage,
         mode: state.mode,
         provider: state.provider,
-        folder: state.folder
+        folder: state.folder,
+        commands: state.commands,
+        view: state.view,
+        terminal: state.terminal
       }
     case 'folder':
       return { ...state, folder: event.folder }
@@ -165,7 +202,55 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'usage':
       return { ...state, usage: event.usage }
     case 'user':
-      return append(state, userItem(state.items, event.text, event.attachments, event.voice))
+      return append(
+        state,
+        userItem(state.items, event.text, event.attachments, event.voice, event.queued)
+      )
+    case 'user-delivered': {
+      const first = state.items.find(
+        (item): item is Extract<Item, { kind: 'user' }> => item.kind === 'user' && !!item.queued
+      )
+      return first ? replaceItem(state, first, { ...first, queued: false }) : state
+    }
+    case 'queue-dropped':
+      return {
+        ...state,
+        items: state.items.map((item) =>
+          item.kind === 'user' && item.queued ? { ...item, queued: false, dropped: true } : item
+        )
+      }
+    case 'subagent-step': {
+      const parent = findItem(state, 'tool', event.parent)
+      if (!parent || parent.steps?.some((step) => step.id === event.id)) return state
+      const step: SubagentStep = {
+        id: event.id,
+        name: event.name,
+        input: event.input,
+        status: 'running'
+      }
+      return replaceItem(state, parent, { ...parent, steps: [...(parent.steps ?? []), step] })
+    }
+    case 'subagent-step-end': {
+      const parent = findItem(state, 'tool', event.parent)
+      if (!parent?.steps) return state
+      const steps = parent.steps.map((step) =>
+        step.id === event.id
+          ? { ...step, status: event.isError ? ('error' as const) : ('done' as const) }
+          : step
+      )
+      return replaceItem(state, parent, { ...parent, steps })
+    }
+    case 'task': {
+      const others = state.tasks.filter((task) => task.id !== event.task.id)
+      const keep = event.task.background && event.task.status === 'running'
+      return { ...state, tasks: keep ? [...others, event.task] : others }
+    }
+    case 'commands':
+      return { ...state, commands: event.commands }
+    case 'view':
+      return { ...state, view: event.view }
+    case 'terminal':
+      return { ...state, terminal: event.terminal }
     case 'restored': {
       // O que ficou pela metade quando a conversa foi guardada não vai terminar.
       const items = state.items.map((item): Item => {
@@ -246,7 +331,12 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       })
     }
     case 'permission-resolved': {
-      const request = findItem(state, 'permission', event.id)
+      // Os pedidos têm ids únicos: vale procurar na conversa inteira (no modo terminal, a
+      // mensagem pode chegar depois do pedido que ela causou).
+      const request = state.items.find(
+        (item): item is Extract<Item, { kind: 'permission' }> =>
+          item.kind === 'permission' && item.id === event.id
+      )
       if (!request) return state
       let next = replaceItem(state, request, {
         ...request,
@@ -288,7 +378,8 @@ function findItem<K extends Item['kind']>(
   for (let i = state.items.length - 1; i >= 0; i--) {
     const item = state.items[i]
     if (item.kind === kind && item.id === id) return item as Extract<Item, { kind: K }>
-    if (item.kind === 'user') break
+    // Uma mensagem mandada no meio do turno não o encerra.
+    if (item.kind === 'user' && !item.midTurn) break
   }
   return undefined
 }

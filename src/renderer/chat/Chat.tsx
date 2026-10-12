@@ -17,6 +17,7 @@ import type {
   VoiceStatus
 } from '../../shared/ipc'
 import { Grid } from './Grid'
+import { fromTerminal, isWispTerminalShortcut } from './terminal-keys'
 import { HistoryView } from './HistoryView'
 import {
   Avatar,
@@ -284,6 +285,8 @@ export default function Chat(): JSX.Element {
   // Ctrl+M liga e desliga os sons. Voltar ao painel devolve o foco para a caixa de texto.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
+      // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
+      if (fromTerminal(event.target) && !isWispTerminalShortcut(event)) return
       const ctrl = event.ctrlKey && !event.altKey && !event.metaKey
       const plain = ctrl && !event.shiftKey
       const state = tabsRef.current
