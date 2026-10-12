@@ -1,6 +1,7 @@
-import { formatDate } from '../../shared/format'
+import { formatDate, formatTokens } from '../../shared/format'
 import type {
   AttachmentPreview,
+  ContextUsage,
   ConversationCost,
   ChatEvent,
   FileDiff,
@@ -76,6 +77,8 @@ export interface ChatState {
   cost: ConversationCost | null
   /** A pasta onde a conversa roda (com ~), ou null. */
   folder: string | null
+  /** Quanto da janela de contexto a conversa ocupa (null até a primeira resposta). */
+  context: ContextUsage | null
 }
 
 export type Action =
@@ -91,7 +94,8 @@ export const initialState: ChatState = {
   mode: 'default',
   provider: 'subscription',
   cost: null,
-  folder: null
+  folder: null,
+  context: null
 }
 
 function userItem(
@@ -136,6 +140,20 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       }
     case 'folder':
       return { ...state, folder: event.folder }
+    case 'context':
+      return { ...state, context: event.context }
+    case 'compacted': {
+      const tokens =
+        event.before !== null && event.after !== null
+          ? ` (${formatTokens(event.before)} → ${formatTokens(event.after)} tokens)`
+          : ''
+      const text =
+        (event.trigger === 'auto'
+          ? 'A conversa chegou perto do limite e foi compactada sozinha'
+          : 'Conversa compactada') +
+        `${tokens}. O Claude segue com um resumo do que veio antes; o painel continua mostrando tudo.`
+      return append(state, notice(state.items, 'info', text))
+    }
     case 'provider':
       return { ...state, provider: event.provider }
     case 'cost':

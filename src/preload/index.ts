@@ -79,6 +79,8 @@ const api: WispApi = {
     dock: () => ipcRenderer.send(IPC.windowDock),
     onWindowState: (listener) => subscribe<[WindowState]>(IPC.windowState, listener),
     setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
+    compact: (conversation, instructions) =>
+      ipcRenderer.send(IPC.chatCompact, conversation, instructions ?? ''),
     setProvider: (conversation, provider) =>
       ipcRenderer.send(IPC.chatProvider, conversation, provider),
     setMode: (conversation, mode) => ipcRenderer.send(IPC.chatMode, conversation, mode),

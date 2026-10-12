@@ -9,6 +9,7 @@ import { formatReset } from '../shared/format'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type {
   ChatEvent,
+  ContextUsage,
   ConversationCost,
   NoticeLevel,
   PermissionMode,
@@ -171,6 +172,8 @@ export interface DemoPlayer {
 
 /** O "executável" do modo demonstração, no lugar do caminho do CLI. */
 const DEMO = 'wisp-demo'
+/** O tamanho da janela de contexto de cada modelo, como o CLI contou (vale para as próximas). */
+const CONTEXT_WINDOWS = new Map<string, number>()
 
 /** Como ver o Wisp funcionando antes de instalar o Claude Code ou de fazer login. */
 const DEMO_HINT =
@@ -384,7 +387,14 @@ interface CliEvent {
     content_block?: ContentBlock
     delta?: { type: string; text?: string }
   }
-  message?: { id?: string; content?: string | ContentBlock[] }
+  message?: { id?: string; content?: string | ContentBlock[]; usage?: TurnUsage }
+  /** Os status do sistema: "compacting" enquanto compacta, e o resultado no fim. */
+  status?: string | null
+  compact_result?: string
+  /** O marco da compactação: quem pediu e os tokens antes e depois. */
+  compact_metadata?: { trigger?: string; pre_tokens?: number; post_tokens?: number }
+  /** O uso por modelo (no result), com o tamanho da janela de contexto de cada um. */
+  modelUsage?: Record<string, { contextWindow?: unknown }>
 }
 
 function toolOutputText(content: unknown): string {
@@ -554,6 +564,8 @@ export class ClaudeSession {
   private secret: string | null = null
   /** O custo estimado da conversa pela OpenRouter (null até a primeira resposta). */
   private cost: ConversationCost | null = null
+  /** O contexto: tokens da última chamada ao modelo, a janela e se está compactando. */
+  private context: ContextUsage | null = null
   /** Pedidos de troca de modelo esperando resposta: o modelo pedido e o que havia antes. */
   private readonly modelRequests = new Map<
     string,
@@ -585,6 +597,40 @@ export class ClaudeSession {
   /** O provedor, como o evento que o chat recebe. */
   providerEvent(): Extract<ChatEvent, { type: 'provider' }> {
     return { type: 'provider', provider: this.provider }
+  }
+
+  /** O contexto até agora (null antes da primeira resposta). */
+  contextEvent(): Extract<ChatEvent, { type: 'context' }> | null {
+    return this.context ? { type: 'context', context: this.context } : null
+  }
+
+  private setContext(patch: Partial<ContextUsage>): void {
+    const next: ContextUsage = {
+      used: 0,
+      window: CONTEXT_WINDOWS.get(this.activeModel ?? '') ?? null,
+      compacting: false,
+      ...this.context,
+      ...patch
+    }
+    const same =
+      this.context &&
+      this.context.used === next.used &&
+      this.context.window === next.window &&
+      this.context.compacting === next.compacting
+    this.context = next
+    if (!same) this.emit({ type: 'context', context: next })
+  }
+
+  /**
+   * Compacta a conversa: o /compact do Claude Code, com instruções do que manter. O resumo
+   * substitui as mensagens no contexto do Claude (o painel continua mostrando tudo). false se não
+   * deu para pedir agora (respondendo, sem conversa, ou na demonstração).
+   */
+  compact(instructions = ''): boolean {
+    if (this.busy || !this.sessionId || this.options.demo?.()) return false
+    const extra = instructions.replace(/\s+/g, ' ').trim().slice(0, 500)
+    void this.send(extra ? `/compact ${extra}` : '/compact')
+    return true
   }
 
   /** O custo estimado até agora (só pela OpenRouter, depois da primeira resposta). */
@@ -815,6 +861,7 @@ export class ClaudeSession {
     const proc = this.proc
     this.proc = null
     this.cost = null
+    this.context = null
     this.sessionId = null
     this.sessionSaved = false
     this.restored = false
@@ -1133,7 +1180,25 @@ export class ClaudeSession {
 
   private onSystem(event: CliEvent): void {
     // O CLI troca de modo sozinho: aprovar o plano, por exemplo, volta para o Pedir.
-    if (event.subtype === 'status') return this.adoptMode(event.permissionMode, 'status')
+    if (event.subtype === 'status') {
+      if (event.status === 'compacting') this.setContext({ compacting: true })
+      else if ('compact_result' in event) this.setContext({ compacting: false })
+      return this.adoptMode(event.permissionMode, 'status')
+    }
+    if (event.subtype === 'compact_boundary') {
+      const meta = event.compact_metadata ?? {}
+      const count = (value: unknown): number | null =>
+        typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : null
+      const after = count(meta.post_tokens)
+      this.emit({
+        type: 'compacted',
+        trigger: meta.trigger === 'auto' ? 'auto' : 'manual',
+        before: count(meta.pre_tokens),
+        after
+      })
+      this.setContext({ compacting: false, ...(after !== null ? { used: after } : {}) })
+      return
+    }
     if (event.subtype !== 'init') return
     if (event.session_id) {
       this.adoptSessionId(event.session_id)
@@ -1189,6 +1254,11 @@ export class ClaudeSession {
 
   private onAssistant(event: CliEvent): void {
     const message = event.message
+    // O contexto da última chamada: o que entrou (com o cache) e o que saiu.
+    if (message?.usage && !event.error) {
+      const { input, output } = turnTokens(message.usage)
+      if (input + output > 0) this.setContext({ used: input + output })
+    }
     if (event.error === 'authentication_failed') {
       this.bin = null
       // Pela OpenRouter, quem explica é o fim do turno (a chave recusada).
@@ -1240,6 +1310,13 @@ export class ClaudeSession {
 
   private onResult(event: CliEvent): void {
     if (event.session_id) this.adoptSessionId(event.session_id)
+    // O tamanho da janela de contexto vem no uso por modelo.
+    for (const [model, usage] of Object.entries(event.modelUsage ?? {})) {
+      const window = usage?.contextWindow
+      if (typeof window !== 'number' || !Number.isFinite(window) || window <= 0) continue
+      CONTEXT_WINDOWS.set(model, window)
+      if (!this.activeModel || model === this.activeModel) this.setContext({ window })
+    }
     if (this.provider === 'openrouter' && event.usage) void this.addCost(event.usage)
     // Pedimos a interrupção: o turno acaba como parado, seja qual for o resultado.
     if (this.stopping) {

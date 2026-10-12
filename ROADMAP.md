@@ -625,6 +625,12 @@ para perto do mascote, e o "+" da caixa).
   reparte o espaço.
 - **Caixa de texto (P):** a linha das pílulas (provedor, modelo, modo) rola de lado num painel
   estreito, e os menus delas aparecem inteiros; anexar e print viram um **+** com um menu.
+- **Contexto (P):** um pedido da validação: saber quanto do contexto a conversa já ocupa e poder
+  compactar. A pílula do anel mostra o percentual da janela do modelo (verde, âmbar a partir de
+  60%, vermelha a partir de 85%); o cartão dela mostra os tokens e o **Compactar agora**, o
+  `/compact` do Claude Code, com instruções opcionais do que manter. Um aviso marca no painel onde
+  a conversa foi compactada (por você ou sozinha, perto do limite) e volta com o histórico.
+  Testes: `e2e/context.mjs` e o de unidade do stream.
 
 Notas da entrega:
 
@@ -632,11 +638,14 @@ Notas da entrega:
   ouvindo;
 - a primeira versão da zona de soltar reaproveitava, sem querer, o nome da camada de "solte para
   anexar" e não recebia o soltar de um arraste de verdade; o teste com o mouse de verdade (e não
-  só com eventos sintéticos) pegou isso.
+  só com eventos sintéticos) pegou isso;
+- o `/compact` foi conferido com o Claude Code de verdade (2.1), contra um servidor de mentira:
+  ele vai como uma mensagem comum pelo stdin e o fim vem como um turno sem texto.
 
 **Aceite:** num monitor grande, quatro conversas numa grade 2×2, montada arrastando abas, com as
 divisórias ajustadas, voltam iguais depois de fechar e abrir o Wisp; maximizar e restaurar
-funcionam no KDE e no GNOME.
+funcionam no KDE e no GNOME; numa conversa longa, a pílula mostra o contexto subindo e
+compactar o faz cair, com o Claude lembrando do começo pelo resumo.
 
 ### Fase 17: aprovar pelo celular
 

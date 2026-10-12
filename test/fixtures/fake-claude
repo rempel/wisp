@@ -91,7 +91,16 @@ async function stream(text, delay = 10) {
     sent += word
     await sleep(delay)
   }
-  out({ type: 'assistant', message: { id, model, content: [{ type: 'text', text: sent }] } })
+  out({
+    type: 'assistant',
+    message: {
+      id,
+      model,
+      content: [{ type: 'text', text: sent }],
+      // O contexto da chamada: o que entrou (com o cache) e o que saiu.
+      usage: { input_tokens: 1000, cache_read_input_tokens: context - 1050, output_tokens: 50 }
+    }
+  })
 }
 function fail(text, error) {
   if (error)
@@ -195,9 +204,42 @@ function setMode(next) {
   out({ type: 'system', subtype: 'status', status: null, permissionMode: mode })
 }
 
+// O contexto da conversa (tokens), que cresce a cada mensagem e cai ao compactar.
+let context = 3000
+
+async function compactNow(text, trigger) {
+  fs.appendFileSync(path.join(STATE, 'compacts.log'), JSON.stringify({ text, trigger }) + '\n')
+  out({ type: 'system', subtype: 'status', status: 'compacting' })
+  await sleep(250)
+  out({ type: 'system', subtype: 'status', status: null, compact_result: 'success' })
+  out({
+    type: 'system',
+    subtype: 'compact_boundary',
+    compact_metadata: { trigger, pre_tokens: context, post_tokens: 4000 }
+  })
+  context = 4000
+  out({
+    type: 'user',
+    message: { role: 'user', content: 'This session is being continued… (resumo)' }
+  })
+}
+
 async function turn(text) {
   current = { aborted: false }
   fs.writeFileSync(sessionFile, '{}')
+  // O /compact do Claude Code: compacta e acaba o turno, sem resposta.
+  if (text.startsWith('/compact')) {
+    await compactNow(text, 'manual')
+    out({
+      type: 'user',
+      message: { role: 'user', content: '<local-command-stdout>Compacted </local-command-stdout>' }
+    })
+    out({ type: 'result', subtype: 'success', is_error: false, result: '', num_turns: 0 })
+    current = null
+    return
+  }
+  context += text.includes('[grande]') ? 150000 : 30000
+  if (text.includes('[cheio]')) await compactNow(text, 'auto')
   out({
     type: 'system',
     subtype: 'init',
@@ -300,7 +342,8 @@ async function turn(text) {
       subtype: 'success',
       is_error: false,
       result: answer,
-      usage: { input_tokens: 1000, output_tokens: 50, cache_read_input_tokens: 2000 }
+      usage: { input_tokens: 1000, output_tokens: 50, cache_read_input_tokens: 2000 },
+      modelUsage: { [model]: { contextWindow: 200000 } }
     })
   }
   current = null

@@ -407,3 +407,45 @@ test('numa pasta: o processo roda nela, inclusive depois de uma conversa nova; s
   assert.equal((spawns().at(-1) as Spawn & { cwd: string }).cwd, folder, 'Ctrl+K continua na pasta')
   claude.dispose()
 })
+
+// ---- O contexto e a compactação --------------------------------------------
+test('o contexto: o que a última chamada ocupou, a janela do modelo e o /compact', async () => {
+  const { claude, events } = session()
+  assert.equal(claude.compact(), false, 'sem conversa, nada a compactar')
+  await turn(claude, events, 'oi')
+  const contexts = (): Extract<ChatEvent, { type: 'context' }>[] =>
+    events.filter((e): e is Extract<ChatEvent, { type: 'context' }> => e.type === 'context')
+  assert.deepEqual(contexts().at(-1)?.context, { used: 33000, window: 200000, compacting: false })
+  assert.deepEqual(claude.contextEvent(), contexts().at(-1))
+
+  // Compactar: o /compact (com as instruções numa linha só), o "compactando" e o marco.
+  const from = events.length
+  assert.equal(claude.compact('mantenha\n as decisões'), true)
+  assert.equal(claude.compact(), false, 'respondendo, não compacta de novo')
+  await waitFor(() => events.slice(from).some((e) => e.type === 'turn-end'))
+  const got = events.slice(from)
+  assert.ok(got.some((e) => e.type === 'context' && e.context.compacting))
+  assert.deepEqual(
+    got.find((e) => e.type === 'compacted'),
+    { type: 'compacted', trigger: 'manual', before: 33000, after: 4000 }
+  )
+  assert.deepEqual(contexts().at(-1)?.context, { used: 4000, window: 200000, compacting: false })
+  assert.equal(outcome(got), 'done')
+  assert.ok(!got.some((e) => e.type === 'text'), 'o resumo não aparece como resposta')
+  const log = readFileSync(join(HOME, '.fake-claude/compacts.log'), 'utf8').trim().split('\n')
+  assert.deepEqual(JSON.parse(log.at(-1) as string), {
+    text: '/compact mantenha as decisões',
+    trigger: 'manual'
+  })
+
+  // Perto do limite, o Claude Code compacta sozinho: o marco diz que foi automático.
+  const before = events.length
+  await turn(claude, events, '[cheio] continua')
+  assert.equal(
+    (events.slice(before).find((e) => e.type === 'compacted') as { trigger?: string })?.trigger,
+    'auto'
+  )
+  claude.reset()
+  assert.equal(claude.contextEvent(), null, 'conversa nova, contexto novo')
+  claude.dispose()
+})
