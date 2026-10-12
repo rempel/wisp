@@ -20,8 +20,12 @@
     "lint": "eslint --cache .",
     "format": "prettier --write .",
     "setup:apparmor": "bash scripts/setup-apparmor.sh",
+    "predist": "install-electron",
     "dist": "npm run build && electron-builder --linux",
+    "predist:deb": "install-electron",
     "dist:deb": "npm run build && electron-builder --linux deb",
+    "predist:appimage": "install-electron",
+    "dist:appimage": "npm run build && electron-builder --linux AppImage",
     "icons": "node scripts/icons.mjs",
     "test": "node scripts/test.mjs"
   },
