@@ -695,11 +695,55 @@ code {
   gap: 8px;
 }
 
-.composer-meta {
+/* A linha das pílulas rola de lado quando o painel fica estreito. Os menus delas se ancoram no
+   invólucro (fora da rolagem), para não serem cortados. */
+.composer-meta-wrap {
   position: relative;
+  margin-bottom: -2px;
+}
+
+.composer-meta {
   display: flex;
   align-items: center;
-  margin-bottom: -2px;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.composer-meta > * {
+  flex-shrink: 0;
+}
+
+.composer-meta .model {
+  position: static;
+}
+
+.composer-meta .model-menu {
+  max-width: calc(100% - 8px);
+}
+
+.composer-menu {
+  position: relative;
+}
+
+.composer-plus-menu {
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+}
+
+.composer-plus-menu .model-check svg {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.composer-plus-menu .model-option:disabled {
+  cursor: default;
+  opacity: 0.6;
 }
 
 /* ---- Pílula do modelo ------------------------------------------------- */
@@ -2413,8 +2457,100 @@ button.link {
   min-height: 0;
 }
 
-.split .pane + .pane {
-  border-left: 1px solid var(--border);
+/* A grade (Fase 16): divisões lado a lado ou uma embaixo da outra, com divisórias arrastáveis. */
+.grid,
+.grid-split,
+.grid-slot,
+.grid-item,
+.grid-cell {
+  display: flex;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+}
+
+.grid-row {
+  flex-direction: row;
+}
+
+.grid-column {
+  flex-direction: column;
+}
+
+.grid-cell {
+  position: relative;
+}
+
+.grid-divider {
+  position: relative;
+  flex: 0 0 1px;
+  background: var(--border);
+}
+
+/* A área que pega o cursor é mais larga que a linha. */
+.grid-divider::after {
+  position: absolute;
+  z-index: 5;
+  content: '';
+}
+
+.grid-divider-row::after {
+  inset: 0 -3px;
+  cursor: col-resize;
+}
+
+.grid-divider-column::after {
+  inset: -3px 0;
+  cursor: row-resize;
+}
+
+.grid-divider:hover,
+.grid-divider:active {
+  background: var(--accent);
+}
+
+/* Uma aba arrastada: o painel mostra onde ela cai. */
+.tab-drop {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+}
+
+.drop-zone {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  border: 2px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+  font-size: 12px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.drop-left {
+  inset: 4px 50% 4px 4px;
+}
+
+.drop-right {
+  inset: 4px 4px 4px 50%;
+}
+
+.drop-top {
+  inset: 4px 4px 50% 4px;
+}
+
+.drop-bottom {
+  inset: 50% 4px 4px 4px;
+}
+
+.drop-center {
+  inset: 4px;
+}
+
+.tab-main[draggable='true'] {
+  cursor: grab;
 }
 
 /* Com a janela dividida, o painel em foco ganha uma linha em cima (é para ele que vão a voz, o

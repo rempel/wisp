@@ -18,6 +18,7 @@ import type {
   TabsState,
   VoiceCommand,
   VoiceStatus,
+  WindowState,
   WispApi
 } from '../shared/ipc'
 
@@ -74,6 +75,9 @@ const api: WispApi = {
     stop: (conversation) => ipcRenderer.send(IPC.chatStop, conversation),
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
     hide: () => ipcRenderer.send(IPC.chatHide),
+    maximize: () => ipcRenderer.send(IPC.windowMaximize),
+    dock: () => ipcRenderer.send(IPC.windowDock),
+    onWindowState: (listener) => subscribe<[WindowState]>(IPC.windowState, listener),
     setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
     setProvider: (conversation, provider) =>
       ipcRenderer.send(IPC.chatProvider, conversation, provider),
@@ -98,7 +102,9 @@ const api: WispApi = {
     close: (id) => ipcRenderer.send(IPC.tabsClose, id),
     show: (id) => ipcRenderer.send(IPC.tabsShow, id),
     focus: (pane) => ipcRenderer.send(IPC.tabsFocus, pane),
-    split: () => ipcRenderer.send(IPC.tabsSplit),
+    split: (dir) => ipcRenderer.send(IPC.tabsSplit, dir ?? 'row'),
+    drop: (tab, target, zone) => ipcRenderer.send(IPC.tabsDrop, tab, target, zone),
+    resize: (path, sizes) => ipcRenderer.send(IPC.tabsResize, path, sizes),
     unsplit: (pane) => ipcRenderer.send(IPC.tabsUnsplit, pane),
     openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId),
     projects: () => ipcRenderer.invoke(IPC.tabsProjects),

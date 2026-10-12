@@ -1,5 +1,7 @@
 // Contrato de IPC entre main, preload e renderer.
 
+import type { DropZone, Layout } from './layout'
+
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
   mascotDragStart: 'mascot:drag-start',
@@ -95,8 +97,18 @@ export const IPC = {
   tabsShow: 'tabs:show',
   /** chat → main: o usuário mexeu num painel (ele passa a ser o do foco). Arg: índice. */
   tabsFocus: 'tabs:focus',
-  /** chat → main: dividir a janela em mais um painel (até MAX_PANES). */
+  /** chat → main: dividir o painel em foco (até MAX_PANES). Arg: 'row' (ao lado) ou 'column'. */
   tabsSplit: 'tabs:split',
+  /** chat → main: uma aba arrastada para um painel. Args: (aba, aba do painel, DropZone). */
+  tabsDrop: 'tabs:drop',
+  /** chat → main: novas proporções de uma divisão da grade. Args: (caminho, proporções). */
+  tabsResize: 'tabs:resize',
+  /** chat → main: maximizar ou restaurar a janela. */
+  windowMaximize: 'window:maximize',
+  /** chat → main: a janela volta para perto do mascote. */
+  windowDock: 'window:dock',
+  /** main → chat: a janela mudou (maximizada, solta). Arg: WindowState. */
+  windowState: 'window:state',
   /** chat → main: fechar um painel (as abas continuam abertas). Arg: índice. */
   tabsUnsplit: 'tabs:unsplit',
   /** chat → main: abrir uma sessão do terminal numa aba. Arg: id da sessão. */
@@ -816,21 +828,29 @@ export type OpenRouterKeyResult =
 export type SettingsResult = { ok: true } | { ok: false; field: string; message: string }
 export type PermissionMode = (typeof PERMISSION_MODES)[number]
 
-/** Quantos painéis lado a lado a janela do chat aceita. */
-export const MAX_PANES = 3
+/** Quantos painéis a janela do chat mostra, no máximo (a grade, em shared/layout.ts). */
+export { MAX_PANES } from './layout'
 
 /** Uma aba do painel: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
 export type TabInfo =
   | { id: string; kind: 'chat'; title: string; project?: string; folder?: string }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 
-/** As abas abertas e os painéis lado a lado (cada um mostra uma aba). */
+/** As abas abertas e os painéis da grade (cada um mostra uma aba). */
 export interface TabsState {
   tabs: TabInfo[]
-  /** Ids das abas à vista, da esquerda para a direita (1 a MAX_PANES). */
+  /** Ids das abas à vista, na ordem da grade (1 a MAX_PANES). */
   panes: string[]
   /** O painel em foco (onde vão o atalho de voz, o --ask e os arquivos soltos). */
   focused: number
+  /** A grade: como os painéis se dividem e as proporções de cada um. */
+  layout: Layout
+}
+
+/** A janela do painel: maximizada, e solta (onde você deixou) ou ao lado do mascote. */
+export interface WindowState {
+  maximized: boolean
+  detached: boolean
 }
 
 export type NoticeLevel = 'info' | 'warning' | 'error'
@@ -888,6 +908,11 @@ export interface WispApi {
     /** Recomeça a conversa de uma aba (Ctrl+K). */
     newConversation(conversation: string): void
     hide(): void
+    /** Maximiza ou restaura a janela do painel. */
+    maximize(): void
+    /** A janela volta para perto do mascote (e para de lembrar onde você a deixou). */
+    dock(): void
+    onWindowState(listener: (state: WindowState) => void): () => void
     /**
      * Troca o modelo: um de MODEL_CHOICES, ou null para o padrão; numa conversa pela OpenRouter,
      * o id de um modelo de lá.
@@ -931,8 +956,13 @@ export interface WispApi {
     /** Mostra a aba no painel em foco (ou foca o painel onde ela já está). */
     show(id: string): void
     focus(pane: number): void
-    split(): void
+    /** Divide o painel em foco: ao lado ('row') ou embaixo ('column'). */
+    split(dir?: 'row' | 'column'): void
     unsplit(pane: number): void
+    /** Uma aba arrastada para o painel de outra: na borda divide, no meio troca. */
+    drop(tab: string, target: string, zone: DropZone): void
+    /** Novas proporções para a divisão no caminho dado (índices a partir da raiz). */
+    resize(path: number[], sizes: number[]): void
     openSession(sessionId: string): void
     /** Os projetos das pastas de projetos, para abrir um numa aba. */
     projects(): Promise<FolderChoice[]>

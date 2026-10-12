@@ -15,14 +15,13 @@ import {
   CalendarIcon,
   CloseIcon,
   MicIcon,
-  PaperclipIcon,
-  ScreenshotIcon,
   SendIcon,
   SoundOffIcon,
   SoundOnIcon,
   StopIcon
 } from './icons'
 import { Markdown } from './Markdown'
+import { ComposerMenu } from './ComposerMenu'
 import { ModelPill } from './ModelPill'
 import { OpenRouterModelPill } from './OpenRouterModelPill'
 import { ProviderPill } from './ProviderPill'
@@ -415,72 +414,60 @@ export function Pane({
             {attachments.error}
           </div>
         )}
-        <div className="composer-meta">
-          <ProviderPill
-            provider={state.provider}
-            onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
-          />
-          {state.model &&
-            (state.provider === 'openrouter' ? (
-              <OpenRouterModelPill
-                choice={state.model.choice}
-                onPick={(model) => window.wisp.chat.setModel(conversation, model)}
-              />
-            ) : (
-              <ModelPill
-                choice={state.model.choice}
-                active={state.model.active}
-                onPick={(model) => window.wisp.chat.setModel(conversation, model)}
-              />
-            ))}
-          <ModePill
-            mode={state.mode}
-            onPick={(mode) => window.wisp.chat.setMode(conversation, mode)}
-          />
-          {voice.state !== 'idle' && (
-            <span className={`voice-hint ${voice.state}`} role="status">
-              {voice.state === 'listening'
-                ? voice.holding
-                  ? 'Ouvindo… solte o atalho'
-                  : 'Ouvindo… (Esc desiste)'
-                : voice.state === 'transcribing'
-                  ? 'Entendendo…'
-                  : 'Falando… (Esc para)'}
-            </span>
-          )}
-          {sound && (
-            <button
-              type="button"
-              className={`icon-button sound-toggle${sound.enabled ? '' : ' off'}`}
-              onClick={() => onToggleSound(sound)}
-              title={sound.enabled ? 'Desligar os sons (Ctrl+M)' : 'Ligar os sons (Ctrl+M)'}
-              aria-label={sound.enabled ? 'Desligar os sons' : 'Ligar os sons'}
-              aria-pressed={!sound.enabled}
-            >
-              {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
-            </button>
-          )}
+        <div className="composer-meta-wrap">
+          <div className="composer-meta">
+            <ProviderPill
+              provider={state.provider}
+              onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
+            />
+            {state.model &&
+              (state.provider === 'openrouter' ? (
+                <OpenRouterModelPill
+                  choice={state.model.choice}
+                  onPick={(model) => window.wisp.chat.setModel(conversation, model)}
+                />
+              ) : (
+                <ModelPill
+                  choice={state.model.choice}
+                  active={state.model.active}
+                  onPick={(model) => window.wisp.chat.setModel(conversation, model)}
+                />
+              ))}
+            <ModePill
+              mode={state.mode}
+              onPick={(mode) => window.wisp.chat.setMode(conversation, mode)}
+            />
+            {voice.state !== 'idle' && (
+              <span className={`voice-hint ${voice.state}`} role="status">
+                {voice.state === 'listening'
+                  ? voice.holding
+                    ? 'Ouvindo… solte o atalho'
+                    : 'Ouvindo… (Esc desiste)'
+                  : voice.state === 'transcribing'
+                    ? 'Entendendo…'
+                    : 'Falando… (Esc para)'}
+              </span>
+            )}
+            {sound && (
+              <button
+                type="button"
+                className={`icon-button sound-toggle${sound.enabled ? '' : ' off'}`}
+                onClick={() => onToggleSound(sound)}
+                title={sound.enabled ? 'Desligar os sons (Ctrl+M)' : 'Ligar os sons (Ctrl+M)'}
+                aria-label={sound.enabled ? 'Desligar os sons' : 'Ligar os sons'}
+                aria-pressed={!sound.enabled}
+              >
+                {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
+              </button>
+            )}
+          </div>
         </div>
         <div className="composer-row">
-          <button
-            type="button"
-            className="icon-button attach"
-            onClick={() => picker.current?.click()}
-            title="Anexar arquivos (ou arraste para o painel, ou cole uma imagem)"
-            aria-label="Anexar arquivos"
-          >
-            <PaperclipIcon />
-          </button>
-          <button
-            type="button"
-            className="icon-button attach"
-            onClick={() => void captureScreen()}
-            disabled={capturing}
-            title="Anexar um print da tela (o painel sai da frente)"
-            aria-label="Anexar um print da tela"
-          >
-            {capturing ? <span className="spinner" /> : <ScreenshotIcon />}
-          </button>
+          <ComposerMenu
+            onAttach={() => picker.current?.click()}
+            onCapture={() => void captureScreen()}
+            capturing={capturing}
+          />
           <button
             type="button"
             className={`icon-button attach mic ${voice.state}`}

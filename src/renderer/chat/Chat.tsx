@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import type { JSX } from 'react'
+import type { JSX, ReactNode } from 'react'
 import { ATTACHMENT_LIMITS, MAX_PANES } from '../../shared/ipc'
+import { leaf, neighbor } from '../../shared/layout'
+import type { Side } from '../../shared/layout'
 import type {
   AgendaItem,
   AttachmentPreview,
@@ -11,13 +13,18 @@ import type {
   SettingsSnapshot,
   SoundSettings,
   TabsState,
+  WindowState,
   VoiceStatus
 } from '../../shared/ipc'
+import { Grid } from './Grid'
 import { HistoryView } from './HistoryView'
 import {
   Avatar,
   BackIcon,
   CloseIcon,
+  DockIcon,
+  MaximizeIcon,
+  RestoreIcon,
   DemoIcon,
   HistoryIcon,
   PaperclipIcon,
@@ -46,7 +53,15 @@ const SHOW_KEYFRAMES: Keyframe[] = [
   { transform: 'none', opacity: 1 }
 ]
 
-const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0 }
+const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0, layout: leaf('') }
+
+/** Alt+Shift+setas: o painel vizinho. */
+const ARROWS: Record<string, Side> = {
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  ArrowUp: 'top',
+  ArrowDown: 'bottom'
+}
 
 /**
  * O painel: o cabeçalho, as abas e até MAX_PANES painéis lado a lado, cada um com uma conversa
@@ -67,6 +82,14 @@ export default function Chat(): JSX.Element {
   const [sound, setSound] = useState<SoundSettings | null>(null)
   const [usage, setUsage] = useState<PlanUsage | null>(null)
   const [dragging, setDragging] = useState(false)
+  /** Uma aba sendo arrastada da barra (os painéis mostram onde ela cai). */
+  const [draggingTab, setDraggingTab] = useState<string | null>(null)
+  /** A janela: maximizada, e solta (onde você a deixou) ou ao lado do mascote. */
+  const [windowState, setWindowState] = useState<WindowState>({
+    maximized: false,
+    detached: false
+  })
+  useEffect(() => window.wisp.chat.onWindowState(setWindowState), [])
   // O chip "usar o que você copiou" (mostrado no painel em foco).
   const [clip, setClip] = useState<ClipboardOffer | null>(null)
   // A voz: o botão do microfone do painel em foco acompanha (ouvindo, transcrevendo, falando).
@@ -296,9 +319,24 @@ export default function Chat(): JSX.Element {
         event.preventDefault()
         window.wisp.tabs.show(tab.id)
         setView('chat')
-      } else if (plain && event.key === '\\') {
+      } else if (ctrl && event.code === 'Backslash') {
+        // Ctrl+\ divide ao lado; com Shift, embaixo.
         event.preventDefault()
-        if (state.panes.length < MAX_PANES) window.wisp.tabs.split()
+        if (state.panes.length < MAX_PANES) {
+          window.wisp.tabs.split(event.shiftKey ? 'column' : 'row')
+        }
+      } else if (
+        event.altKey &&
+        event.shiftKey &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        ARROWS[event.key] &&
+        focusedTab
+      ) {
+        event.preventDefault()
+        const next = neighbor(state.layout, focusedTab, ARROWS[event.key])
+        const index = next ? state.panes.indexOf(next) : -1
+        if (index >= 0) window.wisp.tabs.focus(index)
       } else if (plain && key === 'm') {
         event.preventDefault()
         const current = soundRef.current
@@ -406,6 +444,67 @@ export default function Chat(): JSX.Element {
     focusedTab?.kind === 'chat' ? (conversations.get(focusedTab.id) ?? initialState) : null
   const split = tabs.panes.length > 1
 
+  /** Um painel da grade: a conversa (ou a sessão do terminal) da aba. */
+  const renderPane = (id: string): ReactNode => {
+    const index = tabs.panes.indexOf(id)
+
+    const tab = tabs.tabs.find((item) => item.id === id)
+    if (!tab) return null
+    const focused = index === tabs.focused
+    if (tab.kind === 'session') {
+      return (
+        <section
+          key={id}
+          className={`pane${focused ? ' focused' : ''}`}
+          onPointerDownCapture={() => {
+            if (!focused) window.wisp.tabs.focus(index)
+          }}
+        >
+          {split && (
+            <div className="pane-head">
+              <span className="pane-title">{tab.title}</span>
+              <button
+                type="button"
+                className="icon-button pane-close"
+                onClick={() => window.wisp.tabs.unsplit(index)}
+                title="Tirar este painel da janela (a aba continua aberta)"
+                aria-label="Tirar este painel da janela"
+              >
+                <CloseIcon />
+              </button>
+            </div>
+          )}
+          <SessionPane
+            sessionId={tab.sessionId}
+            snapshot={sessions}
+            onClose={() => window.wisp.tabs.close(id)}
+          />
+        </section>
+      )
+    }
+    return (
+      <Pane
+        key={id}
+        conversation={id}
+        state={conversations.get(id) ?? initialState}
+        index={index}
+        focused={focused}
+        split={split}
+        title={tab.title}
+        mood={mood}
+        sound={sound}
+        onToggleSound={toggleSound}
+        clip={focused ? clip : null}
+        onClipDone={() => setClip(null)}
+        voice={focused ? voice : { state: 'idle' }}
+        bus={bus}
+        demo={demo}
+        agenda={agendaNext}
+        onSent={onSent(id)}
+      />
+    )
+  }
+
   return (
     <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
       {dragging && (
@@ -508,6 +607,26 @@ export default function Chat(): JSX.Element {
         >
           <SettingsIcon />
         </button>
+        {windowState.detached && !windowState.maximized && (
+          <button
+            type="button"
+            className="icon-button window-dock"
+            onClick={() => window.wisp.chat.dock()}
+            title="Voltar para perto do mascote"
+            aria-label="Voltar para perto do mascote"
+          >
+            <DockIcon />
+          </button>
+        )}
+        <button
+          type="button"
+          className="icon-button window-maximize"
+          onClick={() => window.wisp.chat.maximize()}
+          title={windowState.maximized ? 'Restaurar' : 'Maximizar'}
+          aria-label={windowState.maximized ? 'Restaurar' : 'Maximizar'}
+        >
+          {windowState.maximized ? <RestoreIcon /> : <MaximizeIcon />}
+        </button>
         <button
           type="button"
           className="icon-button"
@@ -527,65 +646,11 @@ export default function Chat(): JSX.Element {
         <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
       ) : (
         <>
-          {tabs.tabs.length > 0 && <TabBar state={tabs} statuses={statuses} />}
+          {tabs.tabs.length > 0 && (
+            <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
+          )}
           <div className="panes">
-            {tabs.panes.map((id, index) => {
-              const tab = tabs.tabs.find((item) => item.id === id)
-              if (!tab) return null
-              const focused = index === tabs.focused
-              if (tab.kind === 'session') {
-                return (
-                  <section
-                    key={id}
-                    className={`pane${focused ? ' focused' : ''}`}
-                    onPointerDownCapture={() => {
-                      if (!focused) window.wisp.tabs.focus(index)
-                    }}
-                  >
-                    {split && (
-                      <div className="pane-head">
-                        <span className="pane-title">{tab.title}</span>
-                        <button
-                          type="button"
-                          className="icon-button pane-close"
-                          onClick={() => window.wisp.tabs.unsplit(index)}
-                          title="Tirar este painel da janela (a aba continua aberta)"
-                          aria-label="Tirar este painel da janela"
-                        >
-                          <CloseIcon />
-                        </button>
-                      </div>
-                    )}
-                    <SessionPane
-                      sessionId={tab.sessionId}
-                      snapshot={sessions}
-                      onClose={() => window.wisp.tabs.close(id)}
-                    />
-                  </section>
-                )
-              }
-              return (
-                <Pane
-                  key={id}
-                  conversation={id}
-                  state={conversations.get(id) ?? initialState}
-                  index={index}
-                  focused={focused}
-                  split={split}
-                  title={tab.title}
-                  mood={mood}
-                  sound={sound}
-                  onToggleSound={toggleSound}
-                  clip={focused ? clip : null}
-                  onClipDone={() => setClip(null)}
-                  voice={focused ? voice : { state: 'idle' }}
-                  bus={bus}
-                  demo={demo}
-                  agenda={agendaNext}
-                  onSent={onSent(id)}
-                />
-              )
-            })}
+            <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
           </div>
         </>
       )}

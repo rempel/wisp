@@ -1,6 +1,7 @@
 import type { JSX } from 'react'
 import { MAX_PANES } from '../../shared/ipc'
 import type { TabsState } from '../../shared/ipc'
+import { TAB_DRAG_TYPE } from '../../shared/layout'
 import { FolderMenu } from './FolderMenu'
 import { CloseIcon, FolderIcon, PlusIcon, SplitIcon, TerminalIcon } from './icons'
 
@@ -21,10 +22,13 @@ const STATUS_LABEL: Record<TabStatus, string> = {
  */
 export function TabBar({
   state,
-  statuses
+  statuses,
+  onDragTab
 }: {
   state: TabsState
   statuses: Map<string, TabStatus>
+  /** Uma aba começou (ou parou) de ser arrastada, para os painéis mostrarem onde ela cai. */
+  onDragTab: (tab: string | null) => void
 }): JSX.Element {
   const focusedId = state.panes[state.focused]
   return (
@@ -38,6 +42,7 @@ export function TabBar({
           return (
             <div
               key={tab.id}
+              data-tab={tab.id}
               className={`tab tab-${status}${visible ? ' visible' : ''}${active ? ' active' : ''}`}
             >
               <button
@@ -45,6 +50,13 @@ export function TabBar({
                 role="tab"
                 aria-selected={active}
                 className="tab-main"
+                draggable
+                onDragStart={(event) => {
+                  event.dataTransfer.setData(TAB_DRAG_TYPE, tab.id)
+                  event.dataTransfer.effectAllowed = 'move'
+                  onDragTab(tab.id)
+                }}
+                onDragEnd={() => onDragTab(null)}
                 onClick={() => window.wisp.tabs.show(tab.id)}
                 title={`${tab.title}${tab.kind === 'chat' && tab.folder ? ` · ${tab.folder}` : ''}${label ? ` (${label})` : ''}${index < 9 ? ` · Ctrl+${index + 1}` : ''}`}
               >
@@ -92,7 +104,7 @@ export function TabBar({
         title={
           state.panes.length >= MAX_PANES
             ? `No máximo ${MAX_PANES} painéis lado a lado`
-            : 'Dividir: mais um painel lado a lado (Ctrl+\\)'
+            : 'Dividir: mais um painel ao lado (Ctrl+\\; embaixo, Ctrl+Shift+\\). Arraste uma aba para a borda de um painel para dividir ali.'
         }
         aria-label="Dividir a janela"
       >

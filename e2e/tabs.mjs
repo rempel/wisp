@@ -41,7 +41,7 @@ const ev = (expr) => chat.evaluate(expr)
 const state = () =>
   ev(`JSON.stringify({
   tabs: [...document.querySelectorAll('.tab')].map(t => ({ title: t.querySelector('.tab-title').textContent, cls: t.className, session: !!t.querySelector('.tab-main svg') })),
-  panes: [...document.querySelectorAll('.panes > .pane')].map(p => ({ conv: p.dataset.conversation ?? null, focused: p.classList.contains('focused'), head: p.querySelector('.pane-title')?.textContent ?? null, mode: p.querySelector('.mode-pill span')?.textContent ?? null, users: [...p.querySelectorAll('.msg.user')].map(e => e.innerText), answers: [...p.querySelectorAll('.msg.assistant')].map(e => e.innerText), cards: [...p.querySelectorAll('.permission')].map(e => ({ cls: e.className, text: e.innerText.replace(/\\n+/g, ' / ') })), session: !!p.querySelector('.session-pane') })),
+  panes: [...document.querySelectorAll('.panes .pane')].map(p => ({ conv: p.dataset.conversation ?? null, focused: p.classList.contains('focused'), head: p.querySelector('.pane-title')?.textContent ?? null, mode: p.querySelector('.mode-pill span')?.textContent ?? null, users: [...p.querySelectorAll('.msg.user')].map(e => e.innerText), answers: [...p.querySelectorAll('.msg.assistant')].map(e => e.innerText), cards: [...p.querySelectorAll('.permission')].map(e => ({ cls: e.className, text: e.innerText.replace(/\\n+/g, ' / ') })), session: !!p.querySelector('.session-pane') })),
   split: document.querySelector('.chat').classList.contains('split'),
   width: window.outerWidth,
   splitDisabled: document.querySelector('.tabs-split')?.disabled ?? null
@@ -60,7 +60,7 @@ const key = async (k, code, vk, modifiers = 0) => {
 const ctrl = (k, code, vk) => key(k, code, vk, 2)
 async function ask(pane, text) {
   await ev(
-    `document.querySelectorAll('.panes > .pane')[${pane}].querySelector('.composer textarea').focus()`
+    `document.querySelectorAll('.panes .pane')[${pane}].querySelector('.composer textarea').focus()`
   )
   await chat.send('Input.insertText', { text })
   await key('Enter', 'Enter', 13)
@@ -83,7 +83,7 @@ const pendingCard = (pane, ms = 8000) =>
 async function clickButton(pane, label) {
   await sleep(700) // os botões do card só valem depois de 600 ms
   return ev(
-    `(() => { const b = [...document.querySelectorAll('.panes > .pane')[${pane}].querySelectorAll('.permission-pending button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`
+    `(() => { const b = [...document.querySelectorAll('.panes .pane')[${pane}].querySelectorAll('.permission-pending button')].find(b => b.textContent.trim() === ${JSON.stringify(label)}); if (!b) return false; b.click(); return true })()`
   )
 }
 
@@ -178,13 +178,20 @@ check(
   s.panes.length === 3 &&
     s.tabs.length === 3 &&
     s.panes[2].users.length === 0 &&
-    s.splitDisabled === true,
+    s.splitDisabled === false,
   JSON.stringify({ n: s.panes.length, tabs: s.tabs.length, dis: s.splitDisabled })
 )
+// Fase 16: a grade passa de três (até oito); a quarta aba sai de novo com o Ctrl+W.
 await ctrl('\\', 'Backslash', 220)
-check('T14 no máximo três painéis', (await state()).panes.length === 3)
+const four = (await state()).panes.length
+await ctrl('w', 'KeyW', 300)
+check(
+  'T14 cabe um quarto painel, e fechar a aba dele o tira',
+  four === 4 && (await state()).panes.length === 3,
+  String(four)
+)
 // Tira o terceiro painel (a aba continua).
-await ev(`document.querySelectorAll('.panes > .pane')[2].querySelector('.pane-close').click()`)
+await ev(`document.querySelectorAll('.panes .pane')[2].querySelector('.pane-close').click()`)
 await sleep(300)
 s = await state()
 check(
@@ -259,10 +266,10 @@ await clickButton(0, 'Negar')
 await answered(0, /Não rodei ls; rm/)
 
 console.log('== Modos de permissão')
-await ev(`document.querySelectorAll('.panes > .pane')[0].querySelector('.mode-pill').click()`)
+await ev(`document.querySelectorAll('.panes .pane')[0].querySelector('.mode-pill').click()`)
 await sleep(200)
 const options = await ev(
-  `[...document.querySelectorAll('.panes > .pane')[0].querySelectorAll('.mode-option strong')].map(e => e.textContent)`
+  `[...document.querySelectorAll('.panes .pane')[0].querySelectorAll('.mode-option strong')].map(e => e.textContent)`
 )
 check(
   'T26 o menu tem os quatro modos (sem o "pular permissões")',
@@ -271,7 +278,7 @@ check(
   JSON.stringify(options)
 )
 await ev(
-  `[...document.querySelectorAll('.panes > .pane')[0].querySelectorAll('.mode-option')].find(b => /Automático/.test(b.textContent)).click()`
+  `[...document.querySelectorAll('.panes .pane')[0].querySelectorAll('.mode-option')].find(b => /Automático/.test(b.textContent)).click()`
 )
 await sleep(500)
 s = await state()
@@ -298,9 +305,7 @@ await ask(0, '[modo]')
 await answered(0, /Modo: auto/)
 check('T30 o Claude Code está no modo auto', true)
 // Shift+Tab na caixa do painel 2.
-await ev(
-  `document.querySelectorAll('.panes > .pane')[1].querySelector('.composer textarea').focus()`
-)
+await ev(`document.querySelectorAll('.panes .pane')[1].querySelector('.composer textarea').focus()`)
 await key('Tab', 'Tab', 9, 8)
 s = await state()
 check(
@@ -324,7 +329,7 @@ check(
 check(
   'T34 o texto do plano vem formatado (Markdown)',
   await ev(
-    `!!document.querySelectorAll('.panes > .pane')[1].querySelector('.permission-plan h1, .permission-plan strong')`
+    `!!document.querySelectorAll('.panes .pane')[1].querySelector('.permission-plan h1, .permission-plan strong')`
   )
 )
 await clickButton(1, 'Aprovar e aceitar edições')
@@ -413,7 +418,7 @@ check('T39 Permitir responde ao terminal', /"behavior":"allow"/.test(out), out)
 console.log('== Fechar e reabrir: as abas voltam')
 // Fecha a aba da sessão (Ctrl+W no painel dela).
 await ev(
-  `document.querySelectorAll('.panes > .pane')[${sessionPane}].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
+  `document.querySelectorAll('.panes .pane')[${sessionPane}].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 )
 await sleep(300)
 const before = (await state()).tabs.length
@@ -477,7 +482,7 @@ check(
 console.log('== --ask com a aba da frente ocupada: vai numa aba nova')
 const tabsBefore = (await state()).tabs.length
 await ev(
-  `document.querySelectorAll('.panes > .pane')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
+  `document.querySelectorAll('.panes .pane')[0].dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))`
 )
 await sleep(300)
 await ask(0, '[lento] uma resposta comprida')

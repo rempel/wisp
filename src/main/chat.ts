@@ -33,6 +33,20 @@ import { readSecret } from './secrets'
 import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
 import type { ScreenImage } from './screenshot'
 import { IPC, MAX_PANES, MODEL_CHOICES, PERMISSION_MODES } from '../shared/ipc'
+import {
+  columns,
+  dropTab,
+  leaf,
+  leaves,
+  mapLeaves,
+  removeLeaf,
+  replaceLeaf,
+  resize as resizeLayout,
+  rows,
+  sanitize,
+  splitLeaf
+} from '../shared/layout'
+import type { DropZone, Layout } from '../shared/layout'
 import type {
   AgendaItem,
   AttachmentPreview,
@@ -53,6 +67,7 @@ import type {
   SoundSettings,
   TabInfo,
   TabsState,
+  WindowState,
   VoiceStatus
 } from '../shared/ipc'
 
@@ -148,16 +163,33 @@ type Tab =
   | { id: string; kind: 'chat'; conversation: Conversation }
   | { id: string; kind: 'session'; sessionId: string; title: string }
 
-/** Como as abas ficam guardadas no disco. */
+/**
+ * Como as abas ficam guardadas no disco. Na versão 2, a grade (com o índice de cada aba no
+ * lugar do id) e a janela; a versão 1 tinha só a fileira de painéis.
+ */
 interface SavedTabs {
-  v: 1
+  v: 1 | 2
   tabs: (
     | { kind: 'chat'; history: string | null; mode: PermissionMode; folder?: string }
     | { kind: 'session'; sessionId: string; title: string }
   )[]
-  panes: number[]
+  panes?: number[]
+  layout?: unknown
   focused: number
+  window?: SavedWindow
 }
+
+/** A janela solta (você a moveu, redimensionou ou maximizou): onde reabrir. */
+interface SavedWindow {
+  detached: boolean
+  maximized: boolean
+  bounds?: Rectangle
+}
+
+const DIRECTIONS = new Set(['row', 'column'])
+const ZONES = new Set(['left', 'right', 'top', 'bottom', 'center'])
+/** A menor altura de um painel na grade (px), para o tamanho mínimo da janela. */
+const PANE_MIN_HEIGHT = 240
 
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
@@ -305,10 +337,30 @@ export function setupChat({
   let voice: VoiceStatus = { state: 'idle' }
   let pendingCompose: string | null = null
 
-  // As abas, os painéis à vista (ids das abas) e o painel em foco.
+  // As abas, a grade dos painéis (as folhas são abas), os painéis à vista na ordem da grade
+  // (sempre leaves(layout)) e o painel em foco.
   const tabs: Tab[] = []
+  let layout: Layout | null = null
   let panes: string[] = []
   let focused = 0
+  /** A grade mudou: os painéis à vista acompanham, e o foco continua na mesma aba se der. */
+  const setLayout = (next: Layout | null, focus?: string): void => {
+    const before = panes[focused]
+    layout = next
+    panes = leaves(next)
+    const index = panes.indexOf(focus ?? before)
+    focused = index >= 0 ? index : Math.min(focused, Math.max(0, panes.length - 1))
+  }
+  /** O painel em foco passa a mostrar esta aba (ou é o primeiro). */
+  const showInFocused = (id: string): void => {
+    if (!layout || !panes.length) return setLayout(leaf(id), id)
+    setLayout(replaceLeaf(layout, panes[focused], id), id)
+  }
+  // A janela: solta (onde você a deixou) ou ao lado do mascote.
+  let placement: SavedWindow = { detached: false, maximized: false }
+  /** Os limites que o próprio Wisp deu à janela por último (para saber se foi você que a mexeu). */
+  let placedBounds: Rectangle | null = null
+  let placedAt = 0
   // A última aba de conversa em foco: o --ask e a voz vão para ela se o foco estiver numa sessão.
   let lastChatTab: string | null = null
   let saveTimer: NodeJS.Timeout | null = null
@@ -339,7 +391,7 @@ export function setupChat({
       if (!win) {
         win = createWindow(true)
       } else {
-        placeNextToMascot(win)
+        place(win)
         win.showInactive()
       }
     },
@@ -413,7 +465,12 @@ export function setupChat({
   }
 
   function tabsState(): TabsState {
-    return { tabs: tabs.map(tabInfo), panes: [...panes], focused }
+    return {
+      tabs: tabs.map(tabInfo),
+      panes: [...panes],
+      focused,
+      layout: layout ?? leaf(tabs[0]?.id ?? '')
+    }
   }
 
   function sendTabs(): void {
@@ -432,8 +489,7 @@ export function setupChat({
   /** Abre uma conversa numa aba nova, à vista no painel em foco. */
   function addChatTab(conversation = makeConversation()): Conversation {
     tabs.push({ id: conversation.id, kind: 'chat', conversation })
-    if (!panes.length) panes = [conversation.id]
-    else panes[focused] = conversation.id
+    showInFocused(conversation.id)
     tabsChanged()
     return conversation
   }
@@ -456,7 +512,7 @@ export function setupChat({
     if (!tabById(id)) return
     const index = panes.indexOf(id)
     if (index >= 0) focused = index
-    else panes[focused] = id
+    else showInFocused(id)
     tabsChanged()
   }
 
@@ -476,21 +532,21 @@ export function setupChat({
       tabs.push({ id: conversation.id, kind: 'chat', conversation })
     }
     // O painel que mostrava a aba passa a mostrar outra que não está à vista (ou sai).
-    const pane = panes.indexOf(id)
-    if (pane >= 0) {
+    if (layout && panes.includes(id)) {
       const hidden = tabs.find((other) => !panes.includes(other.id))
-      if (hidden) panes[pane] = hidden.id
-      else if (panes.length > 1) {
-        panes.splice(pane, 1)
-        if (focused >= panes.length) focused = panes.length - 1
-      } else panes[pane] = tabs[0].id
+      if (hidden) setLayout(replaceLeaf(layout, id, hidden.id))
+      else if (panes.length > 1) setLayout(removeLeaf(layout, id))
+      else setLayout(leaf(tabs[0].id))
     }
     tabsChanged()
   }
 
-  /** Mais um painel lado a lado, com uma aba que não está à vista (ou uma conversa nova). */
-  function split(): void {
-    if (panes.length >= MAX_PANES) return
+  /**
+   * Divide o painel em foco (ao lado ou embaixo), com uma aba que não está à vista (ou uma
+   * conversa nova) no painel novo, que fica em foco.
+   */
+  function split(dir: 'row' | 'column' = 'row'): void {
+    if (!layout || panes.length >= MAX_PANES) return
     let hidden = tabs.find((tab) => !panes.includes(tab.id))
     if (!hidden) {
       if (tabs.length >= MAX_TABS) return
@@ -498,15 +554,25 @@ export function setupChat({
       hidden = { id: conversation.id, kind: 'chat', conversation }
       tabs.push(hidden)
     }
-    panes.push(hidden.id)
-    focused = panes.length - 1
+    setLayout(
+      splitLeaf(layout, panes[focused], hidden.id, dir === 'row' ? 'right' : 'bottom'),
+      hidden.id
+    )
     tabsChanged()
   }
 
   function unsplit(pane: number): void {
-    if (panes.length <= 1 || pane < 0 || pane >= panes.length) return
-    panes.splice(pane, 1)
-    if (focused > pane || focused >= panes.length) focused = Math.max(0, focused - 1)
+    if (!layout || panes.length <= 1 || pane < 0 || pane >= panes.length) return
+    setLayout(removeLeaf(layout, panes[pane]))
+    tabsChanged()
+  }
+
+  /** Uma aba arrastada para o painel de outra: na borda divide, no meio troca. */
+  function drop(tab: string, target: string, zone: DropZone): void {
+    if (!layout || !tabById(tab) || !panes.includes(target) || tab === target) return
+    // Uma divisão nova precisa de espaço para mais um painel.
+    if (zone !== 'center' && !panes.includes(tab) && panes.length >= MAX_PANES) return
+    setLayout(dropTab(layout, tab, target, zone), tab)
     tabsChanged()
   }
 
@@ -517,7 +583,7 @@ export function setupChat({
     if (!title || tabs.length >= MAX_TABS) return
     const tab: Tab = { id: `sessao-${randomUUID()}`, kind: 'session', sessionId, title }
     tabs.push(tab)
-    panes[focused] = tab.id
+    showInFocused(tab.id)
     tabsChanged()
   }
 
@@ -544,8 +610,9 @@ export function setupChat({
   function saveTabs(): void {
     if (saveTimer) clearTimeout(saveTimer)
     saveTimer = null
+    const index = (id: string): number => tabs.findIndex((tab) => tab.id === id)
     const saved: SavedTabs = {
-      v: 1,
+      v: 2,
       tabs: tabs.map((tab) =>
         tab.kind === 'chat'
           ? {
@@ -556,8 +623,9 @@ export function setupChat({
             }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),
-      panes: panes.map((id) => tabs.findIndex((tab) => tab.id === id)),
-      focused
+      layout: layout ? mapLeaves(layout, index) : undefined,
+      focused,
+      window: placement
     }
     try {
       mkdirSync(DATA_DIR, { recursive: true })
@@ -601,12 +669,41 @@ export function setupChat({
       const conversation = makeConversation()
       tabs.push({ id: conversation.id, kind: 'chat', conversation })
     }
-    const indexes = Array.isArray(saved?.panes) ? saved.panes.slice(0, MAX_PANES) : []
-    panes = [...new Set(indexes.filter((i) => Number.isInteger(i) && tabs[i]))].map(
-      (i) => tabs[i].id
-    )
-    if (!panes.length) panes = [tabs[0].id]
+    // A grade guarda o índice de cada aba; a versão 1 guardava só a fileira de painéis.
+    const byIndex = (value: unknown): unknown => {
+      if (!value || typeof value !== 'object') return value
+      const node = value as Record<string, unknown>
+      if (node.type === 'leaf') {
+        const i = Number(node.tab)
+        return { type: 'leaf', tab: Number.isInteger(i) && tabs[i] ? tabs[i].id : '' }
+      }
+      return { ...node, children: Array.isArray(node.children) ? node.children.map(byIndex) : [] }
+    }
+    const valid = (id: string): boolean => !!tabById(id)
+    let restored = saved?.layout ? sanitize(byIndex(saved.layout), valid) : null
+    if (!restored && Array.isArray(saved?.panes)) {
+      const ids = saved.panes.flatMap((i) => (Number.isInteger(i) && tabs[i] ? [tabs[i].id] : []))
+      restored = sanitize(
+        { type: 'split', dir: 'row', sizes: [], children: ids.map((id) => leaf(id)) },
+        valid
+      )
+    }
+    setLayout(restored ?? leaf(tabs[0].id))
     focused = Math.min(Math.max(Number(saved?.focused) || 0, 0), panes.length - 1)
+    const window = saved?.window
+    if (window && typeof window === 'object') {
+      const bounds = window.bounds
+      const sane =
+        bounds &&
+        [bounds.x, bounds.y, bounds.width, bounds.height].every(Number.isFinite) &&
+        bounds.width >= PANE_MIN_WIDTH &&
+        bounds.height >= 300
+      placement = {
+        detached: window.detached === true && !!sane,
+        maximized: window.maximized === true,
+        ...(sane ? { bounds } : {})
+      }
+    }
     const focusedTab = tabById(panes[focused])
     lastChatTab = focusedTab?.kind === 'chat' ? focusedTab.id : (conversations()[0]?.id ?? null)
   }
@@ -655,6 +752,7 @@ export function setupChat({
     pageReady = true
     win.webContents.send(IPC.chatMood, mood)
     win.webContents.send(IPC.tabsState, tabsState())
+    sendWindow()
     for (const [conversation, waiting] of queued.splice(0)) {
       win.webContents.send(IPC.chatEvent, conversation, waiting)
     }
@@ -813,8 +911,35 @@ export function setupChat({
     focused = index
     tabsChanged()
   })
-  ipcMain.on(IPC.tabsSplit, (event) => {
-    if (fromChat(event)) split()
+  ipcMain.on(IPC.tabsSplit, (event, dir: unknown) => {
+    if (fromChat(event)) split(DIRECTIONS.has(dir as string) ? (dir as 'row' | 'column') : 'row')
+  })
+  ipcMain.on(IPC.tabsDrop, (event, tab: unknown, target: unknown, zone: unknown) => {
+    if (!fromChat(event) || typeof tab !== 'string' || typeof target !== 'string') return
+    if (ZONES.has(zone as string)) drop(tab, target, zone as DropZone)
+  })
+  ipcMain.on(IPC.tabsResize, (event, path: unknown, sizes: unknown) => {
+    if (!fromChat(event) || !layout) return
+    if (!Array.isArray(path) || !path.every((i) => Number.isInteger(i) && i >= 0)) return
+    if (!Array.isArray(sizes) || !sizes.every((n) => typeof n === 'number' && Number.isFinite(n))) {
+      return
+    }
+    setLayout(resizeLayout(layout, path as number[], sizes as number[]))
+    sendTabs()
+    scheduleSave()
+  })
+  ipcMain.on(IPC.windowMaximize, (event) => {
+    if (!fromChat(event) || !win) return
+    if (win.isMaximized()) win.unmaximize()
+    else win.maximize()
+  })
+  ipcMain.on(IPC.windowDock, (event) => {
+    if (!fromChat(event) || !win) return
+    placement = { detached: false, maximized: false }
+    if (win.isMaximized()) win.unmaximize()
+    placeNextToMascot(win, paneWidth * columns(layout))
+    sendWindow()
+    scheduleSave()
   })
   ipcMain.on(IPC.tabsUnsplit, (event, pane: unknown) => {
     if (fromChat(event) && Number.isInteger(pane)) unsplit(pane as number)
@@ -940,17 +1065,102 @@ export function setupChat({
     // Alinhado pela base do mascote, crescendo para cima.
     const y = clamp(mascot.y + mascot.height - height, area.y, area.y + area.height - height)
     chat.setBounds({ x, y, width: w, height })
+    placed(chat)
   }
 
-  /** A tela foi dividida (ou deixou de ser): a janela cresce ou encolhe, painel a painel. */
+  /** O Wisp acabou de pôr a janela aqui: um "move" que chegar agora não foi você. */
+  function placed(chat: BrowserWindow): void {
+    placedBounds = chat.getBounds()
+    placedAt = Date.now()
+  }
+
+  /**
+   * Põe a janela onde ela deve aparecer: onde você a deixou (solta, ou maximizada), ou ao lado do
+   * mascote. Uma posição que não cabe mais em nenhum monitor volta para perto do mascote.
+   */
+  function place(chat: BrowserWindow): void {
+    const bounds = placement.bounds
+    if (placement.detached && bounds) {
+      const area = screen.getDisplayMatching(bounds).workArea
+      const visible =
+        bounds.x < area.x + area.width - 80 &&
+        bounds.x + bounds.width > area.x + 80 &&
+        bounds.y < area.y + area.height - 60 &&
+        bounds.y + 40 > area.y
+      if (visible) {
+        chat.setBounds({
+          ...bounds,
+          width: Math.min(bounds.width, area.width),
+          height: Math.min(bounds.height, area.height)
+        })
+        placed(chat)
+        if (placement.maximized && !chat.isMaximized()) chat.maximize()
+        return
+      }
+      placement = { detached: false, maximized: false }
+      scheduleSave()
+    }
+    placeNextToMascot(chat, paneWidth * columns(layout))
+  }
+
+  /** O estado da janela para a página (o botão de maximizar e o de voltar para perto do mascote). */
+  function sendWindow(): void {
+    if (!win || !pageReady) return
+    const state: WindowState = { maximized: win.isMaximized(), detached: placement.detached }
+    win.webContents.send(IPC.windowState, state)
+  }
+
+  /**
+   * A janela mexeu: se não foi o Wisp (os limites diferem dos que ele deu), foi você. A partir
+   * daí, ela reabre onde você a deixou.
+   */
+  function noticeMoved(chat: BrowserWindow): void {
+    if (!chat.isVisible() || chat.isMaximized() || chat.isMinimized()) return
+    const bounds = chat.getBounds()
+    const near = (a: number, b: number): boolean => Math.abs(a - b) <= 6
+    if (
+      placedBounds &&
+      near(bounds.x, placedBounds.x) &&
+      near(bounds.y, placedBounds.y) &&
+      near(bounds.width, placedBounds.width) &&
+      near(bounds.height, placedBounds.height)
+    ) {
+      return
+    }
+    placement = { detached: true, maximized: false, bounds }
+    placedBounds = bounds
+    sendWindow()
+    scheduleSave()
+  }
+
+  /** O tamanho mínimo da janela para a grade caber (sem passar do monitor). */
+  function minimumSize(chat: BrowserWindow): [number, number] {
+    const area = screen.getDisplayMatching(chat.getBounds()).workArea
+    return [
+      Math.min(PANE_MIN_WIDTH * columns(layout), area.width),
+      Math.min(Math.max(360, PANE_MIN_HEIGHT * rows(layout) + 90), area.height)
+    ]
+  }
+
+  /**
+   * A grade mudou. Ao lado do mascote, a janela alarga ou estreita conforme os painéis lado a
+   * lado, respeitando a largura que você deu a cada um. Solta ou maximizada, ela fica como está:
+   * dividir reparte o espaço.
+   */
   function resizeForPanes(): void {
-    if (!win || shownPanes === panes.length) return
+    if (!win) return
+    const [minWidth, minHeight] = minimumSize(win)
+    win.setMinimumSize(minWidth, minHeight)
+    const cols = columns(layout)
+    if (shownPanes === cols) return
+    if (placement.detached || win.isMaximized()) {
+      shownPanes = cols
+      return
+    }
     const [width] = win.getSize()
-    // Respeita a largura que o usuário deu a cada painel.
     paneWidth = Math.max(PANE_MIN_WIDTH, Math.round(width / shownPanes))
-    shownPanes = panes.length
-    win.setMinimumSize(PANE_MIN_WIDTH * shownPanes, 360)
-    placeNextToMascot(win, paneWidth * shownPanes)
+    shownPanes = cols
+    placeNextToMascot(win, paneWidth * cols)
   }
 
   function show(chat: BrowserWindow): void {
@@ -958,7 +1168,7 @@ export function setupChat({
     // modelo trocado no arquivo vale a partir da próxima mensagem.
     for (const conversation of conversations()) conversation.syncModel()
     const appearing = !chat.isVisible()
-    if (appearing) placeNextToMascot(chat)
+    if (appearing) place(chat)
     chat.show()
     chat.focus()
     if (!appearing) return
@@ -975,11 +1185,11 @@ export function setupChat({
 
   /** Cria o painel. `inactive`: aparece sem roubar o foco (um pedido, uma sessão do terminal). */
   function createWindow(inactive = false): BrowserWindow {
-    shownPanes = panes.length
+    shownPanes = columns(layout)
     const chat = new BrowserWindow({
       width: paneWidth * shownPanes,
       height: CHAT_HEIGHT,
-      minWidth: PANE_MIN_WIDTH * shownPanes,
+      minWidth: PANE_MIN_WIDTH,
       minHeight: 360,
       show: false,
       frame: false,
@@ -996,9 +1206,43 @@ export function setupChat({
 
     chat.on('show', () => onVisible?.(true))
     chat.on('hide', () => onVisible?.(false))
+    // Você moveu ou redimensionou: espera parar (o arraste manda muitos) e confere.
+    let settle: NodeJS.Timeout | null = null
+    const moved = (): void => {
+      if (settle) clearTimeout(settle)
+      settle = setTimeout(() => {
+        settle = null
+        if (Date.now() - placedAt > 250) noticeMoved(chat)
+        else placed(chat)
+      }, 450)
+    }
+    chat.on('move', moved)
+    chat.on('resize', moved)
+    // Maximizar faz a janela reabrir maximizada; restaurar volta ao que era antes (solta ou ao
+    // lado do mascote).
+    let detachedBefore = false
+    chat.on('maximize', () => {
+      detachedBefore = placement.detached
+      placement = {
+        detached: true,
+        maximized: true,
+        bounds: placement.bounds ?? placedBounds ?? undefined
+      }
+      sendWindow()
+      scheduleSave()
+    })
+    chat.on('unmaximize', () => {
+      placement = { ...placement, maximized: false, detached: detachedBefore }
+      sendWindow()
+      scheduleSave()
+    })
+    chat.once('ready-to-show', () => {
+      const [minWidth, minHeight] = minimumSize(chat)
+      chat.setMinimumSize(minWidth, minHeight)
+    })
     chat.once('ready-to-show', () => {
       if (!inactive) return show(chat)
-      placeNextToMascot(chat)
+      place(chat)
       chat.showInactive()
     })
     // Fechar (Alt+F4, botão do gerenciador de janelas) só esconde; as conversas continuam.
@@ -1142,7 +1386,7 @@ export function setupChat({
       // Quem está usando o painel não perde o que faz: o contador e o mascote já avisam.
       if (win.isVisible() && win.isFocused()) return
       if (!win.isVisible()) {
-        placeNextToMascot(win)
+        place(win)
         win.showInactive()
       }
       if (pageReady) win.webContents.send(IPC.sessionsShow)
