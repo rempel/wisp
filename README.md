@@ -34,8 +34,8 @@ Depois do MVP, vieram as fases do roadmap:
   - nenhum áudio vai para o disco, e com a tela bloqueada ele não escuta;
   - se você quiser, o Wisp fala as respostas (Piper).
 - **Fase 11 (abas e modos de permissão):**
-  - várias conversas no mesmo painel, em abas, e até três lado a lado (Ctrl+T, Ctrl+W,
-    Ctrl+Tab, Ctrl+\\). Cada aba tem o seu Claude Code, e o pontinho dela mostra se está
+  - várias conversas no mesmo painel, em abas, e várias à vista ao mesmo tempo (Ctrl+T,
+    Ctrl+W, Ctrl+Tab, Ctrl+\\; na Fase 16, numa grade). Cada aba tem o seu Claude Code, e o pontinho dela mostra se está
     trabalhando, esperando você ou com resposta nova;
   - as sessões do terminal também abrem numa aba, com os pedidos delas;
   - uma pílula de modo em cada conversa, como o Shift+Tab do Claude Code: **Pedir**,
@@ -74,6 +74,12 @@ Depois do MVP, vieram as fases do roadmap:
     skills com `allowed-tools`), um card pede para confiar na pasta antes;
   - as skills nas configurações: as pessoais e as dos plugins, instalar de uma pasta e remover;
   - as skills pessoais valem também pela OpenRouter.
+- **Fase 16 (janela e grade), pronta para validação:**
+  - os painéis numa grade, como no Konsole e no VS Code: dividir ao lado ou embaixo, arrastar
+    uma aba para a borda de um painel, ajustar as divisórias, até 8 painéis, e tudo volta igual;
+  - maximizar e restaurar no cabeçalho, e a janela reabre onde você a deixou (com um botão para
+    voltar para perto do mascote);
+  - a linha das pílulas rola de lado num painel estreito, e anexar e print viram um **+**.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -201,6 +207,26 @@ Para o Wisp falar as respostas (opcional), instale o Piper (`pipx install piper-
 em português, como a `pt_BR-faber-medium` (o `.onnx` e o `.onnx.json`), em
 `~/.local/share/wisp/voz/`. Depois, ponha `"voiceReplies": true` no `config.json`. As vozes estão
 em [huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR).
+
+### Grade e janela
+
+**Grade:** Ctrl+\\ (ou o botão ao lado do **+** das abas) divide o painel em foco ao lado, e
+Ctrl+Shift+\\, embaixo. Arraste uma aba da barra para um painel: numa borda (esquerda, direita, em
+cima, embaixo), ele se divide ali; no meio, o painel passa a mostrar a aba (e, se ela já estava em
+outro painel, os dois trocam). Uma sombra mostra onde a aba vai cair. Arraste as divisórias para
+ajustar os tamanhos (duplo clique numa divisória iguala), e use Alt+Shift+setas para ir ao painel
+vizinho. São até 8 painéis; o **x** no topo de um painel o tira da grade, e a aba continua aberta.
+A grade, as proporções e a aba de cada painel voltam quando o Wisp abre de novo.
+
+**Janela:** o painel não usa a moldura do sistema (para ter o visual dele), então o maximizar fica
+no cabeçalho, ao lado do **x**: maximizar e restaurar. Ao lado do mascote, a janela alarga
+conforme os painéis lado a lado. Se você a mover, redimensionar ou maximizar, ela passa a reabrir
+onde ficou, e aparece o botão **Voltar para perto do mascote**. Solta ou maximizada, dividir
+reparte o espaço que ela tem.
+
+**Caixa de texto:** o **+** à esquerda da caixa tem **Anexar arquivos** e **Print da tela**
+(arrastar arquivos e colar imagens continuam valendo). A linha das pílulas (provedor, modelo,
+modo) rola de lado quando o painel fica estreito.
 
 ### Pastas e skills
 
@@ -476,6 +502,23 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
 
+### Janela e grade (Fase 16)
+
+- [ ] **Maximizar:** o botão ao lado do **x** maximiza e vira **Restaurar**; restaurar volta ao
+      tamanho de antes. Super+↑ (ou o atalho do seu desktop) também funciona.
+- [ ] **Onde você deixou:** arraste a janela pelo cabeçalho para outro lugar (ou outro monitor)
+      e redimensione. Feche (Esc) e abra de novo: ela reabre ali, e o botão **Voltar para perto
+      do mascote** aparece; clicando nele, ela volta para o lado do mascote.
+- [ ] **Grade:** com a janela maximizada, Ctrl+\\ e Ctrl+Shift+\\ dividem ao lado e embaixo.
+      Abra mais abas (Ctrl+T) e arraste-as da barra para as bordas dos painéis: a sombra mostra
+      onde caem. Solte uma no meio de um painel: ela toma o lugar (ou troca com a de lá).
+- [ ] **Divisórias:** arraste uma divisória; duplo clique iguala os dois lados.
+- [ ] **Foco:** Alt+Shift+setas passam para o painel vizinho (a linha azul em cima do painel
+      acompanha). A voz, o `--ask` e os arquivos soltos vão para o painel em foco.
+- [ ] **Volta igual:** feche e abra o Wisp: a grade, os tamanhos e as abas de cada painel voltam.
+- [ ] **Caixa de texto:** num painel estreito, a linha das pílulas rola de lado e os menus delas
+      aparecem inteiros. O **+** tem **Anexar arquivos** e **Print da tela**.
+
 ### Pastas e skills (Fase 15)
 
 - [ ] **Abrir um projeto:** clique no botão de pasta ao lado do **+**: a lista mostra os seus
@@ -584,7 +627,8 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
 - [ ] **Abas:** Ctrl+T (ou o **+** ao lado das abas) abre outra conversa. Mande algo demorado
       nela e volte para a primeira (Ctrl+1): o pontinho da outra pulsa enquanto ela trabalha e
       fica verde quando a resposta chega. Ctrl+Tab passa para a próxima, Ctrl+W fecha.
-- [ ] **Lado a lado:** Ctrl+\\ (ou o botão ao lado do **+**) põe mais um painel, com outra aba;
+- [ ] **Lado a lado:** Ctrl+\\ (ou o botão ao lado do **+**) põe mais um painel, com outra aba (na
+      Fase 16, numa grade, até 8);
       a janela alarga. Até três. O **x** no topo de um painel tira ele da janela, e a aba
       continua aberta.
 - [ ] **Cada conversa com os seus pedidos:** em dois painéis, peça um comando em cada um. Cada
@@ -894,6 +938,10 @@ do Claude Code segue a regra dele.
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Fecha na hora com `No usable sandbox!`       | `npm run setup:apparmor` (veja acima)                                                                            |
 | O mascote virou uma cápsula no topo          | É a ilha: passe o cursor nela; para desligar, **Ilha no topo** no menu do mascote ou nas configurações           |
+| Não tem o botão de maximizar do KDE          | O painel não usa a moldura do sistema: o maximizar fica no cabeçalho, ao lado do **x**                           |
+| O painel não volta para perto do mascote     | Você o moveu ou redimensionou: ele reabre onde ficou. Use **Voltar para perto do mascote** no cabeçalho          |
+| Não consigo dividir mais                     | São até 8 painéis; tire um (o **x** no topo dele) ou feche uma aba                                               |
+| Alt+Shift+setas não muda de painel           | Algum atalho do sistema pode estar usando a combinação; clicar no painel também o põe em foco                    |
 | "Confiar nesta pasta?" ao abrir um projeto   | O `.claude` dele roda comandos ou libera ferramentas sozinho: confie só se você conhece o projeto                |
 | O projeto não aparece no botão de pasta      | Ele precisa ter `.git` e estar em `projectRoots`; outra pasta, por **Escolher outra pasta…**                     |
 | A skill não foi usada                        | Ela vale numa conversa nova (Ctrl+K); peça pelo nome dela ou confira a descrição no `SKILL.md`                   |
@@ -1062,6 +1110,7 @@ src/
 ├─ shared/
 │  ├─ ipc.ts         # canais de IPC, eventos da conversa e o tipo da API
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
+│  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
@@ -1481,6 +1530,17 @@ electron-builder.yml   # os pacotes .deb e AppImage
   texto (título, detalhe e tom) também sai do main, do estado do mascote, da voz e do próximo
   compromisso, e a página só desenha. O painel, com a âncora no topo da tela, abre logo abaixo
   dela, centralizado.
+- **Grade e janela:** a grade é uma árvore (`shared/layout.ts`): cada folha é um painel e guarda o
+  id da aba que mostra; cada divisão põe os filhos em linha ou em coluna, com as proporções (que
+  somam 1, com um mínimo de 8%). O main guarda a árvore, muda-a com funções puras (dividir, tirar,
+  soltar uma aba, ajustar) e manda para a página, que desenha e mostra as zonas de soltar. O
+  arraste de uma aba usa o arrastar e soltar do HTML, com um tipo próprio
+  (`application/x-wisp-tab`), separado do de arquivos. As divisórias mudam as proporções na
+  página enquanto se arrastam e mandam o resultado ao soltar. O `abas.json` (versão 2) guarda a
+  árvore com o índice de cada aba e a janela; a versão 1, só com a fileira de painéis, ainda é
+  lida. A janela percebe que foi você que a mexeu porque os limites dela diferem dos últimos que
+  o Wisp deu (depois de um intervalo, já que um arraste manda muitos eventos); maximizar e
+  restaurar chegam pelos eventos da janela.
 - **Pastas:** uma conversa numa pasta guarda a pasta na sessão (`ClaudeSession.setFolder`), que
   vira o `cwd` de todo processo dela, mesmo depois de uma conversa nova; uma sessão retomada (do
   histórico ou do terminal) usa a pasta dela. Antes de subir um processo, o `folderGate` da

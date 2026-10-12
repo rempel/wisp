@@ -601,9 +601,46 @@ Notas da entrega:
 skills dele; um projeto com um hook pede confiança antes; uma skill instalada pelas configurações
 aparece para o Claude na conversa seguinte.
 
-### Fase 16: aprovar pelo celular
+### Fase 16: janela e grade de painéis ✅
 
-**Status:** mapeada, para depois da Fase 15.
+**Status:** pronta, esperando validação. Veio de um pedido de uso: num monitor grande, abrir
+várias abas num layout como o do Konsole ou do VS Code, e maximizar a janela. Testes de ponta a
+ponta: `e2e/grid.mjs`, com um gerenciador de janelas de verdade (openbox) no X virtual (dividir,
+atalhos, divisória e aba arrastadas com o mouse, a grade que volta, maximizar, mover e voltar
+para perto do mascote, e o "+" da caixa).
+
+- **Grade (G):** os painéis viram uma árvore de divisões, lado a lado ou um embaixo do outro, em
+  qualquer combinação:
+  - Ctrl+\ divide o painel em foco ao lado; Ctrl+Shift+\, embaixo;
+  - arrastar uma aba da barra para a borda de um painel divide ali (uma sombra mostra onde cai);
+    para o meio, troca a aba do painel (e, se ela já estava à vista, os dois trocam);
+  - as divisórias se arrastam (duplo clique iguala);
+  - Alt+Shift+setas passam o foco para o painel vizinho;
+  - até 8 painéis; a barra de abas continua uma só;
+  - a grade, as proporções e a aba de cada painel voltam ao abrir o Wisp.
+- **Janela (M):** o botão de maximizar e restaurar no cabeçalho (o painel não tem a moldura do
+  sistema, então os botões do KDE não aparecem). Movida, redimensionada ou maximizada por você, a
+  janela reabre onde ficou; o botão **Voltar para perto do mascote** desfaz isso. Ao lado do
+  mascote, ela alarga conforme os painéis lado a lado, como antes; solta ou maximizada, dividir
+  reparte o espaço.
+- **Caixa de texto (P):** a linha das pílulas (provedor, modelo, modo) rola de lado num painel
+  estreito, e os menus delas aparecem inteiros; anexar e print viram um **+** com um menu.
+
+Notas da entrega:
+
+- o microfone continua um botão à parte, ao lado do **+**: ele mostra quando o Wisp está
+  ouvindo;
+- a primeira versão da zona de soltar reaproveitava, sem querer, o nome da camada de "solte para
+  anexar" e não recebia o soltar de um arraste de verdade; o teste com o mouse de verdade (e não
+  só com eventos sintéticos) pegou isso.
+
+**Aceite:** num monitor grande, quatro conversas numa grade 2×2, montada arrastando abas, com as
+divisórias ajustadas, voltam iguais depois de fechar e abrir o Wisp; maximizar e restaurar
+funcionam no KDE e no GNOME.
+
+### Fase 17: aprovar pelo celular
+
+**Status:** mapeada, para depois da Fase 16.
 
 - **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
   escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
@@ -623,7 +660,7 @@ aparece para o Claude na conversa seguinte.
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 16.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 17.
 
 ## Princípios que ficam
 

@@ -163,6 +163,30 @@ export const ModelIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Maximizar: um quadrado. */
+export const MaximizeIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="3" y="3" width="10" height="10" rx="1.5" />
+  </Icon>
+)
+
+/** Restaurar: dois quadrados sobrepostos. */
+export const RestoreIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="3" y="5.5" width="7.5" height="7.5" rx="1.3" />
+    <path d="M5.5 5.5V4.3c0-.7.6-1.3 1.3-1.3h4.9c.7 0 1.3.6 1.3 1.3v4.9c0 .7-.6 1.3-1.3 1.3h-1.2" />
+  </Icon>
+)
+
+/** Voltar para perto do mascote: uma seta para um ponto. */
+export const DockIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M3 13 9.5 6.5" />
+    <path d="M5 6.5h4.5V11" />
+    <circle cx="12.5" cy="3.5" r="1.4" />
+  </Icon>
+)
+
 /** O provedor: um caminho entre dois pontos. */
 export const RouteIcon = (): JSX.Element => (
   <Icon>
