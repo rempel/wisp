@@ -4,6 +4,7 @@
   "version": "0.1.0",
   "description": "A little light on your desktop.",
   "private": true,
+  "license": "GPL-3.0-or-later",
   "main": "./out/main/index.js",
   "engines": {
     "node": ">=22.12"

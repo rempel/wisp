@@ -17,6 +17,8 @@ files:
   - out/**
   - resources/**
   - package.json
+  # A licença (GPL-3.0) vai junto de toda cópia distribuída.
+  - LICENSE
   - '!**/*.map'
   # Os testes de unidade montados (npm test) não vão no pacote.
   - '!out/test/**'

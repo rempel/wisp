@@ -26,6 +26,7 @@ for path in \
   ./opt/Wisp/resources/app/resources/demo/index.json \
   ./opt/Wisp/resources/app/node_modules/node-pty/build/Release/pty.node \
   ./opt/Wisp/resources/app/node_modules/node-pty/lib/index.js \
+  ./opt/Wisp/resources/app/LICENSE \
   ./usr/share/applications/io.github.rempel.Wisp.desktop \
   ./usr/share/icons/hicolor/256x256/apps/wisp.png; do
   grep -qxF "$path" "$work/deb.txt" || fail "o .deb não tem $path"
