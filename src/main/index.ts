@@ -1,6 +1,6 @@
 import { app, ipcMain, Notification, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
-import { readFileSync, writeFileSync } from 'fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { accessoryFor, msUntilMidnight } from './accessory'
@@ -91,10 +91,18 @@ import type { QuickCommand } from './voice-commands'
 import { stepSystemVolume } from './volume'
 import { transcribe, whisperSetup } from './whisper'
 import { checkKey, listModels, looksLikeKey, OPENROUTER_SECRET } from './openrouter'
+import { pickFolder } from './pick'
 import { deleteSecret, hasSecret, storeSecret } from './secrets'
+import { claudeConfigDir, inspectSkill, installSkill, listSkills, SKILL_NAME } from './skills'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type { NoticeLevel, OpenRouterKeyResult, VoiceTestResult } from '../shared/ipc'
+import type {
+  NoticeLevel,
+  OpenRouterKeyResult,
+  SkillInfo,
+  SkillResult,
+  VoiceTestResult
+} from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
@@ -793,6 +801,59 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         : { ok: true, label: null, note: 'Guardada, mas não deu para conferir agora (sem rede).' }
     }
   )
+  // As skills (Fase 15): listar, instalar de uma pasta (escolhida no diálogo do sistema, com uma
+  // prévia antes de copiar) e mandar para a lixeira.
+  let pickedSkill: string | null = null
+  ipcMain.handle(IPC.skillsList, (event): SkillInfo[] =>
+    chat?.isSender(event.sender) ? listSkills() : []
+  )
+  ipcMain.handle(IPC.skillsPick, async (event) => {
+    if (!chat?.isSender(event.sender)) return null
+    pickedSkill = null
+    const dir = await pickFolder('Escolha a pasta da skill (a que tem o SKILL.md)', undefined, null)
+    if (!dir) return null
+    try {
+      const preview = inspectSkill(dir)
+      pickedSkill = dir
+      return preview
+    } catch (err) {
+      return { error: (err as Error).message }
+    }
+  })
+  ipcMain.handle(IPC.skillsInstall, (event): SkillResult => {
+    if (!chat?.isSender(event.sender) || !pickedSkill) {
+      return { ok: false, message: 'Escolha a pasta da skill antes.' }
+    }
+    const dir = pickedSkill
+    pickedSkill = null
+    try {
+      installSkill(dir)
+    } catch (err) {
+      return { ok: false, message: (err as Error).message }
+    }
+    return { ok: true, message: 'Instalada. Ela vale nas conversas novas (Ctrl+K).' }
+  })
+  ipcMain.handle(IPC.skillsRemove, async (event, name: unknown): Promise<SkillResult> => {
+    if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    // Só as pessoais, pelo nome: os plugins se removem pelo /plugin do Claude Code.
+    if (typeof name !== 'string' || !SKILL_NAME.test(name)) {
+      return { ok: false, message: 'Nome de skill inválido.' }
+    }
+    const skill = listSkills().find((item) => item.origin === 'personal' && item.name === name)
+    if (!skill) return { ok: false, message: 'Essa skill não está nas suas skills pessoais.' }
+    try {
+      await shell.trashItem(skill.path)
+    } catch (err) {
+      return { ok: false, message: `Não consegui mandar para a lixeira: ${(err as Error).message}` }
+    }
+    return { ok: true, message: `"${name}" foi para a lixeira.` }
+  })
+  ipcMain.on(IPC.skillsOpenFolder, (event) => {
+    if (!chat?.isSender(event.sender)) return
+    const dir = join(claudeConfigDir(), 'skills')
+    mkdirSync(dir, { recursive: true })
+    void shell.openPath(dir)
+  })
   ipcMain.handle(IPC.openrouterClearKey, async (event): Promise<OpenRouterKeyResult> => {
     if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
     try {

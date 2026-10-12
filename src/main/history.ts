@@ -148,6 +148,8 @@ export class History {
   private seed: ConversationSeed | null = null
   /** Por onde vão as conversas gravadas daqui para a frente. */
   provider: Provider = 'subscription'
+  /** A pasta das conversas gravadas daqui para a frente (uma conversa numa pasta). */
+  cwd: string | null = null
 
   constructor(private readonly dir = HISTORY_DIR) {}
 
@@ -324,7 +326,7 @@ export class History {
       id,
       createdAt: Date.now(),
       title,
-      ...(seed ? { cwd: seed.cwd } : {}),
+      ...(seed ? { cwd: seed.cwd } : this.cwd ? { cwd: this.cwd } : {}),
       ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
     } satisfies Header)
     if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)

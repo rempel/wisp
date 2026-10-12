@@ -564,9 +564,46 @@ Notas da entrega:
 trava avisa em vez de ficar pensando; uma aba pela OpenRouter responde com o modelo escolhido, e a
 assinatura continua funcionando nas outras.
 
-### Fase 15: aprovar pelo celular
+### Fase 15: pastas e skills ✅
 
-**Status:** mapeada, para depois da Fase 14.
+**Status:** pronta, esperando validação. Veio de uma pergunta depois da Fase 14: dá para usar
+skills, e abrir uma pasta como o Claude Code do terminal? Testes de ponta a ponta:
+`e2e/folders.mjs` (projetos numa aba, o card de confiança, as abas que voltam com a pasta e as
+skills nas configurações). Conferido também com o Claude Code de verdade (contra uma OpenRouter de
+mentira local): numa aba aberta num projeto, o modelo recebe o CLAUDE.md e a skill do projeto, a
+skill pessoal e a pasta do projeto como pasta de trabalho.
+
+- **Abrir uma pasta numa aba (M):** um botão ao lado do **+** lista os projetos (das pastas de
+  projetos) e abre outra pasta pelo diálogo do sistema. A conversa roda dentro da pasta, como o
+  Claude Code no terminal: com o CLAUDE.md, o `.claude/settings.json` e as skills do projeto. A aba
+  leva o nome e o ícone do projeto, a conversa nova (Ctrl+K) continua na pasta, o histórico retoma
+  nela e as abas voltam com ela. O Aceitar edições também libera a pasta.
+- **Confiar numa pasta (P):** no terminal, o Claude Code pergunta se você confia na pasta; no
+  modo `-p`, não. O Wisp lista o que o `.claude` do projeto faz sozinho (hooks, `apiKeyHelper` e
+  afins, `permissions.allow`, `env`, skills com `allowed-tools`) num card, e o Claude Code só roda
+  depois de **Confiar nesta pasta**. A confiança vale até esses arquivos mudarem.
+- **Skills (P):** as skills pessoais e as dos plugins aparecem nas configurações; dá para
+  instalar uma de uma pasta (com uma prévia e o aviso do `allowed-tools`) e mandar uma pessoal
+  para a lixeira. Usar uma skill não pede permissão (ela só traz instruções; o que ela fizer
+  depois pede); o card da ferramenta mostra qual skill foi usada.
+- **Skills pela OpenRouter (P):** a pasta de configuração das conversas pela OpenRouter ganha um
+  link para as skills pessoais. Só as skills: o login e o resto continuam separados.
+
+Notas da entrega:
+
+- os servidores MCP do projeto (`.mcp.json`) continuam de fora, como os do usuário: o Wisp só
+  carrega o servidor dele;
+- os plugins (e as skills deles) não valem pela OpenRouter;
+- a consulta "há uma chave da OpenRouter?" deixou de acordar o chaveiro do sistema: se ele não
+  estiver rodando, a tela diz que não há.
+
+**Aceite:** um projeto aberto numa aba roda o Claude Code dentro dele e usa o CLAUDE.md e as
+skills dele; um projeto com um hook pede confiança antes; uma skill instalada pelas configurações
+aparece para o Claude na conversa seguinte.
+
+### Fase 16: aprovar pelo celular
+
+**Status:** mapeada, para depois da Fase 15.
 
 - **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
   escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
@@ -586,7 +623,7 @@ assinatura continua funcionando nas outras.
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 15.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 16.
 
 ## Princípios que ficam
 

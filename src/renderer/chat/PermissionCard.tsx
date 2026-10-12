@@ -23,6 +23,8 @@ function str(input: unknown, key: string): string {
 const BROWSER = 'mcp__playwright__'
 /** A ferramenta com que o Claude apresenta o plano (modo Planejar). */
 const PLAN = 'ExitPlanMode'
+/** O card do Wisp para confiar numa pasta antes de o Claude Code rodar nela. */
+const TRUST = 'wisp_trust_folder'
 
 /** Os pedidos do navegador do Claude: o que ele quer fazer e em que site. */
 function describeBrowser(
@@ -149,6 +151,30 @@ function describe(
 ): { title: string; body: ReactNode } {
   if (toolName.startsWith(BROWSER))
     return describeBrowser(toolName.slice(BROWSER.length), input, site)
+  if (toolName === TRUST) {
+    const value = (input as Record<string, unknown> | null)?.items
+    const items = Array.isArray(value) ? value.map(String) : []
+    return {
+      title: 'Confiar nesta pasta?',
+      body: (
+        <>
+          <code className="permission-path">{str(input, 'path')}</code>
+          <p>
+            As configurações do Claude Code desta pasta rodam comandos ou liberam ferramentas
+            sozinhas, sem passar pelos cards:
+          </p>
+          <ul className="permission-list">
+            {items.map((item) => (
+              <li key={item}>
+                <code>{item}</code>
+              </li>
+            ))}
+          </ul>
+          <p>Confie só se você conhece este projeto. Vale até esses arquivos mudarem.</p>
+        </>
+      )
+    }
+  }
   if (toolName === PLAN) {
     return {
       title: 'O plano está pronto',
@@ -264,6 +290,12 @@ const PLAN_RESULT: Partial<Record<Exclude<PermissionStatus, 'pending'>, string>>
   deny: 'Continuando o planejamento'
 }
 
+/** Os resultados do card de confiar numa pasta. */
+const TRUST_RESULT: Partial<Record<Exclude<PermissionStatus, 'pending'>, string>> = {
+  allow: 'Pasta confiável',
+  deny: 'Não confiei na pasta'
+}
+
 /** Card de "posso fazer isso?" com Permitir, Negar e Permitir sempre nesta conversa. */
 export function PermissionCard({
   request,
@@ -289,6 +321,7 @@ export function PermissionCard({
       : 'até você começar uma conversa nova'
   const site = request.always === 'site' ? request.site : undefined
   const plan = request.toolName === PLAN
+  const trust = request.toolName === TRUST
   // No Bash, o "sempre" vale para o programa ("ls") ou o subcomando ("git status"); comandos
   // compostos, perigosos ou com segredos, só o mesmo comando.
   const command = request.toolName === 'Bash' ? request.scope : undefined
@@ -314,7 +347,11 @@ export function PermissionCard({
         ? `“${command}” permitido nesta ${scope}`
         : request.status === 'pending'
           ? ''
-          : ((plan ? PLAN_RESULT[request.status] : undefined) ?? RESULT[request.status])
+          : ((plan
+              ? PLAN_RESULT[request.status]
+              : trust
+                ? TRUST_RESULT[request.status]
+                : undefined) ?? RESULT[request.status])
 
   return (
     <div className={`permission permission-${request.status}`}>
@@ -358,10 +395,10 @@ export function PermissionCard({
       ) : request.status === 'pending' ? (
         <div className="permission-actions">
           <button type="button" className="allow" onClick={answer('allow')}>
-            Permitir
+            {trust ? 'Confiar nesta pasta' : 'Permitir'}
           </button>
           <button type="button" className="deny" onClick={answer('deny')}>
-            Negar
+            {trust ? 'Não confiar' : 'Negar'}
           </button>
           {request.always !== 'none' && (
             <button

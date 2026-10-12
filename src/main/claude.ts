@@ -149,6 +149,11 @@ export interface ClaudeOptions {
   demo?: () => DemoPlayer | null
   /** Por onde a conversa começa; o padrão é a assinatura. */
   provider?: Provider
+  /**
+   * Antes de subir um processo numa pasta (Fase 15): confere se a pasta é confiável (pode
+   * mostrar um card). false: o processo não sobe.
+   */
+  folderGate?: () => Promise<boolean>
   /** A OpenRouter: a chave (do chaveiro; lança o motivo se não deu) e os preços de um modelo. */
   openrouter?: {
     key(): Promise<string | null>
@@ -540,6 +545,11 @@ export class ClaudeSession {
   private controlSeq = 0
   /** Por onde a conversa vai (assinatura ou OpenRouter). */
   private provider: Provider
+  /**
+   * A pasta da conversa (um projeto aberto numa aba): vale para todo processo dela, mesmo
+   * depois de uma conversa nova. null é o workspace do Wisp.
+   */
+  private folder: string | null = null
   /** A chave da OpenRouter, lida do chaveiro na primeira mensagem. */
   private secret: string | null = null
   /** O custo estimado da conversa pela OpenRouter (null até a primeira resposta). */
@@ -557,6 +567,15 @@ export class ClaudeSession {
     this.model = options.model
     this.mode = options.permissionMode
     this.provider = options.provider ?? 'subscription'
+  }
+
+  /** A pasta onde os processos desta conversa rodam (null: o workspace do Wisp). */
+  setFolder(folder: string | null): void {
+    this.folder = folder
+  }
+
+  get currentFolder(): string | null {
+    return this.cwd ?? this.folder
   }
 
   get currentProvider(): Provider {
@@ -700,6 +719,12 @@ export class ClaudeSession {
     // Só anexos, e nenhum deu certo: não há o que mandar (os avisos já explicam).
     if (!content.trim()) return this.finishTurn('error')
 
+    // Numa pasta, um processo novo só sobe se ela for confiável (o card, se preciso).
+    if (!this.proc && bin !== DEMO && this.options.folderGate) {
+      const trusted = await this.options.folderGate()
+      if (turn !== this.turn) return
+      if (!trusted) return this.finishTurn('error')
+    }
     let proc = this.proc
     if (proc && this.provider === 'openrouter' && this.processModel !== this.model) {
       // Pela OpenRouter, o modelo vai também no ambiente (subagentes, tarefas internas): a troca
@@ -941,7 +966,7 @@ export class ClaudeSession {
       env.WISP_DEMO_DIR = demo.recordings
     }
     const proc = spawn(command, demo ? [demo.player, ...args] : args, {
-      cwd: this.cwd ?? this.options.workspace(),
+      cwd: this.cwd ?? this.folder ?? this.options.workspace(),
       env
     })
     this.proc = proc

@@ -48,6 +48,25 @@ test('sem chaveiro no barramento: um motivo em português', { skip }, async () =
   await assert.rejects(readSecret('x', empty), (err) => err instanceof SecretError)
 })
 
+test('"existe?" com o chaveiro parado: não, sem acordá-lo', { skip }, async () => {
+  const [address, pid] = execFileSync(
+    'dbus-daemon',
+    ['--session', '--fork', '--print-address=1', '--print-pid=1'],
+    { stdio: ['ignore', 'pipe', 'ignore'] }
+  )
+    .toString()
+    .trim()
+    .split('\n')
+  try {
+    assert.equal(
+      await hasSecret('openrouter', { ...env, DBUS_SESSION_BUS_ADDRESS: address }),
+      false
+    )
+  } finally {
+    process.kill(Number(pid))
+  }
+})
+
 test('trancado, recusar a senha não guarda nada', { skip }, async () => {
   state.answer = 'dismiss'
   await assert.rejects(

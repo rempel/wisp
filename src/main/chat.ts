@@ -24,7 +24,10 @@ import type { ConversationHost } from './conversation'
 import { History } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
+import { listProjects } from './desktop'
+import { tilde, usableFolder } from './folders'
 import { listModels, OPENROUTER_SECRET } from './openrouter'
+import { pickFolder } from './pick'
 import { DATA_DIR, runtimeDir } from './paths'
 import { readSecret } from './secrets'
 import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
@@ -44,6 +47,8 @@ import type {
   PermissionDecision,
   PermissionMode,
   Provider,
+  FolderChoice,
+  FolderResult,
   SettingsSnapshot,
   SoundSettings,
   TabInfo,
@@ -147,7 +152,7 @@ type Tab =
 interface SavedTabs {
   v: 1
   tabs: (
-    | { kind: 'chat'; history: string | null; mode: PermissionMode }
+    | { kind: 'chat'; history: string | null; mode: PermissionMode; folder?: string }
     | { kind: 'session'; sessionId: string; title: string }
   )[]
   panes: number[]
@@ -348,7 +353,8 @@ export function setupChat({
   /** Uma conversa nova (ainda sem aba). */
   function makeConversation(
     mode: PermissionMode = getConfig().permissionMode,
-    provider: Provider = getConfig().provider
+    provider: Provider = getConfig().provider,
+    folder: string | null = null
   ): Conversation {
     const id = randomUUID()
     const conversation = new Conversation({
@@ -373,6 +379,7 @@ export function setupChat({
       modeFile: modeFileOf(id),
       permissionMode: mode,
       provider,
+      folder,
       modelFor: (which) =>
         which === 'openrouter' ? getConfig().openrouterModel : getConfig().model,
       projectRoots: () => getConfig().projectRoots,
@@ -394,12 +401,14 @@ export function setupChat({
     if (tab.kind === 'session') {
       return { id: tab.id, kind: 'session', title: tab.title, sessionId: tab.sessionId }
     }
-    const { title, project } = tab.conversation
+    const { title, project, folder } = tab.conversation
     return {
       id: tab.id,
       kind: 'chat',
-      title: title ?? 'Nova conversa',
-      ...(project ? { project } : {})
+      // Uma conversa numa pasta, ainda sem mensagens, leva o nome do projeto.
+      title: title ?? project ?? 'Nova conversa',
+      ...(project ? { project } : {}),
+      ...(folder ? { folder: tilde(folder) } : {})
     }
   }
 
@@ -539,7 +548,12 @@ export function setupChat({
       v: 1,
       tabs: tabs.map((tab) =>
         tab.kind === 'chat'
-          ? { kind: 'chat', history: tab.conversation.historyId, mode: tab.conversation.mode }
+          ? {
+              kind: 'chat',
+              history: tab.conversation.historyId,
+              mode: tab.conversation.mode,
+              ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {})
+            }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),
       panes: panes.map((id) => tabs.findIndex((tab) => tab.id === id)),
@@ -573,7 +587,12 @@ export function setupChat({
         continue
       }
       if (entry?.kind !== 'chat') continue
-      const conversation = makeConversation(isMode(entry.mode) ? entry.mode : undefined)
+      const folder = typeof entry.folder === 'string' ? usableFolder(entry.folder) : null
+      const conversation = makeConversation(
+        isMode(entry.mode) ? entry.mode : undefined,
+        undefined,
+        folder
+      )
       const old = typeof entry.history === 'string' ? store.load(entry.history) : null
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
       tabs.push({ id: conversation.id, kind: 'chat', conversation })
@@ -802,6 +821,34 @@ export function setupChat({
   })
   ipcMain.on(IPC.tabsOpenSession, (event, sessionId: unknown) => {
     if (fromChat(event) && typeof sessionId === 'string') openSessionTab(sessionId)
+  })
+  const projects = (): FolderChoice[] =>
+    listProjects(getConfig().projectRoots).map(({ nome, caminho }) => ({
+      name: nome,
+      display: tilde(caminho),
+      path: caminho
+    }))
+  ipcMain.handle(IPC.tabsProjects, (event): FolderChoice[] => (fromChat(event) ? projects() : []))
+  ipcMain.handle(IPC.tabsOpenFolder, async (event, path: unknown): Promise<FolderResult> => {
+    if (!fromChat(event)) return { ok: false, message: 'pedido inválido' }
+    let chosen: string | null
+    if (typeof path === 'string') {
+      // Da página, só um projeto da lista; outra pasta, só escolhida no diálogo do sistema.
+      if (!projects().some((project) => project.path === path)) {
+        return { ok: false, message: 'Essa pasta não está nas suas pastas de projetos.' }
+      }
+      chosen = path
+    } else {
+      chosen = await pickFolder('Abrir uma pasta numa conversa', homedir(), win)
+      if (!chosen) return { ok: false }
+    }
+    const folder = usableFolder(chosen)
+    if (!folder) return { ok: false, message: 'Não dá para abrir essa pasta numa conversa.' }
+    const conversation = addChatTab(makeConversation(undefined, undefined, folder))
+    if (win) show(win)
+    // Se a pasta tiver hooks ou ferramentas liberadas, o card de confiança já aparece.
+    void conversation.checkFolder()
+    return { ok: true }
   })
   app.on('before-quit', () => {
     quitting = true

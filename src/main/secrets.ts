@@ -136,8 +136,27 @@ async function withService<T>(
   }
 }
 
-/** Há um segredo com esse nome? Não destranca nada (não pede senha). */
-export function hasSecret(name: string, env = process.env): Promise<boolean> {
+/**
+ * Há um segredo com esse nome? Não destranca nada (não pede senha) e não acorda o chaveiro: se
+ * ele não estiver rodando, a resposta é "não" (a tela de configurações só quer mostrar o estado,
+ * e quem nunca usou a OpenRouter não tem por que ter o chaveiro aberto pelo Wisp).
+ */
+export async function hasSecret(name: string, env = process.env): Promise<boolean> {
+  const bus = await DBusConnection.session(env)
+  if (!bus) return false
+  try {
+    const [running] = await bus.call({
+      destination: 'org.freedesktop.DBus',
+      path: '/org/freedesktop/DBus',
+      interface: 'org.freedesktop.DBus',
+      member: 'NameHasOwner',
+      signature: 's',
+      body: [SERVICE]
+    })
+    if (!running) return false
+  } finally {
+    bus.close()
+  }
   return withService(env, async (bus) => {
     const [unlocked, locked] = (await bus.call({
       destination: SERVICE,

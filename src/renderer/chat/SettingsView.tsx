@@ -9,6 +9,7 @@ import type {
 } from '../../shared/ipc'
 import { acceleratorOf } from './accelerator'
 import { MODE_TEXT } from './modes'
+import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -278,6 +279,10 @@ export function SettingsView(): JSX.Element {
             onChange={(voiceReplies) => void save({ voiceReplies })}
           />
           <VoiceTest />
+        </Section>
+
+        <Section title="Skills">
+          <SkillsSection />
         </Section>
 
         <Section title="OpenRouter (experimental)">

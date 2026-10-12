@@ -373,3 +373,62 @@ test('conversation: disposed ignores events', () => {
 })
 
 process.on('exit', () => fs.rmSync(tmp, { recursive: true, force: true }))
+
+// ---- Fase 15: a conversa numa pasta ---------------------------------------
+test('conversation: a folder with hooks asks once with the trust card; denying keeps it closed', async () => {
+  const folder = path.join(tmp, 'projeto-com-hook')
+  fs.mkdirSync(path.join(folder, '.claude'), { recursive: true })
+  fs.writeFileSync(
+    path.join(folder, '.claude/settings.json'),
+    JSON.stringify({ hooks: { SessionStart: [{ hooks: [{ command: 'echo oi' }] }] } })
+  )
+  const trustFile = path.join(tmp, `confianca-${Math.random()}.json`)
+  const events = []
+  const host = { emit: (c, e) => events.push(e), attention: () => {}, changed: () => {} }
+  const make = () =>
+    new C.Conversation({
+      id: 'c-pasta',
+      host,
+      claude: {
+        claudePath: '/bin/false',
+        workspace: () => tmp,
+        allowedTools: [],
+        appendSystemPrompt: ''
+      },
+      permissionMode: 'default',
+      provider: 'subscription',
+      modelFor: () => null,
+      folder,
+      trustFile,
+      projectRoots: () => [],
+      trustedDirs: []
+    })
+  let conv = make()
+  assert.strictEqual(conv.folder, folder)
+  assert.strictEqual(conv.project, 'projeto-com-hook')
+  assert.deepStrictEqual(
+    conv.initialEvents().find((e) => e.type === 'folder'),
+    { type: 'folder', folder }
+  )
+  let pending = conv.checkFolder()
+  assert.strictEqual(conv.checkFolder(), pending, 'one card at a time')
+  let card = lastOf(events, 'permission-request')
+  assert.strictEqual(card.toolName, 'wisp_trust_folder')
+  assert.strictEqual(card.always, 'none')
+  assert.match(card.input.items[0], /hook SessionStart roda: echo oi/)
+  assert.strictEqual(conv.answer(card.id, 'allow-always'), false, 'no "always" here')
+  conv.answer(card.id, 'deny')
+  assert.strictEqual(await pending, false)
+  assert.match(lastOf(events, 'notice').text, /Não confiei em/)
+  pending = conv.checkFolder()
+  card = lastOf(events, 'permission-request')
+  conv.answer(card.id, 'allow')
+  assert.strictEqual(await pending, true)
+  conv.dispose()
+  // Confiada, a próxima conversa na mesma pasta não pergunta.
+  const count = events.filter((e) => e.type === 'permission-request').length
+  conv = make()
+  assert.strictEqual(await conv.checkFolder(), true)
+  assert.strictEqual(events.filter((e) => e.type === 'permission-request').length, count)
+  conv.dispose()
+})

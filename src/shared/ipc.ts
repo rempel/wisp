@@ -101,6 +101,23 @@ export const IPC = {
   tabsUnsplit: 'tabs:unsplit',
   /** chat → main: abrir uma sessão do terminal numa aba. Arg: id da sessão. */
   tabsOpenSession: 'tabs:open-session',
+  /** chat → main (invoke): os projetos (das pastas de projetos) para abrir numa aba. */
+  tabsProjects: 'tabs:projects',
+  /**
+   * chat → main (invoke): uma conversa numa pasta, numa aba nova. Arg: o caminho de um projeto
+   * da lista, ou null para escolher a pasta. Devolve FolderResult.
+   */
+  tabsOpenFolder: 'tabs:open-folder',
+  /** chat → main (invoke): as skills instaladas. Devolve SkillInfo[]. */
+  skillsList: 'skills:list',
+  /** chat → main (invoke): escolher uma pasta com uma skill. Devolve SkillPreview, { error } ou null. */
+  skillsPick: 'skills:pick',
+  /** chat → main (invoke): instalar a skill escolhida no skillsPick. Devolve SkillResult. */
+  skillsInstall: 'skills:install',
+  /** chat → main (invoke): mandar uma skill pessoal para a lixeira. Arg: nome. Devolve SkillResult. */
+  skillsRemove: 'skills:remove',
+  /** chat → main: abrir a pasta das skills pessoais no gerenciador de arquivos. */
+  skillsOpenFolder: 'skills:open-folder',
   /** main → chat: o humor do mascote mudou (o avatar do cabeçalho acompanha). Arg: MascotState. */
   chatMood: 'chat:mood',
   /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
@@ -632,6 +649,8 @@ export type ChatEvent =
   | { type: 'usage'; usage: PlanUsage }
   /** Por onde a conversa vai (assinatura ou OpenRouter). */
   | { type: 'provider'; provider: Provider }
+  /** A pasta onde a conversa roda (com ~), ou null: o espaço de trabalho do Wisp. */
+  | { type: 'folder'; folder: string | null }
   /** O custo estimado da conversa pela OpenRouter, a cada resposta. */
   | { type: 'cost'; cost: ConversationCost }
   /** O modo de permissão da conversa mudou (pelo usuário ou pelo Claude Code). */
@@ -744,6 +763,33 @@ export interface SettingsSnapshot {
  */
 export type Provider = 'subscription' | 'openrouter'
 
+/** Um projeto para abrir numa aba: o nome, o caminho com ~ e o caminho de verdade. */
+export interface FolderChoice {
+  name: string
+  display: string
+  path: string
+}
+
+/** Abrir uma pasta numa aba: deu certo, a pessoa desistiu, ou o motivo. */
+export type FolderResult = { ok: true } | { ok: false; message?: string }
+
+/** Uma skill do Claude Code. */
+export interface SkillInfo {
+  name: string
+  description: string
+  /** Pessoal (~/.claude/skills) ou de um plugin. */
+  origin: 'personal' | 'plugin'
+  plugin?: string
+  /** Ferramentas que a skill libera sem card (o allowed-tools dela). */
+  allowedTools?: string
+  path: string
+}
+
+/** A skill escolhida para instalar, antes de instalar. */
+export type SkillPreview = SkillInfo & { files: number }
+
+export type SkillResult = { ok: true; message: string } | { ok: false; message: string }
+
 /** Um modelo da OpenRouter para a pílula, com os preços em dólares por milhão de tokens. */
 export interface OpenRouterModelInfo {
   id: string
@@ -775,7 +821,7 @@ export const MAX_PANES = 3
 
 /** Uma aba do painel: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
 export type TabInfo =
-  | { id: string; kind: 'chat'; title: string; project?: string }
+  | { id: string; kind: 'chat'; title: string; project?: string; folder?: string }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 
 /** As abas abertas e os painéis lado a lado (cada um mostra uma aba). */
@@ -888,6 +934,18 @@ export interface WispApi {
     split(): void
     unsplit(pane: number): void
     openSession(sessionId: string): void
+    /** Os projetos das pastas de projetos, para abrir um numa aba. */
+    projects(): Promise<FolderChoice[]>
+    /** Uma conversa numa pasta (um projeto da lista, ou null para escolher), numa aba nova. */
+    openFolder(path: string | null): Promise<FolderResult>
+  }
+  /** As skills do Claude Code: listar, instalar de uma pasta e remover. */
+  skills: {
+    list(): Promise<SkillInfo[]>
+    pick(): Promise<SkillPreview | { error: string } | null>
+    install(): Promise<SkillResult>
+    remove(name: string): Promise<SkillResult>
+    openFolder(): void
   }
   /** A voz: o botão do microfone do painel. */
   voice: {
