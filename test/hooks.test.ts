@@ -206,3 +206,110 @@ test('o script do relay: aponta para o app e não faz nada se ele sumir', () => 
   assert.match(script, /\[ -x "\$electron" \] && \[ -f "\$relay" \] \|\| exit 0/)
   assert.match(script, /ELECTRON_RUN_AS_NODE=1 exec "\$electron" "\$relay" "\$@"/)
 })
+
+// ---- O modo terminal de uma aba (Fase 17) -------------------------------------------------
+const TOKEN = 'a1b2c3d4e5f60718293a4b5c6d7e8f90'
+
+/** O relay como o Claude Code do modo terminal o roda: `--tab <ficha> <Evento>` ou `--status`. */
+function tabRelay(
+  argv: string[],
+  input: Record<string, unknown>
+): Promise<{ code: number | null; stdout: string }> {
+  return new Promise((resolve) => {
+    const child = spawn(process.execPath, [RELAY, ...argv], {
+      // Os processos do Wisp levam a marca: os hooks do modo terminal passam mesmo assim.
+      env: { PATH: process.env.PATH ?? '', HOME, XDG_RUNTIME_DIR: RUNTIME, WISP_INTERNAL: '1' },
+      stdio: ['pipe', 'pipe', 'ignore']
+    })
+    let stdout = ''
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk: string) => (stdout += chunk))
+    child.on('close', (code) => resolve({ code, stdout }))
+    child.stdin.end(JSON.stringify(input))
+  })
+}
+
+test('modo terminal: os eventos levam a ficha da aba, e a linha de status sai na hora', async () => {
+  const before = events.length
+  await tabRelay(['--tab', TOKEN, 'UserPromptSubmit'], {
+    hook_event_name: 'UserPromptSubmit',
+    session_id: 's1',
+    prompt: 'oi'
+  })
+  const prompt = events.slice(before).find((event) => event.event === 'UserPromptSubmit')
+  assert.equal(prompt?.tab, TOKEN)
+  assert.equal(prompt?.input.prompt, 'oi')
+
+  const status = await tabRelay(['--status', TOKEN], {
+    session_id: 's1',
+    model: { id: 'claude-opus-5-5', display_name: 'Opus' },
+    context_window: { used_percentage: 41.6, context_window_size: 200000 },
+    cost: { total_cost_usd: 1.5 }
+  })
+  assert.equal(status.stdout, 'Wisp · Opus · contexto 42%')
+  const line = events.slice(before).find((event) => event.event === 'StatusLine')
+  assert.equal(line?.tab, TOKEN)
+
+  // Uma ficha que não tem a cara de uma: nada sai, nada chega.
+  const count = events.length
+  const bad = await tabRelay(['--tab', 'nao-e-ficha', 'Stop'], { hook_event_name: 'Stop' })
+  assert.equal(bad.code, 0)
+  await new Promise((resolve) => setTimeout(resolve, 200))
+  assert.equal(events.length, count)
+})
+
+test('modo terminal: aprovar o plano e mudar o modo vai junto na decisão', async () => {
+  let pending: PendingReply | null = null
+  const previous = server
+  previous?.close()
+  const started = await startHookServer((_event, reply) => {
+    if (reply) pending = reply
+  })
+  assert.ok(started.ok)
+  server = started.server
+  const asking = tabRelay(['--tab', TOKEN, 'PermissionRequest'], {
+    hook_event_name: 'PermissionRequest',
+    tool_name: 'ExitPlanMode',
+    tool_input: { plan: '# Plano' }
+  })
+  const deadline = Date.now() + 5000
+  while (!pending && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 20))
+  assert.ok(pending)
+  pending!.reply({
+    decision: 'allow',
+    permissions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }]
+  })
+  const answer = await asking
+  assert.deepEqual(JSON.parse(answer.stdout).hookSpecificOutput.decision, {
+    behavior: 'allow',
+    updatedPermissions: [{ type: 'setMode', mode: 'acceptEdits', destination: 'session' }]
+  })
+})
+
+test('modo terminal: respondido no terminal, o relay órfão sai sozinho', async () => {
+  let closed = false
+  server?.close()
+  const started = await startHookServer((_event, reply) => {
+    reply?.onClose(() => (closed = true))
+  })
+  assert.ok(started.ok)
+  server = started.server
+  // Um shell no meio, como o Claude Code roda os hooks; ele morre, e o relay fica sem pai.
+  const shell = spawn(
+    'sh',
+    // O "; true" impede o shell de virar o relay (exec): ele fica no meio, como pai.
+    ['-c', `"${process.execPath}" "${RELAY}" --tab ${TOKEN} PermissionRequest; true`],
+    {
+      env: { PATH: process.env.PATH ?? '', HOME, XDG_RUNTIME_DIR: RUNTIME },
+      stdio: ['pipe', 'ignore', 'ignore']
+    }
+  )
+  shell.stdin.end(
+    JSON.stringify({ hook_event_name: 'PermissionRequest', tool_name: 'Bash', tool_input: {} })
+  )
+  await new Promise((resolve) => setTimeout(resolve, 600))
+  shell.kill('SIGKILL')
+  const deadline = Date.now() + 5000
+  while (!closed && Date.now() < deadline) await new Promise((resolve) => setTimeout(resolve, 50))
+  assert.ok(closed, 'o pedido foi embora junto com o terminal')
+})

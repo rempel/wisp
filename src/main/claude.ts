@@ -15,6 +15,7 @@ import type {
   PermissionMode,
   PlanUsage,
   Provider,
+  TaskInfo,
   UsageWindow
 } from '../shared/ipc'
 import {
@@ -24,8 +25,17 @@ import {
   withAttachments
 } from './attachments'
 import type { CopiedAttachments } from './attachments'
-import { INTERNAL_ENV } from './hooks/protocol'
-import { openrouterEnv, openrouterError, turnCost, turnTokens } from './openrouter'
+import { WRAPPER_PATH } from './hooks/install'
+import { HOOK_EVENTS, INTERNAL_ENV, STATUS_ARG, TAB_ARG } from './hooks/protocol'
+import type { StatusInfo } from './hooks/status-line'
+import { shellQuote } from './launcher'
+import {
+  openrouterEnv,
+  openrouterError,
+  seedTerminalConfig,
+  turnCost,
+  turnTokens
+} from './openrouter'
 import type { OpenRouterModel, TurnUsage } from './openrouter'
 import { expandHome } from './paths'
 
@@ -110,6 +120,49 @@ const SESSION_SETTINGS = JSON.stringify({
     PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: BASH_HOOK }] }]
   }
 })
+
+/**
+ * As configurações do Claude Code do modo terminal (--settings): as do chat (o hook que manda
+ * todo Bash para a aprovação, os arquivos de segredos), mais os hooks e a linha de status da aba,
+ * pelo relay do Wisp. Valem só para aquele processo: o settings.json do usuário não muda.
+ */
+export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
+  const command = (...parts: string[]): string => [shellQuote(relay), ...parts].join(' ')
+  const hooks: Record<string, unknown[]> = {
+    PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: BASH_HOOK }] }]
+  }
+  for (const { event, timeout, async } of HOOK_EVENTS) {
+    // A mensagem vai antes de tudo: sem esperar por ela, os hooks em segundo plano podem chegar
+    // fora de ordem, e a mensagem apareceria depois das ferramentas que ela pediu.
+    const background = async && event !== 'UserPromptSubmit'
+    hooks[event] = [
+      ...(hooks[event] ?? []),
+      {
+        hooks: [
+          {
+            type: 'command',
+            command: command(TAB_ARG, tab, event),
+            timeout,
+            ...(background ? { async: true } : {})
+          }
+        ]
+      }
+    ]
+  }
+  return JSON.stringify({
+    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    hooks,
+    statusLine: { type: 'command', command: command(STATUS_ARG, tab), padding: 0 }
+  })
+}
+
+/** Como subir o Claude Code interativo do modo terminal (num pty). */
+export interface TerminalLaunch {
+  file: string
+  args: string[]
+  env: NodeJS.ProcessEnv
+  cwd: string
+}
 
 /** O modo como o CLI o informa: "manual" é o nome novo do "default". */
 export function modeOf(value: unknown): PermissionMode | null {
@@ -200,6 +253,13 @@ const MAX_TOOL_OUTPUT = 4000
 const MAX_TOOL_IMAGES = 4
 const STDERR_TAIL = 2000
 const KILL_TIMEOUT_MS = 3000
+/** Quantos comandos com barra a página recebe, no máximo. */
+const MAX_COMMANDS = 300
+/**
+ * Depois do fim de um turno, quanto esperar o CLI pegar uma mensagem que ficou na fila (ele a
+ * pega logo, como o turno seguinte).
+ */
+const QUEUE_GRACE_MS = 3000
 const AUTH_TIMEOUT_MS = 15000
 /** Se o turno não acabar até lá depois do pedido de interrupção, o processo é encerrado. */
 const INTERRUPT_TIMEOUT_MS = 4000
@@ -395,6 +455,15 @@ interface CliEvent {
   compact_metadata?: { trigger?: string; pre_tokens?: number; post_tokens?: number }
   /** O uso por modelo (no result), com o tamanho da janela de contexto de cada um. */
   modelUsage?: Record<string, { contextWindow?: unknown }>
+  /** Uma mensagem nossa, devolvida pelo --replay-user-messages quando o CLI a pega. */
+  isReplay?: boolean
+  /** Os comandos com barra da conversa (no init): skills, comandos do projeto e os do CLI. */
+  slash_commands?: unknown
+  /** As tarefas (task_started, task_notification): um comando, um subagente. */
+  task_id?: string
+  description?: string
+  summary?: string
+  is_backgrounded?: boolean
 }
 
 function toolOutputText(content: unknown): string {
@@ -525,6 +594,17 @@ export class ClaudeSession {
   private busy = false
   /** O texto do turno atual já foi escrito no processo (ainda não, enquanto copia os anexos). */
   private sentText: string | null = null
+  /**
+   * O que foi escrito no processo e ele ainda não pegou, na ordem: o CLI devolve cada mensagem
+   * (--replay-user-messages) quando a pega. `queued`: mandada com ele trabalhando.
+   */
+  private echoes: { content: string; queued: boolean }[] = []
+  /** Depois do fim de um turno, quanto esperar o CLI pegar o que ficou na fila. */
+  private queueTimer: NodeJS.Timeout | null = null
+  /** Os comandos com barra que o CLI informou por último (para não repetir o evento). */
+  private commands = ''
+  /** As tarefas rodando agora, pelo id. */
+  private readonly tasks = new Map<string, TaskInfo>()
   /** O turno atual já foi mandado de novo depois de o processo cair na largada. */
   private retried = false
   private stopping = false
@@ -566,6 +646,8 @@ export class ClaudeSession {
   private cost: ConversationCost | null = null
   /** O contexto: tokens da última chamada ao modelo, a janela e se está compactando. */
   private context: ContextUsage | null = null
+  /** O custo de antes de o terminal subir (o do terminal soma a partir dele). */
+  private terminalCostBase: ConversationCost | null = null
   /** Pedidos de troca de modelo esperando resposta: o modelo pedido e o que havia antes. */
   private readonly modelRequests = new Map<
     string,
@@ -828,6 +910,120 @@ export class ClaudeSession {
     void killProcess(proc)
   }
 
+  /**
+   * Prepara o Claude Code interativo do modo terminal desta conversa (Fase 17): o mesmo CLI,
+   * provedor, modelo, modo, pasta, ferramentas e persona do chat, mais os hooks e a linha de
+   * status da aba (a ficha `tab`). O processo do chat sai antes: os dois não podem escrever na
+   * mesma sessão. null: não deu agora (o motivo vai como aviso) ou é a demonstração.
+   */
+  async terminalLaunch(tab: string): Promise<TerminalLaunch | null> {
+    if (this.busy || this.options.demo?.()) return null
+    const bin = await this.check()
+    if (!bin || bin === DEMO) return null
+    if (this.options.folderGate && !(await this.options.folderGate())) return null
+    const proc = this.proc
+    this.proc = null
+    if (proc) await killProcess(proc)
+    const args = [
+      '--allowedTools',
+      this.options.allowedTools.join(','),
+      '--add-dir',
+      ATTACHMENTS_DIR,
+      // Como no chat: vale o modo da conversa, nunca o padrão do CLI (que pode ser o Automático).
+      '--permission-mode',
+      this.mode,
+      '--append-system-prompt',
+      this.options.appendSystemPrompt,
+      '--settings',
+      terminalSettings(tab)
+    ]
+    const mcpConfig = this.options.mcpConfig?.()
+    // No terminal, quem pergunta é o próprio Claude Code (e o card do Wisp, pelo hook): não há
+    // --permission-prompt-tool, que só vale no modo -p.
+    if (mcpConfig) args.push('--mcp-config', mcpConfig, '--strict-mcp-config')
+    if (this.model) args.push(`--model=${this.model}`)
+    this.processModel = this.model
+    const sessionId = this.ensureSessionId()
+    args.push(this.sessionSaved ? '--resume' : '--session-id', sessionId)
+    if (this.sessionSaved && this.fork) args.push('--fork-session')
+    ensureAttachmentsDir()
+    this.writeModeFile()
+    const cwd = this.cwd ?? this.folder ?? this.options.workspace()
+    const env = claudeEnv(bin)
+    if (this.provider === 'openrouter' && this.secret && this.model) {
+      Object.assign(env, openrouterEnv(this.secret, this.model))
+      // A pasta de configuração da OpenRouter é do Wisp: ela já começa sem as boas-vindas.
+      seedTerminalConfig(cwd)
+    }
+    if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
+    env.TERM = 'xterm-256color'
+    env.COLORTERM = 'truecolor'
+    this.terminalCostBase = this.cost
+    return { file: bin, args, env, cwd }
+  }
+
+  /**
+   * O Claude Code do terminal começou uma resposta (ou terminou): a sessão existe a partir daí, e
+   * os próximos processos a retomam. O id pode mudar (uma cópia, com --fork-session).
+   */
+  terminalTurn(busy: boolean, sessionId: unknown): void {
+    if (typeof sessionId === 'string' && /^[\w-]{8,80}$/.test(sessionId)) {
+      this.adoptSessionId(sessionId)
+    } else if (busy && this.sessionId) {
+      this.sessionSaved = true
+    }
+    this.restored = false
+    this.setBusy(busy)
+  }
+
+  /** O Claude Code do terminal mudou de modo (o Shift+Tab de lá). */
+  terminalMode(value: unknown): void {
+    const mode = modeOf(value)
+    if (!mode || mode === this.mode) return
+    this.mode = mode
+    this.writeModeFile()
+    this.emit({ type: 'mode', mode })
+  }
+
+  /** O que a linha de status do terminal informou: o modelo, o contexto e os tokens. */
+  terminalStatus(status: StatusInfo): void {
+    if (status.model && status.model !== this.activeModel) {
+      this.activeModel = status.model
+      this.emit(this.modelEvent())
+    }
+    if (status.model && status.window) CONTEXT_WINDOWS.set(status.model, status.window)
+    if (status.used !== null) {
+      this.setContext({ used: status.used, ...(status.window ? { window: status.window } : {}) })
+    }
+    if (
+      this.provider === 'openrouter' &&
+      status.inputTokens !== null &&
+      status.outputTokens !== null
+    ) {
+      void this.terminalCost(status.inputTokens, status.outputTokens)
+    }
+  }
+
+  /**
+   * O custo pela OpenRouter no terminal: o que a conversa já tinha mais os tokens do processo do
+   * terminal, pelos preços da OpenRouter (sem o desconto do cache, que o terminal não detalha).
+   */
+  private async terminalCost(input: number, output: number): Promise<void> {
+    const model = this.model
+    const session = this.sessionId
+    const pricing = model ? await this.options.openrouter?.pricing(model).catch(() => null) : null
+    if (session !== this.sessionId || this.provider !== 'openrouter') return
+    const usd = turnCost({ input_tokens: input, output_tokens: output }, pricing ?? null)
+    const base = this.terminalCostBase ?? { usd: 0, inputTokens: 0, outputTokens: 0, turns: 0 }
+    this.cost = {
+      usd: base.usd === null || usd === null ? null : base.usd + usd,
+      inputTokens: base.inputTokens + input,
+      outputTokens: base.outputTokens + output,
+      turns: base.turns + 1
+    }
+    this.emit({ type: 'cost', cost: this.cost })
+  }
+
   /** Começa uma conversa nova: encerra o processo atual e esquece a sessão. */
   reset(): void {
     this.clear()
@@ -868,6 +1064,10 @@ export class ClaudeSession {
     this.cwd = null
     this.fork = false
     this.sentText = null
+    this.echoes = []
+    if (this.queueTimer) clearTimeout(this.queueTimer)
+    this.queueTimer = null
+    this.tasks.clear()
     this.clearStop()
     this.streamedMessages.clear()
     this.hiddenToolUses.clear()
@@ -945,7 +1145,42 @@ export class ClaudeSession {
       this.processModel = this.model
     }
     this.sentText = text
+    this.echoes.push({ content: text, queued: false })
     proc.stdin.write(userMessage(text) + '\n')
+  }
+
+  /**
+   * Dá para mandar uma mensagem agora, com o Claude trabalhando? (O processo está de pé e o
+   * turno já começou.) Ela vai direto para o CLI, que a entrega na próxima pausa entre
+   * ferramentas, ou como o turno seguinte, como no terminal.
+   */
+  canQueue(): boolean {
+    return this.busy && this.proc !== null && this.sentText !== null && !this.stopping
+  }
+
+  /** Manda uma mensagem com o Claude trabalhando (veja canQueue). */
+  async queue(text: string, attachments: string[] = []): Promise<void> {
+    const proc = this.proc
+    const sessionId = this.sessionId
+    if (!proc || !sessionId || !this.canQueue()) return
+    let content = text
+    if (attachments.length) {
+      try {
+        const copied = await copyAttachments(attachments, sessionId)
+        for (const problem of copied.problems) this.notice('warning', problem)
+        content = withAttachments(text, copied.paths)
+      } catch (err) {
+        this.notice('error', `Não consegui preparar os anexos: ${(err as Error).message}`)
+        content = text
+      }
+    }
+    // O processo foi embora enquanto os anexos eram copiados: a mensagem não chega.
+    if (proc !== this.proc || !content.trim()) {
+      this.emit({ type: 'queue-dropped' })
+      return
+    }
+    this.echoes.push({ content, queued: true })
+    proc.stdin.write(userMessage(content) + '\n')
   }
 
   /** Manda um pedido de controle ao CLI pelo stdin. Devolve o id do pedido. */
@@ -964,6 +1199,9 @@ export class ClaudeSession {
       'stream-json',
       '--verbose',
       '--include-partial-messages',
+      // Cada mensagem volta quando o CLI a pega: é assim que se sabe que uma mensagem mandada
+      // com ele trabalhando chegou.
+      '--replay-user-messages',
       '--allowedTools',
       this.options.allowedTools.join(','),
       // Os anexos ficam fora do workspace; a pasta deles entra no espaço de trabalho do Claude.
@@ -1017,6 +1255,7 @@ export class ClaudeSession {
       env
     })
     this.proc = proc
+    this.echoes = []
 
     // Eventos de um processo que já foi substituído (conversa nova) são ignorados.
     const current = (): boolean => proc === this.proc
@@ -1106,8 +1345,8 @@ export class ClaudeSession {
       console.warn('[wisp] linha inesperada do claude:', line.slice(0, 200))
       return
     }
-    // Saída de subagentes (Task) não entra na conversa; o card da ferramenta já a representa.
-    if (event.parent_tool_use_id) return
+    // Os passos de um subagente vão para dentro do card dele (o Agente), não para a conversa.
+    if (event.parent_tool_use_id) return this.onSubagent(event, event.parent_tool_use_id)
 
     switch (event.type) {
       case 'system':
@@ -1179,6 +1418,9 @@ export class ClaudeSession {
   }
 
   private onSystem(event: CliEvent): void {
+    if (event.subtype === 'task_started' || event.subtype === 'task_notification') {
+      return this.onTask(event)
+    }
     // O CLI troca de modo sozinho: aprovar o plano, por exemplo, volta para o Pedir.
     if (event.subtype === 'status') {
       if (event.status === 'compacting') this.setContext({ compacting: true })
@@ -1203,6 +1445,20 @@ export class ClaudeSession {
     if (event.session_id) {
       this.adoptSessionId(event.session_id)
       this.restored = false
+    }
+    if (Array.isArray(event.slash_commands)) {
+      const commands = [
+        ...new Set(
+          event.slash_commands.filter(
+            (name): name is string => typeof name === 'string' && /^[\w:.-]{1,80}$/.test(name)
+          )
+        )
+      ].slice(0, MAX_COMMANDS)
+      const key = commands.join(' ')
+      if (key !== this.commands) {
+        this.commands = key
+        this.emit({ type: 'commands', commands })
+      }
     }
     if (event.model && event.model !== this.activeModel) {
       this.activeModel = event.model
@@ -1283,6 +1539,7 @@ export class ClaudeSession {
   }
 
   private onUser(event: CliEvent): void {
+    if (event.isReplay) return this.onReplay(event)
     const content = event.message?.content
     if (!Array.isArray(content)) return
     const results = content.filter((block) => block.type === 'tool_result' && block.tool_use_id)
@@ -1388,7 +1645,109 @@ export class ClaudeSession {
     if (!this.busy) return
     this.sentText = null
     this.emit({ type: 'turn-end', outcome })
+    // Mensagens mandadas no meio que o CLI ainda não pegou: num fim normal, ele as responde em
+    // seguida, como um turno novo, e a conversa continua ocupada. Se ele não as pegar logo (a
+    // resposta parou, deu erro), elas não chegam.
+    if (this.echoes.some((echo) => echo.queued)) {
+      if (!this.proc) this.dropQueue()
+      else {
+        this.armQueueTimer()
+        if (outcome === 'done') return
+      }
+    }
     this.setBusy(false)
+  }
+
+  private armQueueTimer(): void {
+    if (this.queueTimer) clearTimeout(this.queueTimer)
+    this.queueTimer = setTimeout(() => {
+      this.queueTimer = null
+      if (!this.echoes.some((echo) => echo.queued) || this.sentText !== null) return
+      this.dropQueue()
+      this.setBusy(false)
+    }, QUEUE_GRACE_MS)
+  }
+
+  /** As mensagens da fila não vão chegar (a página as marca como não entregues). */
+  private dropQueue(): void {
+    if (this.queueTimer) clearTimeout(this.queueTimer)
+    this.queueTimer = null
+    const had = this.echoes.some((echo) => echo.queued)
+    this.echoes = []
+    if (had) this.emit({ type: 'queue-dropped' })
+  }
+
+  /**
+   * O CLI pegou uma mensagem nossa. Se era uma da fila, a página a marca como entregue; se ele
+   * a pegou depois do fim do turno, começa outro.
+   */
+  private onReplay(event: CliEvent): void {
+    const content = event.message?.content
+    const text =
+      typeof content === 'string'
+        ? content
+        : Array.isArray(content)
+          ? content.map((block) => (block.type === 'text' ? (block.text ?? '') : '')).join('')
+          : ''
+    const index = this.echoes.findIndex((echo) => echo.content === text)
+    if (index < 0) return
+    const [echo] = this.echoes.splice(index, 1)
+    if (!echo.queued) return
+    this.emit({ type: 'user-delivered' })
+    if (this.sentText === null) {
+      if (this.queueTimer) clearTimeout(this.queueTimer)
+      this.queueTimer = null
+      this.sentText = text
+      this.setBusy(true)
+    }
+  }
+
+  /** Um evento de um subagente: as ferramentas que ele chama e os resultados. */
+  private onSubagent(event: CliEvent, parent: string): void {
+    const content = event.message?.content
+    if (!Array.isArray(content)) return
+    for (const block of content) {
+      if (event.type === 'assistant' && block.type === 'tool_use' && block.id) {
+        this.emit({
+          type: 'subagent-step',
+          parent,
+          id: block.id,
+          name: block.name ?? '?',
+          input: block.input ?? null
+        })
+      } else if (event.type === 'user' && block.type === 'tool_result' && block.tool_use_id) {
+        this.emit({
+          type: 'subagent-step-end',
+          parent,
+          id: block.tool_use_id,
+          isError: block.is_error === true
+        })
+      }
+    }
+  }
+
+  /** Uma tarefa começou ou terminou (um comando, um subagente, rodando ou em segundo plano). */
+  private onTask(event: CliEvent): void {
+    const id = event.task_id
+    if (!id) return
+    const known = this.tasks.get(id)
+    const status: TaskInfo['status'] =
+      event.subtype === 'task_started'
+        ? 'running'
+        : event.status === 'failed' || event.status === 'stopped' || event.status === 'killed'
+          ? event.status === 'failed'
+            ? 'failed'
+            : 'stopped'
+          : 'completed'
+    const task: TaskInfo = {
+      id,
+      description: (event.description ?? event.summary ?? known?.description ?? '').slice(0, 200),
+      status,
+      background: event.is_backgrounded ?? known?.background ?? false
+    }
+    if (status === 'running') this.tasks.set(id, task)
+    else this.tasks.delete(id)
+    this.emit({ type: 'task', task })
   }
 }
 

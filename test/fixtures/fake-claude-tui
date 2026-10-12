@@ -1,0 +1,252 @@
+// O modo interativo do Claude Code de mentira (o modo terminal do Wisp, Fase 17): roda num pty,
+// lê o que se digita, mostra uma caixa simples e roda os hooks e a linha de status do --settings
+// como o de verdade (os hooks recebem o JSON no stdin; o PermissionRequest espera a decisão).
+// Cenários pela mensagem: [pede COMANDO] pede permissão (o card do Wisp ou as teclas 1 e 3
+// aqui), [lento] resposta devagar (o Esc interrompe, e nenhum hook avisa), [modelo] responde o
+// modelo. Uma mensagem mandada no meio de uma resposta entra nela, como no de verdade. Anota em
+// $HOME/.fake-claude/tui.log os hooks que rodou e as decisões.
+const fs = require('node:fs')
+const path = require('node:path')
+const { spawn } = require('node:child_process')
+
+module.exports = function tui({ args, flag, model, mode, sessionId, sessionFile, STATE }) {
+  const log = (entry) =>
+    fs.appendFileSync(
+      path.join(STATE, 'tui.log'),
+      JSON.stringify({ pid: process.pid, ...entry }) + '\n'
+    )
+  let settings = {}
+  try {
+    settings = JSON.parse(flag('--settings') ?? '{}')
+  } catch {
+    // Sem configurações.
+  }
+  const write = (text) => process.stdout.write(text.replace(/\n/g, '\r\n'))
+  let context = 3000
+  let busy = false
+  let line = ''
+  let inPaste = false
+  let interrupted = false
+  let permission = null
+  const extra = []
+  let n = 0
+
+  /** Roda os hooks de um evento; com `wait`, espera a saída (o PermissionRequest). */
+  function runHooks(event, input, wait = false) {
+    const entries = settings.hooks?.[event] ?? []
+    const payload = JSON.stringify({
+      session_id: sessionId,
+      transcript_path: '/tmp/x.jsonl',
+      cwd: process.cwd(),
+      permission_mode: mode,
+      hook_event_name: event,
+      ...input
+    })
+    const runs = []
+    for (const entry of entries) {
+      if (
+        entry.matcher &&
+        input.tool_name &&
+        !new RegExp(`^(${entry.matcher})$`).test(input.tool_name)
+      ) {
+        continue
+      }
+      for (const hook of entry.hooks ?? []) {
+        const child = spawn('sh', ['-c', hook.command], { stdio: ['pipe', 'pipe', 'ignore'] })
+        let output = ''
+        child.stdout.on('data', (chunk) => (output += chunk))
+        child.stdin.end(payload)
+        runs.push({
+          child,
+          async: hook.async === true,
+          done: new Promise((resolve) => child.on('close', () => resolve(output)))
+        })
+      }
+    }
+    log({ hook: event, count: runs.length })
+    return wait ? runs : null
+  }
+
+  function statusLine() {
+    const command = settings.statusLine?.command
+    if (!command) return Promise.resolve('')
+    const used = context
+    const payload = JSON.stringify({
+      session_id: sessionId,
+      model: { id: model, display_name: model },
+      context_window: {
+        total_input_tokens: used,
+        total_output_tokens: 50 * n,
+        context_window_size: 200000,
+        current_usage: {
+          input_tokens: 1000,
+          cache_read_input_tokens: used - 1050,
+          output_tokens: 50
+        },
+        used_percentage: Math.round((used / 200000) * 100)
+      },
+      cost: { total_cost_usd: 0.01 }
+    })
+    return new Promise((resolve) => {
+      const child = spawn('sh', ['-c', command], { stdio: ['pipe', 'pipe', 'ignore'] })
+      let output = ''
+      child.stdout.on('data', (chunk) => (output += chunk))
+      child.on('close', () => resolve(output))
+      child.stdin.end(payload)
+    })
+  }
+
+  async function prompt() {
+    const status = await statusLine()
+    write(`\n\x1b[2m${status}\x1b[0m\n> `)
+  }
+
+  /** Pede permissão: o hook (o card do Wisp) ou as teclas 1 (sim) e 3 (não) aqui. */
+  async function ask(command) {
+    const id = `toolu_${++n}`
+    runHooks('PreToolUse', {
+      tool_name: 'Bash',
+      tool_input: { command, description: 'Comando de teste' },
+      tool_use_id: id
+    })
+    write(`\n● Bash(${command})\n  Do you want to proceed? 1. Yes  3. No\n`)
+    const runs = runHooks(
+      'PermissionRequest',
+      { tool_name: 'Bash', tool_input: { command, description: 'Comando de teste' } },
+      true
+    )
+    const fromKeys = new Promise((resolve) => (permission = resolve))
+    const fromHooks = Promise.all(runs.map((run) => run.done)).then((outputs) => {
+      for (const output of outputs) {
+        try {
+          const decision = JSON.parse(output).hookSpecificOutput?.decision
+          if (decision?.behavior) return { by: 'hook', behavior: decision.behavior }
+        } catch {
+          // Sem decisão.
+        }
+      }
+      return new Promise(() => {})
+    })
+    const decision = await Promise.race([fromKeys, fromHooks])
+    permission = null
+    // Respondido aqui: o Claude Code encerra os hooks que esperavam.
+    for (const run of runs) run.child.kill('SIGTERM')
+    log({ decision: decision.behavior, by: decision.by, command })
+    if (decision.behavior === 'allow') {
+      runHooks('PostToolUse', {
+        tool_name: 'Bash',
+        tool_input: { command },
+        tool_use_id: id,
+        tool_response: { stdout: '' }
+      })
+      return true
+    }
+    return false
+  }
+
+  async function respond(text) {
+    busy = true
+    interrupted = false
+    fs.writeFileSync(sessionFile, '{}')
+    // Como no de verdade: um hook que não é "async" segura a resposta até acabar.
+    const submitted = runHooks('UserPromptSubmit', { prompt: text }, true)
+    await Promise.all(submitted.filter((run) => !run.async).map((run) => run.done))
+    if (text.startsWith('/compact')) {
+      context = 4000
+      write('\nConversa compactada.\n')
+      busy = false
+      return prompt()
+    }
+    context += 30000
+    let answer = `Oi do terminal! (${model})`
+    const asked = /\[pede ([^\]]+)\]/.exec(text)
+    if (asked) answer = (await ask(asked[1])) ? `Rodei ${asked[1]}.` : `Não rodei ${asked[1]}.`
+    if (text.includes('[modelo]')) answer = `Modelo: ${model}`
+    const delay = text.includes('[lento]') ? 150 : 5
+    if (text.includes('[lento]'))
+      answer = 'Esta resposta vem bem devagar, palavra por palavra, para dar tempo de parar.'
+    write('\n● ')
+    for (const word of answer.split(/(?<= )/)) {
+      if (interrupted) break
+      write(word)
+      await new Promise((r) => setTimeout(r, delay))
+    }
+    if (interrupted) {
+      // Como no de verdade: interrompido pelo Esc, nenhum hook avisa.
+      write('\n  ⎿ Interrupted by user\n')
+      busy = false
+      log({ interrupted: true })
+      return prompt()
+    }
+    n++
+    const also = extra.splice(0)
+    const full = also.length ? `${answer} (também: ${also.join(' | ')})` : answer
+    if (also.length) write(` (também: ${also.join(' | ')})`)
+    runHooks('Stop', { stop_hook_active: false, last_assistant_message: full })
+    busy = false
+    await prompt()
+  }
+
+  log({
+    start: true,
+    args: args.filter(
+      (a, i) => args[i - 1] !== '--settings' && args[i - 1] !== '--append-system-prompt'
+    ),
+    hooks: Object.keys(settings.hooks ?? {}),
+    status: settings.statusLine?.command ?? null,
+    term: process.env.TERM
+  })
+  write(`Claude Code de mentira (terminal) · ${model} · modo ${mode}\n`)
+  runHooks('SessionStart', { source: 'startup', model })
+  void prompt()
+
+  if (process.stdin.isTTY) process.stdin.setRawMode(true)
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => {
+    let data = chunk
+    // O bracketed paste: o texto entre as marcas é colado, sem virar teclas.
+    data = data.replace(/\x1b\[200~/g, () => {
+      inPaste = true
+      return ''
+    })
+    data = data.replace(/\x1b\[201~/g, () => {
+      inPaste = false
+      return ''
+    })
+    if (data === '\x1b' || data === '\x03') {
+      if (busy) interrupted = true
+      return
+    }
+    for (const ch of data) {
+      if (permission && !inPaste && (ch === '1' || ch === '3')) {
+        permission({ by: 'keys', behavior: ch === '1' ? 'allow' : 'deny' })
+        continue
+      }
+      if (ch === '\r' && !inPaste) {
+        const text = line.trim()
+        line = ''
+        write('\n')
+        if (!text) continue
+        if (busy) {
+          // No meio de uma resposta: entra nela.
+          runHooks('UserPromptSubmit', { prompt: text })
+          extra.push(text)
+          continue
+        }
+        void respond(text)
+      } else if (ch === '\x7f') {
+        if (line) {
+          line = line.slice(0, -1)
+          write('\b \b')
+        }
+      } else if (ch >= ' ' || ch === '\n') {
+        line += ch
+        write(ch)
+      }
+    }
+  })
+  process.on('SIGTERM', () => {
+    runHooks('SessionEnd', { reason: 'other' })
+    setTimeout(() => process.exit(0), 50)
+  })
+}

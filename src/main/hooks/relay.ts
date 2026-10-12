@@ -22,11 +22,18 @@ import {
   isPrivateDir,
   socketDir,
   socketPath,
+  STATUS_ARG,
+  STATUS_EVENT,
+  TAB_ARG,
+  TAB_TOKEN,
   TERMINAL_ENV
 } from './protocol'
 import type { RelayEvent, RelayReply } from './protocol'
+import { statusLine } from './status-line'
 
 const CONNECT_TIMEOUT_MS = 300
+/** De quanto em quanto tempo o relay que espera uma decisão confere se o pai ainda existe. */
+const ORPHAN_CHECK_MS = 500
 const SEND_BUDGET_MS = 2000
 /** Um pouco menos que o prazo do hook, para sair antes de o Claude Code matar o relay. */
 const DECISION_BUDGET_MS = (DECISION_TIMEOUT_S - 5) * 1000
@@ -103,7 +110,10 @@ function hookOutput(reply: RelayReply, input: Record<string, unknown>): string |
     JSON.stringify({ hookSpecificOutput: { hookEventName: 'PermissionRequest', decision } })
   switch (reply.decision) {
     case 'allow':
-      return decide({ behavior: 'allow' })
+      return decide({
+        behavior: 'allow',
+        ...(reply.permissions?.length ? { updatedPermissions: reply.permissions } : {})
+      })
     case 'deny':
       return decide({ behavior: 'deny', message: String(reply.message).slice(0, 500) })
     case 'answer': {
@@ -123,7 +133,13 @@ function hookOutput(reply: RelayReply, input: Record<string, unknown>): string |
 }
 
 function main(): void {
-  if (process.env[INTERNAL_ENV]) exit()
+  // O modo terminal de uma aba: `--tab <ficha> <Evento>` ou `--status <ficha>`.
+  const argv = process.argv.slice(2)
+  const status = argv[0] === STATUS_ARG
+  const tab = status || argv[0] === TAB_ARG ? argv[1] : null
+  if (tab !== null && !TAB_TOKEN.test(tab ?? '')) exit()
+  // Os processos do Wisp não viram sessões na aba Sessões; os do modo terminal vão para a aba.
+  if (!tab && process.env[INTERNAL_ENV]) exit()
   let input: Record<string, unknown>
   try {
     const parsed: unknown = JSON.parse(readFileSync(0, 'utf8').replace(/^\uFEFF/, ''))
@@ -132,10 +148,13 @@ function main(): void {
   } catch {
     exit()
   }
-  const name =
-    typeof input.hook_event_name === 'string' && input.hook_event_name
+  // A linha de status sai na hora, com ou sem o Wisp: é o Claude Code que a mostra.
+  if (status) process.stdout.write(statusLine(input))
+  const name = status
+    ? STATUS_EVENT
+    : typeof input.hook_event_name === 'string' && input.hook_event_name
       ? input.hook_event_name
-      : (process.argv[2] ?? '')
+      : ((tab ? argv[2] : argv[0]) ?? '')
   const path = trustedSocket()
   if (!name || !path) exit()
 
@@ -151,6 +170,7 @@ function main(): void {
   const toolInput = input.tool_input
   const message: RelayEvent = {
     v: 1,
+    ...(tab ? { tab } : {}),
     event: name,
     at: Math.round(performance.timeOrigin),
     pid: claudePid(),
@@ -178,6 +198,12 @@ function main(): void {
     if (!waits) socket.end()
   })
   if (!waits) return
+  // Respondido no próprio terminal, o Claude Code encerra o hook; se ele encerrar só o shell no
+  // meio do caminho, o relay fica órfão: sem o pai, sai (e o card do Wisp some).
+  const parent = process.ppid
+  setInterval(() => {
+    if (process.ppid !== parent) exit()
+  }, ORPHAN_CHECK_MS).unref()
 
   let pending = ''
   socket.setEncoding('utf8')

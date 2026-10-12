@@ -699,6 +699,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
       })
     }
+    // O modo terminal de uma aba (a ficha dela vem no evento): vai para a aba, não para Sessões.
+    if (event.tab) {
+      if (!chat?.terminalEvent(event, pending)) pending?.reply({ decision: null })
+      return
+    }
     sessions.handle(event, pending)
   }).then((started) => {
     if (started.ok) {

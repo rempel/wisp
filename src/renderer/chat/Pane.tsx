@@ -6,6 +6,7 @@ import type {
   ClipboardOffer,
   MascotState,
   SoundSettings,
+  TaskInfo,
   VoiceStatus
 } from '../../shared/ipc'
 import { AttachmentList } from './AttachmentList'
@@ -13,12 +14,14 @@ import { ClipboardChip } from './ClipboardChip'
 import {
   Avatar,
   CalendarIcon,
+  ChatIcon,
   CloseIcon,
   MicIcon,
   SendIcon,
   SoundOffIcon,
   SoundOnIcon,
-  StopIcon
+  StopIcon,
+  TerminalIcon
 } from './icons'
 import { Markdown } from './Markdown'
 import { ComposerMenu } from './ComposerMenu'
@@ -31,8 +34,12 @@ import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
 import { PermissionCard } from './PermissionCard'
 import { QuestionCard } from './QuestionCard'
+import { matchCommands, slashQuery } from './slash'
+import type { SlashCommand } from './slash'
+import { SlashMenu } from './SlashMenu'
 import { awaitingPermission } from './state'
 import type { ChatState, Item } from './state'
+import { TerminalView } from './TerminalView'
 import { ToolCard } from './ToolCard'
 import { useAttachments } from './useAttachments'
 
@@ -46,7 +53,9 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
         <div className="user-turn">
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
           {item.text && (
-            <div className={`msg user${item.voice ? ' spoken' : ''}`}>
+            <div
+              className={`msg user${item.voice ? ' spoken' : ''}${item.queued ? ' queued' : ''}`}
+            >
               {item.voice && (
                 <span className="voice-badge" title="Falado">
                   <MicIcon />
@@ -54,6 +63,22 @@ function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.E
               )}
               {item.text}
             </div>
+          )}
+          {item.queued && (
+            <span
+              className="queue-badge"
+              title="O Claude recebe na próxima pausa, sem parar o que está fazendo"
+            >
+              na fila
+            </span>
+          )}
+          {item.dropped && (
+            <span
+              className="queue-badge dropped"
+              title="A resposta parou antes de o Claude pegar esta mensagem"
+            >
+              não chegou ao Claude
+            </span>
           )}
         </div>
       )
@@ -144,6 +169,9 @@ export function Pane({
 }: PaneProps): JSX.Element {
   const [draft, setDraft] = useState('')
   const attachments = useAttachments()
+  // O menu dos comandos com barra: o item escolhido e se foi fechado (Esc) para este texto.
+  const [slashIndex, setSlashIndex] = useState(0)
+  const [slashClosed, setSlashClosed] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
@@ -152,10 +180,28 @@ export function Pane({
 
   // O que a casca manda para esta conversa: ditado, anexos, arquivos soltos na janela.
   const { addPrepared, addDropped } = attachments
+  const terminalView = state.view === 'terminal'
+  const viewRef = useRef(state.view)
+  viewRef.current = state.view
+
+  // No terminal, arquivos e prints vão direto para a caixa do Claude Code, como caminhos.
+  const { pending: pendingFiles, clear: clearFiles } = attachments
+  useEffect(() => {
+    if (!terminalView || !pendingFiles.length) return
+    window.wisp.chat.send(
+      conversation,
+      '',
+      pendingFiles.map(({ path, thumbnail }) => ({ path, thumbnail }))
+    )
+    clearFiles()
+  }, [terminalView, pendingFiles, clearFiles, conversation])
   useEffect(
     () =>
       bus.on(conversation, (message) => {
-        if (message.type === 'compose') {
+        if (message.type === 'compose' && viewRef.current === 'terminal') {
+          // No terminal, o ditado vai colado na caixa do Claude Code, para revisar e mandar.
+          window.wisp.tui.input(conversation, `\x1b[200~${message.text}\x1b[201~`)
+        } else if (message.type === 'compose') {
           setDraft((current) =>
             current && !/\s$/.test(current) ? `${current} ${message.text}` : current + message.text
           )
@@ -180,8 +226,8 @@ export function Pane({
 
   // Ganhou o foco (clique, troca de aba): a caixa de texto recebe o cursor.
   useEffect(() => {
-    if (focused && !window.getSelection()?.toString()) input.current?.focus()
-  }, [focused])
+    if (focused && !terminalView && !window.getSelection()?.toString()) input.current?.focus()
+  }, [focused, terminalView])
 
   // Uma conversa recomeçada (Ctrl+K) volta a acompanhar o fim.
   const first = state.items[0]
@@ -213,10 +259,32 @@ export function Pane({
   }
 
   const canSend = draft.trim() !== '' || attachments.pending.length > 0
+  const query = slashQuery(draft)
+  const slashCommands =
+    query !== null && slashClosed !== draft && !demo ? matchCommands(query, state.commands) : []
+  const slashOpen = slashCommands.length > 0
+
+  /** Completa o comando escolhido no menu (o texto continua na caixa, para os argumentos). */
+  function pickCommand(command: SlashCommand): void {
+    setDraft(`/${command.name} `)
+    setSlashIndex(0)
+    input.current?.focus()
+  }
+
+  /** Os comandos que o Wisp atende sozinho; true se era um deles. */
+  function runWispCommand(text: string): boolean {
+    const match = /^\/(compact|clear)(?:\s+([\s\S]*))?$/.exec(text)
+    if (!match || attachments.pending.length) return false
+    if (match[1] === 'compact') window.wisp.chat.compact(conversation, match[2]?.trim() ?? '')
+    else window.wisp.chat.newConversation(conversation)
+    setDraft('')
+    return true
+  }
 
   function send(): void {
-    if (!canSend || state.busy) return
+    if (!canSend) return
     const text = draft.trim()
+    if (runWispCommand(text)) return
     const files = attachments.pending
     onSent(
       text,
@@ -243,6 +311,35 @@ export function Pane({
   }
 
   function onKeyDown(event: KeyboardEvent<HTMLTextAreaElement>): void {
+    if (slashOpen) {
+      const selected = Math.min(slashIndex, slashCommands.length - 1)
+      if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+        event.preventDefault()
+        const step = event.key === 'ArrowDown' ? 1 : -1
+        setSlashIndex((selected + step + slashCommands.length) % slashCommands.length)
+        return
+      }
+      if (event.key === 'Tab' && !event.shiftKey) {
+        event.preventDefault()
+        pickCommand(slashCommands[selected])
+        return
+      }
+      // Enter completa; se o nome já está inteiro, manda.
+      if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
+        const command = slashCommands[selected]
+        if (draft !== `/${command.name}`) {
+          event.preventDefault()
+          pickCommand(command)
+          return
+        }
+      }
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        event.stopPropagation()
+        setSlashClosed(draft)
+        return
+      }
+    }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault()
       send()
@@ -310,6 +407,10 @@ export function Pane({
     !(last?.kind === 'tool' && last.status === 'running') &&
     !awaitingPermission(state)
   const started = state.items.some((item) => item.kind === 'user')
+  // Os cards esperando resposta, que no modo terminal aparecem por cima dele.
+  const pendingCards = terminalView
+    ? state.items.filter((item) => item.kind === 'permission' && item.status === 'pending')
+    : []
 
   return (
     <section
@@ -335,7 +436,19 @@ export function Pane({
           </button>
         </div>
       )}
-      <div className="messages" ref={list} onScroll={onScroll}>
+      {terminalView && (
+        <div className="terminal-wrap">
+          <TerminalView conversation={conversation} focused={focused} />
+          {pendingCards.length > 0 && (
+            <div className="terminal-cards">
+              {pendingCards.map((item) => (
+                <Message key={item.id} item={item} streaming={false} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+      <div className="messages" ref={list} onScroll={onScroll} hidden={terminalView}>
         {/* Na demonstração, as sugestões ficam até a primeira pergunta (os avisos não as tiram). */}
         {(state.items.length === 0 || (demo && !started)) && (
           <div className="empty">
@@ -415,8 +528,23 @@ export function Pane({
             {attachments.error}
           </div>
         )}
+        {state.tasks.length > 0 && <TaskBar tasks={state.tasks} />}
+        {slashOpen && (
+          <SlashMenu
+            commands={slashCommands}
+            selected={Math.min(slashIndex, slashCommands.length - 1)}
+            onPick={pickCommand}
+          />
+        )}
         <div className="composer-meta-wrap">
           <div className="composer-meta">
+            {!demo && (
+              <ViewToggle
+                view={state.view}
+                busy={state.busy}
+                onPick={(view) => window.wisp.chat.setView(conversation, view)}
+              />
+            )}
             <ProviderPill
               provider={state.provider}
               onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
@@ -503,17 +631,32 @@ export function Pane({
               input.current?.focus()
             }}
           />
+          {terminalView && (
+            <span className="terminal-hint">
+              Digite no terminal. Arquivos, prints e a voz entram na caixa dele.
+            </span>
+          )}
           <textarea
             ref={input}
+            hidden={terminalView}
             rows={1}
             value={draft}
-            placeholder={started ? 'Continuar a conversa…' : 'Pergunte ao Wisp…'}
+            placeholder={
+              state.busy
+                ? 'Mande mais instruções: o Claude recebe sem parar…'
+                : started
+                  ? 'Continuar a conversa…'
+                  : 'Pergunte ao Wisp…'
+            }
             autoFocus={focused}
-            onChange={(event) => setDraft(event.target.value)}
+            onChange={(event) => {
+              setDraft(event.target.value)
+              setSlashIndex(0)
+            }}
             onKeyDown={onKeyDown}
             onPaste={onPaste}
           />
-          {state.busy ? (
+          {state.busy && (
             <button
               type="button"
               className="icon-button stop"
@@ -523,12 +666,17 @@ export function Pane({
             >
               <StopIcon />
             </button>
-          ) : (
+          )}
+          {!terminalView && (!state.busy || canSend) && (
             <button
               type="submit"
               className="icon-button send"
               disabled={!canSend}
-              title="Enviar (Enter)"
+              title={
+                state.busy
+                  ? 'Mandar agora: o Claude recebe na próxima pausa (Enter)'
+                  : 'Enviar (Enter)'
+              }
               aria-label="Enviar"
             >
               <SendIcon />
@@ -537,6 +685,63 @@ export function Pane({
         </div>
       </form>
     </section>
+  )
+}
+
+/** Chat ou terminal (o Claude Code de verdade): a mesma conversa, dos dois jeitos. */
+function ViewToggle({
+  view,
+  busy,
+  onPick
+}: {
+  view: 'chat' | 'terminal'
+  busy: boolean
+  onPick: (view: 'chat' | 'terminal') => void
+}): JSX.Element {
+  const hint = busy ? ' (espere a resposta terminar)' : ''
+  return (
+    <div className="view-toggle" role="group" aria-label="Chat ou terminal">
+      <button
+        type="button"
+        className={view === 'chat' ? 'active' : ''}
+        aria-pressed={view === 'chat'}
+        disabled={busy && view !== 'chat'}
+        onClick={() => onPick('chat')}
+        title={`Chat: a conversa nas bolhas do Wisp${hint}`}
+      >
+        <ChatIcon />
+        <span>Chat</span>
+      </button>
+      <button
+        type="button"
+        className={view === 'terminal' ? 'active' : ''}
+        aria-pressed={view === 'terminal'}
+        disabled={busy && view !== 'terminal'}
+        onClick={() => onPick('terminal')}
+        title={`Terminal: o Claude Code de verdade, na mesma conversa${hint}`}
+      >
+        <TerminalIcon />
+        <span>Terminal</span>
+      </button>
+    </div>
+  )
+}
+
+/** As tarefas em segundo plano (um servidor rodando, um subagente): a primeira e quantas mais. */
+function TaskBar({ tasks }: { tasks: TaskInfo[] }): JSX.Element {
+  const [first, ...rest] = tasks
+  return (
+    <div
+      className="task-bar"
+      role="status"
+      title={tasks.map((task) => task.description).join('\n')}
+    >
+      <span className="spinner" />
+      <span>
+        Em segundo plano: {first.description || 'uma tarefa'}
+        {rest.length > 0 ? ` (+${rest.length})` : ''}
+      </span>
+    </div>
   )
 }
 

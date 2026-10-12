@@ -82,13 +82,25 @@ Depois do MVP, vieram as fases do roadmap:
   - a linha das pílulas rola de lado num painel estreito, e anexar e print viram um **+**;
   - o contexto de cada conversa numa pílula (quanto da janela do modelo já está ocupado) e o
     **Compactar agora**, o `/compact` do Claude Code, com instruções do que manter.
+- **Fase 17 (modo terminal e o chat como o CLI), pronta para validação:**
+  - o **modo terminal**: um botão **Chat | Terminal** em cada aba troca o chat pelo Claude Code
+    de verdade, num terminal dentro do painel, na mesma conversa. Valem o provedor (inclusive a
+    OpenRouter), o modelo, o modo, a pasta, as skills, as ferramentas do desktop, a voz, o
+    `--ask`, os anexos e o print; os cards de permissão do Wisp aparecem por cima do terminal,
+    junto com o diálogo dele (vale o que você responder primeiro); o contexto vai para a pílula, e
+    o que acontece no terminal fica no histórico;
+  - no chat, mandar com o Claude trabalhando: a mensagem fica "na fila" e entra na próxima pausa,
+    sem parar o que ele está fazendo, como no terminal;
+  - o card do Agente mostra os passos do subagente; as tarefas em segundo plano aparecem acima
+    da caixa; e a barra (`/`) abre os comandos e as skills do Claude Code.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
 ## Requisitos
 
 - Linux com GNOME ou KDE Plasma, em Wayland (via XWayland) ou X11
-- Node.js 22.12 ou mais novo, e npm
+- Node.js 22.12 ou mais novo, e npm (para montar do código: também `python3`, `make` e `g++`, que
+  compilam o terminal do modo terminal; os pacotes já vêm com ele)
 - [Claude Code](https://docs.claude.com/en/docs/claude-code) instalado e logado com a sua
   assinatura: rode `claude` no terminal uma vez e faça o login. (Pela OpenRouter, experimental,
   basta o Claude Code instalado; veja [OpenRouter](#openrouter-experimental).)
@@ -240,6 +252,46 @@ agora**: o `/compact` do Claude Code troca o que veio antes por um resumo, e a c
 bem menos contexto. No campo de cima, diga o que o resumo deve manter (por exemplo, "as decisões
 sobre o banco"). O painel continua mostrando a conversa inteira; um aviso marca onde ela foi
 compactada. Perto do limite, o Claude Code compacta sozinho, e o aviso diz isso também.
+
+### Modo terminal e o chat como o CLI
+
+**Mandar com o Claude trabalhando:** a caixa de texto não trava mais. Mande mais instruções com
+ele no meio de uma resposta: a mensagem aparece com o selo **na fila** e entra na próxima pausa
+(entre um comando e outro), sem parar o que ele está fazendo, como no Claude Code do terminal. Se
+a resposta acabar antes, ela vira a mensagem seguinte. O **Parar** continua ali, ao lado.
+
+**Subagentes e tarefas:** quando o Claude delega uma tarefa (o Agente), o card dele mostra os
+passos do subagente (o que leu, o que buscou, que comando rodou), os últimos à vista e o resto ao
+abrir o card. Um comando deixado rodando em segundo plano (um servidor, por exemplo) aparece acima
+da caixa até acabar.
+
+**Comandos com barra:** digite `/` na caixa para ver os comandos: `/compact` (compactar, com o
+que manter escrito depois) e `/clear` (conversa nova), do Wisp, e os do Claude Code nesta conversa,
+inclusive as skills e os comandos do projeto (`.claude/commands`). As setas escolhem, o Tab
+completa e o Enter manda.
+
+**Modo terminal:** o botão **Chat | Terminal**, no começo da linha das pílulas, troca a aba para
+o Claude Code de verdade, num terminal dentro do painel: a interface dele inteira, com o Shift+Tab,
+os comandos e a visão dele dos agentes. A conversa é a mesma (ele retoma a sessão), então dá para
+ir e voltar, com a resposta parada. No terminal continuam valendo:
+
+- o provedor e o modelo das pílulas (inclusive a OpenRouter) e o modo; trocar qualquer um deles
+  recomeça o terminal na mesma conversa (com uma resposta no meio, a troca espera ela acabar);
+- a pasta, o CLAUDE.md e as skills do projeto, o card de confiança e as ferramentas do desktop;
+- os cards de permissão do Wisp, por cima do terminal, junto com o diálogo dele: vale o que você
+  responder primeiro (no card, por voz ou nas teclas do terminal), e o card some se a resposta
+  vier do terminal;
+- a voz, o `wisp --ask`, os anexos e o print: o texto entra colado no terminal (os arquivos, como
+  caminhos), e o que foi ditado espera você conferir e dar Enter;
+- o contexto e (pela OpenRouter) o custo, nas pílulas; e a linha de status do Wisp embaixo da
+  caixa do terminal (o modelo e o contexto);
+- o mascote, a ilha, as notificações e o histórico: as suas mensagens, os comandos e as respostas
+  do terminal ficam na conversa, e voltando ao chat elas estão lá.
+
+No terminal, as teclas são do Claude Code (o Esc interrompe, o Ctrl+C também), menos as das abas
+e da grade do Wisp: Ctrl+T, Ctrl+Tab, Ctrl+1…9, Ctrl+\\ e Alt+Shift+setas. Ctrl+Shift+C copia o
+que estiver selecionado, e Ctrl+Shift+V cola. A aba volta no modo terminal quando o Wisp abre de
+novo, e o Claude Code sobe quando ela aparece.
 
 ### Pastas e skills
 
@@ -514,6 +566,27 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Abrir um site pede permissão, com **Permitir em example.com nesta conversa**.
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
+
+### Modo terminal e chat como o CLI (Fase 17)
+
+- [ ] **Na fila:** peça algo que leve um tempo (rodar os testes, por exemplo) e, com ele
+      trabalhando, mande "e também confere o lint". A mensagem aparece **na fila**, o selo some
+      quando ele a pega, e a mesma resposta leva o pedido em conta.
+- [ ] **Subagente:** peça algo que ele delegue ("use um subagente para procurar onde X é
+      definido"): o card do Agente mostra os passos do subagente.
+- [ ] **Barra:** digite `/` na caixa: aparecem `/compact`, `/clear` e os comandos e skills do
+      Claude Code; o Tab completa.
+- [ ] **Terminal:** clique em **Terminal** numa aba: o Claude Code de verdade abre ali, na mesma
+      conversa. Converse, use o Shift+Tab e os comandos dele.
+- [ ] **Card por cima:** peça um comando que pede permissão: o card do Wisp aparece por cima do
+      terminal. Responda no card (ou nas teclas do terminal, e veja o card sumir).
+- [ ] **Provedor e modelo:** troque o modelo na pílula (e, se usar, para a OpenRouter): o terminal
+      recomeça na mesma conversa, com o modelo novo.
+- [ ] **Voz e ask:** com a aba no terminal, use o atalho de voz ou `wisp --ask "oi"`: o texto entra
+      no terminal.
+- [ ] **Ida e volta:** volte para **Chat**: o que aconteceu no terminal está na conversa. Mande uma
+      mensagem pelo chat e volte para o terminal: o Claude lembra de tudo.
+- [ ] **Volta igual:** feche o Wisp com uma aba no terminal e abra de novo: ela volta no terminal.
 
 ### Janela e grade (Fase 16)
 
@@ -996,6 +1069,9 @@ do Claude Code segue a regra dele.
 | O mascote sumiu                              | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                      |
 | "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                       |
 | "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula     |
+| O terminal não abriu e a aba voltou ao chat  | O aviso diz o motivo: o Claude Code não foi achado, a pasta não é confiável ou falta a chave da OpenRouter       |
+| No terminal, os cards do Wisp não aparecem   | Outro Wisp aberto está com o socket dos hooks; o diálogo do próprio terminal continua valendo                    |
+| O Esc no terminal não fecha o painel         | No terminal, o Esc é do Claude Code (interrompe). Feche pelo **x** ou pelo atalho global                         |
 | A pílula do contexto não aparece             | Ela surge depois da primeira resposta da conversa (e não aparece na demonstração)                                |
 | "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                         |
 | "O Claude Code começou no modo …"            | Uma política do `settings.json` (ou da empresa) escolheu outro modo, ou a sua conta não tem o Automático         |
@@ -1181,6 +1257,32 @@ electron-builder.yml   # os pacotes .deb e AppImage
   próxima mensagem, que já sai no modelo novo, com o contexto inteiro. Sem modelo, o CLI volta ao
   padrão. O nome do modelo que respondeu vem do evento `init` de cada turno. Se o CLI recusar a
   troca, a conversa avisa e a pílula volta ao modelo de antes.
+- **Mandar com o Claude trabalhando:** o processo sobe com `--replay-user-messages`: o CLI devolve
+  cada mensagem quando a pega. Uma mensagem mandada no meio de um turno vai direto para o stdin;
+  o Claude Code a entrega na próxima pausa entre ferramentas ("o usuário mandou uma mensagem
+  enquanto você trabalhava") ou como o turno seguinte, e o eco dela tira o selo **na fila**. Se o
+  turno acabar com mensagens que ele ainda não pegou, a conversa continua ocupada até o turno
+  delas; se em 3 s ele não as pegar, elas ficam marcadas como não entregues.
+- **Subagentes, tarefas e comandos:** os eventos de um subagente vêm com o
+  `parent_tool_use_id` do card dele e viram os passos desse card. Os `task_started` e
+  `task_notification` dizem o que roda em segundo plano. Os comandos com barra vêm no `init`
+  (`slash_commands`), e os do projeto e as skills se expandem no próprio CLI.
+- **Modo terminal:** o Claude Code interativo roda num pseudo-terminal (node-pty, com a lista de
+  argumentos, sem shell), com o mesmo ambiente do chat (sem `ANTHROPIC_API_KEY` nem
+  `ANTHROPIC_AUTH_TOKEN`, a OpenRouter só se a aba a escolheu), sempre com `--permission-mode` (o
+  padrão de uma instalação nova pode ser o Automático), o `--mcp-config` do Wisp e a sessão da
+  conversa (`--session-id` ou `--resume`). Um `--settings` só daquele processo junta o hook que
+  manda todo Bash para a aprovação, os hooks da aba (o relay com `--tab <ficha>`) e a linha de
+  status (`--status <ficha>`); o `~/.claude/settings.json` não muda. A ficha é nova a cada
+  processo, e os eventos com ela vão para a aba, não para a aba Sessões. O `UserPromptSubmit`
+  roda sem `async`, para a mensagem chegar antes das ferramentas que ela pede. O
+  `PermissionRequest` mostra o card do Wisp enquanto o próprio Claude Code mostra o diálogo dele:
+  respondido no card, o relay devolve a decisão; respondido no terminal, o Claude Code encerra o
+  relay (e um relay órfão sai sozinho), e o card some. O Esc com uma resposta no meio não dispara
+  hook nenhum: o Wisp vê a tecla passar e, sem outro evento em 0,6 s, dá a resposta por parada. A
+  linha de status traz o contexto (`context_window`) e os tokens; pela OpenRouter, o custo sai
+  dos preços dela. A pasta de configuração da OpenRouter, que é do Wisp, já começa sem as
+  boas-vindas e com a pasta da conversa confiável; a do Claude Code da assinatura não é tocada.
 - **Contexto:** cada mensagem do assistente no stream traz o `usage` da chamada ao modelo; o que
   entrou (com o cache lido e o criado) mais o que saiu é o tamanho do contexto agora. O tamanho
   da janela vem do `modelUsage[modelo].contextWindow` do `result`. As mensagens dos subagentes

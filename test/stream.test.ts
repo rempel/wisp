@@ -449,3 +449,81 @@ test('o contexto: o que a última chamada ocupou, a janela do modelo e o /compac
   assert.equal(claude.contextEvent(), null, 'conversa nova, contexto novo')
   claude.dispose()
 })
+
+test('mandar com o Claude trabalhando: entra na próxima pausa, ou vira o turno seguinte', async () => {
+  const { claude, events } = session()
+  await turn(claude, events, 'oi')
+  // Numa pausa entre ferramentas: a mensagem chega no mesmo turno.
+  events.length = 0
+  await claude.send('faz isso [demorado]')
+  await waitFor(() => events.some((e) => e.type === 'tool-start'))
+  assert.equal(claude.canQueue(), true)
+  await claude.queue('e também aquilo')
+  await waitFor(() => events.some((e) => e.type === 'user-delivered'))
+  await waitFor(() => events.some((e) => e.type === 'turn-end'))
+  const text = events
+    .filter((e): e is Extract<ChatEvent, { type: 'text' }> => e.type === 'text')
+    .map((e) => e.delta)
+    .join('')
+  assert.match(text, /Vi no meio do caminho: e também aquilo/)
+  assert.equal(events.filter((e) => e.type === 'turn-end').length, 1)
+  assert.equal(claude.isBusy(), false)
+
+  // Sem pausa (só texto): a mensagem vira o turno seguinte, e a conversa segue ocupada até ele.
+  events.length = 0
+  await claude.send('conta devagar [lento]')
+  await waitFor(() => events.some((e) => e.type === 'text'))
+  await claude.queue('depois disso [modo]')
+  await waitFor(() => events.filter((e) => e.type === 'turn-end').length === 1)
+  assert.equal(claude.isBusy(), true, 'continua ocupada: a fila ainda não foi respondida')
+  await waitFor(() => events.some((e) => e.type === 'user-delivered'))
+  await waitFor(() => events.filter((e) => e.type === 'turn-end').length === 2)
+  const busy = events.filter((e) => e.type === 'busy').map((e) => (e as { busy: boolean }).busy)
+  assert.deepEqual(busy, [true, false], 'um só período ocupado, do primeiro envio ao fim da fila')
+  assert.equal(claude.canQueue(), false, 'parada, a mensagem vai pelo envio normal')
+})
+
+test('subagentes, tarefas em segundo plano e os comandos com barra', async () => {
+  const { claude, events } = session()
+  const done = await turn(claude, events, 'investiga [agente]')
+  const steps = done.filter((e) => e.type === 'subagent-step')
+  assert.deepEqual(
+    steps.map((e) => (e as { name: string }).name),
+    ['Read', 'Grep']
+  )
+  const agent = done.find(
+    (e): e is Extract<ChatEvent, { type: 'tool-input' }> =>
+      e.type === 'tool-input' && e.name === 'Agent'
+  )
+  assert.ok(agent, 'o card do Agente')
+  assert.ok(steps.every((e) => (e as { parent: string }).parent === agent.id))
+  assert.equal(done.filter((e) => e.type === 'subagent-step-end').length, 2)
+  // Nada do subagente vira texto ou card solto na conversa.
+  assert.ok(
+    !done.some((e) => (e.type === 'tool-input' || e.type === 'tool-start') && e.name === 'Read')
+  )
+  const commands = done.find(
+    (e): e is Extract<ChatEvent, { type: 'commands' }> => e.type === 'commands'
+  )
+  assert.deepEqual(commands?.commands, ['compact', 'revisa', 'review', 'init', 'deploy-rapido'])
+
+  events.length = 0
+  await turn(claude, events, 'sobe o servidor [tarefa]')
+  const started = events.find((e): e is Extract<ChatEvent, { type: 'task' }> => e.type === 'task')
+  assert.deepEqual(started?.task, {
+    id: started?.task.id,
+    description: 'npm run dev',
+    status: 'running',
+    background: true
+  })
+  // A tarefa acaba depois da resposta.
+  const finished = await waitFor(() =>
+    events.find(
+      (e): e is Extract<ChatEvent, { type: 'task' }> =>
+        e.type === 'task' && e.task.status === 'completed'
+    )
+  )
+  assert.equal(finished.task.background, true)
+  // O mesmo conjunto de comandos não é mandado de novo.
+  assert.equal(events.filter((e) => e.type === 'commands').length, 0)
+})

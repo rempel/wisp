@@ -59,7 +59,9 @@ const KEPT = new Set<ChatEvent['type']>([
   'notice',
   'permission-request',
   'permission-resolved',
-  'compacted'
+  'compacted',
+  'subagent-step',
+  'subagent-step-end'
 ])
 
 const isString = (value: unknown): value is string => typeof value === 'string'
@@ -89,6 +91,10 @@ function validEvent(value: unknown): value is ChatEvent {
       return isString(event.id) && isString(event.decision)
     case 'compacted':
       return event.trigger === 'manual' || event.trigger === 'auto'
+    case 'subagent-step':
+      return isString(event.parent) && isString(event.id) && isString(event.name)
+    case 'subagent-step-end':
+      return isString(event.parent) && isString(event.id) && typeof event.isError === 'boolean'
     default:
       return false
   }

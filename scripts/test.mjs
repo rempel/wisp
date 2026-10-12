@@ -22,7 +22,8 @@ const common = {
   platform: 'node',
   format: 'cjs',
   target: 'node22',
-  external: ['electron'],
+  // O node-pty é nativo: vem do node_modules, como no app.
+  external: ['electron', 'node-pty'],
   logLevel: 'warning',
   // Os ?raw e ?asset do electron-vite não aparecem nos módulos testados.
   loader: { '.md': 'text' }

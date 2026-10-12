@@ -1,7 +1,7 @@
 import { chmodSync, lstatSync, mkdirSync, rmSync } from 'fs'
 import { connect, createServer } from 'net'
 import type { Socket } from 'net'
-import { isPrivateDir, socketDir, socketPath } from './protocol'
+import { isPrivateDir, socketDir, socketPath, TAB_TOKEN } from './protocol'
 import type { RelayEvent, RelayReply } from './protocol'
 
 /** Maior mensagem aceita de um relay (o pedido de permissão leva a entrada da ferramenta). */
@@ -35,7 +35,7 @@ function parseEvent(line: string): RelayEvent | null {
     return null
   }
   if (!isObject(value) || value.v !== 1) return null
-  const { event, at, pid, env, input, diff, inputHash } = value
+  const { event, at, pid, env, input, diff, inputHash, tab } = value
   if (typeof event !== 'string' || !event || event.length > 64) return null
   if (typeof at !== 'number' || !Number.isFinite(at)) return null
   if (typeof pid !== 'number' || !Number.isInteger(pid) || pid < 1) return null
@@ -43,6 +43,7 @@ function parseEvent(line: string): RelayEvent | null {
   if (!isObject(input)) return null
   if (diff !== undefined && !(isObject(diff) && Array.isArray(diff.hunks))) return null
   if (inputHash !== undefined && typeof inputHash !== 'string') return null
+  if (tab !== undefined && (typeof tab !== 'string' || !TAB_TOKEN.test(tab))) return null
   return value as unknown as RelayEvent
 }
 

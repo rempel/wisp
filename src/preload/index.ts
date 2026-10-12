@@ -81,6 +81,7 @@ const api: WispApi = {
     setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
     compact: (conversation, instructions) =>
       ipcRenderer.send(IPC.chatCompact, conversation, instructions ?? ''),
+    setView: (conversation, view) => ipcRenderer.send(IPC.chatView, conversation, view),
     setProvider: (conversation, provider) =>
       ipcRenderer.send(IPC.chatProvider, conversation, provider),
     setMode: (conversation, mode) => ipcRenderer.send(IPC.chatMode, conversation, mode),
@@ -97,6 +98,12 @@ const api: WispApi = {
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
     copied: () => ipcRenderer.send(IPC.chatCopied),
     onCompose: (listener) => subscribe<[string]>(IPC.chatCompose, listener)
+  },
+  tui: {
+    attach: (conversation) => ipcRenderer.invoke(IPC.tuiAttach, conversation),
+    input: (conversation, data) => ipcRenderer.send(IPC.tuiInput, conversation, data),
+    resize: (conversation, cols, rows) => ipcRenderer.send(IPC.tuiResize, conversation, cols, rows),
+    onData: (listener) => subscribe<[string, string]>(IPC.tuiData, listener)
   },
   tabs: {
     onState: (listener) => subscribe<[TabsState]>(IPC.tabsState, listener),

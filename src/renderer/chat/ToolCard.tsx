@@ -3,8 +3,8 @@ import type { JSX } from 'react'
 import { diffFromInput } from '../../shared/diff'
 import { DiffCount, DiffView } from './DiffView'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
-import { toolLabel } from './state'
-import type { Item } from './state'
+import { stepLabel, toolLabel } from './state'
+import type { Item, SubagentStep } from './state'
 
 type ToolItem = Extract<Item, { kind: 'tool' }>
 
@@ -68,6 +68,37 @@ function statusLabel(tool: ToolItem): string {
   }
 }
 
+/** Quantos passos de um subagente aparecem sem abrir o card (os últimos). */
+const VISIBLE_STEPS = 5
+
+/**
+ * O que um subagente está fazendo, passo a passo, como no terminal: os últimos à vista e o resto
+ * ao abrir o card.
+ */
+function SubagentSteps({ steps, all }: { steps: SubagentStep[]; all: boolean }): JSX.Element {
+  const shown = all ? steps : steps.slice(-VISIBLE_STEPS)
+  const hidden = steps.length - shown.length
+  return (
+    <ol className="subagent-steps" aria-label="Passos do subagente">
+      {hidden > 0 && <li className="subagent-more">+{hidden} passos antes</li>}
+      {shown.map((step) => (
+        <li key={step.id} className={`subagent-step step-${step.status}`}>
+          <span className="tool-icon">
+            {step.status === 'running' ? (
+              <span className="spinner" />
+            ) : step.status === 'done' ? (
+              <CheckIcon />
+            ) : (
+              <ErrorIcon />
+            )}
+          </span>
+          <span>{stepLabel(step.name, step.input)}</span>
+        </li>
+      ))}
+    </ol>
+  )
+}
+
 /** Uma chamada de ferramenta: uma linha com o resumo, que abre para mostrar entrada e saída. */
 export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
   const [open, setOpen] = useState(false)
@@ -106,6 +137,7 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
         <ChevronIcon open={open} />
       </button>
       {inlineImages && <ToolImages images={images} />}
+      {tool.steps && tool.steps.length > 0 && <SubagentSteps steps={tool.steps} all={open} />}
       {open && (
         <div className="tool-body">
           {diff && diff.hunks.length > 0 ? (

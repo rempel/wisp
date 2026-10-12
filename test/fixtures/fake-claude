@@ -5,7 +5,11 @@
 // parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
 // [modelo] responde o modelo, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
-// COMANDO no Bash, [plano] apresenta um plano (ExitPlanMode). O resto: uma resposta curta.
+// COMANDO no Bash, [plano] apresenta um plano (ExitPlanMode), [demorado] dois comandos com uma
+// pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de verdade), [agente]
+// um subagente com os passos dele, [tarefa] um comando em segundo plano que acaba depois da
+// resposta. O resto: uma resposta curta. Com --replay-user-messages, cada mensagem volta quando
+// é pega.
 // As decisões vão para $HOME/.fake-claude/approvals.log.
 // Pedidos de controle: interrupt, set_model (um nome com "naoexiste" é recusado) e
 // set_permission_mode. `auth status` diz que há login (FAKE_CLAUDE_LOGGED_OUT=1: não há).
@@ -71,12 +75,36 @@ if (resumeId && !fs.existsSync(sessionFile)) {
   process.exit(1)
 }
 
+// Sem -p, é o modo interativo (o terminal do Wisp): outro programa, no mesmo processo.
+if (!args.includes('-p')) {
+  require('./fake-claude-tui')({ args, flag, model, mode, sessionId, sessionFile, STATE })
+  return
+}
+
 const out = (event) =>
   process.stdout.write(JSON.stringify({ session_id: sessionId, ...event }) + '\n')
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 let n = 0
 let queue = Promise.resolve()
 let current = null
+const replay = args.includes('--replay-user-messages')
+// Mensagens que chegaram com um turno no meio: entram na próxima pausa entre ferramentas, ou
+// viram o turno seguinte.
+const inbox = []
+const echo = (text) => {
+  if (replay)
+    out({
+      type: 'user',
+      isReplay: true,
+      message: { role: 'user', content: [{ type: 'text', text }] }
+    })
+}
+/** Uma pausa entre ferramentas: o CLI pega o que chegou no meio. */
+const takeInbox = () => {
+  const taken = inbox.splice(0)
+  taken.forEach(echo)
+  return taken
+}
 
 async function stream(text, delay = 10) {
   const id = `msg_${++n}`
@@ -224,8 +252,20 @@ async function compactNow(text, trigger) {
   })
 }
 
+// Um turno; no fim (inclusive com erro), o que chegou no meio e não foi pego vira, cada um, um
+// turno, na ordem.
 async function turn(text) {
+  try {
+    await runTurn(text)
+  } finally {
+    current = null
+    for (const next of inbox.splice(0)) queue = queue.then(() => turn(next))
+  }
+}
+
+async function runTurn(text) {
   current = { aborted: false }
+  echo(text)
   fs.writeFileSync(sessionFile, '{}')
   // O /compact do Claude Code: compacta e acaba o turno, sem resposta.
   if (text.startsWith('/compact')) {
@@ -246,7 +286,8 @@ async function turn(text) {
     model,
     apiKeySource: 'none',
     permissionMode: mode,
-    mcp_servers: []
+    mcp_servers: [],
+    slash_commands: ['compact', 'revisa', 'review', 'init', 'deploy-rapido']
   })
   if (text.includes('[limite]')) {
     const resetsAt = Math.floor(Date.now() / 1000) + 90 * 60
@@ -296,6 +337,85 @@ async function turn(text) {
   }
   let answer = 'Oi! Tudo certo por aqui.'
   let delay = 10
+  if (text.includes('[demorado]')) {
+    await tool('Bash', { command: 'sleep 1', description: 'Espera um pouco' }, '')
+    await sleep(1500)
+    const seen = takeInbox()
+    await tool('Bash', { command: 'sleep 1', description: 'Espera mais' }, '')
+    if (seen.length) answer = `Vi no meio do caminho: ${seen.join(' | ')}.`
+  }
+  if (text.includes('[agente]')) {
+    const id = `toolu_${++n}`
+    const input = {
+      description: 'Procurar o bug',
+      prompt: 'Ache o bug',
+      subagent_type: 'general-purpose'
+    }
+    out({
+      type: 'assistant',
+      message: {
+        id: `msg_${++n}`,
+        model,
+        content: [{ type: 'tool_use', id, name: 'Agent', input }]
+      }
+    })
+    const steps = [
+      ['Read', { file_path: '/home/u/projeto/src/app.ts' }],
+      ['Grep', { pattern: 'contador' }]
+    ]
+    for (const [name, stepInput] of steps) {
+      const step = `toolu_${++n}`
+      out({
+        type: 'assistant',
+        parent_tool_use_id: id,
+        message: {
+          id: `msg_${++n}`,
+          model,
+          content: [{ type: 'tool_use', id: step, name, input: stepInput }]
+        }
+      })
+      await sleep(300)
+      out({
+        type: 'user',
+        parent_tool_use_id: id,
+        message: {
+          role: 'user',
+          content: [{ type: 'tool_result', tool_use_id: step, content: 'ok' }]
+        }
+      })
+    }
+    out({
+      type: 'user',
+      message: {
+        role: 'user',
+        content: [{ type: 'tool_result', tool_use_id: id, content: 'Achei o bug.' }]
+      }
+    })
+    answer = 'O subagente achou o bug.'
+  }
+  if (text.includes('[tarefa]')) {
+    const task = `task_${++n}`
+    out({
+      type: 'system',
+      subtype: 'task_started',
+      task_id: task,
+      description: 'npm run dev',
+      is_backgrounded: true,
+      task_type: 'local_bash'
+    })
+    setTimeout(
+      () =>
+        out({
+          type: 'system',
+          subtype: 'task_notification',
+          task_id: task,
+          status: 'completed',
+          summary: 'npm run dev'
+        }),
+      2500
+    )
+    answer = 'Deixei o servidor rodando.'
+  }
   if (text.includes('[lento]')) {
     answer =
       'Esta resposta vem bem devagar, palavra por palavra, para dar tempo de parar no meio dela.'
@@ -346,7 +466,6 @@ async function turn(text) {
       modelUsage: { [model]: { contextWindow: 200000 } }
     })
   }
-  current = null
 }
 
 function control({ request_id, request }) {
@@ -388,7 +507,9 @@ process.stdin.on('data', (chunk) => {
     }
     if (message.type !== 'user') continue
     const text = message.message.content.map((b) => b.text ?? '').join('')
-    queue = queue.then(() => turn(text))
+    // Com um turno no meio, a mensagem espera a próxima pausa; o que sobrar vira o turno seguinte.
+    if (current) inbox.push(text)
+    else queue = queue.then(() => turn(text))
   }
 })
 process.stdin.on('end', () => queue.then(() => process.exit(0)))
