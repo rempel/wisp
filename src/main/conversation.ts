@@ -6,6 +6,7 @@ import type { ClaudeOptions } from './claude'
 import { History, titleOf } from './history'
 import type { ConversationSeed, SavedConversation } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
+import { folderRisks, isTrusted, tilde, trustFolder } from './folders'
 import { expandHome } from './paths'
 import { EDIT_TOOLS, editAllowed, editedPath, permissionScope } from './permission-scope'
 import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
@@ -22,6 +23,8 @@ type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
 /** A ferramenta com que o Claude apresenta o plano, no modo Planejar. */
 export const PLAN_TOOL = 'ExitPlanMode'
+/** O card do Wisp para confiar numa pasta antes de o Claude Code rodar nela (Fase 15). */
+export const TRUST_TOOL = 'wisp_trust_folder'
 
 /** Para onde vão os eventos de uma conversa e o que ela pede ao painel. */
 export interface ConversationHost {
@@ -50,6 +53,10 @@ export interface ConversationOptions {
   modelFor: (provider: Provider) => string | null
   /** Por onde a conversa começa. */
   provider: Provider
+  /** A pasta onde a conversa roda (um projeto aberto numa aba); sem ela, o workspace do Wisp. */
+  folder?: string | null
+  /** Onde fica a lista das pastas confiáveis (os testes trocam). */
+  trustFile?: string
   /** Pastas onde o Aceitar edições libera edições (as de projetos, do config.json). */
   projectRoots: () => string[]
   /** Pastas que valem mesmo sendo ocultas (o workspace do Wisp, os anexos). */
@@ -84,6 +91,10 @@ export class Conversation {
   private readonly browser = new BrowserPolicy()
   /** A aba fechou: o que ainda chegar do processo é ignorado. */
   private disposed = false
+  /** A pasta da conversa (null: o workspace do Wisp). */
+  private folderPath: string | null = null
+  /** O card de confiança na pasta, enquanto espera resposta. */
+  private trusting: Promise<boolean> | null = null
 
   constructor(private readonly options: ConversationOptions) {
     this.id = options.id
@@ -95,11 +106,60 @@ export class Conversation {
         permissionMode: options.permissionMode,
         model: options.modelFor(options.provider),
         provider: options.provider,
+        folderGate: () => this.checkFolder(),
         onSessionId: (sessionId) => this.history.setSession(sessionId)
       },
       (event) => this.deliver(event)
     )
     this.history.provider = options.provider
+    if (options.folder) this.setFolder(options.folder)
+  }
+
+  /** A pasta da conversa (null: o workspace do Wisp). */
+  get folder(): string | null {
+    return this.folderPath
+  }
+
+  /** A conversa passa a rodar nesta pasta (a aba mostra o nome dela). */
+  private setFolder(folder: string | null): void {
+    this.folderPath = folder
+    this.session.setFolder(folder)
+    this.history.cwd = folder
+    this.project = folder ? (folder.split('/').pop() ?? null) : null
+    this.options.host.emit(this, { type: 'folder', folder: folder ? tilde(folder) : null }, false)
+  }
+
+  /**
+   * A pasta pode rodar o Claude Code? Sem hooks, comandos, ferramentas liberadas ou variáveis no
+   * .claude dela, sim; com algum, só depois do card "Confiar nesta pasta", que vale até esses
+   * arquivos mudarem.
+   */
+  checkFolder(): Promise<boolean> {
+    const folder = this.folderPath
+    if (!folder) return Promise.resolve(true)
+    if (this.trusting) return this.trusting
+    const risks = folderRisks(folder)
+    if (!risks.items.length || isTrusted(folder, risks.fingerprint, this.options.trustFile)) {
+      return Promise.resolve(true)
+    }
+    this.trusting = this.requestApproval({
+      toolName: TRUST_TOOL,
+      input: { path: tilde(folder), items: risks.items },
+      toolUseId: `confiar-${Date.now()}`
+    }).then((approval) => {
+      this.trusting = null
+      if (approval.allow) {
+        trustFolder(folder, risks.fingerprint, this.options.trustFile)
+        return true
+      }
+      this.notice(
+        'warning',
+        `Não confiei em ${tilde(folder)}: o Claude Code não roda nela. Para continuar, mande a ` +
+          'mensagem de novo e clique em **Confiar nesta pasta**, ou abra outra pasta.'
+      )
+      return false
+    })
+    return this.trusting
   }
 
   get provider(): Provider {
@@ -144,7 +204,8 @@ export class Conversation {
       this.alwaysAllowed.clear()
       if (this.title) {
         this.title = null
-        this.project = null
+        // Numa pasta, a aba continua com o nome do projeto.
+        this.project = this.folderPath ? (this.folderPath.split('/').pop() ?? null) : null
         this.options.host.changed(this)
       }
     }
@@ -213,10 +274,11 @@ export class Conversation {
   restore(saved: SavedConversation): ChatEvent[] {
     // Cada provedor tem as suas sessões no Claude Code: retoma pelo mesmo lado.
     this.setProvider(saved.provider ?? 'subscription')
+    // A pasta da conversa vale também para uma conversa nova nesta aba (Ctrl+K).
+    this.setFolder(saved.cwd ?? null)
     this.session.resume(saved.sessionId, { cwd: saved.cwd })
     this.history.continue(saved)
     this.title = saved.title
-    this.project = saved.cwd ? (saved.cwd.split('/').pop() ?? null) : null
     this.options.host.changed(this)
     return [...saved.events, { type: 'restored', createdAt: saved.createdAt }]
   }
@@ -227,6 +289,7 @@ export class Conversation {
   ): void {
     // As sessões do terminal são do Claude Code da assinatura.
     this.setProvider('subscription')
+    this.setFolder(seed.cwd)
     this.session.resume(seed.sessionId, { cwd: seed.cwd, fork: seed.alive })
     this.history.prepare({ cwd: seed.cwd, preface: seed.preface })
     this.title = seed.project
@@ -252,6 +315,7 @@ export class Conversation {
     const cost = this.session.costEvent()
     return [
       this.session.providerEvent(),
+      { type: 'folder', folder: this.folderPath ? tilde(this.folderPath) : null },
       this.session.modelEvent(),
       { type: 'mode', mode: this.mode },
       ...(cost ? [cost] : [])
@@ -296,7 +360,7 @@ export class Conversation {
         ...(verdict.site ? { site: verdict.site } : {}),
         always: verdict.always ? 'site' : 'none'
       }
-    } else if (request.toolName === PLAN_TOOL) {
+    } else if (request.toolName === PLAN_TOOL || request.toolName === TRUST_TOOL) {
       // O plano tem os seus botões (aprovar e em que modo seguir); não há "sempre".
       extra = { always: 'none' }
     } else if (request.toolName !== QUESTION_TOOL && this.alwaysAllowed.has(scope.key)) {
@@ -344,6 +408,10 @@ export class Conversation {
     // Os botões do plano só valem no card do plano, e o "sempre" só fora dele.
     if (plan && decision === 'allow-always') return false
     if (!plan && (decision === 'allow-edits' || decision === 'allow-auto')) return false
+    // A confiança numa pasta é só sim ou não.
+    if (approval.event.toolName === TRUST_TOOL && decision !== 'allow' && decision !== 'deny') {
+      return false
+    }
     this.approvals.delete(id)
     if (decision === 'allow-always') {
       // No navegador, o "sempre" vale para o site; código na página e arquivos não têm "sempre".
@@ -407,7 +475,10 @@ export class Conversation {
   private acceptsEdit(request: ApprovalRequest): boolean {
     if (this.mode !== 'acceptEdits' || !EDIT_TOOLS.has(request.toolName)) return false
     const path = editedPath(request.input)
-    const roots = this.options.projectRoots().map(expandHome)
+    const roots = [
+      ...this.options.projectRoots().map(expandHome),
+      ...(this.folderPath ? [this.folderPath] : [])
+    ]
     return path !== null && editAllowed(path, roots, this.options.trustedDirs, homedir())
   }
 

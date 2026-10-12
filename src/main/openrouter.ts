@@ -10,9 +10,10 @@
 //   cada resposta. O total_cost_usd do Claude Code não serve: ele usa a tabela de preços da
 //   Anthropic, que não vale para outros modelos.
 
-import { mkdirSync } from 'fs'
+import { existsSync, lstatSync, mkdirSync, symlinkSync } from 'fs'
 import { join } from 'path'
 import { DATA_DIR } from './paths'
+import { claudeConfigDir } from './skills'
 
 /** O endereço da OpenRouter (WISP_OPENROUTER_URL troca, para os testes). */
 export function openrouterUrl(): string {
@@ -37,6 +38,7 @@ export function looksLikeKey(key: string): boolean {
  */
 export function openrouterEnv(key: string, model: string): Record<string, string> {
   mkdirSync(OPENROUTER_CONFIG_DIR, { recursive: true, mode: 0o700 })
+  linkPersonalSkills()
   return {
     ANTHROPIC_BASE_URL: openrouterUrl(),
     ANTHROPIC_AUTH_TOKEN: key,
@@ -50,6 +52,31 @@ export function openrouterEnv(key: string, model: string): Record<string, string
     CLAUDE_CODE_SUBAGENT_MODEL: model,
     // Nada de telemetria nem de chamadas à Anthropic por fora: só a OpenRouter.
     CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC: '1'
+  }
+}
+
+/**
+ * As skills pessoais (as de ~/.claude/skills) valem também pela OpenRouter: a pasta de
+ * configuração de lá ganha um link para elas. Só as skills: o login, o histórico e o resto da
+ * configuração da assinatura continuam separados. Uma pasta "skills" de verdade, criada ali à
+ * mão, fica como está.
+ */
+export function linkPersonalSkills(
+  personal = join(claudeConfigDir(), 'skills'),
+  configDir = OPENROUTER_CONFIG_DIR
+): void {
+  const link = join(configDir, 'skills')
+  try {
+    lstatSync(link)
+    return
+  } catch {
+    // Ainda não existe.
+  }
+  if (!existsSync(personal)) return
+  try {
+    symlinkSync(personal, link, 'dir')
+  } catch (err) {
+    console.warn('[wisp] não consegui ligar as skills pessoais à OpenRouter:', err)
   }
 }
 

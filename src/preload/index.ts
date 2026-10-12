@@ -100,7 +100,9 @@ const api: WispApi = {
     focus: (pane) => ipcRenderer.send(IPC.tabsFocus, pane),
     split: () => ipcRenderer.send(IPC.tabsSplit),
     unsplit: (pane) => ipcRenderer.send(IPC.tabsUnsplit, pane),
-    openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId)
+    openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId),
+    projects: () => ipcRenderer.invoke(IPC.tabsProjects),
+    openFolder: (path) => ipcRenderer.invoke(IPC.tabsOpenFolder, path)
   },
   voice: {
     toggle: () => ipcRenderer.send(IPC.voiceToggle),
@@ -120,6 +122,13 @@ const api: WispApi = {
   summary: {
     get: () => ipcRenderer.invoke(IPC.summaryGet),
     onShow: (listener) => subscribe<[]>(IPC.summaryShow, listener)
+  },
+  skills: {
+    list: () => ipcRenderer.invoke(IPC.skillsList),
+    pick: () => ipcRenderer.invoke(IPC.skillsPick),
+    install: () => ipcRenderer.invoke(IPC.skillsInstall),
+    remove: (name) => ipcRenderer.invoke(IPC.skillsRemove, name),
+    openFolder: () => ipcRenderer.send(IPC.skillsOpenFolder)
   },
   openrouter: {
     models: () => ipcRenderer.invoke(IPC.openrouterModels),

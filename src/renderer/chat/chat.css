@@ -2625,6 +2625,115 @@ button.link {
   opacity: 0.7;
 }
 
+.skills-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.skill {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.skill-head .link {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.skill-origin {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.skill-description,
+.skill-tools {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.skill-tools {
+  color: var(--warning-text, var(--danger-text));
+}
+
+.skill-preview {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.skill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.folder-menu {
+  position: relative;
+}
+
+.folder-list {
+  top: calc(100% + 6px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+  width: min(320px, calc(100vw - 24px));
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.folder-list .model-check svg {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+
+.folder-error {
+  color: var(--danger-text);
+}
+
+.tab-folder {
+  display: inline-grid;
+  place-items: center;
+  margin-right: -2px;
+  color: var(--muted);
+}
+
+.tab-folder svg {
+  width: 12px;
+  height: 12px;
+}
+
+.empty-folder code {
+  font-size: 12px;
+}
+
+.permission-list {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.permission-list li {
+  margin: 2px 0;
+  word-break: break-word;
+}
+
+.permission-list code {
+  font-size: 11.5px;
+}
+
 .openrouter-key {
   display: flex;
   gap: 6px;

@@ -67,6 +67,13 @@ Depois do MVP, vieram as fases do roadmap:
   - a OpenRouter como provedor, **experimental**: com a sua chave (guardada no chaveiro do
     sistema) e qualquer modelo de lá, escolhido por aba. O cérebro continua sendo o Claude Code,
     e a pílula do uso do plano vira a do custo da conversa.
+- **Fase 15 (pastas e skills), pronta para validação:**
+  - abrir uma pasta numa aba: a conversa roda dentro do projeto, como o Claude Code no terminal,
+    com o CLAUDE.md, as configurações e as skills dele;
+  - se o `.claude` do projeto roda comandos ou libera ferramentas sozinho (hooks, permissões,
+    skills com `allowed-tools`), um card pede para confiar na pasta antes;
+  - as skills nas configurações: as pessoais e as dos plugins, instalar de uma pasta e remover;
+  - as skills pessoais valem também pela OpenRouter.
 
 O que vem depois está no [ROADMAP.md](ROADMAP.md).
 
@@ -194,6 +201,34 @@ Para o Wisp falar as respostas (opcional), instale o Piper (`pipx install piper-
 em português, como a `pt_BR-faber-medium` (o `.onnx` e o `.onnx.json`), em
 `~/.local/share/wisp/voz/`. Depois, ponha `"voiceReplies": true` no `config.json`. As vozes estão
 em [huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR).
+
+### Pastas e skills
+
+**Abrir uma pasta:** o botão de pasta, ao lado do **+** das abas, lista os seus projetos (as
+pastas com `.git` em `projectRoots`) e tem **Escolher outra pasta…**. A conversa abre numa aba
+nova e roda dentro da pasta, como o `claude` no terminal: o Claude Code lê o `CLAUDE.md`, o
+`.claude/settings.json` e as skills do projeto (`.claude/skills`), e os caminhos são relativos a
+ela. A aba mostra o nome do projeto; Ctrl+K começa outra conversa na mesma pasta; o histórico e as
+abas guardam a pasta. Os cards de permissão continuam valendo, e o **Aceitar edições** libera as
+edições dentro dela (menos os arquivos ocultos).
+
+**Confiar na pasta:** um projeto pode rodar comandos sozinho pelo `.claude` dele (hooks,
+`apiKeyHelper`), liberar ferramentas sem card (`permissions.allow`, o `allowed-tools` de uma
+skill) ou mudar o ambiente do Claude Code (`env`). Nesses casos, antes de o Claude Code rodar na
+pasta, o Wisp mostra o que ela faz num card e só segue com **Confiar nesta pasta**. A confiança
+fica em `~/.local/share/wisp/pastas-confiaveis.json` e vale até esses arquivos mudarem (um
+`git pull` que mexa num hook pergunta de novo). Os servidores MCP do projeto (`.mcp.json`) não
+são carregados.
+
+**Skills:** o Claude Code usa as skills sozinho, quando uma combina com o pedido (ou quando você
+pede pelo nome); o card da ferramenta mostra qual foi usada. Usar uma skill não pede permissão,
+porque ela só traz instruções; o que ela fizer depois (um comando, uma edição) pede, a não ser o
+que ela liberar no `allowed-tools`. Em **Configurações → Skills** aparecem as pessoais
+(`~/.claude/skills`) e as dos plugins; **Instalar de uma pasta…** mostra a skill (e o que ela
+libera) antes de copiar para `~/.claude/skills/<nome>`, sem nunca substituir outra, e
+**Remover** manda uma pessoal para a lixeira. Plugins se instalam pelo `/plugin` do Claude Code,
+no terminal. Uma skill nova vale na próxima conversa (Ctrl+K). Pela OpenRouter, as skills
+pessoais também valem (por um link na pasta de configuração de lá); os plugins, não.
 
 ### OpenRouter (experimental)
 
@@ -440,6 +475,27 @@ no `~/.config/wisp/config.json` (veja [Configuração](#configuração)).
   - Abrir um site pede permissão, com **Permitir em example.com nesta conversa**.
   - Liberado o site, ler, clicar e digitar nele passam sem card; outro site pede de novo.
   - Rodar código na página e enviar arquivos pedem sempre.
+
+### Pastas e skills (Fase 15)
+
+- [ ] **Abrir um projeto:** clique no botão de pasta ao lado do **+**: a lista mostra os seus
+      projetos. Escolha um: abre uma aba com o nome dele e o ícone de pasta, e o painel diz
+      "Trabalhando em ~/projetos/…". Pergunte "o que tem no CLAUDE.md deste projeto?" ou "roda
+      git status": o Claude responde de dentro da pasta (o comando ainda pede o card).
+- [ ] **Outra pasta:** **Escolher outra pasta…** abre o diálogo do sistema.
+- [ ] **Confiar:** num projeto com um hook no `.claude/settings.json` (ou um
+      `permissions.allow`), o card **Confiar nesta pasta?** aparece ao abrir, listando o que ele
+      faz. **Não confiar**: nada roda. **Confiar nesta pasta**: o Claude Code roda, e na próxima
+      vez não pergunta, até o arquivo mudar.
+- [ ] **Continua na pasta:** Ctrl+K numa aba de projeto começa outra conversa na mesma pasta.
+      Feche e abra o Wisp: as abas de projeto voltam com a pasta.
+- [ ] **Skills:** em **Configurações → Skills**, veja as suas skills. **Instalar de uma pasta…**
+      (uma pasta com um `SKILL.md`): a prévia mostra o nome, a descrição e o que ela libera;
+      **Instalar** copia para `~/.claude/skills`. Numa conversa nova, peça algo que a skill faz:
+      o card da ferramenta mostra **Skill** com o nome dela. **Remover** manda para a lixeira.
+- [ ] **Skills de projeto:** com uma skill em `.claude/skills` de um projeto, ela vale nas
+      conversas abertas naquela pasta.
+- [ ] **Pela OpenRouter:** numa aba pela OpenRouter, uma skill pessoal também é usada.
 
 ### Ilha, voz e OpenRouter (Fase 14)
 
@@ -838,6 +894,10 @@ do Claude Code segue a regra dele.
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
 | Fecha na hora com `No usable sandbox!`       | `npm run setup:apparmor` (veja acima)                                                                            |
 | O mascote virou uma cápsula no topo          | É a ilha: passe o cursor nela; para desligar, **Ilha no topo** no menu do mascote ou nas configurações           |
+| "Confiar nesta pasta?" ao abrir um projeto   | O `.claude` dele roda comandos ou libera ferramentas sozinho: confie só se você conhece o projeto                |
+| O projeto não aparece no botão de pasta      | Ele precisa ter `.git` e estar em `projectRoots`; outra pasta, por **Escolher outra pasta…**                     |
+| A skill não foi usada                        | Ela vale numa conversa nova (Ctrl+K); peça pelo nome dela ou confira a descrição no `SKILL.md`                   |
+| "Já existe uma skill …"                      | O Wisp não substitui uma skill: remova a outra em Configurações → Skills e instale de novo                       |
 | A voz "fica pensando" e não entende          | Use **Configurações → Voz → Testar voz**: ele diz se o som chega baixo (microfone errado) ou se o modelo é lento |
 | "A transcrição passou de … s"                | O modelo é pesado demais para o computador: use o `ggml-base` (ou o `small`) em `whisperModel`                   |
 | "Quase não chegou som"                       | O sistema está gravando de outro microfone, ou ele está mudo: confira a entrada nas configurações de som         |
@@ -983,6 +1043,9 @@ src/
 │  ├─ settings-ipc.ts # a tela de configurações: ler, conferir e gravar
 │  ├─ log.ts         # o registro em ~/.local/state/wisp (1 MB, sem comandos nem endereços)
 │  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida ou aberta)
+│  ├─ folders.ts     # conversas numa pasta: o que o .claude dela faz sozinho e a confiança
+│  ├─ skills.ts      # as skills: listar (pessoais e de plugins), instalar de uma pasta
+│  ├─ pick.ts        # escolher uma pasta pelo diálogo do sistema
 │  ├─ openrouter.ts  # a OpenRouter: o ambiente do Claude Code, os modelos, a chave e o custo
 │  ├─ secrets.ts     # o chaveiro do sistema (Secret Service, pelo D-Bus)
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
@@ -1418,6 +1481,24 @@ electron-builder.yml   # os pacotes .deb e AppImage
   texto (título, detalhe e tom) também sai do main, do estado do mascote, da voz e do próximo
   compromisso, e a página só desenha. O painel, com a âncora no topo da tela, abre logo abaixo
   dela, centralizado.
+- **Pastas:** uma conversa numa pasta guarda a pasta na sessão (`ClaudeSession.setFolder`), que
+  vira o `cwd` de todo processo dela, mesmo depois de uma conversa nova; uma sessão retomada (do
+  histórico ou do terminal) usa a pasta dela. Antes de subir um processo, o `folderGate` da
+  conversa lê o `.claude/settings.json`, o `settings.local.json` e os `SKILL.md` das skills do
+  projeto (`folders.ts`): hooks, comandos (`apiKeyHelper`, `awsAuthRefresh`,
+  `awsCredentialExport`, `otelHeadersHelper`), `permissions.allow`, `env` e `allowed-tools`.
+  Com algum, e sem a confiança guardada para o mesmo conteúdo (um sha256 desses arquivos, por
+  caminho real), o card `wisp_trust_folder` aparece (só sim ou não); negado, o turno acaba sem
+  processo. Da página, só se abre um projeto da lista; outra pasta, só pelo diálogo do sistema.
+  O histórico guarda a pasta no cabeçalho, e o `abas.json`, a de cada aba.
+- **Skills:** o Claude Code carrega as skills de `<pasta de configuração>/skills`, de
+  `.claude/skills` a partir da pasta da conversa e dos plugins instalados. A ferramenta `Skill`
+  (`{ skill, args }`) não pede permissão no modo `-p`. O `skills.ts` lê o cabeçalho dos
+  `SKILL.md` (nome, descrição, `allowed-tools`) das pessoais e das dos plugins
+  (`plugins/installed_plugins.json`, `installPath` de cada um), confere uma pasta antes de
+  instalar (o `SKILL.md`, o nome, sem links, até 300 arquivos e 20 MB, sem o `.git`) e copia sem
+  substituir; remover usa a lixeira do sistema (`shell.trashItem`). Pela OpenRouter, a pasta de
+  configuração de lá ganha um link `skills` para as pessoais.
 - **OpenRouter:** numa conversa pela OpenRouter, o `claude.ts` não roda o `claude auth status`
   (ele olharia a assinatura): basta o CLI, um modelo e a chave, lida do chaveiro na primeira
   mensagem. O `secrets.ts` fala com o Secret Service (`org.freedesktop.secrets`) por uma sessão

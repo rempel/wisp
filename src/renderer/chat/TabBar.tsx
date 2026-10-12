@@ -1,7 +1,8 @@
 import type { JSX } from 'react'
 import { MAX_PANES } from '../../shared/ipc'
 import type { TabsState } from '../../shared/ipc'
-import { CloseIcon, PlusIcon, SplitIcon, TerminalIcon } from './icons'
+import { FolderMenu } from './FolderMenu'
+import { CloseIcon, FolderIcon, PlusIcon, SplitIcon, TerminalIcon } from './icons'
 
 /** O que o pontinho da aba mostra. */
 export type TabStatus = 'idle' | 'working' | 'waiting' | 'done' | 'error'
@@ -45,12 +46,17 @@ export function TabBar({
                 aria-selected={active}
                 className="tab-main"
                 onClick={() => window.wisp.tabs.show(tab.id)}
-                title={`${tab.title}${label ? ` (${label})` : ''}${index < 9 ? ` · Ctrl+${index + 1}` : ''}`}
+                title={`${tab.title}${tab.kind === 'chat' && tab.folder ? ` · ${tab.folder}` : ''}${label ? ` (${label})` : ''}${index < 9 ? ` · Ctrl+${index + 1}` : ''}`}
               >
                 {tab.kind === 'session' ? (
                   <TerminalIcon />
                 ) : (
                   <span className="tab-dot" aria-hidden />
+                )}
+                {tab.kind === 'chat' && tab.folder && (
+                  <span className="tab-folder" aria-hidden>
+                    <FolderIcon />
+                  </span>
                 )}
                 <span className="tab-title">{tab.title}</span>
                 {label && <span className="sr-only">({label})</span>}
@@ -77,6 +83,7 @@ export function TabBar({
       >
         <PlusIcon />
       </button>
+      <FolderMenu />
       <button
         type="button"
         className="icon-button tabs-split"

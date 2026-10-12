@@ -341,6 +341,12 @@ export function Pane({
           <div className="empty">
             <Avatar size={64} mood={mood} />
             <p className="hello">Oi! Eu sou o Wisp.</p>
+            {state.folder && (
+              <p className="empty-folder">
+                Trabalhando em <code>{state.folder}</code>, como o Claude Code no terminal: com o
+                CLAUDE.md, as configurações e as skills deste projeto.
+              </p>
+            )}
             {agenda && <NextEvent event={agenda} />}
             {demo ? (
               <>

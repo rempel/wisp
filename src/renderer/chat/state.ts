@@ -74,6 +74,8 @@ export interface ChatState {
   provider: Provider
   /** O custo estimado (pela OpenRouter; null até a primeira resposta). */
   cost: ConversationCost | null
+  /** A pasta onde a conversa roda (com ~), ou null. */
+  folder: string | null
 }
 
 export type Action =
@@ -88,7 +90,8 @@ export const initialState: ChatState = {
   usage: null,
   mode: 'default',
   provider: 'subscription',
-  cost: null
+  cost: null,
+  folder: null
 }
 
 function userItem(
@@ -128,8 +131,11 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         model: state.model,
         usage: state.usage,
         mode: state.mode,
-        provider: state.provider
+        provider: state.provider,
+        folder: state.folder
       }
+    case 'folder':
+      return { ...state, folder: event.folder }
     case 'provider':
       return { ...state, provider: event.provider }
     case 'cost':
@@ -338,6 +344,10 @@ export function toolActivity(name: string, input: unknown): string {
       return 'delegando uma tarefa…'
     case 'TodoWrite':
       return 'organizando as tarefas…'
+    case 'Skill': {
+      const skill = field(input, 'skill')
+      return skill ? `usando a skill ${quote(skill)}…` : 'usando uma skill…'
+    }
     case 'mcp__desktop__open_url':
       return 'abrindo o link…'
     case 'mcp__desktop__open_app':
@@ -438,6 +448,10 @@ export function stepLabel(name: string, input: unknown): string {
     }
     case 'TodoWrite':
       return 'Atualizar as tarefas'
+    case 'Skill': {
+      const skill = field(input, 'skill')
+      return skill ? `Usar a skill ${clip(skill, 50)}` : 'Usar uma skill'
+    }
     case 'AskUserQuestion':
       return 'Perguntar'
     default:

@@ -375,3 +375,35 @@ test('OpenRouter: o ambiente, o modelo, o custo, a troca de modelo e a chave rec
   claude.dispose()
   delete process.env.WISP_OPENROUTER_URL
 })
+
+// ---- Fase 15: numa pasta ---------------------------------------------------
+test('numa pasta: o processo roda nela, inclusive depois de uma conversa nova; sem confiança, não sobe', async () => {
+  const folder = join(HOME, 'projetos', 'meu-app')
+  mkdirSync(folder, { recursive: true })
+  let trusted = false
+  let asked = 0
+  const { claude, events } = session({
+    folderGate: async () => {
+      asked++
+      return trusted
+    }
+  })
+  claude.setFolder(folder)
+  assert.equal(claude.currentFolder, folder)
+  const before = spawns().length
+  let got = await turn(claude, events, 'oi')
+  assert.equal(outcome(got), 'error')
+  assert.equal(spawns().length, before, 'sem confiar, nada sobe')
+  trusted = true
+  got = await turn(claude, events, 'oi')
+  assert.equal(outcome(got), 'done')
+  assert.equal((spawns().at(-1) as Spawn & { cwd: string }).cwd, folder)
+  // O mesmo processo responde a próxima: a pasta não é conferida de novo.
+  const checks = asked
+  await turn(claude, events, 'de novo')
+  assert.equal(asked, checks)
+  claude.reset()
+  await turn(claude, events, 'conversa nova')
+  assert.equal((spawns().at(-1) as Spawn & { cwd: string }).cwd, folder, 'Ctrl+K continua na pasta')
+  claude.dispose()
+})
