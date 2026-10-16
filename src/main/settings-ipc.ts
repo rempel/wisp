@@ -13,7 +13,7 @@ import {
 } from './config'
 import { LOG_PATH } from './log'
 import { IPC, SETTINGS_KEYS } from '../shared/ipc'
-import type { Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
+import type { PhoneStatus, Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
 
 export interface SettingsOptions {
   /** O pedido veio da página do painel? */
@@ -26,6 +26,8 @@ export interface SettingsOptions {
   onChange?(): void
   /** Há uma chave da OpenRouter no chaveiro (o que se sabe até agora). */
   openrouterKey(): boolean | null
+  /** A aprovação pelo celular (Fase 18). */
+  phone(): PhoneStatus
 }
 
 const tilde = (path: string): string =>
@@ -48,7 +50,8 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       configPath: tilde(CONFIG_PATH),
       logPath: tilde(LOG_PATH),
       problems: configProblems(),
-      openrouterKey: options.openrouterKey()
+      openrouterKey: options.openrouterKey(),
+      phone: options.phone()
     }
   }
   const notify = (): void => {

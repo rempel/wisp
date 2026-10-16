@@ -220,6 +220,11 @@ export interface Chat {
   pendingApprovals(): number
   /** Nega os cards da conversa com o pedido mais recente (o "não" falado). */
   denyApprovals(): void
+  /**
+   * A resposta a um card que veio do celular (ou o tempo dele acabou: fica negado). Devolve false
+   * se o card já não esperava.
+   */
+  answerFromPhone(id: string, decision: 'allow' | 'deny', how: 'phone' | 'expired'): boolean
   /** O painel está à vista. */
   visible(): boolean
   /** Em que pé está a voz (o botão do microfone acompanha). */
@@ -1398,6 +1403,27 @@ export function setupChat({
         .filter((conversation) => conversation.pendingCount() > 0)
         .sort((a, b) => b.lastRequestAt - a.lastRequestAt)[0]
       latest?.denyPending()
+    },
+    answerFromPhone(id, decision, how) {
+      const owner = conversations().find((conversation) => conversation.owns(id))
+      if (!owner) return false
+      const expired = how === 'expired'
+      const ok = owner.answer(
+        id,
+        decision,
+        expired ? 'Ninguém respondeu a tempo: o pedido foi para o celular e expirou.' : undefined
+      )
+      if (ok) {
+        owner.notice(
+          'info',
+          expired
+            ? 'O pedido foi para o celular e ninguém respondeu em 2 minutos: ficou negado.'
+            : decision === 'allow'
+              ? 'Permitido pelo celular.'
+              : 'Negado pelo celular.'
+        )
+      }
+      return ok
     },
     visible() {
       return win?.isVisible() ?? false

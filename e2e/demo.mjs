@@ -86,6 +86,7 @@ check(
       'Skills',
       'OpenRouter (experimental)',
       'Integrações',
+      'Celular',
       'Avançado'
     ]),
   JSON.stringify(sections)

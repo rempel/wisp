@@ -67,6 +67,8 @@ src/
 │  ├─ pick.ts        # escolher uma pasta pelo diálogo do sistema
 │  ├─ openrouter.ts  # a OpenRouter: o ambiente do Claude Code, os modelos, a chave e o custo
 │  ├─ secrets.ts     # o chaveiro do sistema (Secret Service, pelo D-Bus)
+│  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
+│  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
@@ -90,7 +92,8 @@ src/
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da
-   │                 # barra, histórico, aba Sessões, configurações e o Testar voz
+   │                 # barra, histórico, aba Sessões, configurações (com o QR code do
+   │                 # pareamento do celular) e o Testar voz
    └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
@@ -584,6 +587,20 @@ electron-builder.yml   # os pacotes .deb e AppImage
   dos preços da lista pública de modelos (`/v1/models`, guardada por uma hora), porque o
   `total_cost_usd` do Claude Code usa a tabela de preços da Anthropic. O histórico guarda o
   provedor de cada conversa, para retomá-la pelo mesmo lado.
+- **Aprovar pelo celular:** o `phone-ipc.ts` ouve os eventos ao vivo das conversas
+  (`permission-request` e `permission-resolved`) e passa ao `PhoneApprovals` do `phone.ts`, que
+  guarda os cards que esperam e manda um por vez: com a tela bloqueada (o `screenlock.ts`) ou
+  depois de `phoneAfterSeconds`. O canal (o servidor, o tópico dos pedidos, o das respostas e a
+  ficha de acesso) fica no chaveiro (`name=phone`) e é lido ao ligar ou ao abrir o Wisp com a
+  função ligada, e então só fica na memória: com a tela bloqueada, ler o chaveiro poderia pedir
+  a senha. O pedido sai como um POST em JSON na raiz do servidor (`topic`, `title`, `message`,
+  `priority` 4 e `actions` do tipo `http`, com `clear`), e cada botão leva no `body` uma ficha
+  aleatória de 128 bits, uma para Permitir e outra para Negar. Antes de publicar, o Wisp abre o
+  stream das respostas (`GET /<tópico>/json?since=<agora - 1 s>`), para nada se perder; a
+  primeira ficha certa responde o card (`Chat.answerFromPhone`, que deixa um aviso na
+  conversa), e o stream fecha. Sem resposta em 2 minutos, o card é negado com um motivo para o
+  Claude. Quando o card acaba, de qualquer jeito, sai uma mensagem de prioridade 2 com o
+  desfecho, e o próximo da fila vai. O teste do pareamento é a mesma coisa, com um botão só.
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR

@@ -411,3 +411,28 @@ status` liberado não libera `git push`, e `ls; rm x` pede de novo.
 - [ ] **Ida e volta:** volte para **Chat**: o que aconteceu no terminal está na conversa. Mande uma
       mensagem pelo chat e volte para o terminal: o Claude lembra de tudo.
 - [ ] **Volta igual:** feche o Wisp com uma aba no terminal e abra de novo: ela volta no terminal.
+
+## Aprovar pelo celular (Fase 18)
+
+Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chaveiro do sistema.
+
+- [ ] **Desligado por padrão:** em **Configurações → Celular**, o interruptor está desligado e
+      nenhum card vai para lugar nenhum.
+- [ ] **Parear:** clique em **Parear um celular**: aparecem o QR code e o tópico. Leia o QR code
+      com o celular: o app do ntfy abre no tópico; assine. O `config.json` não tem o tópico.
+- [ ] **Teste:** clique em **Mandar o teste**: a notificação chega com **Confirmar**; toque nela e o
+      interruptor liga sozinho, com "O celular respondeu".
+- [ ] **Tela bloqueada:** peça ao Claude um comando que pede permissão e bloqueie a tela. A
+      notificação chega com o comando, **Permitir** e **Negar**. Toque em **Permitir**: desbloqueie
+      e veja o card liberado, com "Permitido pelo celular".
+- [ ] **Esperando:** com a tela desbloqueada, deixe um card esperando mais que o **Mandar depois
+      de**: ele vai para o celular. Responda no computador: o celular avisa "Respondido no
+      computador".
+- [ ] **Expira:** deixe um pedido no celular sem resposta por 2 minutos: o card fica negado, e o
+      Claude diz que ninguém respondeu a tempo.
+- [ ] **Um por vez:** com dois cards esperando (em duas abas), só um chega ao celular; o outro vai
+      depois que o primeiro acaba.
+- [ ] **Sem sempre:** a notificação só tem Permitir e Negar (no plano, Aprovar e Continuar
+      planejando). Uma pergunta do Claude não vai para o celular.
+- [ ] **Desligar e desparear:** desligue o interruptor e veja que nada mais vai. **Desparear**
+      apaga os tópicos do chaveiro.
