@@ -436,3 +436,15 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       planejando). Uma pergunta do Claude não vai para o celular.
 - [ ] **Desligar e desparear:** desligue o interruptor e veja que nada mais vai. **Desparear**
       apaga os tópicos do chaveiro.
+
+## Avatares (Fase 19)
+
+- [ ] **No menu:** botão direito no mascote → **Avatar** → **Fantasminha**: o mascote vira o
+      fantasminha na hora, e o avatar do cabeçalho do painel também.
+- [ ] **Estados:** peça um comando que pede permissão: o fantasminha fica âmbar, com o "?". Uma
+      resposta pronta: ele pula feliz. Deixe parado: ele cochila.
+- [ ] **Reações:** clique uma, duas e três vezes; pare o cursor em cima dele; arraste um arquivo
+      para cima dele e solte.
+- [ ] **Ilha:** ligue a **Ilha no topo**: a cápsula mostra o fantasminha.
+- [ ] **Volta igual:** feche e abra o Wisp: continua fantasminha. Volte para o robô pelas
+      configurações (**Mascote e sons → Avatar**).

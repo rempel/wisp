@@ -1,6 +1,8 @@
-import { useId } from 'react'
+import { useContext, useId } from 'react'
 import type { JSX, SVGProps } from 'react'
+import { DROP_PATH, GHOST_PATH } from '../../shared/avatars'
 import type { MascotState } from '../../shared/ipc'
+import { AvatarContext } from './avatar-context'
 
 // Ícones de traço simples (16×16, cor do texto) e o avatar do Wisp. Sem assets externos.
 
@@ -295,10 +297,10 @@ export const ErrorIcon = (): JSX.Element => (
  * Os olhos do avatar em cada humor: "^ ^" feliz, "x x" no erro, fechados no cochilo, os
  * retângulos no resto.
  */
-function Eyes({ mood }: { mood: MascotState }): JSX.Element {
+function Eyes({ mood, color = '#a5f3fc' }: { mood: MascotState; color?: string }): JSX.Element {
   const stroke = {
     fill: 'none',
-    stroke: '#a5f3fc',
+    stroke: color,
     strokeWidth: 2.4,
     strokeLinecap: 'round'
   } as const
@@ -328,19 +330,42 @@ function Eyes({ mood }: { mood: MascotState }): JSX.Element {
   }
   return (
     <g className="avatar-eyes">
-      <rect x="52.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
-      <rect x="69.5" y="75" width="6" height="10" rx="3" fill="#a5f3fc" />
+      <rect x="52.5" y="75" width="6" height="10" rx="3" fill={color} />
+      <rect x="69.5" y="75" width="6" height="10" rx="3" fill={color} />
     </g>
   )
 }
 
 /**
- * O Wisp em miniatura: a mesma gotinha robô do mascote. Com `mood`, acompanha o humor do
- * mascote: olhos, antena e um pouco de movimento (chat.css).
+ * O Wisp em miniatura: o mesmo avatar do mascote (a gotinha robô ou o fantasminha). Com `mood`,
+ * acompanha o humor do mascote: olhos, a luz de cima e um pouco de movimento (chat.css).
  */
 export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotState }): JSX.Element {
   // Os ids do useId têm caracteres que atrapalham o url(#...) do SVG.
   const id = 'avatar' + useId().replace(/[^\w-]/g, '')
+  const avatar = useContext(AvatarContext)
+  if (avatar === 'fantasma') {
+    return (
+      <svg
+        className={`avatar avatar-${mood} avatar-ghost`}
+        viewBox="33 9 62 97"
+        width={size * (62 / 97)}
+        height={size}
+        aria-hidden
+      >
+        <defs>
+          <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0.4" y2="1">
+            <stop offset="0" stopColor="#ffffff" />
+            <stop offset="0.6" stopColor="#ede9fe" />
+            <stop offset="1" stopColor="#c4b5fd" />
+          </linearGradient>
+        </defs>
+        <circle className="avatar-tip" cx="64" cy="27" r="4.2" fill="#67e8f9" />
+        <path d={GHOST_PATH} fill={`url(#${id}-shell)`} stroke="#8b7fe8" strokeWidth="1.5" />
+        <Eyes mood={mood} color="#2e1065" />
+      </svg>
+    )
+  }
   return (
     <svg
       className={`avatar avatar-${mood}`}
@@ -358,12 +383,7 @@ export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotSta
       </defs>
       <line x1="64" y1="31" x2="64" y2="17.5" stroke="#0e7490" strokeWidth="2.4" />
       <circle className="avatar-tip" cx="64" cy="15" r="4.2" fill="#67e8f9" />
-      <path
-        d="M 64 30 C 69 41 89 56 89 79 C 89 92.8 77.8 104 64 104 C 50.2 104 39 92.8 39 79 C 39 56 59 41 64 30 Z"
-        fill={`url(#${id}-shell)`}
-        stroke="#0e7490"
-        strokeWidth="1.5"
-      />
+      <path d={DROP_PATH} fill={`url(#${id}-shell)`} stroke="#0e7490" strokeWidth="1.5" />
       <rect x="45" y="70" width="38" height="20" rx="10" fill="#0b1e26" />
       <Eyes mood={mood} />
       <circle cx="39.4" cy="80" r="3.6" fill="#0e7490" />

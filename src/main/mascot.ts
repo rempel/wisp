@@ -8,6 +8,7 @@ import type { Point } from './config'
 import { ISLAND_ANIMATION_MS, islandBounds, islandRect, islandShape } from './island'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
+import type { AvatarName } from '../shared/avatars'
 import type {
   Accessory,
   DroppedFile,
@@ -37,6 +38,7 @@ let mascotWin: BrowserWindow | null = null
 let view: MascotView = { state: 'idle', look: 'left' }
 /** O acessório do dia, reenviado quando a página (re)carrega. */
 let accessory: Accessory | null = null
+let avatar: AvatarName = 'robo'
 /** O usuário escondeu o mascote pelo menu da bandeja (só nesta execução). */
 let hiddenByUser = false
 /** A saudação sai uma vez só, quando a janela aparece pela primeira vez com a página pronta. */
@@ -81,6 +83,7 @@ export function setupMascot(options: MascotHandlers): void {
     if (!fromMascot(event)) return
     event.sender.send(IPC.mascotState, view)
     event.sender.send(IPC.mascotAccessory, accessory)
+    event.sender.send(IPC.mascotAvatar, avatar)
     event.sender.send(IPC.mascotIsland, islandView())
     options.ready()
     greeting.ready = true
@@ -162,6 +165,13 @@ export function reactMascot(reaction: MascotReaction): void {
 }
 
 /** O acessório do dia (null: nenhum). */
+/** O avatar escolhido (o config.json, o menu, a tela de configurações). */
+export function setMascotAvatar(next: AvatarName): void {
+  if (next === avatar) return
+  avatar = next
+  mascotWin?.webContents.send(IPC.mascotAvatar, avatar)
+}
+
 export function setMascotAccessory(next: Accessory | null): void {
   if (next === accessory) return
   accessory = next

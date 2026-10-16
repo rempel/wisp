@@ -16,6 +16,7 @@ import type {
   WindowState,
   VoiceStatus
 } from '../../shared/ipc'
+import { AvatarContext } from './avatar-context'
 import { Grid } from './Grid'
 import { fromTerminal, isWispTerminalShortcut } from './terminal-keys'
 import { HistoryView } from './HistoryView'
@@ -509,154 +510,158 @@ export default function Chat(): JSX.Element {
   }
 
   return (
-    <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
-      {dragging && (
-        <div className="drop-overlay" aria-hidden>
-          <PaperclipIcon />
-          <strong>Solte para anexar</strong>
-          <span>Imagens, PDFs, textos… até {ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB cada</span>
-        </div>
-      )}
-      <header className="header">
-        {view !== 'chat' ? (
-          <>
+    <AvatarContext.Provider value={settings?.values.avatar ?? 'robo'}>
+      <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
+        {dragging && (
+          <div className="drop-overlay" aria-hidden>
+            <PaperclipIcon />
+            <strong>Solte para anexar</strong>
+            <span>
+              Imagens, PDFs, textos… até {ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB cada
+            </span>
+          </div>
+        )}
+        <header className="header">
+          {view !== 'chat' ? (
+            <>
+              <button
+                type="button"
+                className="icon-button"
+                onClick={() => setView('chat')}
+                title="Voltar para a conversa (Esc)"
+                aria-label="Voltar para a conversa"
+              >
+                <BackIcon />
+              </button>
+              <div className="title">
+                <strong>
+                  {view === 'history'
+                    ? 'Conversas'
+                    : view === 'settings'
+                      ? 'Configurações'
+                      : 'Sessões'}
+                </strong>
+                <span className="status">
+                  {view === 'history'
+                    ? 'guardadas neste computador'
+                    : view === 'settings'
+                      ? 'gravadas no config.json'
+                      : 'do Claude Code no terminal'}
+                </span>
+              </div>
+            </>
+          ) : (
+            <>
+              <Avatar size={26} mood={mood} />
+              <div className="title">
+                <strong>Wisp</strong>
+                <span className={`status${focusedState?.busy ? ' busy' : ''}`}>
+                  {focusedState ? statusText(focusedState) : 'sessão do terminal'}
+                </span>
+              </div>
+            </>
+          )}
+          {demo && (
             <button
               type="button"
-              className="icon-button"
-              onClick={() => setView('chat')}
-              title="Voltar para a conversa (Esc)"
-              aria-label="Voltar para a conversa"
+              className="demo-pill"
+              onClick={() => void window.wisp.settings.set({ demo: false })}
+              title="Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar."
+              aria-label="Modo demonstração (clique para desligar)"
             >
-              <BackIcon />
+              <DemoIcon />
+              Demo
             </button>
-            <div className="title">
-              <strong>
-                {view === 'history'
-                  ? 'Conversas'
-                  : view === 'settings'
-                    ? 'Configurações'
-                    : 'Sessões'}
-              </strong>
-              <span className="status">
-                {view === 'history'
-                  ? 'guardadas neste computador'
-                  : view === 'settings'
-                    ? 'gravadas no config.json'
-                    : 'do Claude Code no terminal'}
-              </span>
-            </div>
-          </>
+          )}
+          {!demo &&
+            (focusedState?.provider === 'openrouter' ? (
+              <CostPill cost={focusedState.cost} />
+            ) : (
+              usage && <UsagePill usage={usage} />
+            ))}
+          <button
+            type="button"
+            className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
+            onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
+            title={
+              requests
+                ? `Sessões do terminal (${requests} ${requests === 1 ? 'pedido' : 'pedidos'})`
+                : 'Sessões do Claude Code no terminal'
+            }
+            aria-label="Sessões do terminal"
+            aria-pressed={view === 'sessions'}
+          >
+            <TerminalIcon />
+            {requests > 0 && <span className="badge">{requests}</span>}
+          </button>
+          <button
+            type="button"
+            className={`icon-button${view === 'history' ? ' active' : ''}`}
+            onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
+            title="Conversas anteriores"
+            aria-label="Conversas anteriores"
+            aria-pressed={view === 'history'}
+          >
+            <HistoryIcon />
+          </button>
+          <button
+            type="button"
+            className={`icon-button${view === 'settings' ? ' active' : ''}`}
+            onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
+            title="Configurações"
+            aria-label="Configurações"
+            aria-pressed={view === 'settings'}
+          >
+            <SettingsIcon />
+          </button>
+          {windowState.detached && !windowState.maximized && (
+            <button
+              type="button"
+              className="icon-button window-dock"
+              onClick={() => window.wisp.chat.dock()}
+              title="Voltar para perto do mascote"
+              aria-label="Voltar para perto do mascote"
+            >
+              <DockIcon />
+            </button>
+          )}
+          <button
+            type="button"
+            className="icon-button window-maximize"
+            onClick={() => window.wisp.chat.maximize()}
+            title={windowState.maximized ? 'Restaurar' : 'Maximizar'}
+            aria-label={windowState.maximized ? 'Restaurar' : 'Maximizar'}
+          >
+            {windowState.maximized ? <RestoreIcon /> : <MaximizeIcon />}
+          </button>
+          <button
+            type="button"
+            className="icon-button"
+            onClick={() => window.wisp.chat.hide()}
+            title="Fechar (Esc)"
+            aria-label="Fechar"
+          >
+            <CloseIcon />
+          </button>
+        </header>
+
+        {view === 'settings' ? (
+          <SettingsView />
+        ) : view === 'history' ? (
+          <HistoryView onClose={() => setView('chat')} />
+        ) : view === 'sessions' ? (
+          <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
         ) : (
           <>
-            <Avatar size={26} mood={mood} />
-            <div className="title">
-              <strong>Wisp</strong>
-              <span className={`status${focusedState?.busy ? ' busy' : ''}`}>
-                {focusedState ? statusText(focusedState) : 'sessão do terminal'}
-              </span>
+            {tabs.tabs.length > 0 && (
+              <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
+            )}
+            <div className="panes">
+              <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
             </div>
           </>
         )}
-        {demo && (
-          <button
-            type="button"
-            className="demo-pill"
-            onClick={() => void window.wisp.settings.set({ demo: false })}
-            title="Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar."
-            aria-label="Modo demonstração (clique para desligar)"
-          >
-            <DemoIcon />
-            Demo
-          </button>
-        )}
-        {!demo &&
-          (focusedState?.provider === 'openrouter' ? (
-            <CostPill cost={focusedState.cost} />
-          ) : (
-            usage && <UsagePill usage={usage} />
-          ))}
-        <button
-          type="button"
-          className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
-          onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
-          title={
-            requests
-              ? `Sessões do terminal (${requests} ${requests === 1 ? 'pedido' : 'pedidos'})`
-              : 'Sessões do Claude Code no terminal'
-          }
-          aria-label="Sessões do terminal"
-          aria-pressed={view === 'sessions'}
-        >
-          <TerminalIcon />
-          {requests > 0 && <span className="badge">{requests}</span>}
-        </button>
-        <button
-          type="button"
-          className={`icon-button${view === 'history' ? ' active' : ''}`}
-          onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
-          title="Conversas anteriores"
-          aria-label="Conversas anteriores"
-          aria-pressed={view === 'history'}
-        >
-          <HistoryIcon />
-        </button>
-        <button
-          type="button"
-          className={`icon-button${view === 'settings' ? ' active' : ''}`}
-          onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
-          title="Configurações"
-          aria-label="Configurações"
-          aria-pressed={view === 'settings'}
-        >
-          <SettingsIcon />
-        </button>
-        {windowState.detached && !windowState.maximized && (
-          <button
-            type="button"
-            className="icon-button window-dock"
-            onClick={() => window.wisp.chat.dock()}
-            title="Voltar para perto do mascote"
-            aria-label="Voltar para perto do mascote"
-          >
-            <DockIcon />
-          </button>
-        )}
-        <button
-          type="button"
-          className="icon-button window-maximize"
-          onClick={() => window.wisp.chat.maximize()}
-          title={windowState.maximized ? 'Restaurar' : 'Maximizar'}
-          aria-label={windowState.maximized ? 'Restaurar' : 'Maximizar'}
-        >
-          {windowState.maximized ? <RestoreIcon /> : <MaximizeIcon />}
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          onClick={() => window.wisp.chat.hide()}
-          title="Fechar (Esc)"
-          aria-label="Fechar"
-        >
-          <CloseIcon />
-        </button>
-      </header>
-
-      {view === 'settings' ? (
-        <SettingsView />
-      ) : view === 'history' ? (
-        <HistoryView onClose={() => setView('chat')} />
-      ) : view === 'sessions' ? (
-        <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
-      ) : (
-        <>
-          {tabs.tabs.length > 0 && (
-            <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
-          )}
-          <div className="panes">
-            <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
-          </div>
-        </>
-      )}
-    </div>
+      </div>
+    </AvatarContext.Provider>
   )
 }

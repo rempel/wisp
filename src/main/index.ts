@@ -57,6 +57,7 @@ import {
   reactMascot,
   sendMascotCustomSound,
   setMascotAccessory,
+  setMascotAvatar,
   setMascotGaze,
   setMascotView,
   setMascotVisible,
@@ -640,8 +641,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     midnight = setTimeout(atMidnight, msUntilMidnight())
   }
   atMidnight()
+  setMascotAvatar(getConfig().avatar)
   onConfigChange(() => {
     updateAccessory()
+    setMascotAvatar(getConfig().avatar)
     sounds.check()
     updateBrowser()
     setCompact(getConfig().compact)
@@ -895,6 +898,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     mascotVisible: isMascotVisible,
     setMascotVisible,
     newConversation: () => chat?.newConversation(),
+    avatar: () => getConfig().avatar,
+    setAvatar: (avatar) => {
+      updateConfig({ avatar })
+      notifyConfigChange()
+    },
     compactEnabled: () => getConfig().compact,
     setCompactEnabled: (enabled) => {
       updateConfig({ compact: enabled })

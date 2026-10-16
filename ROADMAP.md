@@ -721,6 +721,9 @@ Notas da entrega:
 - o HMAC pensado no começo não protegia nada a mais: quem lê o tópico dos pedidos veria os
   corpos assinados. Ficaram as fichas sorteadas por card, de uso único, e o segredo são os
   tópicos (no chaveiro);
+- o CI pegou um card que nunca ia depois do tempo: o timer do Node às vezes dispara um
+  milissegundo antes, e a conta com o relógio dizia "ainda não"; agora o próprio timer marca o
+  card como pronto para ir;
 - o canal é lido do chaveiro ao ligar e fica na memória: com a tela bloqueada, ler o chaveiro
   poderia pedir a senha e travar o pedido;
 - a escuta das respostas abre antes de o pedido sair (e pede o que chegou desde um segundo
@@ -738,9 +741,10 @@ O Wisp já faz o que a especificação pedia e um bom tanto além. Estas fases s
 mais agradável e mais fácil de manter, a partir do uso de todo dia, e não para fazer mais coisas.
 Seguem a mesma regra: uma por vez, com aceite e validação.
 
-### Fase 19: avatares
+### Fase 19: avatares ✅
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação. Veio do mesmo pedido da Fase 18: outro avatar, para
+trocar ou escolher no menu. Testes de ponta a ponta: `e2e/avatar.mjs`.
 
 - **Um segundo mascote (M):** o fantasminha, com os mesmos estados e reações do robô (olhos,
   humores, sons, acessórios, a ilha e o avatar do cabeçalho do painel).
@@ -748,6 +752,16 @@ Seguem a mesma regra: uma por vez, com aceite e validação.
   na hora, sem reabrir o Wisp.
 - **Base para mais avatares (P):** o corpo e as cores de cada um num lugar só, para um avatar
   novo ser um arquivo e não mudanças espalhadas.
+
+Notas da entrega:
+
+- o fantasminha é o fogo-fátuo do nome: a luz da antena flutua sozinha em cima da cabeça;
+- os olhos ficam no mesmo lugar dos do robô, então os olhares, as reações (`^ ^`, `x x`,
+  espirais) e os acessórios servem aos dois sem mudar nada;
+- as cores de repouso de cada avatar vão num `:where()`, sem peso no CSS: as dos estados (o
+  âmbar do pedido, o coral do erro) continuam valendo por cima;
+- o menu da bandeja e do mascote saiu do `tray.ts` para o `menu.ts`, sem o Electron, para os
+  testes montarem e clicarem nele.
 
 **Aceite:** trocar para o fantasminha pelo menu do mascote muda o mascote, a ilha e o avatar do
 painel na hora, e ele continua fantasminha depois de fechar e abrir o Wisp.

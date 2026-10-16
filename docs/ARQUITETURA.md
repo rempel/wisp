@@ -60,6 +60,7 @@ src/
 │  ├─ attachments.ts # cópia dos anexos, imagens coladas e limpeza das antigas
 │  ├─ config.ts      # ~/.config/wisp/config.json
 │  ├─ settings-ipc.ts # a tela de configurações: ler, conferir e gravar
+│  ├─ menu.ts        # o menu da bandeja e do botão direito do mascote (o mesmo)
 │  ├─ log.ts         # o registro em ~/.local/state/wisp (1 MB, sem comandos nem endereços)
 │  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida ou aberta)
 │  ├─ folders.ts     # conversas numa pasta: o que o .claude dela faz sozinho e a confiança
@@ -85,10 +86,12 @@ src/
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
+│  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
-   ├─ mascot/        # Mascot.tsx (SVG e reações), mascot.css (animações), sounds.ts (WebAudio),
-   │                 # voice.ts e voice-worklet.ts (microfone e fala)
+   ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
+   │                 # mascot.css (animações), avatars.css (as cores de cada avatar), sounds.ts
+   │                 # (WebAudio), voice.ts e voice-worklet.ts (microfone e fala)
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da

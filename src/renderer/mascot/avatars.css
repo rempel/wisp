@@ -1,0 +1,86 @@
+/*
+ * As cores e os ajustes de cada avatar (Fase 19), por cima do mascot.css. O robô é o padrão de
+ * lá; aqui ficam os outros. As cores de repouso vão num :where (sem peso), para as dos estados
+ * (pedindo permissão, erro…) continuarem valendo por cima delas.
+ */
+
+/* ---- Fantasminha ------------------------------------------------------ */
+
+:where(.avatar-fantasma) {
+  --shell-0: #ffffff;
+  --shell-1: #f8f7ff;
+  --shell-2: #e4e0ff;
+  --shell-3: #b9b0f5;
+  --metal: #8b7fe8;
+  --metal-dark: #6d5fd6;
+  --metal-light: #ede9fe;
+  --led-0: #f5fbff;
+  --led-1: #c4f1ff;
+  --led-2: #7dd3fc;
+  --led-halo: #a5f3fc;
+  --glow-core: 233 230 255;
+  --glow: 167 160 250;
+  --highlight: #ffffff;
+  --spark: #ede9fe;
+  /* Os olhos são escuros, direto no corpo claro (no robô, LEDs num visor escuro). */
+  --ghost-eye: #2e1065;
+}
+
+/* Bravo, os olhos ficam vermelhos, como os LEDs do robô. */
+.avatar-fantasma.react-annoyed {
+  --ghost-eye: #be123c;
+}
+
+.avatar-fantasma .shell {
+  stroke-opacity: 0.4;
+}
+
+.avatar-fantasma .ghost-arm {
+  fill: url(#wisp-shell);
+  stroke: var(--metal);
+  stroke-opacity: 0.4;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.avatar-fantasma .eye-leds .led,
+.avatar-fantasma .eye-angry .led {
+  fill: var(--ghost-eye);
+}
+
+.avatar-fantasma .eye-glyph {
+  stroke: var(--ghost-eye);
+}
+
+/* Sem o brilho dos LEDs: num olho escuro, ele só borraria. */
+.avatar-fantasma .eye-leds,
+.avatar-fantasma .eye-glyph,
+.avatar-fantasma .eye-angry {
+  filter: none;
+}
+
+.avatar-fantasma .blush ellipse {
+  fill: #f9a8d4;
+}
+
+/* A luz de cima (a "antena" do robô) é a chama de um fogo-fátuo: flutua mais perto da cabeça. */
+.avatar-fantasma .antenna-pose {
+  top: 12px;
+  bottom: -12px;
+}
+
+/* Sem peso a mais: o balanço dos estados (trabalhando, ouvindo, cochilando) continua valendo. */
+:where(.avatar-fantasma) .antenna {
+  animation-name: wisp-flame;
+  animation-duration: 4.2s;
+}
+
+@keyframes wisp-flame {
+  0%,
+  100% {
+    transform: translate(-1.5px, 0) rotate(-4deg);
+  }
+  50% {
+    transform: translate(1.5px, -2px) rotate(4deg);
+  }
+}

@@ -113,7 +113,8 @@ e sem resposta em 2 minutos ele fica negado.
 tudo com o mascote reagindo.
 
 **O mascote:** flutua, segue o cursor com os olhos, dança com a música, cochila sem gastar CPU,
-reage a cliques e a carinho e usa gorro no Natal. Quem preferir pode trocá-lo pela **ilha**, uma
+reage a cliques e a carinho e usa gorro no Natal. Dá para escolher o avatar: a **gotinha robô** ou
+o **fantasminha**. Quem preferir pode trocá-lo pela **ilha**, uma
 cápsula no centro do topo da tela.
 
 **Outros jeitos de usar:** a [OpenRouter](#openrouter-experimental) como provedor (experimental),
@@ -132,7 +133,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
-- **Fase 18 (aprovar pelo celular):** pronta, esperando a validação com o uso.
+- **Fases 18 (aprovar pelo celular) e 19 (avatares):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -750,6 +751,18 @@ E reage a quem mexe com ele:
 As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las. O
 desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação do momento.
 
+**Avatares.** No botão direito do mascote (ou na bandeja), **Avatar** troca a gotinha robô pelo
+**fantasminha**: um fantasma branco-lavanda, com olhos escuros, bracinhos e a luz da antena
+flutuando sozinha em cima da cabeça, como um fogo-fátuo (o _wisp_ do nome). Ele tem os mesmos
+estados e reações (fica âmbar pedindo permissão, coral no erro, cochila, dança, usa o gorro), e
+a ilha e o avatar do painel acompanham. A troca vale na hora e também fica em **Configurações →
+Mascote e sons**.
+
+Para criar outro avatar: o corpo vai em `src/renderer/mascot/Bodies.tsx` (no mesmo espaço de
+128 × 128, com os olhos no lugar dos do robô), as cores de repouso em `avatars.css`, num
+`:where(.avatar-nome)` (para os estados continuarem pintando por cima), e o nome em
+`src/shared/avatars.ts`.
+
 ## Configuração
 
 Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira execução:
@@ -767,6 +780,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "volume": 0.5,
   "sleepAfterMinutes": 3,
   "accessory": "auto",
+  "avatar": "robo",
   "shortcut": "Ctrl+Alt+W",
   "clipboardChip": true,
   "terminalCommand": null,
@@ -811,7 +825,7 @@ sobrescreve o arquivo até você corrigir.
 Dá para editar o arquivo com o Wisp aberto:
 
 - `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes`, `accessory`,
-  `shortcut`, `clipboardChip`, `terminalCommand` e as opções de voz valem na hora;
+  `avatar`, `shortcut`, `clipboardChip`, `terminalCommand` e as opções de voz valem na hora;
 - `model`, na próxima mensagem;
 - `browserAutomation` e `browserExecutable`, na próxima conversa (Ctrl+K);
 - `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
@@ -860,6 +874,7 @@ Automático, em que quem decide é o Claude Code.
 mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
 (e com o cursor longe) até o mascote cochilar; `0` desliga o cochilo. `accessory` é `"auto"`
 (gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
+`avatar` é `"robo"` (a gotinha) ou `"fantasma"` (o fantasminha).
 
 Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
 `fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`,

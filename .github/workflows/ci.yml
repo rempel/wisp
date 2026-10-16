@@ -81,13 +81,18 @@ jobs:
             libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libxtst6
       # O conteúdo do .deb, e o AppImage aberto de verdade num HOME vazio.
       - run: scripts/smoke-packages.sh
+      # Os pacotes para baixar e validar (e para o release, numa tag). Guardados por poucos dias,
+      # para não encher a cota de armazenamento da conta; fora de uma tag, a cota cheia não
+      # derruba o CI (o teste dos pacotes, acima, já passou).
       - uses: actions/upload-artifact@v6
+        continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
           name: pacotes-linux
           path: |
             dist/*.deb
             dist/*.AppImage
           if-no-files-found: error
+          retention-days: 7
 
   release:
     name: Release
