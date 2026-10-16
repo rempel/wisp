@@ -334,7 +334,7 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 
 ### Fase 10: voz ("Whisper to Wisp", especificação v2) ✅
 
-**Status:** pronta, esperando validação.
+**Status:** validada.
 
 - **Apertar para falar (G):**
   - **Atalho de voz:** Ctrl+Alt+Espaço (`voiceShortcut`). Segurando, o Wisp ouve; soltando, ele
@@ -522,7 +522,7 @@ semana bate com o que aconteceu.
 
 ### Fase 14: ajustes da validação (ilha, voz e OpenRouter) ✅
 
-**Status:** pronta, esperando validação. Veio da validação da Fase 13 (num Kali, pelo .deb).
+**Status:** validada. Veio da validação da Fase 13 (num Kali, pelo .deb).
 Testes de ponta a ponta: `e2e/island.mjs` (cursor e clique de verdade, com o recorte da janela),
 `e2e/voice.mjs` (o microfone falso do Chromium e um whisper.cpp antigo de mentira) e
 `e2e/openrouter.mjs` (um chaveiro e uma OpenRouter de mentira). A OpenRouter também foi conferida
@@ -566,7 +566,7 @@ assinatura continua funcionando nas outras.
 
 ### Fase 15: pastas e skills ✅
 
-**Status:** pronta, esperando validação. Veio de uma pergunta depois da Fase 14: dá para usar
+**Status:** validada. Veio de uma pergunta depois da Fase 14: dá para usar
 skills, e abrir uma pasta como o Claude Code do terminal? Testes de ponta a ponta:
 `e2e/folders.mjs` (projetos numa aba, o card de confiança, as abas que voltam com a pasta e as
 skills nas configurações). Conferido também com o Claude Code de verdade (contra uma OpenRouter de
@@ -603,7 +603,7 @@ aparece para o Claude na conversa seguinte.
 
 ### Fase 16: janela e grade de painéis ✅
 
-**Status:** pronta, esperando validação. Veio de um pedido de uso: num monitor grande, abrir
+**Status:** validada. Veio de um pedido de uso: num monitor grande, abrir
 várias abas num layout como o do Konsole ou do VS Code, e maximizar a janela. Testes de ponta a
 ponta: `e2e/grid.mjs`, com um gerenciador de janelas de verdade (openbox) no X virtual (dividir,
 atalhos, divisória e aba arrastadas com o mouse, a grade que volta, maximizar, mover e voltar
@@ -649,7 +649,7 @@ compactar o faz cair, com o Claude lembrando do começo pelo resumo.
 
 ### Fase 17: modo terminal e o chat como o CLI ✅
 
-**Status:** pronta, esperando validação. Veio de um pedido de uso: no chat, não dava para mandar
+**Status:** validada. Veio de um pedido de uso: no chat, não dava para mandar
 nada com o Claude trabalhando nem ver direito os agentes; o pedido era um comportamento quase
 igual ao do Claude Code no terminal, ou um "modo CLI" com tudo o que o Wisp já faz. Antes de
 implementar, o comportamento foi conferido no Claude Code de verdade (2.1), contra um servidor de
@@ -690,15 +690,132 @@ aparece e libera, e voltando ao chat a conversa está lá, inteira.
 
 ### Fase 18: aprovar pelo celular
 
-**Status:** mapeada, para depois da Fase 17.
+**Status:** em andamento.
 
-- **Aprovar e negar pelo celular (G),** quando você não está no computador, por um canal que você
-  escolhe (ntfy próprio ou KDE Connect), com muito cuidado:
-  - um pedido por vez, ligado ao pedido exato (o card mostra o mesmo que o do painel);
-  - expira em 2 minutos; sem resposta, fica negado;
-  - sem "sempre" e sem trocar o modo da conversa pelo celular;
-  - desligado por padrão, com o pareamento feito no computador;
-  - nada de conteúdo da conversa no canal além do pedido.
+- **Aprovar e negar pelo celular (G),** quando você não está no computador, pelo
+  [ntfy](https://ntfy.sh) (o servidor público ou um seu), com o app do ntfy no celular. O KDE
+  Connect ficou para depois: ele espelha as notificações do celular no computador, mas não leva
+  botões do computador para o celular de um jeito que dê para conferir.
+  - **Pareamento no computador:** a tela de configurações sorteia dois tópicos (um para os pedidos
+    e outro para as respostas, com 128 bits cada) e mostra um QR code para assinar o dos pedidos
+    no app do ntfy; um teste com um botão **Confirmar** só liga a função quando o celular
+    responde. Os tópicos (e a ficha de acesso de um servidor próprio, se houver) ficam no
+    chaveiro do sistema.
+  - **Quando vai:** com a tela bloqueada, ou com o card esperando há mais tempo do que o
+    configurado (60 s por padrão).
+  - **Um pedido por vez,** ligado ao pedido exato: cada resposta é uma ficha de uso único, uma para
+    Permitir e outra para Negar, que só vale para aquele card.
+  - **Expira em 2 minutos;** sem resposta, o card fica negado.
+  - **Sem "sempre",** sem trocar o modo e sem responder perguntas pelo celular: o plano tem
+    Aprovar (segue no modo de agora) e Continuar planejando; a confiança numa pasta e as
+    perguntas esperam o computador. Um comando que menciona arquivos de segredos só pode ser
+    negado.
+  - **Nada da conversa no canal:** só o resumo do pedido (o comando, o arquivo, o site), cortado
+    em 160 caracteres. A escuta das respostas só fica aberta com um pedido no celular.
+  - desligado por padrão.
+
+**Aceite:** com a tela bloqueada, o Claude pede um comando; o celular recebe o pedido com
+Permitir e Negar, e tocar em Permitir libera o card do computador; sem resposta em 2 minutos, ele
+fica negado; um segundo pedido só vai depois do primeiro.
+
+## Melhorias do app
+
+O Wisp já faz o que a especificação pedia e um bom tanto além. Estas fases são para ele ficar
+mais agradável e mais fácil de manter, a partir do uso de todo dia, e não para fazer mais coisas.
+Seguem a mesma regra: uma por vez, com aceite e validação.
+
+### Fase 19: avatares
+
+**Status:** em andamento.
+
+- **Um segundo mascote (M):** o fantasminha, com os mesmos estados e reações do robô (olhos,
+  humores, sons, acessórios, a ilha e o avatar do cabeçalho do painel).
+- **Escolher no menu (P):** no menu do mascote, no da bandeja e nas configurações; a troca vale
+  na hora, sem reabrir o Wisp.
+- **Base para mais avatares (P):** o corpo e as cores de cada um num lugar só, para um avatar
+  novo ser um arquivo e não mudanças espalhadas.
+
+**Aceite:** trocar para o fantasminha pelo menu do mascote muda o mascote, a ilha e o avatar do
+painel na hora, e ele continua fantasminha depois de fechar e abrir o Wisp.
+
+### Fase 20: primeira execução e diagnóstico
+
+- **Primeiros passos guiados (M):** na primeira vez, o painel confere o Claude Code (instalado,
+  versão, login), o chaveiro, a voz e o atalho, um de cada vez, com o que fazer em cada um.
+- **Diagnóstico (M):** uma tela que roda as mesmas conferências a qualquer hora e copia um
+  relatório para uma issue: versões, desktop, X11 ou Wayland, o que está ligado. Sem caminhos,
+  comandos nem conversas.
+- **Aviso de versão nova (P):** desligado por padrão; quando ligado, confere as releases do
+  GitHub uma vez por dia.
+
+**Aceite:** numa máquina sem o Claude Code, a primeira execução diz o que falta e como instalar;
+o relatório do diagnóstico cola numa issue sem nada pessoal.
+
+### Fase 21: conversa mais fluida
+
+- **Editar e reenviar a última mensagem (M):** volta a conversa para antes dela (pela sessão do
+  Claude Code) e manda de novo.
+- **Buscar na conversa (P):** Ctrl+F na aba, com os resultados marcados.
+- **Exportar (P):** a conversa em Markdown, com as ferramentas resumidas.
+- **Fixar conversas e rascunho por aba (P):** as fixadas ficam no topo do histórico; o que
+  ficou escrito na caixa volta ao abrir a aba.
+
+**Aceite:** numa conversa longa, editar a última pergunta dá uma resposta nova sem a velha no
+contexto; o rascunho volta depois de fechar e abrir o Wisp.
+
+### Fase 22: acessibilidade e aparência
+
+- **Leitor de tela (M):** os cards, as pílulas e os botões com nomes e papéis certos; a resposta
+  nova anunciada sem roubar o foco. Conferido com o Orca.
+- **Menos movimento (P):** seguir o "reduzir animações" do sistema, também no mascote.
+- **Tamanho do texto do painel (P):** Ctrl+mais e Ctrl+menos, guardado.
+- **Alto contraste e tema claro conferidos (P):** o terminal da Fase 17 e o diff acompanham.
+
+**Aceite:** dá para pedir, aprovar um card e ler a resposta só pelo teclado e pelo Orca.
+
+### Fase 23: desempenho e consumo
+
+- **Abas paradas dormem (M):** o processo do Claude Code de uma aba sem uso há um tempo sai e
+  volta pela sessão quando a aba é usada.
+- **Conversas longas leves (M):** só o que está à vista fica na página (lista virtual), e o
+  histórico carrega por partes.
+- **Medir (P):** um teste que mede a memória e a CPU com o Wisp parado e com dez abas, no CI,
+  para uma mudança que piora aparecer.
+
+**Aceite:** com dez abas abertas e paradas, o Wisp usa menos da metade da memória de hoje.
+
+### Fase 24: notificações e cards
+
+- **Responder pela notificação do sistema (M):** o card que espera com o painel escondido
+  também vira uma notificação com Permitir e Negar (as mesmas regras do celular).
+- **Enquanto você estava fora (P):** ao desbloquear a tela, um resumo do que aconteceu: o que
+  terminou, o que foi negado por tempo, o que espera.
+- **Card mais claro (P):** o que o comando faz, em uma linha, para os comandos conhecidos.
+
+**Aceite:** com o painel escondido, um card respondido pela notificação libera o Claude; ao
+desbloquear a tela, o resumo lista o que passou.
+
+### Fase 25: para a comunidade
+
+- **Interface em inglês (G):** os textos num lugar só, com o português como padrão e o inglês
+  pelo idioma do sistema.
+- **Flatpak e ARM64 (M):** um pacote Flatpak (com o que ele permite do desktop documentado) e
+  o .deb e o AppImage para ARM64.
+- **Notas de versão e guia de contribuição (P):** o que mudou em cada versão, como rodar os
+  testes e onde fica cada parte.
+
+**Aceite:** num sistema em inglês, o Wisp abre em inglês; o Flatpak e o .deb ARM64 passam no
+teste dos pacotes.
+
+### Fase 26: prompts salvos e tarefas agendadas
+
+- **Prompts salvos (M):** uma lista de pedidos prontos ("revisa o diff", "escreve o commit"),
+  com variáveis (a pasta, o que foi copiado), no menu da barra.
+- **Tarefas agendadas (G):** um prompt que roda num horário ("todo dia às 9h, o resumo dos
+  PRs"), sempre no modo Pedir: o que muda a máquina espera o seu clique, como hoje.
+
+**Aceite:** uma tarefa das 9h roda com o painel fechado, e o card dela espera você (ou vai para
+o celular, se ligado).
 
 ## Ideias avaliadas e deixadas de fora
 
