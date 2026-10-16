@@ -494,8 +494,11 @@ export class Conversation {
     })
   }
 
-  /** A resposta a um card de permissão. Devolve false se o card não é desta conversa. */
-  answer(id: string, decision: PermissionDecision): boolean {
+  /**
+   * A resposta a um card de permissão (`denial` troca o motivo da negação, para o Claude).
+   * Devolve false se o card não é desta conversa.
+   */
+  answer(id: string, decision: PermissionDecision, denial?: string): boolean {
     const approval = this.approvals.get(id)
     // Perguntas se respondem pelo answerQuestion: liberadas sem respostas, o Claude entenderia que
     // o usuário não respondeu.
@@ -518,9 +521,11 @@ export class Conversation {
     if (decision === 'deny') {
       approval.resolve({
         allow: false,
-        message: plan
-          ? 'O usuário quer continuar planejando. Pergunte o que ajustar no plano.'
-          : 'Usuário negou'
+        message:
+          denial ??
+          (plan
+            ? 'O usuário quer continuar planejando. Pergunte o que ajustar no plano.'
+            : 'Usuário negou')
       })
     } else if (decision === 'allow-edits' || decision === 'allow-auto') {
       // Aprovado o plano, o Claude Code passa para o modo escolhido (sem isso, volta ao Pedir).

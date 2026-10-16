@@ -150,6 +150,14 @@ const api: WispApi = {
     setKey: (key) => ipcRenderer.invoke(IPC.openrouterSetKey, key),
     clearKey: () => ipcRenderer.invoke(IPC.openrouterClearKey)
   },
+  phone: {
+    pair: (server, token) => ipcRenderer.invoke(IPC.phonePair, server, token),
+    link: () => ipcRenderer.invoke(IPC.phoneLink),
+    confirm: () => ipcRenderer.invoke(IPC.phoneConfirm),
+    cancel: () => ipcRenderer.send(IPC.phoneCancel),
+    disable: () => ipcRenderer.invoke(IPC.phoneDisable),
+    unpair: () => ipcRenderer.invoke(IPC.phoneUnpair)
+  },
   settings: {
     get: () => ipcRenderer.invoke(IPC.settingsGet),
     set: (patch) => ipcRenderer.invoke(IPC.settingsSet, patch),

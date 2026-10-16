@@ -76,6 +76,8 @@ import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
+import { setupPhone } from './phone-ipc'
+import type { Phone } from './phone-ipc'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
 import { setupSessionsIpc } from './sessions-ipc'
@@ -233,6 +235,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
   // configuração do servidor; os pedidos só chegam depois que os dois existem.
   let chat: Chat | null = null
+  let phone: Phone | null = null
 
   // Os alertas do GitHub (opcional), pelo gh já logado: CI e revisões dos seus PRs, e pedidos de
   // revisão. O clique na notificação abre o PR no navegador.
@@ -480,6 +483,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       activity.onChatEvent(event, conversation)
       mood.onEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
+      phone?.onChatEvent(event)
       const sound = soundForEvent(event)
       if (sound) sounds.play(sound)
     },
@@ -497,7 +501,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let screenLock: ScreenLock | null = null
   void ScreenLock.watch().then((watching) => {
     screenLock = watching
-    watching.on('change', (locked: boolean) => voice?.setLocked(locked))
+    phone?.approvals.setLocked(watching.locked)
+    watching.on('change', (locked: boolean) => {
+      voice?.setLocked(locked)
+      phone?.approvals.setLocked(locked)
+    })
   })
   const whisperOptions = (): { binary: string; model: string; language: string } => {
     const config = getConfig()
@@ -754,8 +762,19 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         void refreshOpenRouterKey()
       }
       return openrouterKey
-    }
+    },
+    phone: () => phone!.status()
   })
+  // Aprovar pelo celular (Fase 18), pelo ntfy; desligado por padrão.
+  const phoneExpiry = Number(process.env.WISP_TEST_PHONE_EXPIRY_MS)
+  phone = setupPhone({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    notify: () => settings.notify(),
+    answer: (id, decision, how) => chat?.answerFromPhone(id, decision, how) ?? false,
+    ...(phoneExpiry > 0 ? { expiryMs: phoneExpiry } : {})
+  })
+  // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
+  phone.approvals.setLocked((screenLock as ScreenLock | null)?.locked ?? false)
   const refreshOpenRouterKey = async (): Promise<void> => {
     try {
       openrouterKey = await hasSecret(OPENROUTER_SECRET)
@@ -1061,6 +1080,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     releaseShortcuts()
     voice?.cancel()
     screenLock?.dispose()
+    phone?.dispose()
     if (midnight) clearTimeout(midnight)
     presence.dispose()
     xpointer?.close()

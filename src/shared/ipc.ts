@@ -75,6 +75,24 @@ export const IPC = {
   openrouterSetKey: 'openrouter:set-key',
   /** chat → main (invoke): apaga a chave do chaveiro. Devolve OpenRouterKeyResult. */
   openrouterClearKey: 'openrouter:clear-key',
+  /**
+   * chat → main (invoke): pareia um celular (Fase 18): sorteia os tópicos e os guarda no chaveiro.
+   * Args: (servidor, ficha de acesso ou ''). Devolve PhonePairResult.
+   */
+  phonePair: 'phone:pair',
+  /** chat → main (invoke): o link do pareamento de novo (o QR code). Devolve PhonePairResult. */
+  phoneLink: 'phone:link',
+  /**
+   * chat → main (invoke): manda o teste com o botão Confirmar e espera o celular (até 2 minutos);
+   * respondido, a função liga. Devolve PhoneResult.
+   */
+  phoneConfirm: 'phone:confirm',
+  /** chat → main: desiste de esperar o teste. */
+  phoneCancel: 'phone:cancel',
+  /** chat → main (invoke): desliga a função (o pareamento fica). Devolve PhoneResult. */
+  phoneDisable: 'phone:disable',
+  /** chat → main (invoke): desfaz o pareamento (apaga os tópicos do chaveiro). Devolve PhoneResult. */
+  phoneUnpair: 'phone:unpair',
   /** chat → main: trocar o modo de permissão. Args: (conversa, PermissionMode). */
   chatMode: 'chat:mode',
   /**
@@ -760,6 +778,7 @@ export interface Settings {
   weeklySummary: boolean
   provider: Provider
   openrouterModel: string | null
+  phoneAfterSeconds: number
 }
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
@@ -789,7 +808,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'calendarAlertMinutes',
   'weeklySummary',
   'provider',
-  'openrouterModel'
+  'openrouterModel',
+  'phoneAfterSeconds'
 ]
 
 /** O que a tela de configurações recebe. */
@@ -805,7 +825,25 @@ export interface SettingsSnapshot {
   problems: string[]
   /** Há uma chave da OpenRouter no chaveiro (null: não deu para saber, o chaveiro não respondeu). */
   openrouterKey: boolean | null
+  /** Aprovar pelo celular (Fase 18). */
+  phone: PhoneStatus
 }
+
+/** Em que pé está a aprovação pelo celular. */
+export interface PhoneStatus {
+  /** Ligada (pareada e confirmada pelo celular). */
+  enabled: boolean
+  /** Há um pareamento no chaveiro (null: não deu para saber). */
+  paired: boolean | null
+  /** O servidor do ntfy. */
+  server: string
+}
+
+/** O pareamento: o link para o app do ntfy (o QR code), o mesmo no navegador, ou o motivo. */
+export type PhonePairResult =
+  { ok: true; link: string; web: string; server: string } | { ok: false; message: string }
+
+export type PhoneResult = { ok: true; message?: string } | { ok: false; message: string }
 
 /**
  * Por onde a conversa vai: o Claude Code com a assinatura (o padrão) ou com a API da OpenRouter
@@ -1086,6 +1124,15 @@ export interface WispApi {
     models(): Promise<OpenRouterModelInfo[] | { error: string }>
     setKey(key: string): Promise<OpenRouterKeyResult>
     clearKey(): Promise<OpenRouterKeyResult>
+  }
+  /** Aprovar pelo celular (Fase 18): o pareamento com o ntfy. */
+  phone: {
+    pair(server: string, token: string): Promise<PhonePairResult>
+    link(): Promise<PhonePairResult>
+    confirm(): Promise<PhoneResult>
+    cancel(): void
+    disable(): Promise<PhoneResult>
+    unpair(): Promise<PhoneResult>
   }
   settings: {
     get(): Promise<SettingsSnapshot>

@@ -104,6 +104,10 @@ sessão no chat.
 áudio vai para o disco. "Pausa a música" e "aumenta o volume" funcionam sem o Claude e sem
 internet. Se você quiser, o Wisp responde falando (Piper).
 
+**Aprovar pelo celular:** longe do computador, o card que espera por você vai para o celular,
+pelo [ntfy](https://ntfy.sh), com **Permitir** e **Negar**. Desligado por padrão, um pedido por vez,
+e sem resposta em 2 minutos ele fica negado.
+
 **Avisos:** CI e revisões dos seus PRs no GitHub (pelo `gh`), os próximos compromissos da agenda
 (as do GNOME, inclusive Google e Microsoft, e arquivos `.ics`), lembretes e um resumo da semana,
 tudo com o mascote reagindo.
@@ -128,7 +132,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
-- **Fases 10, 14, 15, 16 e 17:** prontas, esperando a validação com o uso.
+- **Fase 18 (aprovar pelo celular):** pronta, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -620,6 +624,41 @@ OpenRouter publica; o valor cobrado de verdade fica no painel dela. As conversas
 usam uma pasta de configuração do Claude Code só delas (`~/.local/share/wisp/openrouter-claude`),
 então o login da assinatura nunca é tocado.
 
+### Aprovar pelo celular
+
+Longe do computador, o card que espera por você pode ir para o celular, com **Permitir** e
+**Negar**. O canal é o [ntfy](https://ntfy.sh): o app dele no celular (Play Store, F-Droid ou App
+Store) e o servidor público (`https://ntfy.sh`) ou um seu.
+
+1. Em **Configurações → Celular**, confira o servidor (e, num servidor seu com login, a ficha de
+   acesso) e clique em **Parear um celular**. O Wisp sorteia dois tópicos, um para os pedidos e
+   outro para as respostas, e os guarda no chaveiro do sistema.
+2. Leia o QR code com o celular (ele abre o app do ntfy no tópico dos pedidos) e assine.
+3. Clique em **Mandar o teste** e toque em **Confirmar** na notificação. Só aí a função liga.
+
+Daí em diante, um card vai para o celular quando a tela está bloqueada, ou quando ele espera há
+mais tempo do que o **Mandar depois de** (60 segundos, por padrão; `0` manda só com a tela
+bloqueada). As regras:
+
+- **Um pedido por vez.** Com vários cards esperando, o próximo vai quando o anterior acaba.
+- **Expira em 2 minutos:** sem resposta, o card fica negado, e o Claude fica sabendo por quê.
+- **Só Permitir uma vez ou Negar:** nada de "sempre" nem de trocar o modo pelo celular. O plano
+  vem com **Aprovar** (segue no modo de agora) e **Continuar planejando**. Perguntas e a confiança
+  numa pasta esperam você no computador, e um comando que mexe com arquivos de segredos (`~/.ssh`,
+  `.env`…) só pode ser negado pelo celular.
+- **Nada da conversa no canal:** vai só o resumo do pedido (o comando, o nome do arquivo, o site),
+  cortado em 160 caracteres.
+- **Cada botão vale uma vez, só para aquele card:** o corpo dele é uma ficha sorteada para o
+  pedido. Uma ficha velha, ou de outro card, não libera nada.
+- O card continua no painel: dá para responder no computador também, e o celular recebe um aviso
+  de como acabou.
+
+Quem conhece os tópicos pode ler e responder os pedidos, então eles são o segredo: ficam no
+chaveiro, não aparecem no `config.json` nem no registro, e **Desparear** os apaga. No servidor
+público, os pedidos passam pelo ntfy.sh; para não passarem por terceiros, use um servidor seu
+(com login, a ficha de acesso também fica no chaveiro). Por enquanto, valem as conversas do
+painel; os pedidos das sessões do terminal (aba Sessões) esperam o computador.
+
 ### GitHub, agenda e resumo da semana
 
 Em **Configurações → Integrações**:
@@ -750,7 +789,10 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "calendarAlertMinutes": 10,
   "weeklySummary": true,
   "provider": "subscription",
-  "openrouterModel": null
+  "openrouterModel": null,
+  "phoneApprovals": false,
+  "phoneServer": "https://ntfy.sh",
+  "phoneAfterSeconds": 60
 }
 ```
 
@@ -873,6 +915,13 @@ aba troca o seu na pílula do provedor. `openrouterModel` é o modelo da OpenRou
 (`"provedor/modelo"`); a pílula do modelo, numa conversa pela OpenRouter, grava aqui. A chave
 nunca fica no arquivo: ela vai para o chaveiro do sistema pela tela de configurações.
 
+`phoneApprovals` é a aprovação pelo celular (veja [Aprovar pelo celular](#aprovar-pelo-celular)).
+Ela liga pela tela de configurações, depois de o celular responder ao teste do pareamento; aqui,
+dá para desligar. `phoneServer` é o servidor do ntfy do pareamento (trocar à mão pede parear de
+novo) e `phoneAfterSeconds`, os segundos que um card espera antes de ir para o celular (`0`: só
+com a tela bloqueada). Os tópicos e a ficha de acesso nunca ficam no arquivo: vão para o chaveiro
+do sistema.
+
 `github` liga os alertas do GitHub, pelo `gh` (GitHub CLI) já logado: o Wisp não guarda token
 nenhum. A cada 3 minutos ele lê os seus PRs abertos e os que pedem a sua revisão (uma consulta
 GraphQL) e avisa o que mudou: CI que falhou ou passou, aprovação, pedido de mudanças, comentário
@@ -934,7 +983,7 @@ do Claude Code segue a regra dele.
 
 - **Sem telemetria.** O Wisp não manda nada para lugar nenhum por conta própria. A rede é só a do
   Claude Code (para a Anthropic, ou para a OpenRouter, se você escolheu) e a do que você ligou: o
-  `gh`, as agendas, o navegador do Claude.
+  `gh`, as agendas, o navegador do Claude, o ntfy da aprovação pelo celular.
 - **A sua assinatura, não uma chave de API.** O Claude Code roda sem `ANTHROPIC_API_KEY` no ambiente,
   para não cobrar por uso sem você saber. Se mesmo assim ele usar uma chave, a conversa avisa.
 - **Permissão antes de mudar qualquer coisa** (veja [Modos de permissão](#modos-de-permissão)). O
@@ -943,8 +992,12 @@ do Claude Code segue a regra dele.
   cada abertura. Nada passa por um shell: os programas rodam com uma lista de argumentos.
 - **A voz fica na máquina:** o áudio só passa pela memória, a transcrição é local, e com a tela
   bloqueada o Wisp não escuta.
-- **Segredos no chaveiro:** a chave da OpenRouter fica no chaveiro do sistema (Secret Service), nunca
-  no `config.json`, nos argumentos de um processo ou no registro.
+- **Segredos no chaveiro:** a chave da OpenRouter e os tópicos da aprovação pelo celular ficam no
+  chaveiro do sistema (Secret Service), nunca no `config.json`, nos argumentos de um processo ou no
+  registro.
+- **Pelo celular, só uma vez:** sem "sempre", sem trocar o modo, um pedido por vez, negado em 2
+  minutos sem resposta, e só o resumo do pedido no canal (veja
+  [Aprovar pelo celular](#aprovar-pelo-celular)).
 - **Os seus arquivos de configuração:** o `~/.claude/settings.json` só muda pela aba Sessões, com o
   diff à vista e um backup. O modo terminal leva as configurações dele só no processo, sem gravar
   nada.
@@ -971,87 +1024,89 @@ Onde fica cada coisa:
 | `~/.cache/wisp/anexos/`                      | As cópias dos anexos (apagadas depois de 7 dias)                      |
 | `~/.local/state/wisp/wisp.log`               | O registro (até 1 MB, sem comandos, endereços, chaves ou tokens)      |
 | `$XDG_RUNTIME_DIR/wisp/`                     | O socket dos hooks e os arquivos de cada execução (só do seu usuário) |
-| Chaveiro do sistema                          | A chave da OpenRouter                                                 |
+| Chaveiro do sistema                          | A chave da OpenRouter e os tópicos do celular (ntfy)                  |
 
 ## Problemas comuns
 
-| Sintoma                                      | O que fazer                                                                                                                                                        |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Fecha na hora com `No usable sandbox!`       | Do código: `npm run setup:apparmor` (veja [Compilar](#4-ubuntu-2404-ou-mais-novo-o-apparmor)); o AppImage: o perfil de [AppImage](#appimage-qualquer-distribuição) |
-| O mascote virou uma cápsula no topo          | É a ilha: passe o cursor nela; para desligar, **Ilha no topo** no menu do mascote ou nas configurações                                                             |
-| Não tem o botão de maximizar do KDE          | O painel não usa a moldura do sistema: o maximizar fica no cabeçalho, ao lado do **x**                                                                             |
-| O painel não volta para perto do mascote     | Você o moveu ou redimensionou: ele reabre onde ficou. Use **Voltar para perto do mascote** no cabeçalho                                                            |
-| Não consigo dividir mais                     | São até 8 painéis; tire um (o **x** no topo dele) ou feche uma aba                                                                                                 |
-| Alt+Shift+setas não muda de painel           | Algum atalho do sistema pode estar usando a combinação; clicar no painel também o põe em foco                                                                      |
-| "Confiar nesta pasta?" ao abrir um projeto   | O `.claude` dele roda comandos ou libera ferramentas sozinho: confie só se você conhece o projeto                                                                  |
-| O projeto não aparece no botão de pasta      | Ele precisa ter `.git` e estar em `projectRoots`; outra pasta, por **Escolher outra pasta…**                                                                       |
-| A skill não foi usada                        | Ela vale numa conversa nova (Ctrl+K); peça pelo nome dela ou confira a descrição no `SKILL.md`                                                                     |
-| "Já existe uma skill …"                      | O Wisp não substitui uma skill: remova a outra em Configurações → Skills e instale de novo                                                                         |
-| A voz "fica pensando" e não entende          | Use **Configurações → Voz → Testar voz**: ele diz se o som chega baixo (microfone errado) ou se o modelo é lento                                                   |
-| "A transcrição passou de … s"                | O modelo é pesado demais para o computador: use o `ggml-base` (ou o `small`) em `whisperModel`                                                                     |
-| "Quase não chegou som"                       | O sistema está gravando de outro microfone, ou ele está mudo: confira a entrada nas configurações de som                                                           |
-| "Não achei um chaveiro do sistema"           | A OpenRouter guarda a chave no Secret Service: instale e abra o GNOME Keyring, o KWallet 6 ou o KeePassXC                                                          |
-| "A OpenRouter recusou a chave"               | A chave foi apagada ou está errada: crie outra em openrouter.ai/keys e guarde em Configurações → OpenRouter                                                        |
-| "Acabaram os créditos … na OpenRouter"       | Ponha créditos na sua conta da OpenRouter (ou aumente o limite da chave)                                                                                           |
-| "A OpenRouter não achou o modelo"            | Confira o id na página do modelo (`provedor/modelo`) e se ele aceita ferramentas; troque na pílula                                                                 |
-| O custo aparece "sem preço"                  | A OpenRouter não publicou o preço desse modelo (ou a lista não carregou); os tokens continuam contando                                                             |
-| "Para os alertas do GitHub, instale o gh"    | Instale o GitHub CLI e rode `gh auth login`; o Wisp tenta de novo a cada 15 minutos                                                                                |
-| Os alertas do GitHub não chegam              | Rode `gh auth status`; os alertas comparam com a leitura anterior, a cada 3 minutos                                                                                |
-| A agenda do Google não aparece               | Adicione a conta em **Configurações → Contas Online** do GNOME, com a agenda ligada, e abra o app Agenda                                                           |
-| O compromisso aparece no horário errado      | Confira o fuso do sistema; o evento leva o fuso dele (TZID), e um fuso desconhecido vira o seu                                                                     |
-| O AppImage fecha com `No usable sandbox!`    | No Ubuntu 23.10+, crie o perfil do AppImage (veja [AppImage](#appimage-qualquer-distribuição)) ou use o .deb                                                       |
-| Quero saber o que deu errado                 | Veja `~/.local/state/wisp/wisp.log` (Configurações → Avançado → **Abrir o registro**)                                                                              |
-| As respostas são sempre as mesmas            | É o modo demonstração: desligue na pílula **Demo** do topo ou em Configurações → Avançado                                                                          |
-| A tela de configurações não grava            | O `config.json` tem um erro de JSON (a tela mostra qual, no topo): corrija ou apague o arquivo                                                                     |
-| Rodando como root, recusa abrir              | `npm run dev -- --no-sandbox` (só para teste)                                                                                                                      |
-| Quadrado preto em vez de transparência       | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`                                                            |
-| Não fica no topo ou não se move              | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo                                                     |
-| "Não encontrei o Claude Code"                | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                                                                            |
-| Aviso de "chave de API, cobrada por uso"     | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura                                                             |
-| "Não achei um lançador de apps"              | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                                                                                  |
-| "Não achei o editor"                         | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                                                                       |
-| O projeto não aparece ou não abre            | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas                                                           |
-| "As ferramentas do desktop não conectaram"   | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos                                                     |
-| "… não veio de uma pasta do computador"      | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o                                                         |
-| Sem ícone na bandeja                         | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                                                                         |
-| O mascote sumiu                              | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                                                                        |
-| "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                                                                         |
-| "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula                                                       |
-| O terminal não abriu e a aba voltou ao chat  | O aviso diz o motivo: o Claude Code não foi achado, a pasta não é confiável ou falta a chave da OpenRouter                                                         |
-| No terminal, os cards do Wisp não aparecem   | Outro Wisp aberto está com o socket dos hooks; o diálogo do próprio terminal continua valendo                                                                      |
-| O Esc no terminal não fecha o painel         | No terminal, o Esc é do Claude Code (interrompe). Feche pelo **x** ou pelo atalho global                                                                           |
-| A pílula do contexto não aparece             | Ela surge depois da primeira resposta da conversa (e não aparece na demonstração)                                                                                  |
-| "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                                                                           |
-| "O Claude Code começou no modo …"            | Uma política do `settings.json` (ou da empresa) escolheu outro modo, ou a sua conta não tem o Automático                                                           |
-| O modo voltou para Pedir sozinho             | Um plano aprovado com **Aprovar** volta para o Pedir, como no Claude Code. Use **Aprovar e aceitar edições**                                                       |
-| O "Permitir sempre" não pegou                | Comandos compostos (`;`, `&&`, `\|`), perigosos (`rm`, `sudo`, `curl`…) ou com segredos valem só exatos                                                            |
-| A pílula de uso não aparece                  | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                                                                    |
-| "O Wisp não está ouvindo as sessões"         | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões                                                           |
-| A sessão do terminal não aparece             | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem                                                              |
-| O botão Terminal não traz a janela           | Funciona no KDE e no X11. No GNOME com Wayland não há como: use o botão **Pasta**                                                                                  |
-| Um card ficou parado na aba Sessões          | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba                                                          |
-| Os olhos não seguem o cursor                 | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)                                                                |
-| Sem som                                      | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1                                                            |
-| Ele cochila enquanto eu leio                 | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                                                                                 |
-| O menu do mascote não fecha com Esc          | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando                                                               |
-| O GNOME pede o atalho toda vez que abro      | É o GNOME que não lembra; use `"shortcut": null` e um atalho do sistema para `wisp --toggle` (veja acima)                                                          |
-| "Ctrl+Alt+W já é usado por outro programa"   | Troque `shortcut` no `config.json` (por exemplo, `"Super+Space"`); vale na hora                                                                                    |
-| "Este desktop não tem o portal de atalhos"   | O Wayland do seu desktop não tem o `GlobalShortcuts`: ligue um atalho do sistema a `wisp --toggle`                                                                 |
-| O lembrete não avisou                        | O Wisp precisa estar aberto na hora; os que venceram com ele fechado avisam quando ele abre                                                                        |
-| "Nenhum player de música aberto"             | O player precisa falar MPRIS (Spotify, Firefox, Chrome, VLC, Rhythmbox…); no navegador, a aba precisa tocar                                                        |
-| "O sistema não deixou tirar o print"         | O print foi negado antes, e o desktop lembra. Para perguntar de novo, rode o comando abaixo da tabela                                                              |
-| O chip do que copiei não aparece             | Ele aparece ao abrir o painel com algo novo copiado; senhas do KeePassXC não aparecem; veja `clipboardChip`                                                        |
-| O terminal não abre, ou abre o errado        | Diga qual usar em `terminalCommand` (por exemplo, `"kitty"` ou `"konsole --workdir {dir}"`)                                                                        |
-| "Não achei um Chrome, Chromium…"             | O navegador do Claude precisa de um Chromium fora do Snap; instale um ou diga o caminho em `browserExecutable`                                                     |
-| A janela do navegador do Claude não abre     | Ligou o `browserAutomation` com uma conversa aberta? Ele vale a partir da próxima conversa (Ctrl+K)                                                                |
-| "Para eu entender a sua voz, instale…"       | Instale o whisper.cpp (veja [Voz](#voz)) ou diga onde está o `whisper-cli` em `whisperPath`                                                                        |
-| "Falta o modelo de voz do whisper.cpp"       | Baixe o modelo (veja [Voz](#voz)) ou aponte `whisperModel` para o `ggml-*.bin` que você já tem                                                                     |
-| "O acesso ao microfone foi negado"           | O sistema bloqueou o microfone (no GNOME: Configurações → Privacidade → Microfone)                                                                                 |
-| "Não achei um microfone"                     | Confira se o microfone aparece nas configurações de som do sistema                                                                                                 |
-| A transcrição erra muito                     | Use um modelo maior (`small` ou `medium`) e fale mais perto do microfone; confira `voiceLanguage`                                                                  |
-| Segurei o atalho e ele parou antes de soltar | Ele também para depois de 3 s de silêncio e no máximo em 30 s, caso o soltar da tecla se perca                                                                     |
-| "Abre o X" foi para o Claude                 | O nome não bateu com o de um app instalado; o Claude procura melhor. Veja o nome com "quais apps eu tenho?"                                                        |
-| O volume não muda                            | Instale o `wireplumber` (`wpctl`) ou o `pulseaudio-utils` (`pactl`); sem eles, muda só o volume do player                                                          |
+| Sintoma                                      | O que fazer                                                                                                                                                                     |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Fecha na hora com `No usable sandbox!`       | Do código: `npm run setup:apparmor` (veja [Compilar](#4-ubuntu-2404-ou-mais-novo-o-apparmor)); o AppImage: o perfil de [AppImage](#appimage-qualquer-distribuição)              |
+| O mascote virou uma cápsula no topo          | É a ilha: passe o cursor nela; para desligar, **Ilha no topo** no menu do mascote ou nas configurações                                                                          |
+| Não tem o botão de maximizar do KDE          | O painel não usa a moldura do sistema: o maximizar fica no cabeçalho, ao lado do **x**                                                                                          |
+| O painel não volta para perto do mascote     | Você o moveu ou redimensionou: ele reabre onde ficou. Use **Voltar para perto do mascote** no cabeçalho                                                                         |
+| Não consigo dividir mais                     | São até 8 painéis; tire um (o **x** no topo dele) ou feche uma aba                                                                                                              |
+| Alt+Shift+setas não muda de painel           | Algum atalho do sistema pode estar usando a combinação; clicar no painel também o põe em foco                                                                                   |
+| "Confiar nesta pasta?" ao abrir um projeto   | O `.claude` dele roda comandos ou libera ferramentas sozinho: confie só se você conhece o projeto                                                                               |
+| O projeto não aparece no botão de pasta      | Ele precisa ter `.git` e estar em `projectRoots`; outra pasta, por **Escolher outra pasta…**                                                                                    |
+| A skill não foi usada                        | Ela vale numa conversa nova (Ctrl+K); peça pelo nome dela ou confira a descrição no `SKILL.md`                                                                                  |
+| "Já existe uma skill …"                      | O Wisp não substitui uma skill: remova a outra em Configurações → Skills e instale de novo                                                                                      |
+| A voz "fica pensando" e não entende          | Use **Configurações → Voz → Testar voz**: ele diz se o som chega baixo (microfone errado) ou se o modelo é lento                                                                |
+| "A transcrição passou de … s"                | O modelo é pesado demais para o computador: use o `ggml-base` (ou o `small`) em `whisperModel`                                                                                  |
+| "Quase não chegou som"                       | O sistema está gravando de outro microfone, ou ele está mudo: confira a entrada nas configurações de som                                                                        |
+| "Não achei um chaveiro do sistema"           | A OpenRouter guarda a chave no Secret Service: instale e abra o GNOME Keyring, o KWallet 6 ou o KeePassXC                                                                       |
+| O celular não recebe os pedidos              | No app do ntfy, confira se assinou o tópico do QR code (Configurações → Celular → Mostrar o QR code) e se o servidor é o mesmo; no Android, libere o app da economia de bateria |
+| "O celular não respondeu a tempo" no teste   | O botão Confirmar publica no servidor pelo celular: confira se o celular alcança o servidor (num servidor seu, na mesma rede ou pela internet)                                  |
+| "A OpenRouter recusou a chave"               | A chave foi apagada ou está errada: crie outra em openrouter.ai/keys e guarde em Configurações → OpenRouter                                                                     |
+| "Acabaram os créditos … na OpenRouter"       | Ponha créditos na sua conta da OpenRouter (ou aumente o limite da chave)                                                                                                        |
+| "A OpenRouter não achou o modelo"            | Confira o id na página do modelo (`provedor/modelo`) e se ele aceita ferramentas; troque na pílula                                                                              |
+| O custo aparece "sem preço"                  | A OpenRouter não publicou o preço desse modelo (ou a lista não carregou); os tokens continuam contando                                                                          |
+| "Para os alertas do GitHub, instale o gh"    | Instale o GitHub CLI e rode `gh auth login`; o Wisp tenta de novo a cada 15 minutos                                                                                             |
+| Os alertas do GitHub não chegam              | Rode `gh auth status`; os alertas comparam com a leitura anterior, a cada 3 minutos                                                                                             |
+| A agenda do Google não aparece               | Adicione a conta em **Configurações → Contas Online** do GNOME, com a agenda ligada, e abra o app Agenda                                                                        |
+| O compromisso aparece no horário errado      | Confira o fuso do sistema; o evento leva o fuso dele (TZID), e um fuso desconhecido vira o seu                                                                                  |
+| O AppImage fecha com `No usable sandbox!`    | No Ubuntu 23.10+, crie o perfil do AppImage (veja [AppImage](#appimage-qualquer-distribuição)) ou use o .deb                                                                    |
+| Quero saber o que deu errado                 | Veja `~/.local/state/wisp/wisp.log` (Configurações → Avançado → **Abrir o registro**)                                                                                           |
+| As respostas são sempre as mesmas            | É o modo demonstração: desligue na pílula **Demo** do topo ou em Configurações → Avançado                                                                                       |
+| A tela de configurações não grava            | O `config.json` tem um erro de JSON (a tela mostra qual, no topo): corrija ou apague o arquivo                                                                                  |
+| Rodando como root, recusa abrir              | `npm run dev -- --no-sandbox` (só para teste)                                                                                                                                   |
+| Quadrado preto em vez de transparência       | Confira se a composição está ligada (no KDE X11: Alt+Shift+F12) ou tente `npm run dev -- --disable-gpu`                                                                         |
+| Não fica no topo ou não se move              | Confira se o processo recebeu `--ozone-platform=x11`; o terminal avisa quando ele roda como app Wayland nativo                                                                  |
+| "Não encontrei o Claude Code"                | Informe o caminho completo do `claude` em `claudePath` no `config.json`                                                                                                         |
+| Aviso de "chave de API, cobrada por uso"     | Tire o `ANTHROPIC_API_KEY`/`apiKeyHelper` da configuração do Claude Code e faça login com a assinatura                                                                          |
+| "Não achei um lançador de apps"              | Instale o `libgtk-3-bin` (gtk-launch) ou o `libglib2.0-bin` (gio)                                                                                                               |
+| "Não achei o editor"                         | Ajuste `editorCommand` no `config.json` para um comando que exista no `PATH`                                                                                                    |
+| O projeto não aparece ou não abre            | Confira `projectRoots`: o projeto precisa ter `.git` e estar até dois níveis dentro de uma dessas pastas                                                                        |
+| "As ferramentas do desktop não conectaram"   | Veja o erro no terminal onde o app roda; sem o servidor, o chat funciona, mas sem abrir apps, links e projetos                                                                  |
+| "… não veio de uma pasta do computador"      | O arraste veio de um app que não entrega um arquivo (ex.: imagem de uma página). Salve o arquivo e anexe-o                                                                      |
+| Sem ícone na bandeja                         | Em GNOME fora do Ubuntu, instale a extensão "AppIndicator and KStatusNotifierItem Support"                                                                                      |
+| O mascote sumiu                              | Se você o escondeu pela bandeja, use **Mostrar mascote**; ao abrir o app de novo, ele volta                                                                                     |
+| "Você chegou ao limite de uso do seu plano"  | É o limite da sua assinatura do Claude; o aviso diz a que horas ele libera                                                                                                      |
+| "O modelo escolhido não existe…"             | O modelo não está liberado no seu plano (ou o `model` do `config.json` tem um nome errado): troque na pílula                                                                    |
+| O terminal não abriu e a aba voltou ao chat  | O aviso diz o motivo: o Claude Code não foi achado, a pasta não é confiável ou falta a chave da OpenRouter                                                                      |
+| No terminal, os cards do Wisp não aparecem   | Outro Wisp aberto está com o socket dos hooks; o diálogo do próprio terminal continua valendo                                                                                   |
+| O Esc no terminal não fecha o painel         | No terminal, o Esc é do Claude Code (interrompe). Feche pelo **x** ou pelo atalho global                                                                                        |
+| A pílula do contexto não aparece             | Ela surge depois da primeira resposta da conversa (e não aparece na demonstração)                                                                                               |
+| "O Claude Code não tem mais esta conversa"   | Ele já apagou a sessão antiga; o Wisp continua numa sessão nova, sem o contexto de antes                                                                                        |
+| "O Claude Code começou no modo …"            | Uma política do `settings.json` (ou da empresa) escolheu outro modo, ou a sua conta não tem o Automático                                                                        |
+| O modo voltou para Pedir sozinho             | Um plano aprovado com **Aprovar** volta para o Pedir, como no Claude Code. Use **Aprovar e aceitar edições**                                                                    |
+| O "Permitir sempre" não pegou                | Comandos compostos (`;`, `&&`, `\|`), perigosos (`rm`, `sudo`, `curl`…) ou com segredos valem só exatos                                                                         |
+| A pílula de uso não aparece                  | Ela surge depois da primeira resposta; versões antigas do Claude Code não mandam o uso do plano                                                                                 |
+| "O Wisp não está ouvindo as sessões"         | Outro Wisp já está aberto, ou `$XDG_RUNTIME_DIR` não é uma pasta só sua. O motivo aparece na aba Sessões                                                                        |
+| A sessão do terminal não aparece             | Confira se os hooks estão instalados na aba Sessões; uma sessão já aberta aparece na próxima mensagem                                                                           |
+| O botão Terminal não traz a janela           | Funciona no KDE e no X11. No GNOME com Wayland não há como: use o botão **Pasta**                                                                                               |
+| Um card ficou parado na aba Sessões          | **Responder no terminal** devolve a decisão para lá; ele também some sozinho quando o prazo do hook acaba                                                                       |
+| Os olhos não seguem o cursor                 | No Wayland, eles só o seguem quando o cursor passa pelo mascote ou pelo painel (limite do XWayland)                                                                             |
+| Sem som                                      | Confira o alto-falante ao lado da pílula do modelo (ou `sound` no `config.json`) e o `volume`, de 0 a 1                                                                         |
+| Ele cochila enquanto eu leio                 | Aumente `sleepAfterMinutes` no `config.json`, ou ponha `0` para ele nunca cochilar                                                                                              |
+| O menu do mascote não fecha com Esc          | Clique fora dele: o mascote não recebe o foco do teclado, para não roubar o de quem está trabalhando                                                                            |
+| O GNOME pede o atalho toda vez que abro      | É o GNOME que não lembra; use `"shortcut": null` e um atalho do sistema para `wisp --toggle` (veja acima)                                                                       |
+| "Ctrl+Alt+W já é usado por outro programa"   | Troque `shortcut` no `config.json` (por exemplo, `"Super+Space"`); vale na hora                                                                                                 |
+| "Este desktop não tem o portal de atalhos"   | O Wayland do seu desktop não tem o `GlobalShortcuts`: ligue um atalho do sistema a `wisp --toggle`                                                                              |
+| O lembrete não avisou                        | O Wisp precisa estar aberto na hora; os que venceram com ele fechado avisam quando ele abre                                                                                     |
+| "Nenhum player de música aberto"             | O player precisa falar MPRIS (Spotify, Firefox, Chrome, VLC, Rhythmbox…); no navegador, a aba precisa tocar                                                                     |
+| "O sistema não deixou tirar o print"         | O print foi negado antes, e o desktop lembra. Para perguntar de novo, rode o comando abaixo da tabela                                                                           |
+| O chip do que copiei não aparece             | Ele aparece ao abrir o painel com algo novo copiado; senhas do KeePassXC não aparecem; veja `clipboardChip`                                                                     |
+| O terminal não abre, ou abre o errado        | Diga qual usar em `terminalCommand` (por exemplo, `"kitty"` ou `"konsole --workdir {dir}"`)                                                                                     |
+| "Não achei um Chrome, Chromium…"             | O navegador do Claude precisa de um Chromium fora do Snap; instale um ou diga o caminho em `browserExecutable`                                                                  |
+| A janela do navegador do Claude não abre     | Ligou o `browserAutomation` com uma conversa aberta? Ele vale a partir da próxima conversa (Ctrl+K)                                                                             |
+| "Para eu entender a sua voz, instale…"       | Instale o whisper.cpp (veja [Voz](#voz)) ou diga onde está o `whisper-cli` em `whisperPath`                                                                                     |
+| "Falta o modelo de voz do whisper.cpp"       | Baixe o modelo (veja [Voz](#voz)) ou aponte `whisperModel` para o `ggml-*.bin` que você já tem                                                                                  |
+| "O acesso ao microfone foi negado"           | O sistema bloqueou o microfone (no GNOME: Configurações → Privacidade → Microfone)                                                                                              |
+| "Não achei um microfone"                     | Confira se o microfone aparece nas configurações de som do sistema                                                                                                              |
+| A transcrição erra muito                     | Use um modelo maior (`small` ou `medium`) e fale mais perto do microfone; confira `voiceLanguage`                                                                               |
+| Segurei o atalho e ele parou antes de soltar | Ele também para depois de 3 s de silêncio e no máximo em 30 s, caso o soltar da tecla se perca                                                                                  |
+| "Abre o X" foi para o Claude                 | O nome não bateu com o de um app instalado; o Claude procura melhor. Veja o nome com "quais apps eu tenho?"                                                                     |
+| O volume não muda                            | Instale o `wireplumber` (`wpctl`) ou o `pulseaudio-utils` (`pactl`); sem eles, muda só o volume do player                                                                       |
 
 Para o GNOME perguntar de novo se o Wisp pode tirar prints (ele guarda o "Negar"):
 

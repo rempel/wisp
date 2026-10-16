@@ -105,6 +105,15 @@ export interface WispConfig {
   provider: 'subscription' | 'openrouter'
   /** O modelo da OpenRouter ("provedor/modelo"); null até escolher um. */
   openrouterModel: string | null
+  /**
+   * Aprovar pelo celular (Fase 18), pelo ntfy. Liga só depois de o celular responder ao teste do
+   * pareamento (pela tela de configurações); os tópicos ficam no chaveiro do sistema.
+   */
+  phoneApprovals: boolean
+  /** O servidor do ntfy do pareamento (o público, ou um seu). */
+  phoneServer: string
+  /** Segundos que um card espera antes de ir para o celular; 0: só com a tela bloqueada. */
+  phoneAfterSeconds: number
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -145,7 +154,10 @@ function defaults(): WispConfig {
     calendarAlertMinutes: 10,
     weeklySummary: true,
     provider: 'subscription',
-    openrouterModel: null
+    openrouterModel: null,
+    phoneApprovals: false,
+    phoneServer: 'https://ntfy.sh',
+    phoneAfterSeconds: 60
   }
 }
 
@@ -236,7 +248,13 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   calendarAlertMinutes: z.number().int().min(0).max(240),
   weeklySummary: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
-  openrouterModel: z.string().regex(MODEL_NAME).nullable()
+  openrouterModel: z.string().regex(MODEL_NAME).nullable(),
+  phoneApprovals: z.boolean(),
+  phoneServer: z
+    .string()
+    .max(300)
+    .regex(/^https?:\/\/[^\s?#@]+$/, 'precisa ser um endereço http(s)'),
+  phoneAfterSeconds: z.number().int().min(0).max(3600)
 }
 
 const ConfigSchema = z.object(

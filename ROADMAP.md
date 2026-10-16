@@ -688,9 +688,11 @@ Notas da entrega:
 numa aba no terminal, pela OpenRouter, o Claude Code de verdade pede um comando, o card do Wisp
 aparece e libera, e voltando ao chat a conversa está lá, inteira.
 
-### Fase 18: aprovar pelo celular
+### Fase 18: aprovar pelo celular ✅
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/celular.mjs`, com um ntfy
+de mentira (tocar num botão é o que o app do ntfy faz: mandar o corpo dele para o endereço dele)
+e o chaveiro de mentira.
 
 - **Aprovar e negar pelo celular (G),** quando você não está no computador, pelo
   [ntfy](https://ntfy.sh) (o servidor público ou um seu), com o app do ntfy no celular. O KDE
@@ -713,6 +715,18 @@ aparece e libera, e voltando ao chat a conversa está lá, inteira.
   - **Nada da conversa no canal:** só o resumo do pedido (o comando, o arquivo, o site), cortado
     em 160 caracteres. A escuta das respostas só fica aberta com um pedido no celular.
   - desligado por padrão.
+
+Notas da entrega:
+
+- o HMAC pensado no começo não protegia nada a mais: quem lê o tópico dos pedidos veria os
+  corpos assinados. Ficaram as fichas sorteadas por card, de uso único, e o segredo são os
+  tópicos (no chaveiro);
+- o canal é lido do chaveiro ao ligar e fica na memória: com a tela bloqueada, ler o chaveiro
+  poderia pedir a senha e travar o pedido;
+- a escuta das respostas abre antes de o pedido sair (e pede o que chegou desde um segundo
+  antes), para um toque rápido não se perder;
+- as sessões do terminal (aba Sessões) ficaram de fora por enquanto: valem as conversas do
+  painel.
 
 **Aceite:** com a tela bloqueada, o Claude pede um comando; o celular recebe o pedido com
 Permitir e Negar, e tocar em Permitir libera o card do computador; sem resposta em 2 minutos, ele
