@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JSX, KeyboardEvent, ReactNode } from 'react'
+import { AVATAR_LABELS, AVATARS } from '../../shared/avatars'
+import type { AvatarName } from '../../shared/avatars'
 import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type {
   OpenRouterKeyResult,
@@ -175,6 +177,21 @@ export function SettingsView(): JSX.Element {
         </Section>
 
         <Section title="Mascote e sons">
+          <Row
+            label="Avatar"
+            hint="O mascote, a ilha e o avatar do painel. Também no botão direito do mascote."
+          >
+            <select
+              value={values.avatar}
+              onChange={(event) => void save({ avatar: event.target.value as AvatarName })}
+            >
+              {AVATARS.map((avatar) => (
+                <option key={avatar} value={avatar}>
+                  {AVATAR_LABELS[avatar]}
+                </option>
+              ))}
+            </select>
+          </Row>
           <Toggle
             label="Ilha no topo"
             hint="No lugar do mascote flutuante, uma cápsula no centro do topo da tela com o Wisp em miniatura e o que ele está fazendo. Cresce com o cursor; o clique abre o painel logo abaixo."

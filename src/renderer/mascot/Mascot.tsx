@@ -10,7 +10,9 @@ import type {
   VoiceStatus
 } from '../../shared/ipc'
 import { makeThumbnail } from '../common/thumbnail'
+import type { AvatarName } from '../../shared/avatars'
 import { AccessoryArt } from './Accessory'
+import { Body } from './Bodies'
 import { SoundPlayer } from './sounds'
 import { VoiceCapture, VoiceSpeaker } from './voice'
 
@@ -22,11 +24,6 @@ const QUICK_CLICK_MS = 600
 const PET_MS = 2000
 /** O arquivo solto voa para dentro da gota; o painel abre depois do gole (ms). */
 const ABSORB_SEND_MS = 650
-
-/** Silhueta da gota: base redonda e ponta para cima, onde a antena encaixa. */
-const DROP_PATH =
-  'M 64 30 C 69 41 89 56 89 79 C 89 92.8 77.8 104 64 104 ' +
-  'C 50.2 104 39 92.8 39 79 C 39 56 59 41 64 30 Z'
 
 /** O brilho extra que pisca a cada pedaço de texto da resposta. */
 const PULSE_KEYFRAMES: Keyframe[] = [
@@ -191,6 +188,7 @@ export default function Mascot(): JSX.Element {
   const [dropOver, setDropOver] = useState(false)
   const [absorbing, setAbsorbing] = useState<{ x: number; y: number; key: number } | null>(null)
   const [accessory, setAccessory] = useState<Accessory | null>(null)
+  const [avatar, setAvatar] = useState<AvatarName>('robo')
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
   const [island, setIsland] = useState<MascotIsland>(null)
 
@@ -248,6 +246,7 @@ export default function Mascot(): JSX.Element {
     })
     const offAccessory = window.wisp.mascot.onAccessory(setAccessory)
     const offIsland = window.wisp.mascot.onIsland(setIsland)
+    const offAvatar = window.wisp.mascot.onAvatar(setAvatar)
     const offSound = window.wisp.mascot.onSound((name, volume) => {
       player.current ??= new SoundPlayer()
       // O último som e quantos já tocaram, para depurar (e para os testes) sem ouvir.
@@ -298,6 +297,7 @@ export default function Mascot(): JSX.Element {
       offReact()
       offAccessory()
       offIsland()
+      offAvatar()
       offSound()
       offCustom()
       offVoice()
@@ -448,6 +448,7 @@ export default function Mascot(): JSX.Element {
   const eyes = eyesFor(view.state, reaction)
   const classes = [
     'stage',
+    `avatar-${avatar}`,
     `state-${view.state}`,
     `look-${view.look}`,
     reaction && `react-${reaction}`,
@@ -545,7 +546,10 @@ export default function Mascot(): JSX.Element {
                 <div className="antenna-pose" aria-hidden>
                   <div className="antenna">
                     <svg className="layer" viewBox="0 0 128 128">
-                      <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
+                      {/* No fantasminha, a luz flutua sozinha, sem a haste. */}
+                      {avatar === 'robo' && (
+                        <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
+                      )}
                       <circle className="led" cx="64" cy="15" r="3.3" />
                     </svg>
                     <div className="antenna-glow">
@@ -572,28 +576,7 @@ export default function Mascot(): JSX.Element {
                 {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
                 desenhado uma vez só. */}
                 <div className="body" aria-hidden>
-                  <svg className="layer" viewBox="0 0 128 128">
-                    <path className="shell" d={DROP_PATH} />
-                    <path className="gloss" d="M 47 60 Q 50 52 57 49" />
-                    <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
-                    <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
-                    <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
-                    <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
-                    <path className="visor-glare" d="M 50 73 L 57 73" />
-                    <circle className="bolt" cx="39.4" cy="80" r="3.6" />
-                    <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
-                    <circle className="bolt" cx="88.6" cy="80" r="3.6" />
-                    <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
-                    <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
-                    <rect
-                      className="collar-light"
-                      x="61.3"
-                      y="29.6"
-                      width="5.4"
-                      height="1.1"
-                      rx="0.5"
-                    />
-                  </svg>
+                  <Body avatar={avatar} />
                 </div>
 
                 {/* Bochechas de LED, no carinho. */}

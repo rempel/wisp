@@ -1,5 +1,6 @@
 // Contrato de IPC entre main, preload e renderer.
 
+import type { AvatarName } from './avatars'
 import type { DropZone, Layout } from './layout'
 
 export const IPC = {
@@ -29,6 +30,8 @@ export const IPC = {
   mascotReact: 'mascot:react',
   /** main → mascote: o acessório do dia. Arg: Accessory | null. */
   mascotAccessory: 'mascot:accessory',
+  /** main → mascote: o avatar escolhido (Fase 19). Arg: AvatarName. */
+  mascotAvatar: 'mascot:avatar',
   mascotIsland: 'mascot:island',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
@@ -761,6 +764,7 @@ export interface Settings {
   volume: number
   sleepAfterMinutes: number
   accessory: 'auto' | 'none' | 'christmas' | 'summer'
+  avatar: AvatarName
   shortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
@@ -792,6 +796,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'volume',
   'sleepAfterMinutes',
   'accessory',
+  'avatar',
   'shortcut',
   'voiceShortcut',
   'clipboardChip',
@@ -970,6 +975,8 @@ export interface WispApi {
     onGaze(listener: (gaze: Gaze | null) => void): () => void
     onReact(listener: (reaction: MascotReaction) => void): () => void
     onAccessory(listener: (accessory: Accessory | null) => void): () => void
+    /** O avatar escolhido (o robô, o fantasminha). */
+    onAvatar(listener: (avatar: AvatarName) => void): () => void
     /** A ilha: aberta ou recolhida, o texto e o tom (null: fora da ilha). */
     onIsland(listener: (island: MascotIsland) => void): () => void
     /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */

@@ -48,6 +48,11 @@ test('grava a conversa: o texto em pedaços vira um só, e o que não importa fi
 })
 
 test('lista, reabre numa sessão nova (cópia) e apaga', () => {
+  // A lista vem da mais nova para a mais velha: no mesmo milissegundo, a ordem ficaria ao acaso.
+  const before = Date.now()
+  while (Date.now() === before) {
+    // Espera o relógio andar.
+  }
   const second = new History()
   second.user(B, 'Outra conversa', [])
   second.record({ type: 'turn-end', outcome: 'done' })

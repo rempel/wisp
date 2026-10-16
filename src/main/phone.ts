@@ -373,7 +373,8 @@ export interface PhoneDeps {
 interface Waiting {
   id: string
   summary: PhoneSummary
-  since: number
+  /** Já esperou o phoneAfterSeconds (marcado pelo próprio timer). */
+  due: boolean
   timer: NodeJS.Timeout | null
 }
 
@@ -402,8 +403,15 @@ export class PhoneApprovals {
     const summary = summarize(toolName, input)
     if (!summary) return
     const after = this.deps.afterMs()
-    const entry: Waiting = { id, summary, since: Date.now(), timer: null }
-    if (after > 0) entry.timer = setTimeout(() => this.pump(), after)
+    const entry: Waiting = { id, summary, due: false, timer: null }
+    // O próprio timer marca a hora: comparar com o Date.now() falharia quando ele dispara um
+    // milissegundo antes, e o card nunca iria.
+    if (after > 0) {
+      entry.timer = setTimeout(() => {
+        entry.due = true
+        this.pump()
+      }, after)
+    }
     this.waiting.set(id, entry)
     this.pump()
   }
@@ -447,9 +455,7 @@ export class PhoneApprovals {
   }
 
   private eligible(entry: Waiting): boolean {
-    if (this.locked) return true
-    const after = this.deps.afterMs()
-    return after > 0 && Date.now() - entry.since >= after
+    return this.locked || entry.due
   }
 
   /** Manda o card mais antigo que já pode ir, se nenhum está no celular. */

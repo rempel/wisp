@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
+import type { AvatarName } from '../shared/avatars'
 import type {
   Accessory,
   AgendaItem,
@@ -44,6 +45,7 @@ const api: WispApi = {
     onGaze: (listener) => subscribe<[Gaze | null]>(IPC.mascotGaze, listener),
     onReact: (listener) => subscribe<[MascotReaction]>(IPC.mascotReact, listener),
     onAccessory: (listener) => subscribe<[Accessory | null]>(IPC.mascotAccessory, listener),
+    onAvatar: (listener) => subscribe<[AvatarName]>(IPC.mascotAvatar, listener),
     onIsland: (listener) => subscribe<[MascotIsland]>(IPC.mascotIsland, listener),
     onSound: (listener) => subscribe<[SoundName, number]>(IPC.mascotSound, listener),
     // Os bytes chegam como Uint8Array (o Buffer do main); a página quer o ArrayBuffer.

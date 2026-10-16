@@ -12,6 +12,8 @@ import { z } from 'zod'
 import { CONFIG_DIR } from './paths'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
+import { AVATARS } from '../shared/avatars'
+import type { AvatarName } from '../shared/avatars'
 
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
@@ -46,6 +48,8 @@ export interface WispConfig {
   sleepAfterMinutes: number
   /** Acessórios por data: "auto" segue o calendário, "none" desliga; ou um fixo. */
   accessory: AccessorySetting
+  /** O avatar do Wisp: "robo" (a gotinha) ou "fantasma" (o fantasminha). */
+  avatar: AvatarName
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -132,6 +136,7 @@ function defaults(): WispConfig {
     volume: 0.5,
     sleepAfterMinutes: 3,
     accessory: 'auto',
+    avatar: 'robo',
     shortcut: 'Ctrl+Alt+W',
     clipboardChip: true,
     terminalCommand: null,
@@ -225,6 +230,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   volume: z.number().min(0).max(1),
   sleepAfterMinutes: z.number().min(0),
   accessory: z.enum(ACCESSORY_SETTINGS),
+  avatar: z.enum(AVATARS),
   shortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
