@@ -12,6 +12,7 @@ import type {
   SettingsSnapshot
 } from '../../shared/ipc'
 import { acceleratorOf } from './accelerator'
+import { PromptsSection, TasksSection } from './AutomationSection'
 import { MODE_TEXT } from './modes'
 import { QrCode } from './QrCode'
 import { SkillsSection } from './SkillsSection'
@@ -19,7 +20,7 @@ import { VoiceTest } from './VoiceTest'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
-type Save = (patch: Patch) => Promise<void>
+type Save = (patch: Patch) => Promise<boolean>
 
 const MODEL_LABELS: Record<string, string> = {
   haiku: t('Haiku (rápido)'),
@@ -100,6 +101,7 @@ export function SettingsView({
       return next
     })
     if (result.ok) setSaved(Date.now())
+    return result.ok
   }
 
   return (
@@ -207,11 +209,19 @@ export function SettingsView({
           >
             <ListInput
               value={values.extraAllowedTools}
-              placeholder="nenhuma"
+              placeholder={t('nenhuma')}
               onCommit={(extraAllowedTools) => save({ extraAllowedTools })}
             />
           </Row>
         </Section>
+
+        <PromptsSection prompts={values.prompts} error={errors.prompts} save={save} />
+        <TasksSection
+          tasks={values.scheduledTasks}
+          runs={snapshot.taskRuns}
+          error={errors.scheduledTasks}
+          save={save}
+        />
 
         <Section title={t('Mascote e sons')}>
           <Row
@@ -899,7 +909,7 @@ function ZoomRow({
   onCommit
 }: {
   value: number
-  onCommit: (value: number) => Promise<void>
+  onCommit: (value: number) => Promise<unknown>
 }): JSX.Element {
   const step = (delta: number): void => {
     const next = Math.round(Math.min(2, Math.max(0.7, value + delta)) * 10) / 10
@@ -1024,7 +1034,7 @@ function TextInput({
 }: {
   value: string
   placeholder?: string
-  onCommit: (value: string) => Promise<void>
+  onCommit: (value: string) => Promise<unknown>
 }): JSX.Element {
   const [draft, setDraft] = useState(value)
   // Mudou por fora (no arquivo, por outra tela): o campo acompanha.
@@ -1061,7 +1071,7 @@ function NumberInput({
   onCommit
 }: {
   value: number
-  onCommit: (value: number) => Promise<void>
+  onCommit: (value: number) => Promise<unknown>
 }): JSX.Element {
   const [draft, setDraft] = useState(String(value))
   const [seen, setSeen] = useState(value)
@@ -1097,7 +1107,7 @@ function ListInput({
 }: {
   value: string[]
   placeholder?: string
-  onCommit: (value: string[]) => Promise<void>
+  onCommit: (value: string[]) => Promise<unknown>
 }): JSX.Element {
   const text = value.join('\n')
   const [draft, setDraft] = useState(text)
@@ -1131,7 +1141,7 @@ function ShortcutInput({
   onCommit
 }: {
   value: string | null
-  onCommit: (value: string | null) => Promise<void>
+  onCommit: (value: string | null) => Promise<unknown>
 }): JSX.Element {
   const [listening, setListening] = useState(false)
   const field = useRef<HTMLButtonElement>(null)

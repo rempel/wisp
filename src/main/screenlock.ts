@@ -51,6 +51,7 @@ export class ScreenLock extends EventEmitter {
 
   private set(source: string, value: boolean): void {
     const before = this.locked
+    if (this.sources.get(source) !== value) console.info(`[wisp] tela: ${source} = ${value}`)
     this.sources.set(source, value)
     if (this.locked !== before) this.emit('change', this.locked)
   }

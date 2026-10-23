@@ -180,7 +180,12 @@ const api: WispApi = {
     onChanged: (listener) => subscribe<[SettingsSnapshot]>(IPC.settingsChanged, listener),
     openFile: (which) => ipcRenderer.send(IPC.settingsOpenFile, which),
     relaunch: () => ipcRenderer.send(IPC.settingsRelaunch),
+    runTask: (id) => ipcRenderer.invoke(IPC.settingsRunTask, id),
     onShow: (listener) => subscribe<[]>(IPC.settingsShow, listener)
+  },
+  prompts: {
+    list: () => ipcRenderer.invoke(IPC.promptsList),
+    expand: (conversation, name) => ipcRenderer.invoke(IPC.promptsExpand, conversation, name)
   },
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),

@@ -27,11 +27,14 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Para a comunidade** (Fase 25): a interface em inglês (pelo idioma do sistema ou nas
   configurações, e o Claude responde no mesmo idioma); pacotes para ARM64 e o Flatpak; estas notas
   e o guia de contribuição.
+- **Prompts salvos e tarefas agendadas** (Fase 26): pedidos prontos no menu da barra, com a pasta, o
+  que foi copiado, a data e a hora; e prompts que rodam sozinhos num horário, numa aba nova, sempre
+  no modo Pedir.
 
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
-- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`).
+- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts` e `scheduledTasks`.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
 - O CI monta e confere os pacotes ARM64 e o Flatpak.
 

@@ -26,6 +26,7 @@ export function SlashMenu({
           onClick={() => onPick(command)}
         >
           <strong>/{command.name}</strong>
+          {command.prompt && <em className="slash-saved">{t('prompt salvo')}</em>}
           {command.description && <span>{command.description}</span>}
         </button>
       ))}

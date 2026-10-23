@@ -954,12 +954,28 @@ Notas da entrega:
 **Aceite:** num sistema em inglês, o Wisp abre em inglês; o Flatpak e o .deb ARM64 passam no
 teste dos pacotes.
 
-### Fase 26: prompts salvos e tarefas agendadas
+### Fase 26: prompts salvos e tarefas agendadas ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/agendadas.mjs` (o menu da
+barra com um prompt salvo e uma tarefa marcada para o minuto seguinte, com o painel fechado).
 
 - **Prompts salvos (M):** uma lista de pedidos prontos ("revisa o diff", "escreve o commit"),
   com variáveis (a pasta, o que foi copiado), no menu da barra.
 - **Tarefas agendadas (G):** um prompt que roda num horário ("todo dia às 9h, o resumo dos
   PRs"), sempre no modo Pedir: o que muda a máquina espera o seu clique, como hoje.
+
+Notas da entrega:
+
+- o prompt escolhido no menu vira texto na caixa, para revisar: nada é mandado sozinho. A área de
+  transferência só é lida quando o prompt usa `{copiado}` e você o escolhe; uma tarefa nunca a lê;
+- a tarefa abre uma aba nova no modo Pedir, qualquer que seja o padrão do config.json, e o card
+  segue o caminho de sempre (o painel, a notificação, o celular). As ferramentas liberadas nas
+  configurações continuam liberadas, como em qualquer conversa;
+- o horário é o do computador. Uma tarefa nova (ou com o horário mudado) conta a partir de agora:
+  nada do passado roda. Com o Wisp fechado na hora, ela roda ao abrir, até 2 horas depois, e
+  avisa que atrasou; cada hora roda uma vez só (o `tarefas.json` lembra);
+- com 12 abas abertas, a tarefa não roda, e uma notificação diz por quê;
+- o temporizador acorda no máximo uma vez por minuto, e só com tarefas ligadas.
 
 **Aceite:** uma tarefa das 9h roda com o painel fechado, e o card dela espera você (ou vai para
 o celular, se ligado).

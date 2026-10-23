@@ -178,7 +178,12 @@ check(
   JSON.stringify({
     summary,
     shown: notifications().shown.map((n) => [n.summary, n.body.slice(0, 80)]),
-    transcript: (await transcript()).slice(-400)
+    transcript: (await transcript()).slice(-400),
+    // O que o app anotou sobre a tela (bloqueada ou não), de cada fonte.
+    log: readFileSync(join(home.home, 'wisp.log'), 'utf8')
+      .split('\n')
+      .filter((line) => /tela/.test(line))
+      .slice(-10)
   })
 )
 check(
