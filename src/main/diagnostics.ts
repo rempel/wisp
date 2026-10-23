@@ -448,11 +448,11 @@ export function buildReport(facts: Facts, checks: DiagnosticCheck[]): string {
               : t('login não conferido')
       }`
   const lines = [
-    '### Diagnóstico do Wisp',
+    t('### Diagnóstico do Wisp'),
     '',
     `- **Wisp:** ${clean(facts.app.version, 20)} (${INSTALLS[facts.app.install]}), Electron ${clean(facts.app.electron, 20)}, Node ${clean(facts.app.node, 20)}`,
     `- **Sistema:** ${clean(facts.os.name, 60) || 'Linux'}, kernel ${clean(facts.os.kernel, 40)}, ${clean(facts.os.arch, 10)}`,
-    `- **Desktop:** ${clean(facts.desktop.name, 40) || 'desconhecido'}, ${facts.desktop.session === 'outra' ? t('sessão desconhecida') : facts.desktop.session === 'x11' ? 'X11' : t('Wayland')}`,
+    `- **Desktop:** ${clean(facts.desktop.name, 40) || t('desconhecido')}, ${facts.desktop.session === 'outra' ? t('sessão desconhecida') : facts.desktop.session === 'x11' ? 'X11' : t('Wayland')}`,
     `- **Claude Code:** ${claude}`,
     `- **Ligado:** ${facts.features.length ? facts.features.join(', ') : t('nada além do básico')}`,
     '',

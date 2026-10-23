@@ -1,8 +1,9 @@
-import { t } from './i18n'
 // O que um comando do terminal faz, em uma linha (Fase 24): o card do Bash e a notificação
 // mostram isto ao lado do comando, para os programas conhecidos. É uma explicação independente da
 // descrição que o próprio Claude dá ao pedido (que pode estar errada). Não decide nada: o que
 // libera ou não continua sendo o seu clique.
+
+import { t } from './i18n'
 
 type Explainer = string | ((args: string[]) => string | null)
 

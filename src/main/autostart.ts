@@ -17,7 +17,7 @@ function entry(icon: string): string {
     '[Desktop Entry]',
     'Type=Application',
     'Name=Wisp',
-    'Comment=Abre o Wisp quando você entra na sessão',
+    `Comment=${t('Abre o Wisp quando você entra na sessão')}`,
     `Exec=${desktopExec()}`,
     `Icon=${icon}`,
     'Terminal=false',

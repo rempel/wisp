@@ -161,7 +161,11 @@ function run(
     })
     child.on('error', (err) => {
       clearTimeout(timer)
-      reject(new WhisperError(`Não consegui rodar o whisper.cpp (${err.message}).`))
+      reject(
+        new WhisperError(
+          t('Não consegui rodar o whisper.cpp ({message}).', { message: err.message })
+        )
+      )
     })
     child.on('close', (code) => {
       clearTimeout(timer)

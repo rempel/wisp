@@ -86,7 +86,7 @@ export function synthesize(text: string, options: PiperOptions): Promise<Speech>
     })
     child.on('error', (err) => {
       clearTimeout(timer)
-      reject(new Error(`não consegui rodar o Piper (${err.message})`))
+      reject(new Error(t('não consegui rodar o Piper ({message})', { message: err.message })))
     })
     child.on('close', (code) => {
       clearTimeout(timer)

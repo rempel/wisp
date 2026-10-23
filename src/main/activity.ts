@@ -280,9 +280,15 @@ export function describeWeek(current: WeekSummary, previous: WeekSummary | null)
       `${plural(current.turns, t('mensagem'), t('mensagens'))}; ` +
       t('o Claude trabalhou {v1}', { v1: formatMinutes(current.claudeMinutes) }) +
       (p ? t(' (antes: {v1})', { v1: formatMinutes(p.claudeMinutes) }) : ''),
-    `- Edições: ${current.edits} (+${current.added} −${current.removed} linhas)`,
-    `- Permissões: ${plural(current.approved, t('aprovada'), t('aprovadas'))}, ` +
-      plural(current.denied, t('negada'), t('negadas'))
+    t('- Edições: {edits} (+{added} −{removed} linhas)', {
+      edits: current.edits,
+      added: current.added,
+      removed: current.removed
+    }),
+    t('- Permissões: {v1}, {v2}', {
+      v1: plural(current.approved, t('aprovada'), t('aprovadas')),
+      v2: plural(current.denied, t('negada'), t('negadas'))
+    })
   ]
   if (current.tools.length) {
     lines.push(

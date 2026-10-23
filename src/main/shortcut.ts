@@ -211,7 +211,10 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
     const accelerator = spec.accelerator as string
     const same = taken.get(accelerator.toLowerCase().replace(/\s+/g, ''))
     if (same) {
-      result.set(spec.id, { via: 'none', problem: `${accelerator} já é o atalho ${same}` })
+      result.set(spec.id, {
+        via: 'none',
+        problem: t('{accelerator} já é o atalho {same}', { accelerator, same })
+      })
       continue
     }
     let keycodes: number[] = []
@@ -229,7 +232,7 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
       if (!registered) {
         result.set(spec.id, {
           via: 'none',
-          problem: `${accelerator} já é usado por outro programa`
+          problem: t('{accelerator} já é usado por outro programa', { accelerator })
         })
         continue
       }
@@ -240,7 +243,10 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
       taken.set(accelerator.toLowerCase().replace(/\s+/g, ''), spec.id)
       result.set(spec.id, { via: 'x11', label: accelerator, releases: watcher !== null })
     } catch {
-      result.set(spec.id, { via: 'none', problem: `"${accelerator}" não é um atalho válido` })
+      result.set(spec.id, {
+        via: 'none',
+        problem: t('"{accelerator}" não é um atalho válido', { accelerator })
+      })
     }
   }
   unbind = () => {
@@ -347,7 +353,7 @@ async function bindWithPortal(
         spec.id,
         found
           ? { via: 'portal', ...labelOf(found), releases: Boolean(spec.release) }
-          : { via: 'none', problem: 'o desktop não ligou o atalho' }
+          : { via: 'none', problem: t('o desktop não ligou o atalho') }
       )
     }
     return result

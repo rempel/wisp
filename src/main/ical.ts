@@ -5,6 +5,8 @@
 // (RDATE, EXDATE), ocorrências alteradas ou canceladas (RECURRENCE-ID) e eventos de dia inteiro.
 // Os fusos vêm do Intl do próprio Node (o banco de fusos do sistema), não do VTIMEZONE do arquivo.
 
+import { t } from '../shared/i18n'
+
 /** Uma ocorrência de um compromisso. */
 export interface Occurrence {
   uid: string
@@ -479,7 +481,7 @@ function parseEvent(props: Prop[]): Parsed | null {
   const recurrence = parseWhen(first(props, 'RECURRENCE-ID'))
   return {
     uid: first(props, 'UID')?.value ?? '',
-    title: unescapeText(first(props, 'SUMMARY')?.value ?? '').trim() || '(sem título)',
+    title: unescapeText(first(props, 'SUMMARY')?.value ?? '').trim() || t('(sem título)'),
     location: unescapeText(first(props, 'LOCATION')?.value ?? '').trim(),
     start,
     duration,

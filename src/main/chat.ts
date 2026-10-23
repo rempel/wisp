@@ -959,7 +959,7 @@ export function setupChat({
     async (event, data: unknown, type: unknown): Promise<PastedImage> => {
       const bytes = bytesOf(data)
       if (!fromChat(event) || !bytes || typeof type !== 'string')
-        return { error: 'pedido inválido' }
+        return { error: t('pedido inválido') }
       try {
         return await savePasted(bytes, type)
       } catch (err) {
@@ -981,11 +981,11 @@ export function setupChat({
       return { files, problems: [] }
     } catch (err) {
       const reason = err instanceof CaptureError ? err.message : (err as Error).message
-      return { files: [], problems: [`Não consegui tirar o print: ${reason}.`] }
+      return { files: [], problems: [t('Não consegui tirar o print: {reason}.', { reason })] }
     }
   })
   ipcMain.handle(IPC.chatClipboardUse, async (event, id: unknown): Promise<ClipboardUse> => {
-    if (!fromChat(event) || typeof id !== 'string') return { error: 'pedido inválido' }
+    if (!fromChat(event) || typeof id !== 'string') return { error: t('pedido inválido') }
     clipboardOffered = null
     return clipboardChip.use(id)
   })
@@ -1105,20 +1105,20 @@ export function setupChat({
     }))
   ipcMain.handle(IPC.tabsProjects, (event): FolderChoice[] => (fromChat(event) ? projects() : []))
   ipcMain.handle(IPC.tabsOpenFolder, async (event, path: unknown): Promise<FolderResult> => {
-    if (!fromChat(event)) return { ok: false, message: 'pedido inválido' }
+    if (!fromChat(event)) return { ok: false, message: t('pedido inválido') }
     let chosen: string | null
     if (typeof path === 'string') {
       // Da página, só um projeto da lista; outra pasta, só escolhida no diálogo do sistema.
       if (!projects().some((project) => project.path === path)) {
-        return { ok: false, message: 'Essa pasta não está nas suas pastas de projetos.' }
+        return { ok: false, message: t('Essa pasta não está nas suas pastas de projetos.') }
       }
       chosen = path
     } else {
-      chosen = await pickFolder('Abrir uma pasta numa conversa', homedir(), win)
+      chosen = await pickFolder(t('Abrir uma pasta numa conversa'), homedir(), win)
       if (!chosen) return { ok: false }
     }
     const folder = usableFolder(chosen)
-    if (!folder) return { ok: false, message: 'Não dá para abrir essa pasta numa conversa.' }
+    if (!folder) return { ok: false, message: t('Não dá para abrir essa pasta numa conversa.') }
     const conversation = addChatTab(makeConversation(undefined, undefined, folder))
     if (win) show(win)
     // Se a pasta tiver hooks ou ferramentas liberadas, o card de confiança já aparece.
