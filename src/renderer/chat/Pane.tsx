@@ -37,7 +37,8 @@ import { QuestionCard } from './QuestionCard'
 import { matchCommands, slashQuery } from './slash'
 import type { SlashCommand } from './slash'
 import { SlashMenu } from './SlashMenu'
-import { awaitingPermission } from './state'
+import { FindBar } from './FindBar'
+import { awaitingPermission, lastTurnStart } from './state'
 import type { ChatState, Item } from './state'
 import { TerminalView } from './TerminalView'
 import { ToolCard } from './ToolCard'
@@ -45,12 +46,40 @@ import { useAttachments } from './useAttachments'
 
 /** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
 const STICK_DISTANCE = 48
+/** Quanto esperar o fim da digitação para guardar o rascunho (ms). */
+const DRAFT_SAVE_MS = 400
 
-function Message({ item, streaming }: { item: Item; streaming: boolean }): JSX.Element {
+/**
+ * O rascunho de cada conversa, enquanto o painel está aberto: a caixa de uma aba que sai da tela
+ * e volta continua com o que tinha (o main guarda para a próxima abertura do Wisp).
+ */
+const drafts = new Map<string, string>()
+
+function Message({
+  item,
+  streaming,
+  onEdit
+}: {
+  item: Item
+  streaming: boolean
+  /** A última mensagem dá para editar (com o Claude parado). */
+  onEdit?: () => void
+}): JSX.Element {
   switch (item.kind) {
     case 'user':
       return (
-        <div className="user-turn">
+        <div className={`user-turn${onEdit ? ' editable' : ''}`}>
+          {onEdit && (
+            <button
+              type="button"
+              className="edit-last"
+              onClick={onEdit}
+              title="Editar e mandar de novo (↑ na caixa vazia)"
+              aria-label="Editar a última mensagem"
+            >
+              Editar
+            </button>
+          )}
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
           {item.text && (
             <div
@@ -135,8 +164,11 @@ export interface PaneProps {
   demo: boolean
   /** O próximo compromisso da agenda, para o painel vazio (null: nenhum). */
   agenda: AgendaItem | null
-  /** O usuário mandou uma mensagem: ela aparece na hora, sem esperar o main. */
-  onSent: (text: string, attachments: AttachmentPreview[]) => void
+  /**
+   * O usuário mandou uma mensagem: ela aparece na hora, sem esperar o main. `replace`: ela troca
+   * a última (a edição), que sai com o que veio depois.
+   */
+  onSent: (text: string, attachments: AttachmentPreview[], replace?: boolean) => void
 }
 
 /** O que a demonstração sugere pedir (cada um tem uma resposta gravada). */
@@ -167,7 +199,16 @@ export function Pane({
   agenda,
   onSent
 }: PaneProps): JSX.Element {
-  const [draft, setDraft] = useState('')
+  const [draft, setDraft] = useState(() => drafts.get(conversation) ?? state.draft ?? '')
+  // O rascunho guardado chega do main depois de o painel abrir: entra se a caixa está vazia.
+  const [seenDraft, setSeenDraft] = useState(state.draft)
+  if (state.draft !== seenDraft) {
+    setSeenDraft(state.draft)
+    if (!draft && state.draft) setDraft(state.draft)
+  }
+  // Editando a última mensagem (Fase 21): o que estava na caixa antes, para voltar se desistir.
+  const [editing, setEditing] = useState<{ before: string; attachments: number } | null>(null)
+  const [finding, setFinding] = useState(false)
   const attachments = useAttachments()
   // O menu dos comandos com barra: o item escolhido e se foi fechado (Esc) para este texto.
   const [slashIndex, setSlashIndex] = useState(0)
@@ -217,11 +258,30 @@ export function Pane({
         } else if (message.type === 'drop') {
           addDropped(message.data)
           input.current?.focus()
+        } else if (message.type === 'find') {
+          if (viewRef.current !== 'terminal') setFinding(true)
         } else if (!window.getSelection()?.toString()) {
           input.current?.focus()
         }
       }),
     [bus, conversation, addPrepared, addDropped]
+  )
+
+  // O rascunho: na hora para a aba que sai da tela e volta, e no main (para a próxima abertura
+  // do Wisp) depois de parar de digitar. Editando a última mensagem, a caixa não é rascunho.
+  useEffect(() => {
+    if (editing) return
+    drafts.set(conversation, draft)
+    const timer = window.setTimeout(
+      () => window.wisp.chat.saveDraft(conversation, draft),
+      DRAFT_SAVE_MS
+    )
+    return () => window.clearTimeout(timer)
+  }, [draft, conversation, editing])
+  // O painel saiu da tela no meio da digitação: o main fica com o último rascunho.
+  useEffect(
+    () => () => window.wisp.chat.saveDraft(conversation, drafts.get(conversation) ?? ''),
+    [conversation]
   )
 
   // Ganhou o foco (clique, troca de aba): a caixa de texto recebe o cursor.
@@ -281,8 +341,57 @@ export function Pane({
     return true
   }
 
+  // A última mensagem dá para editar com o Claude parado, no chat (no terminal, o Esc Esc dele).
+  const editIndex = !state.busy && !terminalView && !demo ? lastTurnStart(state.items) : -1
+
+  function startEdit(): void {
+    const item = state.items[editIndex]
+    if (!item || item.kind !== 'user') return
+    setEditing({ before: draft, attachments: item.attachments.length })
+    setDraft(item.text)
+    requestAnimationFrame(() => {
+      const box = input.current
+      if (!box) return
+      box.focus()
+      box.setSelectionRange(box.value.length, box.value.length)
+    })
+  }
+
+  function cancelEdit(): void {
+    if (!editing) return
+    setDraft(editing.before)
+    setEditing(null)
+    input.current?.focus()
+  }
+
+  /** Manda a mensagem editada no lugar da última; o main volta a conversa no Claude Code. */
+  async function sendEdit(): Promise<void> {
+    if (!editing) return
+    const text = draft.trim()
+    const files = attachments.pending
+    const ok = await window.wisp.chat.editLast(
+      conversation,
+      text,
+      files.map(({ path, thumbnail }) => ({ path, thumbnail }))
+    )
+    if (!ok) return
+    onSent(
+      text,
+      files.map(({ name, size, thumbnail }) => ({ name, size, thumbnail })),
+      true
+    )
+    setDraft(editing.before)
+    setEditing(null)
+    attachments.clear()
+    stick.current = true
+  }
+
   function send(): void {
     if (!canSend) return
+    if (editing) {
+      void sendEdit()
+      return
+    }
     const text = draft.trim()
     if (runWispCommand(text)) return
     const files = attachments.pending
@@ -339,6 +448,24 @@ export function Pane({
         setSlashClosed(draft)
         return
       }
+    }
+    if (event.key === 'Escape' && editing) {
+      event.preventDefault()
+      event.stopPropagation()
+      cancelEdit()
+      return
+    }
+    // ↑ na caixa vazia edita a última mensagem, como em outros chats.
+    if (
+      event.key === 'ArrowUp' &&
+      !draft &&
+      !attachments.pending.length &&
+      !editing &&
+      editIndex >= 0
+    ) {
+      event.preventDefault()
+      startEdit()
+      return
     }
     if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
       event.preventDefault()
@@ -448,6 +575,15 @@ export function Pane({
           )}
         </div>
       )}
+      {finding && !terminalView && (
+        <FindBar
+          root={list}
+          onClose={() => {
+            setFinding(false)
+            input.current?.focus()
+          }}
+        />
+      )}
       <div className="messages" ref={list} onScroll={onScroll} hidden={terminalView}>
         {/* Na demonstração, as sugestões ficam até a primeira pergunta (os avisos não as tiram). */}
         {(state.items.length === 0 || (demo && !started)) && (
@@ -495,6 +631,7 @@ export function Pane({
             key={`${item.kind}-${position}`}
             item={item}
             streaming={state.busy && item === last}
+            onEdit={position === editIndex && !editing ? startEdit : undefined}
           />
         ))}
         {thinking && (
@@ -529,6 +666,19 @@ export function Pane({
           </div>
         )}
         {state.tasks.length > 0 && <TaskBar tasks={state.tasks} />}
+        {editing && (
+          <div className="edit-banner" role="status">
+            <span>
+              Editando a última mensagem: a resposta dela sai da conversa, e vem uma nova (os
+              arquivos que ela mudou continuam como estão).
+              {editing.attachments > 0 &&
+                ' Os anexos dela não vão junto: anexe de novo se precisar.'}
+            </span>
+            <button type="button" className="link" onClick={cancelEdit}>
+              Cancelar
+            </button>
+          </div>
+        )}
         {slashOpen && (
           <SlashMenu
             commands={slashCommands}

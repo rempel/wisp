@@ -3,7 +3,7 @@ import { homedir } from 'os'
 import { BROWSER_PREFIX, BrowserPolicy } from './browser-policy'
 import { ClaudeSession } from './claude'
 import type { ClaudeOptions } from './claude'
-import { History, titleOf } from './history'
+import { History, rewindPoint, titleOf } from './history'
 import type { ConversationSeed, SavedConversation } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import { folderRisks, isTrusted, tilde, trustFolder } from './folders'
@@ -29,6 +29,8 @@ import type {
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
 /** A ferramenta com que o Claude apresenta o plano, no modo Planejar. */
+/** O tamanho máximo de um rascunho guardado (caracteres). */
+const MAX_DRAFT = 20_000
 export const PLAN_TOOL = 'ExitPlanMode'
 /** O card do Wisp para confiar numa pasta antes de o Claude Code rodar nela (Fase 15). */
 export const TRUST_TOOL = 'wisp_trust_folder'
@@ -89,6 +91,8 @@ export class Conversation {
   title: string | null = null
   /** A pasta de uma sessão trazida do terminal (para a aba mostrar o projeto). */
   project: string | null = null
+  /** O rascunho da caixa de texto (Fase 21): volta com a aba, ao abrir o Wisp de novo. */
+  draft = ''
   /** Quando chegou o card mais recente (o "não" falado nega os da conversa mais recente). */
   lastRequestAt = 0
   private readonly approvals = new Map<
@@ -265,7 +269,7 @@ export class Conversation {
     if (this.session.isBusy()) {
       if (!this.session.canQueue()) return false
       if (!this.options.demo?.()) {
-        this.history.user(this.session.ensureSessionId(), text, files.map(preview), voice)
+        this.history.user(this.session.ensureSessionId(), text, files.map(preview), voice, true)
       }
       void this.session.queue(
         text,
@@ -289,6 +293,37 @@ export class Conversation {
       files.map((file) => file.path)
     )
     return true
+  }
+
+  /** Guarda o rascunho da caixa (cortado em MAX_DRAFT). */
+  setDraft(text: string): void {
+    this.draft = text.slice(0, MAX_DRAFT)
+  }
+
+  /**
+   * Troca a última mensagem por outra (Fase 21): a conversa volta, no Claude Code, para antes
+   * dela (a resposta dela e o que veio depois saem do contexto) e a nova vai no lugar. A página
+   * já tirou a velha e mostrou a nova. Devolve false (com um aviso) se não deu.
+   */
+  editLast(text: string, files: OutgoingAttachment[], preview: PreviewOf): boolean {
+    if (!text.trim() && !files.length) return false
+    if (this.viewMode === 'terminal' || this.session.isBusy()) return false
+    const point = rewindPoint(this.history.events())
+    if (!point) {
+      this.notice(
+        'warning',
+        'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar ' +
+          'onde voltar, ou veio do terminal. Mande a mensagem como uma nova.'
+      )
+      return false
+    }
+    if (!this.session.rewind(point.at)) return false
+    this.history.record({ type: 'rewind' })
+    if (point.at === null) {
+      this.title = titleOf(text, files.map(preview))
+      this.options.host.changed(this)
+    }
+    return this.send(text, files, preview)
   }
 
   /** Mostra na página uma mensagem que não veio da caixa (o --ask, a voz). */
@@ -414,7 +449,8 @@ export class Conversation {
       ...(cost ? [cost] : []),
       ...(context ? [context] : []),
       { type: 'view', view: this.viewMode },
-      { type: 'terminal', terminal: this.terminalStatus() }
+      { type: 'terminal', terminal: this.terminalStatus() },
+      ...(this.draft ? [{ type: 'draft' as const, text: this.draft }] : [])
     ]
   }
 

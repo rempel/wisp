@@ -119,6 +119,20 @@ export const TrashIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** Um alfinete, para fixar uma conversa no topo do histórico. */
+export const PinIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M6 2.5h4M7 2.5v3.5L4.5 8.5h7L9 6V2.5M8 8.5v5" />
+  </Icon>
+)
+
+/** Uma seta para baixo numa bandeja, para exportar. */
+export const DownloadIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M8 2.5v7M5 6.5l3 3 3-3M3 11v1.5a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1V11" />
+  </Icon>
+)
+
 /** Três controles deslizantes, para as configurações. */
 export const SettingsIcon = (): JSX.Element => (
   <Icon>

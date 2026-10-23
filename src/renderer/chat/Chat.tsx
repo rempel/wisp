@@ -296,6 +296,23 @@ export default function Chat(): JSX.Element {
     window.wisp.sound.set(next.enabled)
   }, [])
 
+  /** Exporta a conversa em Markdown; o resultado aparece nela, como um aviso (fora do histórico). */
+  const exportConversation = useCallback(
+    async (conversation: string): Promise<void> => {
+      const result = await window.wisp.chat.exportMarkdown(conversation)
+      if (!result) return
+      apply(conversation, {
+        type: 'events',
+        events: [
+          result.ok
+            ? { type: 'notice', level: 'info', text: `Conversa exportada para \`${result.path}\`.` }
+            : { type: 'notice', level: 'warning', text: result.message }
+        ]
+      })
+    },
+    [apply]
+  )
+
   // Atalhos: Esc fecha (ou volta do histórico); Ctrl+K recomeça a conversa da aba; Ctrl+T abre
   // uma aba; Ctrl+W fecha a aba; Ctrl+Tab e Ctrl+1…9 trocam de aba; Ctrl+\ divide a janela;
   // Ctrl+M liga e desliga os sons. Voltar ao painel devolve o foco para a caixa de texto.
@@ -318,6 +335,17 @@ export default function Chat(): JSX.Element {
         const conversation = focusedConversation()
         if (conversation) window.wisp.chat.newConversation(conversation)
         setView('chat')
+      } else if (plain && key === 'f') {
+        // A busca na conversa em foco (Fase 21).
+        event.preventDefault()
+        setView('chat')
+        const conversation = focusedConversation()
+        if (conversation) bus.emit(conversation, { type: 'find' })
+      } else if (ctrl && event.shiftKey && key === 'e') {
+        // Exportar a conversa em foco em Markdown.
+        event.preventDefault()
+        const conversation = focusedConversation()
+        if (conversation) void exportConversation(conversation)
       } else if (plain && key === 't') {
         event.preventDefault()
         window.wisp.tabs.create()
@@ -372,7 +400,7 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('focus', onFocus)
     }
-  }, [bus, focusedConversation, toggleSound])
+  }, [bus, focusedConversation, toggleSound, exportConversation])
 
   // Arquivos arrastados para qualquer ponto da janela viram anexos do painel em foco. Sem o
   // preventDefault, soltar um arquivo faria a janela navegar até ele.
@@ -421,8 +449,8 @@ export default function Chat(): JSX.Element {
 
   const onSent = useCallback(
     (conversation: string) =>
-      (text: string, attachments: AttachmentPreview[]): void =>
-        apply(conversation, { type: 'user-message', text, attachments }),
+      (text: string, attachments: AttachmentPreview[], replace = false): void =>
+        apply(conversation, { type: 'user-message', text, attachments, replace }),
     [apply]
   )
 

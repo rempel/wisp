@@ -17,3 +17,22 @@ export async function pickFolder(
     : await dialog.showOpenDialog(options)
   return picked.canceled ? null : (picked.filePaths[0] ?? null)
 }
+
+/**
+ * Escolher onde salvar um arquivo pelo diálogo do sistema; null se a pessoa desistiu. Nos testes,
+ * WISP_TEST_SAVE_FILE responde no lugar dele.
+ */
+export async function pickSaveFile(
+  title: string,
+  defaultPath: string,
+  filters: { name: string; extensions: string[] }[],
+  parent: BrowserWindow | null
+): Promise<string | null> {
+  const fake = process.env.WISP_TEST_SAVE_FILE
+  if (fake !== undefined) return fake || null
+  const options = { title, defaultPath, filters }
+  const picked = parent
+    ? await dialog.showSaveDialog(parent, options)
+    : await dialog.showSaveDialog(options)
+  return picked.canceled || !picked.filePath ? null : picked.filePath
+}

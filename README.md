@@ -133,8 +133,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
-- **Fases 18 (aprovar pelo celular), 19 (avatares) e 20 (primeiros passos e diagnóstico):**
-  prontas, esperando a validação com o uso.
+- **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico) e 21
+  (conversa mais fluida):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -405,9 +405,22 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   a entrada e a saída. As edições de arquivo mostram `+N −M` e o diff.
 - **Parar:** o botão de parar (ou Esc, no modo terminal) interrompe na hora; a próxima mensagem
   continua a mesma conversa.
+- **Editar a última mensagem:** com o Claude parado, passe o mouse na sua última mensagem e clique
+  em **Editar** (ou aperte ↑ na caixa vazia). Mande a versão nova: a mensagem velha e a resposta
+  dela saem da conversa e do contexto do Claude, que responde de novo. Por baixo, o Wisp volta a
+  sessão do Claude Code até a resposta anterior, numa cópia (a sessão original continua inteira).
+  Os arquivos que a resposta velha mudou continuam como ficaram.
+- **Buscar:** Ctrl+F busca na conversa da aba, com os trechos marcados; Enter e Shift+Enter andam
+  entre eles, Esc fecha.
+- **Rascunho:** o que ficou escrito na caixa de texto de cada aba volta quando você fecha e abre o
+  Wisp.
 - **Nova conversa:** Ctrl+K recomeça a conversa da aba (a de antes fica no histórico).
 - **Histórico:** o botão do relógio, no cabeçalho, lista as conversas por dia, com busca. Abrir uma
-  traz as mensagens de volta, e o Claude continua de onde parou. No topo, o resumo da semana.
+  traz as mensagens de volta, e o Claude continua de onde parou. No topo, o resumo da semana. O
+  alfinete de cada conversa a fixa no topo, e a seta a exporta em Markdown.
+- **Exportar:** Ctrl+Shift+E (ou a seta no histórico) salva a conversa em Markdown, onde você
+  escolher: as mensagens, as respostas, cada ferramenta numa linha e os pedidos de permissão com o
+  que foi respondido.
 - **Modelo:** a pílula abaixo da caixa de texto troca o modelo (Haiku, Sonnet, Opus, Fable ou o
   padrão do seu Claude Code) no meio da conversa, sem perder o contexto.
 - **Uso do plano:** depois da primeira resposta, uma pílula no cabeçalho mostra quanto da sua
@@ -713,8 +726,11 @@ na bandeja e no botão direito do mascote.
 | Caixa de texto | Shift+Tab                   | Passa para o próximo modo de permissão                        |
 | Caixa de texto | `/`                         | Os comandos com barra (setas escolhem, Tab completa)          |
 | Caixa de texto | Ctrl+V                      | Cola texto, ou uma imagem como anexo                          |
+| Caixa de texto | ↑ (com a caixa vazia)       | Edita a última mensagem (Esc desiste)                         |
 | Painel         | Esc                         | Fecha o painel (ou volta do histórico, ou desiste da voz)     |
 | Painel         | Ctrl+K                      | Conversa nova na aba                                          |
+| Painel         | Ctrl+F                      | Busca na conversa (Enter: o próximo; Esc: fecha)              |
+| Painel         | Ctrl+Shift+E                | Exporta a conversa em Markdown                                |
 | Painel         | Ctrl+T / Ctrl+W             | Abre / fecha uma aba                                          |
 | Painel         | Ctrl+Tab, Ctrl+1…9          | Troca de aba                                                  |
 | Painel         | Ctrl+\\ / Ctrl+Shift+\\     | Divide o painel em foco ao lado / embaixo                     |
@@ -1040,7 +1056,8 @@ Onde fica cada coisa:
 | `~/.config/wisp/config.json`                 | As configurações                                                      |
 | `~/.config/wisp/sounds/`                     | Os seus sons, se quiser trocar os do Wisp                             |
 | `~/.local/share/wisp/conversas/`             | O histórico (um arquivo por conversa, só seu)                         |
-| `~/.local/share/wisp/abas.json`              | As abas, a grade e a janela, para voltarem igual                      |
+| `~/.local/share/wisp/abas.json`              | As abas, a grade, a janela e os rascunhos, para voltarem igual        |
+| `~/.local/share/wisp/fixadas.json`           | As conversas fixadas no topo do histórico (só os ids)                 |
 | `~/.local/share/wisp/workspace/CLAUDE.md`    | A persona do Wisp (edite à vontade)                                   |
 | `~/.local/share/wisp/voz/`                   | Os modelos de voz (whisper.cpp e Piper)                               |
 | `~/.local/share/wisp/lembretes.json`         | Os lembretes                                                          |

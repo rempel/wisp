@@ -6,8 +6,10 @@ import {
   readdirSync,
   readFileSync,
   readSync,
+  renameSync,
   statSync,
-  unlinkSync
+  unlinkSync,
+  writeFileSync
 } from 'fs'
 import { randomUUID } from 'crypto'
 import { basename, join } from 'path'
@@ -23,6 +25,8 @@ import { DATA_DIR } from './paths'
  * --resume.
  */
 export const HISTORY_DIR = join(DATA_DIR, 'conversas')
+/** As conversas fixadas no topo do histórico (Fase 21): só os ids. */
+export const PINS_FILE = join(DATA_DIR, 'fixadas.json')
 
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TITLE_MAX = 80
@@ -61,7 +65,8 @@ const KEPT = new Set<ChatEvent['type']>([
   'permission-resolved',
   'compacted',
   'subagent-step',
-  'subagent-step-end'
+  'subagent-step-end',
+  'rewind'
 ])
 
 const isString = (value: unknown): value is string => typeof value === 'string'
@@ -82,7 +87,9 @@ function validEvent(value: unknown): value is ChatEvent {
     case 'tool-result':
       return isString(event.id) && typeof event.isError === 'boolean' && isString(event.output)
     case 'turn-end':
-      return isString(event.outcome)
+      return isString(event.outcome) && (event.at === undefined || isString(event.at))
+    case 'rewind':
+      return true
     case 'notice':
       return isString(event.level) && isString(event.text)
     case 'permission-request':
@@ -167,11 +174,33 @@ export class History {
     return this.current?.id ?? null
   }
 
-  /** Uma mensagem do usuário. A primeira de uma conversa cria o arquivo dela. */
-  user(sessionId: string, text: string, attachments: AttachmentPreview[], voice = false): void {
+  /**
+   * Uma mensagem do usuário. A primeira de uma conversa cria o arquivo dela. `inTurn`: mandada
+   * com o Claude trabalhando (entra no turno em andamento, não começa um).
+   */
+  user(
+    sessionId: string,
+    text: string,
+    attachments: AttachmentPreview[],
+    voice = false,
+    inTurn = false
+  ): void {
     if (!this.current) this.start(sessionId, titleOf(text, attachments))
     else this.setSession(sessionId)
-    this.record({ type: 'user', text, attachments, ...(voice ? { voice } : {}) })
+    this.record({
+      type: 'user',
+      text,
+      attachments,
+      ...(voice ? { voice } : {}),
+      ...(inTurn ? { inTurn } : {})
+    })
+  }
+
+  /** Os eventos da conversa aberta (lidos do arquivo), com as edições já aplicadas. */
+  events(): ChatEvent[] {
+    const id = this.current?.id
+    if (!id) return []
+    return applyRewinds(this.load(id)?.events ?? [])
   }
 
   /** A conversa aberta passou a usar outro session_id (uma cópia feita pelo Claude Code). */
@@ -232,6 +261,7 @@ export class History {
       return []
     }
     const conversations: ConversationSummary[] = []
+    const pins = readPins()
     for (const name of names) {
       const id = name.slice(0, -'.jsonl'.length)
       if (!name.endsWith('.jsonl') || !ID.test(id)) continue
@@ -252,10 +282,14 @@ export class History {
         updatedAt,
         current: open.has(id) || id === this.current?.id,
         ...(header.cwd ? { project: basename(header.cwd) } : {}),
-        ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
+        ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+        ...(pins.has(id) ? { pinned: true } : {})
       })
     }
-    return conversations.sort((a, b) => b.updatedAt - a.updatedAt)
+    // As fixadas primeiro; dentro de cada grupo, da mais recente para a mais antiga.
+    return conversations.sort(
+      (a, b) => Number(!!b.pinned) - Number(!!a.pinned) || b.updatedAt - a.updatedAt
+    )
   }
 
   /** Lê uma conversa guardada; null se ela não existir ou não der para ler. */
@@ -313,10 +347,11 @@ export class History {
     }
     try {
       unlinkSync(this.file(id))
-      return true
     } catch {
       return false
     }
+    setPinned(id, false)
+    return true
   }
 
   private file(id: string): string {
@@ -353,5 +388,85 @@ export class History {
       this.warned = true
       console.warn('[wisp] não consegui gravar o histórico da conversa:', err)
     }
+  }
+}
+
+/** O índice da mensagem que começa o último turno (a que dá para editar); -1 se não há. */
+function lastTurnStart(events: ChatEvent[]): number {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i]
+    if (event.type === 'user' && !event.queued && !event.inTurn) return i
+  }
+  return -1
+}
+
+/**
+ * Os eventos com as edições aplicadas: cada 'rewind' tira a mensagem que começou o último
+ * turno e tudo o que veio depois dela.
+ */
+export function applyRewinds(events: ChatEvent[]): ChatEvent[] {
+  const out: ChatEvent[] = []
+  for (const event of events) {
+    if (event.type !== 'rewind') {
+      out.push(event)
+      continue
+    }
+    const start = lastTurnStart(out)
+    if (start >= 0) out.length = start
+  }
+  return out
+}
+
+/**
+ * Para onde voltar a conversa no Claude Code para trocar a última mensagem: o uuid da última
+ * resposta do turno anterior (`at`), ou null se ela é a primeira (a conversa recomeça numa
+ * sessão nova). Devolve undefined quando não dá: não há mensagem, ou o turno anterior é de antes
+ * de o Wisp guardar esse ponto.
+ */
+export function rewindPoint(
+  events: ChatEvent[]
+): { at: string | null; text: string; attachments: AttachmentPreview[] } | undefined {
+  const done = applyRewinds(events)
+  const start = lastTurnStart(done)
+  if (start < 0) return undefined
+  const user = done[start] as Extract<ChatEvent, { type: 'user' }>
+  const before = done.slice(0, start)
+  const ends = before.filter(
+    (event): event is Extract<ChatEvent, { type: 'turn-end' }> => event.type === 'turn-end'
+  )
+  const last = ends.at(-1)
+  if (!before.some((event) => event.type === 'user')) {
+    return { at: null, text: user.text, attachments: user.attachments }
+  }
+  if (!last?.at) return undefined
+  return { at: last.at, text: user.text, attachments: user.attachments }
+}
+
+/** As conversas fixadas. */
+export function readPins(file = PINS_FILE): Set<string> {
+  try {
+    const ids = JSON.parse(readFileSync(file, 'utf8')) as unknown
+    return new Set(Array.isArray(ids) ? ids.filter((id) => isString(id) && ID.test(id)) : [])
+  } catch {
+    return new Set()
+  }
+}
+
+/** Fixa ou solta uma conversa. */
+export function setPinned(id: string, pinned: boolean, file = PINS_FILE): boolean {
+  if (!ID.test(id)) return false
+  const pins = readPins(file)
+  if (pins.has(id) === pinned) return true
+  if (pinned) pins.add(id)
+  else pins.delete(id)
+  try {
+    mkdirSync(DATA_DIR, { recursive: true })
+    const temp = `${file}.tmp`
+    writeFileSync(temp, JSON.stringify([...pins]), { mode: 0o600 })
+    renameSync(temp, file)
+    return true
+  } catch (err) {
+    console.warn('[wisp] não consegui guardar as conversas fixadas:', err)
+    return false
   }
 }

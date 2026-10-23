@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { formatWhen } from '../../shared/format'
 import type { ConversationSummary } from '../../shared/ipc'
-import { SearchIcon, TrashIcon } from './icons'
+import { DownloadIcon, PinIcon, SearchIcon, TrashIcon } from './icons'
 import { WeekCard } from './WeekCard'
 
 const DAY = 86_400_000
@@ -31,6 +31,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
   const [query, setQuery] = useState('')
   const [confirming, setConfirming] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [exported, setExported] = useState<string | null>(null)
   // Meia-noite de hoje, fixada quando a lista carrega.
   const [today, setToday] = useState(0)
 
@@ -62,9 +63,25 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
     load()
   }
 
+  async function togglePin(item: ConversationSummary): Promise<void> {
+    if (!(await window.wisp.history.pin(item.id, !item.pinned))) {
+      setError('Não consegui guardar a conversa fixada.')
+    }
+    load()
+  }
+
+  async function exportItem(item: ConversationSummary): Promise<void> {
+    setError(null)
+    setExported(null)
+    const result = await window.wisp.history.exportMarkdown(item.id)
+    if (!result) return
+    if (result.ok) setExported(`Exportada para ${result.path}.`)
+    else setError(result.message)
+  }
+
   const shown = items?.filter((item) => fold(item.title).includes(fold(query.trim()))) ?? []
   // O título do grupo vai antes da primeira conversa de cada grupo.
-  const groups = shown.map((item) => groupOf(item.updatedAt, today))
+  const groups = shown.map((item) => (item.pinned ? 'Fixadas' : groupOf(item.updatedAt, today)))
 
   return (
     <div className="history">
@@ -81,6 +98,11 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
       {error && (
         <div className="attach-error" role="alert">
           {error}
+        </div>
+      )}
+      {exported && (
+        <div className="history-exported" role="status">
+          {exported}
         </div>
       )}
       <div className="history-list">
@@ -121,6 +143,29 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       ) : (
                         <span className="history-when">{formatWhen(item.updatedAt)}</span>
                       )}
+                    </button>
+                    <button
+                      type="button"
+                      className={`history-action history-pin${item.pinned ? ' on' : ''}`}
+                      onClick={() => void togglePin(item)}
+                      title={item.pinned ? 'Soltar do topo' : 'Fixar no topo'}
+                      aria-label={
+                        item.pinned
+                          ? `Soltar “${item.title}” do topo`
+                          : `Fixar “${item.title}” no topo`
+                      }
+                      aria-pressed={!!item.pinned}
+                    >
+                      <PinIcon />
+                    </button>
+                    <button
+                      type="button"
+                      className="history-action history-export"
+                      onClick={() => void exportItem(item)}
+                      title="Exportar em Markdown"
+                      aria-label={`Exportar “${item.title}” em Markdown`}
+                    >
+                      <DownloadIcon />
                     </button>
                     <button
                       type="button"

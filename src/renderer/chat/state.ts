@@ -106,12 +106,20 @@ export interface ChatState {
   view: ConversationView
   /** O Claude Code do modo terminal. */
   terminal: TerminalStatus
+  /** O rascunho da caixa guardado da última vez (Fase 21); null se não havia. */
+  draft: string | null
 }
 
 export type Action =
   /** Eventos do main, aplicados em lote (no máximo um render por quadro). */
   | { type: 'events'; events: ChatEvent[] }
-  | { type: 'user-message'; text: string; attachments: AttachmentPreview[] }
+  | {
+      type: 'user-message'
+      text: string
+      attachments: AttachmentPreview[]
+      /** Troca a última mensagem (ela e o que veio depois saem antes). */
+      replace?: boolean
+    }
 
 export const initialState: ChatState = {
   items: [],
@@ -126,7 +134,8 @@ export const initialState: ChatState = {
   tasks: [],
   commands: [],
   view: 'chat',
-  terminal: { state: 'idle' }
+  terminal: { state: 'idle' },
+  draft: null
 }
 
 function userItem(
@@ -134,7 +143,8 @@ function userItem(
   text: string,
   attachments: AttachmentPreview[],
   voice = false,
-  queued = false
+  queued = false,
+  inTurn = false
 ): Item {
   return {
     kind: 'user',
@@ -142,19 +152,36 @@ function userItem(
     text,
     attachments,
     ...(voice ? { voice } : {}),
-    ...(queued ? { queued, midTurn: true } : {})
+    ...(queued ? { queued, midTurn: true } : inTurn ? { midTurn: true } : {})
   }
+}
+
+/** A mensagem que começou o último turno (a que dá para editar); -1 se não há. */
+export function lastTurnStart(items: Item[]): number {
+  for (let i = items.length - 1; i >= 0; i--) {
+    const item = items[i]
+    if (item.kind === 'user' && !item.midTurn) return i
+  }
+  return -1
+}
+
+/** Tira a última mensagem e o que veio depois dela (ela foi editada). */
+function rewound(state: ChatState): ChatState {
+  const start = lastTurnStart(state.items)
+  return start < 0 ? state : { ...state, items: state.items.slice(0, start) }
 }
 
 export function reducer(state: ChatState, action: Action): ChatState {
   switch (action.type) {
-    case 'user-message':
+    case 'user-message': {
       // Fica ocupado na hora, sem esperar o main. Com o Claude trabalhando, a mensagem entra na
       // fila: ele a pega na próxima pausa.
+      const base = action.replace ? rewound(state) : state
       return {
-        ...append(state, userItem(state.items, action.text, action.attachments, false, state.busy)),
+        ...append(base, userItem(base.items, action.text, action.attachments, false, base.busy)),
         busy: true
       }
+    }
     case 'events':
       return action.events.reduce(applyEvent, state)
   }
@@ -177,6 +204,10 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       }
     case 'folder':
       return { ...state, folder: event.folder }
+    case 'rewind':
+      return rewound(state)
+    case 'draft':
+      return { ...state, draft: event.text }
     case 'context':
       return { ...state, context: event.context }
     case 'compacted': {
@@ -204,7 +235,14 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'user':
       return append(
         state,
-        userItem(state.items, event.text, event.attachments, event.voice, event.queued)
+        userItem(
+          state.items,
+          event.text,
+          event.attachments,
+          event.voice,
+          event.queued,
+          event.inTurn
+        )
       )
     case 'user-delivered': {
       const first = state.items.find(
