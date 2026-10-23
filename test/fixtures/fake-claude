@@ -16,6 +16,9 @@
 // `--version`, a versão (FAKE_CLAUDE_VERSION troca).
 // Cada processo anota em $HOME/.fake-claude/spawns.log os argumentos e se recebeu a
 // ANTHROPIC_API_KEY, e em controls.log os pedidos de controle.
+// A sessão lembra as mensagens de cada turno e o uuid da última resposta dele: [memória]
+// responde o que ele lembra, e --resume-session-at <uuid> (com --fork-session, numa sessão nova)
+// volta até a resposta com esse uuid, como o de verdade (um uuid desconhecido: erro).
 const fs = require('node:fs')
 const path = require('node:path')
 const args = process.argv.slice(2)
@@ -69,8 +72,8 @@ let mode = flag('--permission-mode') ?? 'default'
 const mcpConfig = flag('--mcp-config')
 const newId = flag('--session-id')
 const resumeId = flag('--resume')
-const sessionId = newId ?? resumeId ?? '00000000-0000-4000-8000-000000000000'
-const sessionFile = path.join(SESSIONS, sessionId + '.json')
+let sessionId = newId ?? resumeId ?? '00000000-0000-4000-8000-000000000000'
+let sessionFile = path.join(SESSIONS, sessionId + '.json')
 if (newId && fs.existsSync(sessionFile)) {
   process.stderr.write(`Error: Session ID ${newId} is already in use.\n`)
   process.exit(1)
@@ -85,6 +88,32 @@ if (!args.includes('-p')) {
   require('./fake-claude-tui')({ args, flag, model, mode, sessionId, sessionFile, STATE })
   return
 }
+
+// A memória da sessão: o texto que começou cada turno e o uuid da última resposta dele.
+const readMemory = (file) => {
+  try {
+    const saved = JSON.parse(fs.readFileSync(file, 'utf8'))
+    return Array.isArray(saved.turns) ? saved.turns : []
+  } catch {
+    return []
+  }
+}
+let memory = resumeId ? readMemory(sessionFile) : []
+const resumeAt = flag('--resume-session-at')
+if (resumeAt) {
+  const at = memory.findIndex((t) => t.at === resumeAt)
+  if (at < 0) {
+    process.stderr.write(`No message found with message.uuid of: ${resumeAt}\n`)
+    process.exit(1)
+  }
+  memory = memory.slice(0, at + 1)
+}
+if (resumeId && args.includes('--fork-session')) {
+  sessionId = require('node:crypto').randomUUID()
+  sessionFile = path.join(SESSIONS, sessionId + '.json')
+}
+/** O uuid da última resposta mandada (o fim do turno guarda). */
+let lastUuid = null
 
 const out = (event) =>
   process.stdout.write(JSON.stringify({ session_id: sessionId, ...event }) + '\n')
@@ -124,8 +153,10 @@ async function stream(text, delay = 10) {
     sent += word
     await sleep(delay)
   }
+  lastUuid = require('node:crypto').randomUUID()
   out({
     type: 'assistant',
+    uuid: lastUuid,
     message: {
       id,
       model,
@@ -271,7 +302,7 @@ async function turn(text) {
 async function runTurn(text) {
   current = { aborted: false }
   echo(text)
-  fs.writeFileSync(sessionFile, '{}')
+  fs.writeFileSync(sessionFile, JSON.stringify({ turns: memory }))
   // O /compact do Claude Code: compacta e acaba o turno, sem resposta.
   if (text.startsWith('/compact')) {
     await compactNow(text, 'manual')
@@ -448,6 +479,9 @@ async function runTurn(text) {
     } else answer = 'Vou continuar planejando.'
   }
   if (text.includes('[modelo]')) answer = `Modelo: ${model}`
+  if (text.includes('[memória]')) {
+    answer = `Lembro de: ${[...memory.map((t) => t.user), text].join(' | ')}`
+  }
   if (text.includes('[modo]')) answer = `Modo: ${mode}`
   await stream(answer, delay)
   if (current.aborted) {
@@ -462,6 +496,8 @@ async function runTurn(text) {
       terminal_reason: 'aborted_streaming'
     })
   } else {
+    memory.push({ user: text, at: lastUuid })
+    fs.writeFileSync(sessionFile, JSON.stringify({ turns: memory }))
     out({
       type: 'result',
       subtype: 'success',

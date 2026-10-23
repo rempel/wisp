@@ -3801,3 +3801,124 @@ button.link {
 .welcome-skip {
   margin-left: auto;
 }
+
+/* Conversa mais fluida (Fase 21): fixar e exportar no histórico, editar a última mensagem e a
+   busca na conversa. */
+.history-action {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  opacity: 0;
+  cursor: pointer;
+}
+
+.history-item:hover .history-action,
+.history-action:focus-visible,
+.history-pin.on {
+  opacity: 1;
+}
+
+.history-action:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.history-pin.on {
+  color: var(--accent);
+}
+
+.history-exported {
+  margin: 0 12px 8px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.user-turn.editable {
+  position: relative;
+}
+
+.edit-last {
+  align-self: flex-end;
+  margin-bottom: 2px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.user-turn.editable:hover .edit-last,
+.edit-last:focus-visible {
+  opacity: 1;
+}
+
+.edit-last:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.edit-banner {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 6px;
+  padding: 6px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 12.5px;
+}
+
+.edit-banner span {
+  flex: 1;
+}
+
+.find-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 6px 10px 0;
+  padding: 4px 4px 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.find-bar input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  outline: none;
+}
+
+.find-count {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+::highlight(wisp-find) {
+  background-color: rgb(250 204 21 / 0.4);
+}
+
+::highlight(wisp-find-current) {
+  background-color: rgb(249 115 22 / 0.75);
+  color: #1c1917;
+}

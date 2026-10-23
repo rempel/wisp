@@ -76,6 +76,10 @@ const api: WispApi = {
     pathForFile: (file) => webUtils.getPathForFile(file),
     savePasted: (data, type) => ipcRenderer.invoke(IPC.chatPaste, data, type),
     stop: (conversation) => ipcRenderer.send(IPC.chatStop, conversation),
+    editLast: (conversation, text, attachments) =>
+      ipcRenderer.invoke(IPC.chatEditLast, conversation, text, attachments),
+    saveDraft: (conversation, text) => ipcRenderer.send(IPC.chatDraft, conversation, text),
+    exportMarkdown: (conversation) => ipcRenderer.invoke(IPC.chatExport, conversation),
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
     hide: () => ipcRenderer.send(IPC.chatHide),
     maximize: () => ipcRenderer.send(IPC.windowMaximize),
@@ -179,7 +183,9 @@ const api: WispApi = {
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),
     open: (id) => ipcRenderer.invoke(IPC.historyOpen, id),
-    remove: (id) => ipcRenderer.invoke(IPC.historyDelete, id)
+    remove: (id) => ipcRenderer.invoke(IPC.historyDelete, id),
+    pin: (id, pinned) => ipcRenderer.invoke(IPC.historyPin, id, pinned),
+    exportMarkdown: (id) => ipcRenderer.invoke(IPC.historyExport, id)
   },
   sessions: {
     get: () => ipcRenderer.invoke(IPC.sessionsGet),

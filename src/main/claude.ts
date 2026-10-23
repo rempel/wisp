@@ -481,6 +481,8 @@ interface CliEvent {
   error?: string
   is_error?: boolean
   result?: string
+  /** O id da mensagem no Claude Code (o --resume-session-at volta até ela). */
+  uuid?: string
   /** Os tokens da resposta (no result). */
   usage?: TurnUsage
   event?: {
@@ -632,6 +634,13 @@ export class ClaudeSession {
   private cwd: string | null = null
   /** Retomar como cópia (--fork-session): a sessão continua aberta no terminal. */
   private fork = false
+  /**
+   * Retomar só até esta resposta (--resume-session-at), numa cópia: a última mensagem foi
+   * editada (Fase 21). Vale para o próximo processo.
+   */
+  private resumeAt: string | null = null
+  /** A última resposta do turno atual (o uuid), para o fim do turno levar. */
+  private lastAssistant: string | null = null
   /** Caminho do CLI depois de uma checagem bem-sucedida; null força checar de novo. */
   private bin: string | null = null
   private busy = false
@@ -865,6 +874,7 @@ export class ClaudeSession {
     if (this.busy) return
     const turn = ++this.turn
     this.retried = false
+    this.lastAssistant = null
     this.setBusy(true)
     const bin = await this.check()
     if (turn !== this.turn) return
@@ -1074,6 +1084,37 @@ export class ClaudeSession {
   }
 
   /**
+   * Volta a conversa para antes da última mensagem (Fase 21): o próximo processo retoma só até
+   * a resposta `at` (o fim do turno anterior), numa cópia da sessão; a original fica como
+   * estava. Com `at` null (a mensagem era a primeira), a conversa segue numa sessão nova.
+   * Devolve false com uma resposta em andamento.
+   */
+  rewind(at: string | null): boolean {
+    if (this.busy) return false
+    if (at !== null && (!this.sessionId || !this.sessionSaved)) return false
+    this.turn++
+    this.clearStop()
+    const proc = this.proc
+    this.proc = null
+    if (proc) void killProcess(proc)
+    this.echoes = []
+    this.tasks.clear()
+    this.streamedMessages.clear()
+    this.hiddenToolUses.clear()
+    if (at === null) {
+      this.sessionId = null
+      this.sessionSaved = false
+      this.restored = false
+      this.fork = false
+      this.resumeAt = null
+    } else {
+      this.resumeAt = at
+      this.fork = true
+    }
+    return true
+  }
+
+  /**
    * Volta a uma conversa do histórico: encerra o processo atual, e a próxima mensagem sobe
    * outro com `--resume <sessionId>`.
    */
@@ -1276,6 +1317,13 @@ export class ClaudeSession {
     if (this.model) args.push(`--model=${this.model}`)
     this.processModel = this.model
     if (this.sessionId) args.push(this.sessionSaved ? '--resume' : '--session-id', this.sessionId)
+    // A última mensagem foi editada: só até a resposta de antes dela, numa cópia (a sessão
+    // original continua inteira no Claude Code).
+    if (this.sessionId && this.sessionSaved && this.resumeAt) {
+      args.push('--resume-session-at', this.resumeAt)
+      this.fork = true
+    }
+    this.resumeAt = null
     // A sessão do terminal continua aberta: o Wisp segue numa cópia, para as duas não se misturarem.
     if (this.sessionId && this.sessionSaved && this.fork) args.push('--fork-session')
 
@@ -1348,6 +1396,8 @@ export class ClaudeSession {
     // qual, e o próximo processo usa o outro.
     const inUse = /already in use/i.test(stderrTail)
     const notFound = /no conversation found/i.test(stderrTail)
+    // O ponto para onde voltar (a edição da última mensagem) não existe na sessão.
+    const noPoint = /no message found with message\.uuid/i.test(stderrTail)
     if (inUse) this.sessionSaved = true
     else if (notFound) this.sessionSaved = false
     const stopped = this.stopping
@@ -1371,6 +1421,16 @@ export class ClaudeSession {
       return
     }
 
+    if (noPoint) {
+      this.fork = false
+      this.notice(
+        'error',
+        'Não consegui voltar a conversa para antes da mensagem editada: o Claude Code não achou o ' +
+          'ponto de antes dela (a conversa pode ter sido compactada). A mensagem não foi mandada; ' +
+          'comece uma conversa nova (Ctrl+K) para mandá-la do zero.'
+      )
+      return this.finishTurn('error')
+    }
     const detail = stderrTail.trim()
     this.notice(
       'error',
@@ -1553,6 +1613,7 @@ export class ClaudeSession {
 
   private onAssistant(event: CliEvent): void {
     const message = event.message
+    if (typeof event.uuid === 'string' && !event.error) this.lastAssistant = event.uuid
     // O contexto da última chamada: o que entrou (com o cache) e o que saiu.
     if (message?.usage && !event.error) {
       const { input, output } = turnTokens(message.usage)
@@ -1687,7 +1748,8 @@ export class ClaudeSession {
   private finishTurn(outcome: 'done' | 'error' | 'stopped'): void {
     if (!this.busy) return
     this.sentText = null
-    this.emit({ type: 'turn-end', outcome })
+    const at = this.lastAssistant
+    this.emit({ type: 'turn-end', outcome, ...(at ? { at } : {}) })
     // Mensagens mandadas no meio que o CLI ainda não pegou: num fim normal, ele as responde em
     // seguida, como um turno novo, e a conversa continua ocupada. Se ele não as pegar logo (a
     // resposta parou, deu erro), elas não chegam.

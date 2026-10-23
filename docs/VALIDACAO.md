@@ -467,3 +467,19 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       GitHub com ele no corpo.
 - [ ] **Versão nova:** ligue **Avisar de versão nova** (Configurações → Avançado). Quando sair uma
       versão mais nova que a sua, vem uma notificação (uma vez), e o diagnóstico mostra a versão.
+
+## Conversa mais fluida (Fase 21)
+
+- [ ] **Editar:** converse um pouco e, com o Claude parado, passe o mouse na sua última mensagem:
+      aparece **Editar**. Clique, mude o texto e mande: a mensagem velha e a resposta dela somem, e
+      a nova resposta não sabe da velha (pergunte "o que eu perguntei antes?").
+- [ ] **↑:** com a caixa vazia, ↑ começa a editar a última mensagem; Esc desiste, sem fechar o
+      painel.
+- [ ] **Editar de novo:** edite a mesma mensagem duas vezes seguidas: funciona igual.
+- [ ] **Buscar:** Ctrl+F e digite uma palavra da conversa: os trechos ficam marcados, o contador
+      mostra "1 de N", Enter anda, Esc fecha.
+- [ ] **Exportar:** Ctrl+Shift+E (ou a seta no histórico) e escolha onde salvar: o arquivo .md tem
+      as mensagens, as respostas e as ferramentas, uma por linha.
+- [ ] **Fixar:** no histórico, o alfinete põe a conversa em **Fixadas**, no topo; de novo, solta.
+- [ ] **Rascunho:** escreva algo na caixa sem mandar, feche o Wisp (Sair) e abra de novo: o texto
+      está lá.

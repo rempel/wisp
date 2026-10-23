@@ -21,7 +21,9 @@ import {
 } from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
-import { History } from './history'
+import { exportFileName, exportMarkdown } from './export'
+import { History, setPinned } from './history'
+import type { SavedConversation } from './history'
 import type { RelayEvent } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
@@ -29,7 +31,7 @@ import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { listProjects } from './desktop'
 import { tilde, usableFolder } from './folders'
 import { listModels, OPENROUTER_SECRET } from './openrouter'
-import { pickFolder } from './pick'
+import { pickFolder, pickSaveFile } from './pick'
 import { DATA_DIR, runtimeDir } from './paths'
 import { readSecret } from './secrets'
 import { captureScreens, CaptureError, thumbnailOf, thumbnailOfBase64 } from './screenshot'
@@ -60,6 +62,7 @@ import type {
   MascotState,
   NoticeLevel,
   PanelView,
+  ExportResult,
   OutgoingAttachment,
   PastedImage,
   PermissionDecision,
@@ -181,6 +184,8 @@ interface SavedTabs {
         folder?: string
         /** A aba estava no modo terminal (Fase 17). */
         view?: ConversationView
+        /** O rascunho da caixa de texto (Fase 21). */
+        draft?: string
       }
     | { kind: 'session'; sessionId: string; title: string }
   )[]
@@ -647,7 +652,8 @@ export function setupChat({
               history: tab.conversation.historyId,
               mode: tab.conversation.mode,
               ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {}),
-              ...(tab.conversation.view === 'terminal' ? { view: 'terminal' as const } : {})
+              ...(tab.conversation.view === 'terminal' ? { view: 'terminal' as const } : {}),
+              ...(tab.conversation.draft ? { draft: tab.conversation.draft } : {})
             }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),
@@ -693,6 +699,10 @@ export function setupChat({
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
       // No modo terminal, o Claude Code sobe quando a aba aparece.
       if (entry.view === 'terminal') conversation.presetView('terminal')
+      if (typeof entry.draft === 'string' && entry.draft) {
+        conversation.setDraft(entry.draft)
+        toPage(conversation.id, { type: 'draft', text: conversation.draft })
+      }
       tabs.push({ id: conversation.id, kind: 'chat', conversation })
     }
     if (!tabs.length) {
@@ -816,6 +826,52 @@ export function setupChat({
     conversation.send(text, outgoing(attachments), previewOf)
   })
   ipcMain.on(IPC.chatStop, (event, id: unknown) => target(event, id)?.stop())
+  ipcMain.handle(
+    IPC.chatEditLast,
+    (event, id: unknown, text: unknown, attachments: unknown): boolean => {
+      const conversation = target(event, id)
+      if (!conversation || typeof text !== 'string') return false
+      return conversation.editLast(text, outgoing(attachments), previewOf)
+    }
+  )
+  ipcMain.on(IPC.chatDraft, (event, id: unknown, text: unknown) => {
+    const conversation = target(event, id)
+    if (!conversation || typeof text !== 'string' || text === conversation.draft) return
+    conversation.setDraft(text)
+    scheduleSave()
+  })
+  /** Exporta uma conversa guardada: o diálogo do sistema escolhe onde. */
+  const exportConversation = async (saved: SavedConversation | null): Promise<ExportResult> => {
+    if (!saved) return { ok: false, message: 'Esta conversa ainda não tem mensagens guardadas.' }
+    const file = await pickSaveFile(
+      'Exportar a conversa',
+      join(app.getPath('documents'), exportFileName(saved.title)),
+      [{ name: 'Markdown', extensions: ['md'] }],
+      win
+    )
+    if (!file) return null
+    try {
+      writeFileSync(file, exportMarkdown(saved))
+    } catch (err) {
+      return { ok: false, message: `Não consegui gravar o arquivo: ${(err as Error).message}` }
+    }
+    return { ok: true, path: tilde(file) }
+  }
+  ipcMain.handle(IPC.chatExport, (event, id: unknown) => {
+    const conversation = target(event, id)
+    if (!conversation) return null
+    const historyId = conversation.historyId
+    return exportConversation(historyId ? conversation.history.load(historyId) : null)
+  })
+  ipcMain.handle(IPC.historyExport, (event, id: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return null
+    const open = conversations().find((conversation) => conversation.historyId === id)
+    return exportConversation(open ? open.history.load(id) : store.load(id))
+  })
+  ipcMain.handle(IPC.historyPin, (event, id: unknown, pinned: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string' || typeof pinned !== 'boolean') return false
+    return setPinned(id, pinned)
+  })
   ipcMain.on(IPC.chatNew, (event, id: unknown) => target(event, id)?.reset())
   ipcMain.on(IPC.chatModel, (event, id: unknown, choice: unknown) => {
     const conversation = target(event, id)

@@ -59,6 +59,15 @@ export const IPC = {
   chatSend: 'chat:send',
   /** chat → main: parar a resposta em andamento. Arg: conversa. */
   chatStop: 'chat:stop',
+  /**
+   * chat → main (invoke): troca a última mensagem por outra (Fase 21): a conversa volta para
+   * antes dela e a nova vai no lugar. Args: (conversa, texto, anexos). Devolve boolean.
+   */
+  chatEditLast: 'chat:edit-last',
+  /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
+  chatDraft: 'chat:draft',
+  /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
+  chatExport: 'chat:export',
   /** chat → main: recomeçar a conversa de uma aba (Ctrl+K). Arg: conversa. */
   chatNew: 'chat:new',
   /** chat → main: trocar o modelo. Args: (conversa, um de MODEL_CHOICES ou null). */
@@ -229,6 +238,10 @@ export const IPC = {
   historyOpen: 'history:open',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
   historyDelete: 'history:delete',
+  /** chat → main (invoke): fixa ou solta uma conversa no topo. Args: (id, fixada). Devolve boolean. */
+  historyPin: 'history:pin',
+  /** chat → main (invoke): exporta uma conversa guardada em Markdown. Arg: id. Devolve ExportResult. */
+  historyExport: 'history:export',
 
   /** chat → main (invoke): as sessões do Claude Code no terminal. Devolve SessionsSnapshot. */
   sessionsGet: 'sessions:get',
@@ -620,7 +633,12 @@ export interface ConversationSummary {
   project?: string
   /** Foi pela OpenRouter. */
   provider?: 'openrouter'
+  /** Fixada no topo do histórico. */
+  pinned?: boolean
 }
+
+/** Exportar uma conversa: onde ficou, ou por que não (null: a pessoa desistiu). */
+export type ExportResult = { ok: true; path: string } | { ok: false; message: string } | null
 
 /**
  * O que o main conta ao chat sobre a conversa. É uma versão enxuta da saída stream-json do
@@ -649,7 +667,12 @@ export type ChatEvent =
       images?: string[]
     }
   /** O turno acabou: normalmente, com erro ou porque o usuário parou. */
-  | { type: 'turn-end'; outcome: 'done' | 'error' | 'stopped' }
+  | {
+      type: 'turn-end'
+      outcome: 'done' | 'error' | 'stopped'
+      /** A última resposta do turno no Claude Code (o uuid): onde voltar para editar a seguinte. */
+      at?: string
+    }
   /** Aviso para mostrar na conversa (texto em Markdown). */
   | { type: 'notice'; level: NoticeLevel; text: string }
   /**
@@ -692,6 +715,10 @@ export type ChatEvent =
    * anterior chega depois dele.
    */
   | { type: 'reset' }
+  /** A última mensagem (e o que veio depois dela) saiu: ela foi editada (Fase 21). */
+  | { type: 'rewind' }
+  /** O rascunho da caixa, guardado da última vez. */
+  | { type: 'draft'; text: string }
   /**
    * O modelo: o escolhido na pílula (null é o padrão do Claude Code) e o que respondeu por
    * último, como o CLI o chama (por exemplo "claude-sonnet-5-5"), se já se sabe.
@@ -727,6 +754,8 @@ export type ChatEvent =
       attachments: AttachmentPreview[]
       voice?: boolean
       queued?: boolean
+      /** No histórico: entrou num turno em andamento (não começou um). */
+      inTurn?: boolean
     }
   /** A mais antiga das mensagens mandadas com o Claude trabalhando chegou a ele. */
   | { type: 'user-delivered' }
@@ -1066,6 +1095,16 @@ export interface WispApi {
     /** Guarda uma imagem colada num arquivo, para ela poder ser anexada. */
     savePasted(data: ArrayBuffer, type: string): Promise<PastedImage>
     stop(conversation: string): void
+    /** Troca a última mensagem por outra: a conversa volta para antes dela (Fase 21). */
+    editLast(
+      conversation: string,
+      text: string,
+      attachments: OutgoingAttachment[]
+    ): Promise<boolean>
+    /** Guarda o rascunho da caixa da aba. */
+    saveDraft(conversation: string, text: string): void
+    /** Exporta a conversa da aba em Markdown (o diálogo do sistema escolhe onde). */
+    exportMarkdown(conversation: string): Promise<ExportResult>
     /** Recomeça a conversa de uma aba (Ctrl+K). */
     newConversation(conversation: string): void
     hide(): void
@@ -1219,6 +1258,8 @@ export interface WispApi {
     /** Reabre a conversa numa aba (ou mostra a aba onde ela já está aberta). */
     open(id: string): Promise<boolean>
     remove(id: string): Promise<boolean>
+    pin(id: string, pinned: boolean): Promise<boolean>
+    exportMarkdown(id: string): Promise<ExportResult>
   }
   /** As sessões do Claude Code que rodam no terminal (aba Sessões). */
   sessions: {

@@ -68,6 +68,7 @@ src/
 │  ├─ pick.ts        # escolher uma pasta pelo diálogo do sistema
 │  ├─ openrouter.ts  # a OpenRouter: o ambiente do Claude Code, os modelos, a chave e o custo
 │  ├─ secrets.ts     # o chaveiro do sistema (Secret Service, pelo D-Bus)
+│  ├─ export.ts      # exportar uma conversa em Markdown
 │  ├─ diagnostics.ts # as conferências (Claude Code, atalho, bandeja, voz...) e o relatório
 │  ├─ diagnostics-ipc.ts # junta os fatos, a tela de diagnóstico e os primeiros passos
 │  ├─ updates.ts     # o aviso de versão nova (as versões do Wisp no GitHub, uma vez por dia)
@@ -95,7 +96,8 @@ src/
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
    │                 # mascot.css (animações), avatars.css (as cores de cada avatar), sounds.ts
    │                 # (WebAudio), voice.ts e voice-worklet.ts (microfone e fala)
-   ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa),
+   ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa,
+   │                 # com a edição da última mensagem e o rascunho), FindBar.tsx (o Ctrl+F),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da
    │                 # barra, histórico, aba Sessões, configurações (com o QR code do
@@ -607,6 +609,18 @@ electron-builder.yml   # os pacotes .deb e AppImage
   conversa), e o stream fecha. Sem resposta em 2 minutos, o card é negado com um motivo para o
   Claude. Quando o card acaba, de qualquer jeito, sai uma mensagem de prioridade 2 com o
   desfecho, e o próximo da fila vai. O teste do pareamento é a mesma coisa, com um botão só.
+- **Editar a última mensagem:** o `claude.ts` guarda o `uuid` da última mensagem `assistant` de
+  cada turno e o manda no `turn-end` (`at`), que vai para o histórico. Para editar, o
+  `history.ts` acha o turno a desfazer (o último que começou com uma mensagem que não entrou no
+  meio de outro) e o `at` do turno anterior; o `ClaudeSession.rewind` encerra o processo e o
+  próximo sobe com `--resume <sessão> --resume-session-at <at> --fork-session`. O CLI responde
+  com o id da cópia, que o Wisp adota. O histórico ganha um evento `rewind`, e quem lê a conversa
+  (a página, a exportação) aplica as edições na ordem. O `--resume-session-at` não aparece no
+  `--help` do CLI; é a opção que o SDK do Claude Code usa para o `resumeSessionAt`.
+- **Busca, rascunho e fixadas:** a busca (`FindBar.tsx`) marca os trechos com a API de destaques
+  do CSS (`CSS.highlights`), sem mexer no HTML das mensagens. O rascunho de cada aba fica num mapa
+  na página (para a aba que sai e volta) e vai para o `abas.json` depois de parar de digitar. As
+  fixadas ficam num arquivo à parte (`fixadas.json`), porque o histórico é só de acréscimos.
 - **Diagnóstico e primeiros passos:** o `diagnostics-ipc.ts` junta os fatos: o `claude
 --version` e o `claude auth status --json` (com o mesmo ambiente das conversas), o
   `NameHasOwner` e o `ListActivatableNames` do D-Bus para o chaveiro (`org.freedesktop.secrets`)

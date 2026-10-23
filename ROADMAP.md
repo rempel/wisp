@@ -792,7 +792,12 @@ Notas da entrega:
 **Aceite:** numa máquina sem o Claude Code, a primeira execução diz o que falta e como instalar;
 o relatório do diagnóstico cola numa issue sem nada pessoal.
 
-### Fase 21: conversa mais fluida
+### Fase 21: conversa mais fluida ✅
+
+**Status:** pronta, esperando validação. Antes de implementar, a edição foi conferida no Claude
+Code de verdade (2.1), contra um servidor de mentira: o `--resume-session-at <uuid>` (a opção que
+o SDK do Claude Code usa) com o `--fork-session` volta a conversa até uma resposta numa cópia, e
+o modelo recebe só o que vem até ela. Testes de ponta a ponta: `e2e/conversa.mjs`.
 
 - **Editar e reenviar a última mensagem (M):** volta a conversa para antes dela (pela sessão do
   Claude Code) e manda de novo.
@@ -800,6 +805,19 @@ o relatório do diagnóstico cola numa issue sem nada pessoal.
 - **Exportar (P):** a conversa em Markdown, com as ferramentas resumidas.
 - **Fixar conversas e rascunho por aba (P):** as fixadas ficam no topo do histórico; o que
   ficou escrito na caixa volta ao abrir a aba.
+
+Notas da entrega:
+
+- o fim de cada turno guarda o uuid da última resposta (no histórico também), e editar volta até a
+  do turno anterior; os uuids passam para a cópia, então dá para editar várias vezes seguidas;
+- editar a primeira mensagem recomeça numa sessão nova;
+- o histórico é só de acréscimos: a edição entra como um evento, e a conversa reaberta (ou
+  exportada) aplica as edições; uma mensagem mandada no meio de um turno sai junto com ele;
+- os arquivos que a resposta velha mudou não voltam (o Claude Code tem pontos de restauração de
+  arquivos, mas só com uma opção ligada desde o começo da sessão): o aviso da edição e o README
+  dizem isso;
+- um ponto que o Claude Code não acha mais (uma conversa compactada, por exemplo) vira um aviso, e
+  a mensagem não é mandada.
 
 **Aceite:** numa conversa longa, editar a última pergunta dá uma resposta nova sem a velha no
 contexto; o rascunho volta depois de fechar e abrir o Wisp.
