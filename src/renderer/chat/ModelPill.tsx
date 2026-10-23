@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { MODEL_CHOICES } from '../../shared/ipc'
 import { CheckIcon, ChevronDownIcon, ModelIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 const FAMILIES: Record<string, string> = {
   haiku: 'Haiku',
@@ -20,7 +21,7 @@ function modelName(model: string): string {
 
 /** O texto da pílula: o modelo que está respondendo, com a versão quando já se sabe. */
 function pillLabel(choice: string | null, active: string | null): string {
-  if (!choice) return active ? `Padrão · ${modelName(active)}` : 'Padrão'
+  if (!choice) return active ? t('Padrão · {v1}', { v1: modelName(active) }) : t('Padrão')
   // O que respondeu por último é da família escolhida: mostra a versão exata.
   if (active && (active === choice || active.includes(`-${choice}-`))) return modelName(active)
   return FAMILIES[choice] ?? modelName(choice)
@@ -78,7 +79,7 @@ export function ModelPill({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Modelo do Claude (a troca vale a partir da próxima mensagem)"
+        title={t('Modelo do Claude (a troca vale a partir da próxima mensagem)')}
       >
         <ModelIcon />
         <span>{pillLabel(choice, active)}</span>
@@ -99,8 +100,8 @@ export function ModelPill({
               >
                 <span className="model-check">{selected && <CheckIcon />}</span>
                 <span className="model-text">
-                  <strong>{model ? (FAMILIES[model] ?? modelName(model)) : 'Padrão'}</strong>
-                  {model === null && <small>o que estiver configurado no Claude Code</small>}
+                  <strong>{model ? (FAMILIES[model] ?? modelName(model)) : t('Padrão')}</strong>
+                  {model === null && <small>{t('o que estiver configurado no Claude Code')}</small>}
                 </span>
               </button>
             )

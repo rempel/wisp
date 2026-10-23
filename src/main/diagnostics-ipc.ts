@@ -20,6 +20,7 @@ import type { UpdateChecker } from './updates'
 import { whisperSetup } from './whisper'
 import { IPC } from '../shared/ipc'
 import type { DiagnosticAction, DiagnosticsSnapshot, PanelView, PhoneResult } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 /** Os primeiros passos já foram vistos (ou pulados). */
 const WELCOME_FILE = join(DATA_DIR, 'boas-vindas.json')
@@ -69,17 +70,17 @@ async function busName(bus: DBusConnection | null, name: string): Promise<BusNam
 function features(): string[] {
   const config = getConfig()
   const on: [boolean, string][] = [
-    [config.voiceShortcut !== null, 'voz'],
-    [config.voiceReplies, 'respostas faladas'],
-    [config.compact, 'ilha'],
+    [config.voiceShortcut !== null, t('voz')],
+    [config.voiceReplies, t('respostas faladas')],
+    [config.compact, t('ilha')],
     [config.github, 'GitHub'],
-    [config.calendar, 'agenda'],
-    [config.weeklySummary, 'resumo da semana'],
-    [config.phoneApprovals, 'celular'],
-    [config.browserAutomation, 'navegador do Claude'],
+    [config.calendar, t('agenda')],
+    [config.weeklySummary, t('resumo da semana')],
+    [config.phoneApprovals, t('celular')],
+    [config.browserAutomation, t('navegador do Claude')],
     [config.provider === 'openrouter', 'OpenRouter'],
-    [config.demo, 'demonstração'],
-    [config.updateCheck, 'aviso de versão'],
+    [config.demo, t('demonstração')],
+    [config.updateCheck, t('aviso de versão')],
     [config.avatar !== 'robo', `avatar ${config.avatar}`]
   ]
   return on.filter(([enabled]) => enabled).map(([, name]) => name)
@@ -138,7 +139,9 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         keyring,
         tray,
         shortcut:
-          config.shortcut === null ? null : (shortcut ?? { via: 'none', problem: 'ainda ligando' }),
+          config.shortcut === null
+            ? null
+            : (shortcut ?? { via: 'none', problem: t('ainda ligando') }),
         voice: voiceState(),
         terminal: findTerminal(config.terminalCommand) !== null,
         configProblems: configProblems().length,

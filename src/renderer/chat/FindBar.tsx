@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JSX, KeyboardEvent, RefObject } from 'react'
+import { t } from '../../shared/i18n'
 
 // Buscar na conversa (Ctrl+F, Fase 21): os trechos que batem ficam marcados (a API de destaques
 // do CSS, sem mexer no HTML das mensagens), e Enter e Shift+Enter andam entre eles.
@@ -99,22 +100,22 @@ export function FindBar({
         ref={input}
         type="text"
         value={query}
-        placeholder="Buscar na conversa"
-        aria-label="Buscar na conversa"
+        placeholder={t('Buscar na conversa')}
+        aria-label={t('Buscar na conversa')}
         spellCheck={false}
         onChange={(event) => search(event.target.value)}
         onKeyDown={onKeyDown}
       />
       <span className="find-count" role="status">
-        {query ? (found.count ? `${found.current + 1} de ${found.count}` : 'nada') : ''}
+        {query ? (found.count ? `${found.current + 1} de ${found.count}` : t('nada')) : ''}
       </span>
       <button
         type="button"
         className="icon-button"
         disabled={!found.count}
         onClick={() => step(-1)}
-        title="Anterior (Shift+Enter)"
-        aria-label="Anterior"
+        title={t('Anterior (Shift+Enter)')}
+        aria-label={t('Anterior')}
       >
         ↑
       </button>
@@ -123,8 +124,8 @@ export function FindBar({
         className="icon-button"
         disabled={!found.count}
         onClick={() => step(1)}
-        title="Próximo (Enter)"
-        aria-label="Próximo"
+        title={t('Próximo (Enter)')}
+        aria-label={t('Próximo')}
       >
         ↓
       </button>
@@ -132,8 +133,8 @@ export function FindBar({
         type="button"
         className="icon-button"
         onClick={onClose}
-        title="Fechar (Esc)"
-        aria-label="Fechar a busca"
+        title={t('Fechar (Esc)')}
+        aria-label={t('Fechar a busca')}
       >
         ✕
       </button>

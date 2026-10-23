@@ -14,6 +14,7 @@ import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileS
 import { join } from 'path'
 import { DATA_DIR } from './paths'
 import { claudeConfigDir } from './skills'
+import { t } from '../shared/i18n'
 
 /** O endereço da OpenRouter (WISP_OPENROUTER_URL troca, para os testes). */
 export function openrouterUrl(): string {
@@ -177,9 +178,9 @@ let cache: { at: number; models: OpenRouterModel[] } | null = null
 export async function listModels(now = Date.now()): Promise<OpenRouterModel[]> {
   if (cache && now - cache.at < MODELS_TTL_MS) return cache.models
   const { status, body } = await getJson('/v1/models')
-  if (status !== 200) throw new Error(`a OpenRouter respondeu ${status}`)
+  if (status !== 200) throw new Error(t('a OpenRouter respondeu {status}', { status }))
   const models = parseModels(body)
-  if (!models.length) throw new Error('a OpenRouter mandou uma lista vazia')
+  if (!models.length) throw new Error(t('a OpenRouter mandou uma lista vazia'))
   cache = { at: now, models }
   return models
 }
@@ -204,14 +205,22 @@ export async function checkKey(
   } catch (err) {
     return {
       ok: false,
-      message: `Não consegui falar com a OpenRouter (${(err as Error).message}). Confira a conexão.`
+      message: t('Não consegui falar com a OpenRouter ({message}). Confira a conexão.', {
+        message: (err as Error).message
+      })
     }
   }
   if (result.status === 401 || result.status === 403) {
-    return { ok: false, message: 'A OpenRouter recusou essa chave. Confira se copiou ela inteira.' }
+    return {
+      ok: false,
+      message: t('A OpenRouter recusou essa chave. Confira se copiou ela inteira.')
+    }
   }
   if (result.status !== 200) {
-    return { ok: false, message: `A OpenRouter respondeu ${result.status} ao conferir a chave.` }
+    return {
+      ok: false,
+      message: t('A OpenRouter respondeu {status} ao conferir a chave.', { status: result.status })
+    }
   }
   const label = (result.body as { data?: { label?: unknown } } | null)?.data?.label
   return { ok: true, label: typeof label === 'string' && label ? label.slice(0, 80) : null }
@@ -269,25 +278,28 @@ export function openrouterError(text: string, model: string | null): string {
   const detail = `\n\nDetalhe: \`${text.replace(/`/g, "'").slice(0, 300)}\``
   if (KEY_ERROR.test(text)) {
     return (
-      'A OpenRouter recusou a chave. Troque-a em **Configurações → OpenRouter** e mande a ' +
-      'mensagem de novo.' +
+      t('A OpenRouter recusou a chave. Troque-a em **Configurações → OpenRouter** e mande a ') +
+      t('mensagem de novo.') +
       detail
     )
   }
   if (CREDITS.test(text)) {
-    return 'Acabaram os créditos da sua conta na OpenRouter (ou o limite da chave).' + detail
+    return t('Acabaram os créditos da sua conta na OpenRouter (ou o limite da chave).') + detail
   }
   if (MODEL_MISSING.test(text)) {
     return (
-      `A OpenRouter não achou o modelo \`${model ?? '?'}\`, ou ele não aceita ferramentas. ` +
-      'Escolha outro na pílula do modelo.' +
+      t('A OpenRouter não achou o modelo `{v1}`, ou ele não aceita ferramentas. ', {
+        v1: model ?? '?'
+      }) +
+      t('Escolha outro na pílula do modelo.') +
       detail
     )
   }
   if (RATE.test(text)) {
     return (
-      'A OpenRouter pediu para ir mais devagar (limite de pedidos). Tente daqui a pouco.' + detail
+      t('A OpenRouter pediu para ir mais devagar (limite de pedidos). Tente daqui a pouco.') +
+      detail
     )
   }
-  return `A OpenRouter respondeu com um erro.${detail}`
+  return t('A OpenRouter respondeu com um erro.{detail}', { detail })
 }

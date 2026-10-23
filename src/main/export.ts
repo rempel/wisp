@@ -5,15 +5,16 @@
 import { applyRewinds } from './history'
 import type { SavedConversation } from './history'
 import type { ChatEvent } from '../shared/ipc'
+import { t, dateLocale } from '../shared/i18n'
 
 const DECISIONS: Record<string, string> = {
-  allow: 'permitido',
-  'allow-always': 'permitido sempre',
-  'allow-edits': 'plano aprovado (aceitar edições)',
-  'allow-auto': 'plano aprovado (automático)',
-  deny: 'negado',
-  answered: 'respondido',
-  cancelled: 'cancelado'
+  allow: t('permitido'),
+  'allow-always': t('permitido sempre'),
+  'allow-edits': t('plano aprovado (aceitar edições)'),
+  'allow-auto': t('plano aprovado (automático)'),
+  deny: t('negado'),
+  answered: t('respondido'),
+  cancelled: t('cancelado')
 }
 
 /** Uma linha só, cortada. */
@@ -47,11 +48,14 @@ const quote = (text: string): string =>
 export function exportMarkdown(saved: SavedConversation, now = new Date()): string {
   const events = applyRewinds(saved.events)
   const date = (ms: number | Date): string =>
-    new Date(ms).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })
+    new Date(ms).toLocaleString(dateLocale(), { dateStyle: 'short', timeStyle: 'short' })
   const out: string[] = [
     `# ${line(saved.title, 200)}`,
     '',
-    `_Conversa do Wisp de ${date(saved.createdAt)}, exportada em ${date(now)}._`
+    t('_Conversa do Wisp de {v1}, exportada em {v2}._', {
+      v1: date(saved.createdAt),
+      v2: date(now)
+    })
   ]
   const tools = new Map<string, { name: string; input: unknown }>()
   let speaker: 'user' | 'claude' | null = null
@@ -65,9 +69,9 @@ export function exportMarkdown(saved: SavedConversation, now = new Date()): stri
     switch (event.type) {
       case 'user': {
         head('user')
-        out.push('', event.text || '_(só anexos)_')
+        out.push('', event.text || t('_(só anexos)_'))
         if (event.attachments.length) {
-          out.push('', `_Anexos: ${event.attachments.map((a) => a.name).join(', ')}_`)
+          out.push('', t('_Anexos: {v1}_', { v1: event.attachments.map((a) => a.name).join(', ') }))
         }
         break
       }
@@ -96,7 +100,7 @@ export function exportMarkdown(saved: SavedConversation, now = new Date()): stri
         head('claude')
         out.push(
           '',
-          quote(`🔧 ${toolSummary(tool.name, tool.input)}${event.isError ? ' — erro' : ''}`)
+          quote(`🔧 ${toolSummary(tool.name, tool.input)}${event.isError ? t(' — erro') : ''}`)
         )
         break
       }
@@ -110,7 +114,10 @@ export function exportMarkdown(saved: SavedConversation, now = new Date()): stri
         out.push(
           '',
           quote(
-            `Pedido: ${toolSummary(tool.name, tool.input)} — ${DECISIONS[event.decision] ?? event.decision}`
+            t('Pedido: {v1} — {v2}', {
+              v1: toolSummary(tool.name, tool.input),
+              v2: DECISIONS[event.decision] ?? event.decision
+            })
           )
         )
         break
@@ -119,7 +126,7 @@ export function exportMarkdown(saved: SavedConversation, now = new Date()): stri
         out.push('', quote(`_${line(event.text, 400)}_`))
         break
       case 'compacted':
-        out.push('', '_(a conversa foi compactada aqui)_')
+        out.push('', t('_(a conversa foi compactada aqui)_'))
         break
     }
   }
@@ -140,5 +147,5 @@ export function exportFileName(title: string): string {
     .replace(/\s+/g, ' ')
     .trim()
     .slice(0, 60)
-  return `${name || 'Conversa'}.md`
+  return `${name || t('Conversa')}.md`
 }

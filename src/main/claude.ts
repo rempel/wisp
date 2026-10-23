@@ -40,6 +40,7 @@ import type { OpenRouterModel, TurnUsage } from './openrouter'
 import { hostProgramDirs, viaHost } from './host'
 import type { HostCommand } from './host'
 import { expandHome } from './paths'
+import { t } from '../shared/i18n'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
 export const SAFE_TOOLS = [
@@ -112,7 +113,7 @@ const ASK_FOR_BASH = JSON.stringify({
   hookSpecificOutput: {
     hookEventName: 'PreToolUse',
     permissionDecision: 'ask',
-    permissionDecisionReason: 'O Wisp pede aprovação para todo comando.'
+    permissionDecisionReason: t('O Wisp pede aprovação para todo comando.')
   }
 })
 const BASH_HOOK = `[ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ] || printf %s '${ASK_FOR_BASH}'`
@@ -232,15 +233,16 @@ const CONTEXT_WINDOWS = new Map<string, number>()
 
 /** Como ver o Wisp funcionando antes de instalar o Claude Code ou de fazer login. */
 const DEMO_HINT =
-  'Para ver o Wisp funcionando antes, ligue o **Modo demonstração** no menu do mascote (clique ' +
-  'com o botão direito nele).'
+  t(
+    'Para ver o Wisp funcionando antes, ligue o **Modo demonstração** no menu do mascote (clique '
+  ) + t('com o botão direito nele).')
 
 export const LOGIN_HINT =
-  'Rode `claude` no terminal e faça login. Depois é só mandar a mensagem de novo. ' + DEMO_HINT
+  t('Rode `claude` no terminal e faça login. Depois é só mandar a mensagem de novo. ') + DEMO_HINT
 export const INSTALL_HINT =
-  'Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ' +
-  'login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ' +
-  'caminho em `claudePath` no `~/.config/wisp/config.json`. ' +
+  t('Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ') +
+  t('login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ') +
+  t('caminho em `claudePath` no `~/.config/wisp/config.json`. ') +
   DEMO_HINT
 
 /**
@@ -559,11 +561,11 @@ function describeError(event: CliEvent): string {
   if (event.result) return event.result
   switch (event.subtype) {
     case 'error_max_turns':
-      return 'A resposta parou porque atingiu o limite de turnos.'
+      return t('A resposta parou porque atingiu o limite de turnos.')
     case 'error_during_execution':
-      return 'Algo deu errado enquanto o Claude Code trabalhava.'
+      return t('Algo deu errado enquanto o Claude Code trabalhava.')
     default:
-      return `O Claude Code terminou com erro (${event.subtype ?? 'desconhecido'}).`
+      return t('O Claude Code terminou com erro ({v1}).', { v1: event.subtype ?? 'desconhecido' })
   }
 }
 
@@ -580,29 +582,32 @@ const NETWORK =
  * do rate_limit_event, quando o CLI avisou que o limite do plano foi atingido.
  */
 export function friendlyError(text: string, limited: boolean, resetsAt: number | null): string {
-  const detail = `\n\nDetalhe: \`${text.replace(/`/g, "'").slice(0, 300)}\``
+  const detail = t('\n\nDetalhe: `{v1}`', { v1: text.replace(/`/g, "'").slice(0, 300) })
   if (limited || PLAN_LIMIT.test(text)) {
     // Versões antigas do CLI mandam o horário no próprio texto: "...limit reached|1791613800".
     const when = resetsAt ?? Number(/\|(\d{10})\b/.exec(text)?.[1] ?? NaN)
-    const free = Number.isFinite(when) ? ` Ele libera de novo ${formatReset(when)}.` : ''
-    return `Você chegou ao limite de uso do seu plano do Claude.${free}`
+    const free = Number.isFinite(when)
+      ? t(' Ele libera de novo {v1}.', { v1: formatReset(when) })
+      : ''
+    return t('Você chegou ao limite de uso do seu plano do Claude.{free}', { free })
   }
   if (MODEL_ERROR.test(text)) {
     return (
-      'O modelo escolhido não existe ou não está liberado no seu plano. Troque de modelo na ' +
-      'pílula acima da caixa de texto e mande a mensagem de novo.' +
+      t('O modelo escolhido não existe ou não está liberado no seu plano. Troque de modelo na ') +
+      t('pílula acima da caixa de texto e mande a mensagem de novo.') +
       detail
     )
   }
   if (OVERLOADED.test(text)) {
     return (
-      'Os servidores do Claude estão sobrecarregados agora. Tente de novo daqui a pouco.' + detail
+      t('Os servidores do Claude estão sobrecarregados agora. Tente de novo daqui a pouco.') +
+      detail
     )
   }
   if (NETWORK.test(text)) {
     return (
-      'Não consegui falar com os servidores do Claude. Confira sua conexão com a internet e ' +
-      'tente de novo.' +
+      t('Não consegui falar com os servidores do Claude. Confira sua conexão com a internet e ') +
+      t('tente de novo.') +
       detail
     )
   }
@@ -858,7 +863,10 @@ export class ClaudeSession {
     if (source === 'init') {
       this.notice(
         'warning',
-        `O Claude Code começou no modo "${mode}", e não no "${requested}" que você escolheu.`
+        t('O Claude Code começou no modo "{mode}", e não no "{requested}" que você escolheu.', {
+          mode,
+          requested
+        })
       )
     }
   }
@@ -942,7 +950,10 @@ export class ClaudeSession {
         copied = await copyAttachments(attachments, sessionId)
       } catch (err) {
         if (turn !== this.turn) return
-        this.notice('error', `Não consegui preparar os anexos: ${(err as Error).message}`)
+        this.notice(
+          'error',
+          t('Não consegui preparar os anexos: {message}', { message: (err as Error).message })
+        )
         return this.finishTurn('error')
       }
       if (turn !== this.turn) return
@@ -1248,7 +1259,7 @@ export class ClaudeSession {
     if (!this.model) {
       this.notice(
         'warning',
-        'Escolha um modelo da OpenRouter na pílula do modelo, logo abaixo da caixa de texto.'
+        t('Escolha um modelo da OpenRouter na pílula do modelo, logo abaixo da caixa de texto.')
       )
       return null
     }
@@ -1262,7 +1273,7 @@ export class ClaudeSession {
       if (!this.secret) {
         this.notice(
           'warning',
-          'Para conversar pela OpenRouter, guarde a sua chave em **Configurações → OpenRouter**.'
+          t('Para conversar pela OpenRouter, guarde a sua chave em **Configurações → OpenRouter**.')
         )
         return null
       }
@@ -1308,7 +1319,10 @@ export class ClaudeSession {
         for (const problem of copied.problems) this.notice('warning', problem)
         content = withAttachments(text, copied.paths)
       } catch (err) {
-        this.notice('error', `Não consegui preparar os anexos: ${(err as Error).message}`)
+        this.notice(
+          'error',
+          t('Não consegui preparar os anexos: {message}', { message: (err as Error).message })
+        )
         content = text
       }
     }
@@ -1468,8 +1482,9 @@ export class ClaudeSession {
       if (notFound && this.restored) {
         this.notice(
           'warning',
-          'O Claude Code não tem mais esta conversa (ele apaga as antigas depois de um tempo). ' +
-            'Continuei numa sessão nova: o Claude não lembra do que foi dito antes.'
+          t(
+            'O Claude Code não tem mais esta conversa (ele apaga as antigas depois de um tempo). '
+          ) + t('Continuei numa sessão nova: o Claude não lembra do que foi dito antes.')
         )
       }
       this.restored = false
@@ -1481,17 +1496,22 @@ export class ClaudeSession {
       this.fork = false
       this.notice(
         'error',
-        'Não consegui voltar a conversa para antes da mensagem editada: o Claude Code não achou o ' +
-          'ponto de antes dela (a conversa pode ter sido compactada). A mensagem não foi mandada; ' +
-          'comece uma conversa nova (Ctrl+K) para mandá-la do zero.'
+        t(
+          'Não consegui voltar a conversa para antes da mensagem editada: o Claude Code não achou o '
+        ) +
+          t(
+            'ponto de antes dela (a conversa pode ter sido compactada). A mensagem não foi mandada; '
+          ) +
+          t('comece uma conversa nova (Ctrl+K) para mandá-la do zero.')
       )
       return this.finishTurn('error')
     }
     const detail = stderrTail.trim()
     this.notice(
       'error',
-      `O Claude Code encerrou no meio da resposta (${signal ?? `código ${code}`}).` +
-        (detail ? `\n\n\`\`\`\n${detail}\n\`\`\`` : '')
+      t('O Claude Code encerrou no meio da resposta ({v1}).', {
+        v1: signal ?? t('código {code}', { code })
+      }) + (detail ? `\n\n\`\`\`\n${detail}\n\`\`\`` : '')
     )
     this.finishTurn('error')
   }
@@ -1539,7 +1559,7 @@ export class ClaudeSession {
       this.emit({ type: 'mode', mode: previous })
       this.notice(
         'warning',
-        `O Claude Code não aceitou o modo "${wanted}"` +
+        t('O Claude Code não aceitou o modo "{wanted}"', { wanted }) +
           (response.error ? ` (${response.error.replace(/`/g, "'")})` : '') +
           '. A conversa continua no modo de antes.'
       )
@@ -1556,7 +1576,7 @@ export class ClaudeSession {
     this.emit(this.modelEvent())
     this.notice(
       'warning',
-      `Não consegui trocar para o modelo \`${request.requested ?? 'padrão'}\`` +
+      t('Não consegui trocar para o modelo `{v1}`', { v1: request.requested ?? t('padrão') }) +
         (response.error ? ` (${response.error.replace(/`/g, "'")})` : '') +
         '. A resposta vem do modelo anterior.'
     )
@@ -1628,8 +1648,8 @@ export class ClaudeSession {
       this.warnedMcp = true
       this.notice(
         'warning',
-        'As ferramentas do desktop não conectaram: abrir apps, links e projetos não vai ' +
-          `funcionar nesta conversa (${desktop?.status ?? 'servidor ausente'}).`
+        t('As ferramentas do desktop não conectaram: abrir apps, links e projetos não vai ') +
+          t('funcionar nesta conversa ({v1}).', { v1: desktop?.status ?? t('servidor ausente') })
       )
     }
     // Uma política gerenciada (ou uma conta sem o Automático) pode impor outro modo.
@@ -1644,8 +1664,9 @@ export class ClaudeSession {
       this.warnedApiKey = true
       this.notice(
         'warning',
-        `O Claude Code está usando uma chave de API (${event.apiKeySource}), cobrada por uso, ` +
-          'e não a sua assinatura.'
+        t('O Claude Code está usando uma chave de API ({apiKeySource}), cobrada por uso, ', {
+          apiKeySource: event.apiKeySource
+        }) + t('e não a sua assinatura.')
       )
     }
   }

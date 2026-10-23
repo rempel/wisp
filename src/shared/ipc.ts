@@ -227,6 +227,8 @@ export const IPC = {
   settingsChanged: 'settings:changed',
   /** chat → main: abre o config.json (no editor de JSON, ou a pasta dele). */
   settingsOpenFile: 'settings:open-file',
+  /** Abre o Wisp de novo (o idioma novo vale a partir daí). */
+  settingsRelaunch: 'settings:relaunch',
   /** main → chat: mostra a tela de configurações (o item do menu do mascote). */
   settingsShow: 'settings:show',
   /** chat → main: desiste da escuta (Esc). */
@@ -814,6 +816,7 @@ export interface Settings {
   panelZoom: number
   tabSleepMinutes: number
   notifyApprovals: boolean
+  language: 'auto' | 'pt' | 'en'
   shortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
@@ -853,6 +856,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'panelZoom',
   'tabSleepMinutes',
   'notifyApprovals',
+  'language',
   'shortcut',
   'voiceShortcut',
   'clipboardChip',
@@ -889,6 +893,9 @@ export interface SettingsSnapshot {
   openrouterKey: boolean | null
   /** Aprovar pelo celular (Fase 18). */
   phone: PhoneStatus
+  /** O idioma em que o Wisp abriu, e o que ele terá ao abrir de novo (Fase 25). */
+  locale: 'pt' | 'en'
+  nextLocale: 'pt' | 'en'
 }
 
 /** O resultado de uma conferência do diagnóstico (Fase 20). */
@@ -1266,6 +1273,8 @@ export interface WispApi {
     onChanged(listener: (snapshot: SettingsSnapshot) => void): () => void
     /** Abre o config.json ou o registro no app padrão (ou mostra na pasta). */
     openFile(which: 'config' | 'log'): void
+    /** Fecha e abre o Wisp de novo (para o idioma novo valer). */
+    relaunch(): void
     /** O menu do mascote pediu a tela de configurações. */
     onShow(listener: () => void): () => void
   }

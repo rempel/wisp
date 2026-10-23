@@ -3,6 +3,7 @@ import { connect, createServer } from 'net'
 import type { Socket } from 'net'
 import { isPrivateDir, socketDir, socketPath, TAB_TOKEN } from './protocol'
 import type { RelayEvent, RelayReply } from './protocol'
+import { t } from '../../shared/i18n'
 
 /** Maior mensagem aceita de um relay (o pedido de permissão leva a entrada da ferramenta). */
 const MAX_MESSAGE = 4 * 1024 * 1024
@@ -123,13 +124,16 @@ export async function startHookServer(
   try {
     mkdirSync(dir, { recursive: true, mode: 0o700 })
   } catch (err) {
-    return { ok: false, problem: `não consegui criar ${dir} (${(err as Error).message})` }
+    return {
+      ok: false,
+      problem: t('não consegui criar {dir} ({message})', { dir, message: (err as Error).message })
+    }
   }
   if (!isPrivateDir(dir)) {
-    return { ok: false, problem: `a pasta ${dir} não é só do seu usuário` }
+    return { ok: false, problem: t('a pasta {dir} não é só do seu usuário', { dir }) }
   }
   if (await answers(path)) {
-    return { ok: false, problem: 'outro Wisp aberto já está ouvindo as sessões' }
+    return { ok: false, problem: t('outro Wisp aberto já está ouvindo as sessões') }
   }
   try {
     if (lstatSync(path).isSocket()) rmSync(path)
@@ -145,7 +149,10 @@ export async function startHookServer(
     chmodSync(path, 0o600)
   } catch (err) {
     server.close()
-    return { ok: false, problem: `não consegui abrir o socket (${(err as Error).message})` }
+    return {
+      ok: false,
+      problem: t('não consegui abrir o socket ({message})', { message: (err as Error).message })
+    }
   }
   return {
     ok: true,

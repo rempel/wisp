@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { CloseIcon, FileIcon } from './icons'
 import type { AttachmentPreview } from './state'
 import { formatSize } from './useAttachments'
+import { t } from '../../shared/i18n'
 
 /**
  * Anexos de uma mensagem: miniaturas para imagens e chips com o nome para o resto. Com
@@ -24,8 +25,8 @@ export function AttachmentList({
               type="button"
               className="attachment-remove"
               onClick={() => onRemove(item.id as string)}
-              title={`Remover ${item.name}`}
-              aria-label={`Remover ${item.name}`}
+              title={t('Remover {name}', { name: item.name })}
+              aria-label={t('Remover {name}', { name: item.name })}
             >
               <CloseIcon />
             </button>

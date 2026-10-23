@@ -16,8 +16,9 @@ por aí; e a [arquitetura](docs/ARQUITETURA.md), como as partes se encaixam.
   `ANTHROPIC_API_KEY` sai do ambiente antes de subir o Claude Code; programas sobem com `spawn` e
   uma lista de argumentos, nunca uma string para o shell; o servidor MCP fica só em `127.0.0.1`, numa
   porta e com um token sorteados.
-- **Idioma:** a interface, os avisos, os comentários do código e as mensagens de commit são em
-  português do Brasil, em frases curtas e diretas.
+- **Idioma:** os comentários do código e as mensagens de commit são em português do Brasil, em
+  frases curtas e diretas. A interface tem português e inglês (veja
+  [Textos e idiomas](#textos-e-idiomas)).
 
 ## Montar e rodar
 
@@ -38,6 +39,7 @@ npm run typecheck
 npm run lint
 npx prettier --check .
 npm test                 # testes de unidade (test/)
+npm run i18n             # os textos sem tradução para o inglês
 npm run build && e2e/run.sh e2e/<o-que-voce-mexeu>.mjs
 ```
 
@@ -63,7 +65,7 @@ npm run build && e2e/run.sh e2e/<o-que-voce-mexeu>.mjs
 | `src/preload/`         | A ponte entre as páginas e o main (a API `window.wisp`)                   |
 | `src/renderer/mascot/` | A página do mascote e da ilha                                             |
 | `src/renderer/chat/`   | A página do painel: abas, conversa, cards, configurações, histórico       |
-| `src/shared/`          | O que o main e as páginas usam: o IPC, o diff, os comandos                |
+| `src/shared/`          | O que o main e as páginas usam: o IPC, o diff, os comandos, os textos     |
 | `resources/`           | Os ícones, as gravações do modo demonstração e a persona do Claude        |
 | `build/`               | Os ícones dos pacotes, o afterPack e o Flatpak (`build/flatpak/`)         |
 | `scripts/`             | Os testes de unidade, os ícones, os pacotes ARM64 e as conferências       |
@@ -71,6 +73,32 @@ npm run build && e2e/run.sh e2e/<o-que-voce-mexeu>.mjs
 | `docs/`                | A arquitetura e os roteiros de validação                                  |
 
 A [arquitetura](docs/ARQUITETURA.md) descreve cada arquivo e cada parte.
+
+## Textos e idiomas
+
+Todo texto que aparece para quem usa (na interface, num aviso, numa notificação ou num erro) passa
+por `t()`, de `src/shared/i18n.ts`. O texto em português fica no código e é a chave; o inglês fica
+em `src/shared/i18n-en.ts`:
+
+```ts
+t('Abrir o painel')
+t('Passo {v1} de {total}', { v1: step, total }) // as variáveis vão entre chaves
+```
+
+- **Um texto novo** pede a entrada dele no `i18n-en.ts`, com as mesmas `{variáveis}`. O
+  `test/idiomas.test.ts` falha com o arquivo e a linha do que faltou; `npm run i18n` lista tudo de
+  uma vez (e as traduções que nenhum código usa mais).
+- **Frases inteiras:** um texto partido em pedaços (por causa de um `<strong>` no meio, por
+  exemplo) vira pedaços no outro idioma também, então prefira uma frase por `t()` sempre que der.
+  Para um plural, dois textos (`t('1 passo')` e `t('{count} passos', { count })`).
+- **Datas e números:** `dateLocale()` diz o idioma para o `Intl` e o `toLocaleString`.
+- **O que fica em português:** os nomes das ferramentas e dos campos do config.json, os comandos de
+  voz rápidos ("pausa a música") e as gravações do modo demonstração.
+- **O idioma** é decidido uma vez, quando o app abre (o `language` do config.json, ou o do sistema):
+  no main, `src/main/locale-init.ts` é o primeiro import; nas páginas, ele vem na URL (`?lang=en`).
+  Trocar nas configurações pede para abrir o Wisp de novo.
+- **Outro idioma** é um dicionário novo como o `i18n-en.ts`, uma entrada no `Locale` e no
+  `LANGUAGE_SETTINGS` de `i18n.ts`, e o nome dele nas configurações.
 
 ## Pacotes
 

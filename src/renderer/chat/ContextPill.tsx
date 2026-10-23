@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { formatTokens } from '../../shared/format'
 import type { ContextUsage } from '../../shared/ipc'
+import { t } from '../../shared/i18n'
 
 /** Verde até 60%, âmbar até 85%, vermelho acima. */
 function level(share: number): 'low' | 'mid' | 'high' {
@@ -66,7 +67,7 @@ export function ContextPill({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title="Quanto da janela de contexto esta conversa ocupa"
+        title={t('Quanto da janela de contexto esta conversa ocupa')}
       >
         <span className="context-ring" aria-hidden>
           <svg viewBox="0 0 16 16">
@@ -83,8 +84,12 @@ export function ContextPill({
         <span>{label}</span>
       </button>
       {open && (
-        <div className="model-menu context-card" role="dialog" aria-label="Contexto da conversa">
-          <div className="usage-title">Contexto desta conversa</div>
+        <div
+          className="model-menu context-card"
+          role="dialog"
+          aria-label={t('Contexto da conversa')}
+        >
+          <div className="usage-title">{t('Contexto desta conversa')}</div>
           <div
             className={`usage-bar context-bar usage-${share === null ? 'low' : level(share)}`}
             role="progressbar"
@@ -96,17 +101,19 @@ export function ContextPill({
           </div>
           <p className="context-numbers">
             {formatTokens(context.used)} tokens
-            {context.window ? ` de ${formatTokens(context.window)} (${percent}%)` : ''}
+            {context.window
+              ? t(' de {v1} ({percent}%)', { v1: formatTokens(context.window), percent })
+              : ''}
           </p>
           <p className="model-menu-note">
-            É o que o Claude tem em mente agora: as mensagens, o que as ferramentas devolveram e os
-            arquivos lidos. Perto do limite, o Claude Code compacta sozinho. Compactar troca o que
-            veio antes por um resumo; o painel continua mostrando tudo.
+            {t(
+              'É o que o Claude tem em mente agora: as mensagens, o que as ferramentas devolveram e os arquivos lidos. Perto do limite, o Claude Code compacta sozinho. Compactar troca o que veio antes por um resumo; o painel continua mostrando tudo.'
+            )}
           </p>
           <input
             type="text"
             className="openrouter-search context-instructions"
-            placeholder="O que manter no resumo (opcional)"
+            placeholder={t('O que manter no resumo (opcional)')}
             value={instructions}
             maxLength={500}
             spellCheck={false}
@@ -123,9 +130,9 @@ export function ContextPill({
             className="settings-button context-compact"
             disabled={busy || context.compacting}
             onClick={compact}
-            title={busy ? 'Espere a resposta terminar' : undefined}
+            title={busy ? t('Espere a resposta terminar') : undefined}
           >
-            {context.compacting ? 'Compactando…' : 'Compactar agora'}
+            {context.compacting ? t('Compactando…') : t('Compactar agora')}
           </button>
         </div>
       )}

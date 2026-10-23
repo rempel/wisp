@@ -14,6 +14,8 @@ import {
 import { LOG_PATH } from './log'
 import { IPC, SETTINGS_KEYS } from '../shared/ipc'
 import type { PhoneStatus, Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
+import { getLocale, resolveLocale } from '../shared/i18n'
+import { systemTag } from './locale-init'
 
 export interface SettingsOptions {
   /** O pedido veio da página do painel? */
@@ -28,6 +30,8 @@ export interface SettingsOptions {
   openrouterKey(): boolean | null
   /** A aprovação pelo celular (Fase 18). */
   phone(): PhoneStatus
+  /** Fecha e abre o Wisp de novo (o idioma novo vale a partir daí). */
+  relaunch(): void
 }
 
 const tilde = (path: string): string =>
@@ -51,7 +55,9 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       logPath: tilde(LOG_PATH),
       problems: configProblems(),
       openrouterKey: options.openrouterKey(),
-      phone: options.phone()
+      phone: options.phone(),
+      locale: getLocale(),
+      nextLocale: resolveLocale(config.language, systemTag())
     }
   }
   const notify = (): void => {
@@ -96,6 +102,9 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       notify()
     }
     return { ok: true }
+  })
+  ipcMain.on(IPC.settingsRelaunch, (event) => {
+    if (options.isSender(event.sender)) options.relaunch()
   })
   ipcMain.on(IPC.settingsOpenFile, (event, which: unknown) => {
     if (!options.isSender(event.sender)) return

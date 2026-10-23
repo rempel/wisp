@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { expandHome } from './paths'
 import { findProgram, isFile } from './programs'
 import { viaHost } from './host'
+import { t } from '../shared/i18n'
 
 // A fala das respostas, com o Piper (TTS local). O texto vai pela entrada padrão e o áudio volta
 // cru pela saída (PCM de 16 bits, mono, na taxa do modelo): nada passa pelo disco.
@@ -29,13 +30,16 @@ export function piperSetup(options: PiperOptions): { binary: string; model: stri
   const binary = findProgram(options.binary, ['piper', 'piper-tts'])
   if (!binary) {
     return (
-      'Para eu falar as respostas, instale o Piper (o programa piper) ou diga onde ele está em ' +
-      'piperPath no config.json.'
+      t(
+        'Para eu falar as respostas, instale o Piper (o programa piper) ou diga onde ele está em '
+      ) + t('piperPath no config.json.')
     )
   }
   const model = expandHome(options.model.trim())
   if (!model || !isFile(model)) {
-    return `Falta a voz do Piper: ${model ? model.replace(homedir(), '~') : 'piperModel está vazio no config.json'}. O README explica como baixar.`
+    return t('Falta a voz do Piper: {v1}. O README explica como baixar.', {
+      v1: model ? model.replace(homedir(), '~') : t('piperModel está vazio no config.json')
+    })
   }
   return { binary, model }
 }
@@ -67,7 +71,7 @@ export function synthesize(text: string, options: PiperOptions): Promise<Speech>
     let stderr = ''
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
-      reject(new Error('o Piper demorou demais'))
+      reject(new Error(t('o Piper demorou demais')))
     }, TIMEOUT_MS)
     child.stdout.on('data', (chunk: Buffer) => {
       size += chunk.length
@@ -121,5 +125,5 @@ export function speakable(markdown: string, max = 280): string {
     out += sentence
   }
   if (!out) out = `${text.slice(0, max).replace(/\s+\S*$/, '')}…`
-  return `${out.trim()} O resto está no painel.`
+  return t('{v1} O resto está no painel.', { v1: out.trim() })
 }

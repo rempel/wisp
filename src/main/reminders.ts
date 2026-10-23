@@ -1,6 +1,7 @@
 import { randomBytes } from 'crypto'
 import { chmodSync, mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
+import { t, dateLocale } from '../shared/i18n'
 
 /** Um lembrete marcado. */
 export interface Reminder {
@@ -69,11 +70,13 @@ export class Reminders {
   /** Marca um lembrete. Devolve o lembrete, ou o motivo de não ter marcado. */
   add(text: string, at: number, now = Date.now()): Reminder | { error: string } {
     const clean = text.trim().replace(/\s+/g, ' ').slice(0, MAX_TEXT)
-    if (!clean) return { error: 'O lembrete precisa de um texto.' }
-    if (!Number.isFinite(at) || at <= now) return { error: 'Esse horário já passou.' }
-    if (at - now > MAX_AHEAD_MS) return { error: 'Dá para marcar até um ano para a frente.' }
+    if (!clean) return { error: t('O lembrete precisa de um texto.') }
+    if (!Number.isFinite(at) || at <= now) return { error: t('Esse horário já passou.') }
+    if (at - now > MAX_AHEAD_MS) return { error: t('Dá para marcar até um ano para a frente.') }
     if (this.items.length >= MAX_PENDING) {
-      return { error: `Já há ${MAX_PENDING} lembretes marcados; cancele algum antes.` }
+      return {
+        error: t('Já há {MAX_PENDING} lembretes marcados; cancele algum antes.', { MAX_PENDING })
+      }
     }
     const reminder: Reminder = {
       id: randomBytes(3).toString('hex'),
@@ -167,18 +170,19 @@ export function parseWhen(
 ): number | { error: string } {
   const { minutos, horario } = input
   if (minutos !== undefined && horario !== undefined) {
-    return { error: 'Use minutos ou horario, não os dois.' }
+    return { error: t('Use minutos ou horario, não os dois.') }
   }
   if (minutos !== undefined) {
-    if (!Number.isFinite(minutos) || minutos <= 0) return { error: 'minutos precisa ser positivo.' }
+    if (!Number.isFinite(minutos) || minutos <= 0)
+      return { error: t('minutos precisa ser positivo.') }
     return now.getTime() + minutos * 60_000
   }
   const text = horario?.trim()
-  if (!text) return { error: 'Diga quando: minutos ou horario.' }
+  if (!text) return { error: t('Diga quando: minutos ou horario.') }
   const clock = /^(\d{1,2})[:h](\d{2})$/.exec(text)
   if (clock) {
     const [hours, minutes] = [Number(clock[1]), Number(clock[2])]
-    if (hours > 23 || minutes > 59) return { error: `"${text}" não é um horário.` }
+    if (hours > 23 || minutes > 59) return { error: t('"{text}" não é um horário.', { text }) }
     const at = new Date(now)
     at.setHours(hours, minutes, 0, 0)
     if (at.getTime() <= now.getTime()) at.setDate(at.getDate() + 1)
@@ -189,15 +193,15 @@ export function parseWhen(
     const [y, mo, d, h, mi, s] = local.slice(1).map((part) => Number(part ?? 0))
     const at = new Date(y, mo - 1, d, h, mi, s || 0)
     if (at.getMonth() !== mo - 1 || at.getDate() !== d)
-      return { error: `"${text}" não é uma data.` }
+      return { error: t('"{text}" não é uma data.', { text }) }
     return at.getTime()
   }
   const parsed = Date.parse(text)
-  return Number.isNaN(parsed) ? { error: `Não entendi o horário "${text}".` } : parsed
+  return Number.isNaN(parsed) ? { error: t('Não entendi o horário "{text}".', { text }) } : parsed
 }
 
-const clockFormat = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
-const dayFormat = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
+const clockFormat = new Intl.DateTimeFormat(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+const dayFormat = new Intl.DateTimeFormat(dateLocale(), { day: '2-digit', month: '2-digit' })
 
 /** "hoje às 15:30", "amanhã às 08:00" ou "em 24/12 às 09:00". */
 export function describeWhen(at: number, now = new Date()): string {
@@ -206,19 +210,22 @@ export function describeWhen(at: number, now = new Date()): string {
     new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime()
   const days = Math.round((startOfDay(date) - startOfDay(now)) / 86_400_000)
   const clock = clockFormat.format(date)
-  if (days === 0) return `hoje às ${clock}`
-  if (days === 1) return `amanhã às ${clock}`
-  if (days === -1) return `ontem às ${clock}`
-  return `em ${dayFormat.format(date)} às ${clock}`
+  if (days === 0) return t('hoje às {clock}', { clock })
+  if (days === 1) return t('amanhã às {clock}', { clock })
+  if (days === -1) return t('ontem às {clock}', { clock })
+  return t('em {v1} às {clock}', { v1: dayFormat.format(date), clock })
 }
 
 /** "daqui a 5 minutos", "daqui a 2 horas e 10 minutos". */
 export function describeIn(at: number, now = Date.now()): string {
   const minutes = Math.max(1, Math.round((at - now) / 60_000))
-  if (minutes < 60) return `daqui a ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}`
+  if (minutes < 60)
+    return t('daqui a {minutes} {v2}', { minutes, v2: minutes === 1 ? t('minuto') : t('minutos') })
   const hours = Math.floor(minutes / 60)
   const rest = minutes % 60
-  if (hours >= 48) return `daqui a ${Math.round(hours / 24)} dias`
-  const h = `${hours} ${hours === 1 ? 'hora' : 'horas'}`
-  return rest ? `daqui a ${h} e ${rest} ${rest === 1 ? 'minuto' : 'minutos'}` : `daqui a ${h}`
+  if (hours >= 48) return t('daqui a {v1} dias', { v1: Math.round(hours / 24) })
+  const h = `${hours} ${hours === 1 ? t('hora') : t('horas')}`
+  return rest
+    ? t('daqui a {h} e {rest} {v3}', { h, rest, v3: rest === 1 ? t('minuto') : t('minutos') })
+    : t('daqui a {h}', { h })
 }

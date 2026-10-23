@@ -15,6 +15,7 @@ import { randomUUID } from 'crypto'
 import { basename, join } from 'path'
 import type { AttachmentPreview, ChatEvent, ConversationSummary, Provider } from '../shared/ipc'
 import { DATA_DIR } from './paths'
+import { t } from '../shared/i18n'
 
 /**
  * ~/.local/share/wisp/conversas: o histórico, um arquivo JSONL por conversa. A primeira linha
@@ -111,7 +112,7 @@ function validEvent(value: unknown): value is ChatEvent {
 export function titleOf(text: string, attachments: AttachmentPreview[]): string {
   const line = text.trim().split('\n')[0].replace(/\s+/g, ' ')
   const title = line || attachments.map((attachment) => attachment.name).join(', ')
-  if (!title) return 'Conversa'
+  if (!title) return t('Conversa')
   return title.length > TITLE_MAX ? `${title.slice(0, TITLE_MAX - 1).trimEnd()}…` : title
 }
 

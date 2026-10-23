@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { formatReset } from '../../shared/format'
 import type { PlanUsage, UsageWindow } from '../../shared/ipc'
+import { t, dateLocale } from '../../shared/i18n'
 
 const percent = (used: number): string => `${Math.round(used * 100)}%`
 
@@ -26,7 +27,7 @@ function Row({
     window.resetsAt === null
       ? ''
       : passed
-        ? 'já reiniciou'
+        ? t('já reiniciou')
         : `reinicia ${formatReset(window.resetsAt)}`
   return (
     <div className={`usage-row usage-${level(window.used, false)}${passed ? ' passed' : ''}`}>
@@ -69,7 +70,7 @@ export function UsagePill({ usage }: { usage: PlanUsage }): JSX.Element {
   }, [open])
 
   const top = Math.max(usage.session?.used ?? 0, usage.week?.used ?? 0)
-  const updated = new Date(usage.at).toLocaleTimeString('pt-BR', {
+  const updated = new Date(usage.at).toLocaleTimeString(dateLocale(), {
     hour: '2-digit',
     minute: '2-digit'
   })
@@ -93,19 +94,22 @@ export function UsagePill({ usage }: { usage: PlanUsage }): JSX.Element {
           setOpen((value) => !value)
         }}
         aria-expanded={open}
-        title="Uso do seu plano do Claude"
+        title={t('Uso do seu plano do Claude')}
       >
         <span className="usage-dot" />
         {percent(top)}
       </button>
       {open && (
-        <div className="usage-card" role="dialog" aria-label="Uso do plano">
-          <div className="usage-title">Uso do plano</div>
-          {usage.session && <Row title="Sessão de 5 horas" window={usage.session} now={openedAt} />}
-          {usage.week && <Row title="Semana" window={usage.week} now={openedAt} />}
+        <div className="usage-card" role="dialog" aria-label={t('Uso do plano')}>
+          <div className="usage-title">{t('Uso do plano')}</div>
+          {usage.session && (
+            <Row title={t('Sessão de 5 horas')} window={usage.session} now={openedAt} />
+          )}
+          {usage.week && <Row title={t('Semana')} window={usage.week} now={openedAt} />}
           <div className="usage-foot">
-            {usage.limited ? 'Você chegou ao limite. ' : ''}Atualizado às {updated}, na última
-            resposta.
+            {usage.limited ? t('Você chegou ao limite. ') : ''}
+            {t('Atualizado às')} {updated}
+            {t(', na última resposta.')}
           </div>
         </div>
       )}

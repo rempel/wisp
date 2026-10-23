@@ -12,6 +12,7 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { DATA_DIR } from './paths'
 import { viaHost } from './host'
+import { t, dateLocale } from '../shared/i18n'
 
 export type CiState = 'success' | 'failure' | 'pending' | 'none'
 export type ReviewState = 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED'
@@ -197,7 +198,7 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
   if (alert.kind === 'review-requested') {
     const { request } = alert
     return {
-      title: `${request.author || 'Alguém'} pediu a sua revisão`,
+      title: t('{v1} pediu a sua revisão', { v1: request.author || t('Alguém') }),
       body: `${request.repo}#${request.number}: ${request.title}`,
       url: request.url
     }
@@ -206,16 +207,16 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
   const where = `${pr.repo}#${pr.number}: ${pr.title}`
   switch (alert.kind) {
     case 'ci-failed':
-      return { title: 'O CI falhou', body: where, url: pr.url }
+      return { title: t('O CI falhou'), body: where, url: pr.url }
     case 'ci-passed':
-      return { title: 'O CI passou', body: where, url: pr.url }
+      return { title: t('O CI passou'), body: where, url: pr.url }
     case 'review': {
       const what =
         alert.state === 'APPROVED'
-          ? 'aprovou o seu PR'
+          ? t('aprovou o seu PR')
           : alert.state === 'CHANGES_REQUESTED'
-            ? 'pediu mudanças no seu PR'
-            : 'comentou no seu PR'
+            ? t('pediu mudanças no seu PR')
+            : t('comentou no seu PR')
       return { title: `${alert.author} ${what}`, body: where, url: pr.url }
     }
   }
@@ -224,21 +225,21 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
 /** A leitura em texto, para a ferramenta github_status (o Claude responde "como estão meus PRs?"). */
 export function describeSnapshot(snapshot: GithubSnapshot): string {
   const ci: Record<CiState, string> = {
-    success: 'CI passou',
-    failure: 'CI falhou',
-    pending: 'CI rodando',
-    none: 'sem CI'
+    success: t('CI passou'),
+    failure: t('CI falhou'),
+    pending: t('CI rodando'),
+    none: t('sem CI')
   }
   const decision = {
-    APPROVED: 'aprovado',
-    CHANGES_REQUESTED: 'pediram mudanças',
-    REVIEW_REQUIRED: 'esperando revisão'
+    APPROVED: t('aprovado'),
+    CHANGES_REQUESTED: t('pediram mudanças'),
+    REVIEW_REQUIRED: t('esperando revisão')
   }
   const mine = snapshot.mine.map((pr) => {
     const parts = [
       ci[pr.ci],
       pr.decision ? decision[pr.decision] : null,
-      pr.draft ? 'rascunho' : null
+      pr.draft ? t('rascunho') : null
     ]
     return `- ${pr.repo}#${pr.number} "${pr.title}": ${parts.filter(Boolean).join(', ')} (${pr.url})`
   })
@@ -246,10 +247,16 @@ export function describeSnapshot(snapshot: GithubSnapshot): string {
     (r) => `- ${r.repo}#${r.number} "${r.title}", de ${r.author || '?'} (${r.url})`
   )
   return [
-    `GitHub de ${snapshot.login}, lido às ${new Date(snapshot.at).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.`,
-    `Seus PRs abertos (${mine.length}):`,
+    t('GitHub de {login}, lido às {v2}.', {
+      login: snapshot.login,
+      v2: new Date(snapshot.at).toLocaleTimeString(dateLocale(), {
+        hour: '2-digit',
+        minute: '2-digit'
+      })
+    }),
+    t('Seus PRs abertos ({length}):', { length: mine.length }),
     ...(mine.length ? mine : ['- nenhum']),
-    `Pedem a sua revisão (${requests.length}):`,
+    t('Pedem a sua revisão ({length}):', { length: requests.length }),
     ...(requests.length ? requests : ['- nenhum'])
   ].join('\n')
 }
@@ -373,7 +380,7 @@ export class GithubWatcher {
     const gh = this.options.gh()
     let raw: unknown
     try {
-      if (!gh) throw { kind: 'missing', message: 'o gh não está instalado' } satisfies GhProblem
+      if (!gh) throw { kind: 'missing', message: t('o gh não está instalado') } satisfies GhProblem
       raw = await (this.options.query ?? runQuery)(gh)
     } catch (error) {
       const problem = error as GhProblem

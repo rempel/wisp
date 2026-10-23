@@ -1,3 +1,4 @@
+import { t } from '../../shared/i18n'
 // Os comandos com barra da caixa de texto: os que o Wisp atende e os do Claude Code.
 
 /** Um comando com barra: os do Wisp (compactar, conversa nova) e os do Claude Code. */
@@ -8,19 +9,19 @@ export interface SlashCommand {
 
 /** Os comandos que o próprio Wisp atende (os outros vão para o Claude Code como mensagem). */
 export const WISP_COMMANDS: SlashCommand[] = [
-  { name: 'compact', description: 'Compactar a conversa (escreva depois o que manter)' },
-  { name: 'clear', description: 'Começar uma conversa nova nesta aba' }
+  { name: 'compact', description: t('Compactar a conversa (escreva depois o que manter)') },
+  { name: 'clear', description: t('Começar uma conversa nova nesta aba') }
 ]
 
 /** O que os comandos mais comuns do Claude Code fazem (os outros, como skills, vão sem descrição). */
 const KNOWN: Record<string, string> = {
-  review: 'Revisar um pull request',
-  'security-review': 'Revisar a segurança das mudanças',
-  init: 'Criar um CLAUDE.md para o projeto',
-  'pr-comments': 'Ler os comentários de um pull request',
-  context: 'Ver o que ocupa o contexto',
-  cost: 'Ver o custo da conversa',
-  todos: 'Ver a lista de tarefas'
+  review: t('Revisar um pull request'),
+  'security-review': t('Revisar a segurança das mudanças'),
+  init: t('Criar um CLAUDE.md para o projeto'),
+  'pr-comments': t('Ler os comentários de um pull request'),
+  context: t('Ver o que ocupa o contexto'),
+  cost: t('Ver o custo da conversa'),
+  todos: t('Ver a lista de tarefas')
 }
 
 /** Quantos comandos o menu mostra de uma vez. */

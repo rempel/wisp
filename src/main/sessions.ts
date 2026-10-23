@@ -14,6 +14,7 @@ import { DATA_DIR } from './paths'
 import { permissionScope } from './permission-scope'
 import type { Scope } from './permission-scope'
 import { checkAnswers, parseQuestions, QUESTION_TOOL } from './questions'
+import { t } from '../shared/i18n'
 
 /** ~/.local/share/wisp/sessoes.json: as sessões recentes, para a lista sobreviver ao app fechar. */
 const STORE = join(DATA_DIR, 'sessoes.json')
@@ -248,7 +249,7 @@ export class ExternalSessions {
     if ('answers' in answer) {
       if (!question) return false
       if (answer.answers === null) {
-        reply = { decision: 'deny', message: 'O usuário preferiu não responder.' }
+        reply = { decision: 'deny', message: t('O usuário preferiu não responder.') }
       } else {
         const questions = parseQuestions(request.input)
         const checked = questions && checkAnswers(questions, answer.answers)
@@ -267,7 +268,7 @@ export class ExternalSessions {
           reply = { decision: 'allow' }
           break
         case 'deny':
-          reply = { decision: 'deny', message: 'O usuário negou pelo Wisp.' }
+          reply = { decision: 'deny', message: t('O usuário negou pelo Wisp.') }
           break
         default:
           reply = { decision: null }
@@ -310,7 +311,7 @@ export class ExternalSessions {
       session = {
         id,
         cwd,
-        project: basename(cwd) || cwd || 'sessão',
+        project: basename(cwd) || cwd || t('sessão'),
         state: 'idle',
         stateAt: 0,
         startedAt: message.at,

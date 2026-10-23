@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import type { SlashCommand } from './slash'
+import { t } from '../../shared/i18n'
 
 /** O menu dos comandos com barra, acima da caixa de texto. */
 export function SlashMenu({
@@ -12,7 +13,7 @@ export function SlashMenu({
   onPick: (command: SlashCommand) => void
 }): JSX.Element {
   return (
-    <div className="slash-menu" role="listbox" aria-label="Comandos">
+    <div className="slash-menu" role="listbox" aria-label={t('Comandos')}>
       {commands.map((command, index) => (
         <button
           key={command.name}

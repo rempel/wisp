@@ -17,6 +17,7 @@ import type { HookPreview, HooksAction, HooksStatus } from '../../shared/ipc'
 import { shellQuote } from '../launcher'
 import { DATA_DIR } from '../paths'
 import { HOOK_EVENTS, RELAY_NAME } from './protocol'
+import { t } from '../../shared/i18n'
 
 /** Onde o relay fica para o Claude Code: um script curto que roda o relay do app. */
 export const WRAPPER_PATH = join(DATA_DIR, 'bin', RELAY_NAME)
@@ -124,9 +125,15 @@ function readCurrent(): Current {
     bytes = readFileSync(path)
   } catch (err) {
     if ((err as NodeJS.ErrnoException).code !== 'ENOENT') {
-      throw new Error(`não consegui ler o ${tilde(path)} (${(err as Error).message})`, {
-        cause: err
-      })
+      throw new Error(
+        t('não consegui ler o {v1} ({message})', {
+          v1: tilde(path),
+          message: (err as Error).message
+        }),
+        {
+          cause: err
+        }
+      )
     }
   }
   if (!bytes || !bytes.toString('utf8').trim()) return { path, bytes, settings: {}, indent: '  ' }
@@ -136,12 +143,17 @@ function readCurrent(): Current {
     parsed = JSON.parse(text)
   } catch (err) {
     throw new Error(
-      `o ${tilde(path)} não é um JSON válido (${(err as Error).message}); o Wisp não mexe nele assim`,
+      t('o {v1} não é um JSON válido ({message}); o Wisp não mexe nele assim', {
+        v1: tilde(path),
+        message: (err as Error).message
+      }),
       { cause: err }
     )
   }
   if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) {
-    throw new Error(`o ${tilde(path)} deveria ter um objeto JSON; o Wisp não mexe nele assim`)
+    throw new Error(
+      t('o {v1} deveria ter um objeto JSON; o Wisp não mexe nele assim', { v1: tilde(path) })
+    )
   }
   const indent = /\n([ \t]+)"/.exec(text)?.[1] ?? '  '
   return { path, bytes, settings: parsed as Settings, indent }
@@ -152,7 +164,9 @@ function merged(settings: Settings, action: HooksAction, path: string): Settings
   const root = { ...settings }
   const current = root.hooks ?? {}
   if (typeof current !== 'object' || Array.isArray(current)) {
-    throw new Error(`"hooks" no ${tilde(path)} não tem o formato esperado; o Wisp não mexeu nele`)
+    throw new Error(
+      t('"hooks" no {v1} não tem o formato esperado; o Wisp não mexeu nele', { v1: tilde(path) })
+    )
   }
   const hooks = { ...(current as Record<string, unknown>) }
   // Tira as entradas do Wisp de todos os eventos (inclusive de versões antigas)…
@@ -160,7 +174,10 @@ function merged(settings: Settings, action: HooksAction, path: string): Settings
     if (!Array.isArray(list)) {
       if (HOOK_EVENTS.some((hook) => hook.event === event)) {
         throw new Error(
-          `"hooks.${event}" no ${tilde(path)} não tem o formato esperado; o Wisp não mexeu nele`
+          t('"hooks.{event}" no {v2} não tem o formato esperado; o Wisp não mexeu nele', {
+            event,
+            v2: tilde(path)
+          })
         )
       }
       continue
@@ -272,7 +289,11 @@ export function applyHooks(
   try {
     const current = readCurrent()
     if (fingerprintOf(current.bytes) !== fingerprint) {
-      return { error: `o ${tilde(current.path)} mudou desde a prévia; veja as mudanças de novo` }
+      return {
+        error: t('o {v1} mudou desde a prévia; veja as mudanças de novo', {
+          v1: tilde(current.path)
+        })
+      }
     }
     const content = serialize(merged(current.settings, action, current.path), current.indent)
     let target = current.path

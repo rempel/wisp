@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import type { SessionsSnapshot } from '../../shared/ipc'
 import { TerminalIcon } from './icons'
 import { SESSION_TICK_MS, SessionCard } from './SessionsView'
+import { t } from '../../shared/i18n'
 
 /**
  * Uma sessão do Claude Code no terminal, numa aba: o que ela faz agora, os pedidos esperando
@@ -30,9 +31,9 @@ export function SessionPane({
       ) : (
         <div className="sessions-empty">
           <TerminalIcon />
-          <p>Esta sessão saiu da lista (encerrada e esquecida).</p>
+          <p>{t('Esta sessão saiu da lista (encerrada e esquecida).')}</p>
           <button type="button" className="link" onClick={onClose}>
-            Fechar a aba
+            {t('Fechar a aba')}
           </button>
         </div>
       )}

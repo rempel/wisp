@@ -77,6 +77,7 @@ src/
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
 │  ├─ away.ts        # o resumo de "enquanto você estava fora", ao desbloquear a tela
 │  ├─ host.ts        # no Flatpak: os programas do sistema pelo flatpak-spawn --host
+│  ├─ locale-init.ts # o idioma do main, decidido antes de qualquer outro módulo (o 1º import)
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
@@ -95,7 +96,9 @@ src/
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
 │  ├─ commands.ts    # o que um comando do terminal faz, em uma linha (o card e a notificação)
-│  └─ format.ts      # datas e horários em português
+│  ├─ i18n.ts        # os idiomas: o t() (o português é a chave), o idioma de agora e o do sistema
+│  ├─ i18n-en.ts     # o dicionário do inglês
+│  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
    │                 # mascot.css (animações), avatars.css (as cores de cada avatar), sounds.ts
@@ -681,6 +684,16 @@ CONTRIBUTING.md        # o guia de contribuição
   `$XDG_RUNTIME_DIR/app/<id>`, a única parte da pasta de runtime que dentro e fora enxergam igual. O
   comando `wisp` e o relay dos hooks chamam o `flatpak run`, e o autostart vai para o `~/.config`
   de verdade.
+- **Idiomas:** cada texto da interface passa por `t()` (`shared/i18n.ts`), com o português como
+  chave e o inglês no `shared/i18n-en.ts`; as variáveis vão entre chaves (`{count}`). O idioma é
+  decidido uma vez por processo: no main, o `locale-init.ts` é o primeiro import do `index.ts` e lê
+  só o `language` do `config.json` (sem ele, o `LC_ALL`, o `LC_MESSAGES` ou o `LANG`), para os
+  textos guardados em constantes já saírem certos; nas páginas, o `page.ts` passa o idioma na URL
+  (`?lang=en`), e o `i18n.ts` lê dali e marca o `<html lang>`. O prompt do sistema pede ao Claude
+  que responda no idioma da interface. Trocar o idioma nas configurações grava o `config.json` e
+  oferece abrir o Wisp de novo (`app.relaunch` com o mesmo lançador; no Flatpak, o `/app/bin/wisp`);
+  as abas voltam pelo `abas.json`. O `scripts/i18n.mjs` acha cada `t('…')` do código e confere o
+  dicionário (o `test/idiomas.test.ts` e o `npm run i18n` usam ele).
 - **Pacotes ARM64:** o `scripts/package-arm64.sh` baixa o Electron de ARM64 (o `@electron/get`, na
   mesma versão), compila o node-pty com o `aarch64-linux-gnu-g++` (o pty.node de x86-64 volta para o
   lugar no fim) e chama o electron-builder com `--arm64` e esse Electron.

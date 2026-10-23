@@ -2,6 +2,7 @@ import workletUrl from './voice-worklet.ts?worker&url'
 import { EnergyVad, frameDb, VOICE_RATE } from '../../shared/vad'
 import type { VadOptions } from '../../shared/vad'
 import type { VoiceCaptureEvent, VoiceMode } from '../../shared/ipc'
+import { t } from '../../shared/i18n'
 
 // A voz na página do mascote, que está sempre carregada: a captura do microfone (aberto só
 // enquanto o Wisp ouve) e a fala das respostas. O áudio fica na memória e vai para o main pelo
@@ -37,17 +38,17 @@ interface Listening {
 function errorOf(id: number, err: unknown): VoiceCaptureEvent {
   const name = (err as { name?: string } | null)?.name
   if (name === 'NotAllowedError' || name === 'SecurityError') {
-    return { type: 'error', id, reason: 'denied', message: 'o acesso ao microfone foi negado' }
+    return { type: 'error', id, reason: 'denied', message: t('o acesso ao microfone foi negado') }
   }
   if (name === 'NotFoundError' || name === 'OverconstrainedError') {
-    return { type: 'error', id, reason: 'no-device', message: 'não achei um microfone' }
+    return { type: 'error', id, reason: 'no-device', message: t('não achei um microfone') }
   }
   if (name === 'NotReadableError') {
     return {
       type: 'error',
       id,
       reason: 'no-device',
-      message: 'o microfone está ocupado ou não respondeu'
+      message: t('o microfone está ocupado ou não respondeu')
     }
   }
   return { type: 'error', id, reason: 'failed', message: (err as Error)?.message || String(err) }

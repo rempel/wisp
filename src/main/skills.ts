@@ -15,6 +15,7 @@ import {
 import { homedir } from 'os'
 import { join, relative } from 'path'
 import type { SkillInfo } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 /** A pasta de configuração do Claude Code da assinatura. */
 export function claudeConfigDir(env: NodeJS.ProcessEnv = process.env): string {
@@ -143,13 +144,14 @@ function filesOf(dir: string): string[] {
       const path = join(current, name)
       const stat = lstatSync(path)
       if (stat.isSymbolicLink())
-        throw new Error(`${relative(dir, path)} é um link; copie a pasta sem links`)
+        throw new Error(t('{v1} é um link; copie a pasta sem links', { v1: relative(dir, path) }))
       if (stat.isDirectory()) walk(path)
       else if (stat.isFile()) {
         out.push(path)
         bytes += stat.size
-        if (out.length > MAX_FILES) throw new Error(`a pasta tem mais de ${MAX_FILES} arquivos`)
-        if (bytes > MAX_BYTES) throw new Error('a pasta passa de 20 MB')
+        if (out.length > MAX_FILES)
+          throw new Error(t('a pasta tem mais de {MAX_FILES} arquivos', { MAX_FILES }))
+        if (bytes > MAX_BYTES) throw new Error(t('a pasta passa de 20 MB'))
       }
     }
   }
@@ -163,18 +165,22 @@ export function inspectSkill(
   configDir = claudeConfigDir()
 ): SkillInfo & { files: number } {
   const skill = readSkill(dir, 'personal')
-  if (!skill) throw new Error('Essa pasta não tem um SKILL.md.')
+  if (!skill) throw new Error(t('Essa pasta não tem um SKILL.md.'))
   if (!SKILL_NAME.test(skill.name)) {
-    throw new Error(`O nome "${skill.name}" não serve: só letras minúsculas, números e hífen.`)
+    throw new Error(
+      t('O nome "{name}" não serve: só letras minúsculas, números e hífen.', { name: skill.name })
+    )
   }
   if (existsSync(join(configDir, 'skills', skill.name))) {
-    throw new Error(`Já existe uma skill "${skill.name}". Remova a outra antes.`)
+    throw new Error(t('Já existe uma skill "{name}". Remova a outra antes.', { name: skill.name }))
   }
   let files: string[]
   try {
     files = filesOf(dir)
   } catch (err) {
-    throw new Error(`Não dá para instalar: ${(err as Error).message}.`, { cause: err })
+    throw new Error(t('Não dá para instalar: {message}.', { message: (err as Error).message }), {
+      cause: err
+    })
   }
   return { ...skill, files: files.length }
 }

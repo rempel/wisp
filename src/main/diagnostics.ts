@@ -7,6 +7,7 @@
 // nome de usuário, endereço ou conversa, nem o que a pessoa escreveu no config.json.
 
 import type { DiagnosticCheck, DiagnosticStatus } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 /** A versão mais velha do Claude Code com o que o Wisp usa (os hooks, o modo terminal). */
 export const MIN_CLAUDE = '2.1.0'
@@ -72,12 +73,12 @@ const check = (
 ): DiagnosticCheck => ({ id, title, status, summary, detail, ...extra })
 
 const INSTALL_FIX =
-  'Instale com o instalador oficial, num terminal:\n\n' +
-  '```sh\ncurl -fsSL https://claude.ai/install.sh | bash\n```\n\n' +
-  'ou pelo npm (com o Node 18 ou mais novo):\n\n' +
-  '```sh\nnpm install -g @anthropic-ai/claude-code\n```\n\n' +
-  'Se ele já está instalado num lugar fora do PATH, informe o caminho em `claudePath` no ' +
-  '`config.json`. Enquanto isso, o **Modo demonstração** mostra o Wisp com respostas gravadas.'
+  t('Instale com o instalador oficial, num terminal:\n\n') +
+  t('```sh\ncurl -fsSL https://claude.ai/install.sh | bash\n```\n\n') +
+  t('ou pelo npm (com o Node 18 ou mais novo):\n\n') +
+  t('```sh\nnpm install -g @anthropic-ai/claude-code\n```\n\n') +
+  t('Se ele já está instalado num lugar fora do PATH, informe o caminho em `claudePath` no ') +
+  t('`config.json`. Enquanto isso, o **Modo demonstração** mostra o Wisp com respostas gravadas.')
 
 /** As conferências, na ordem dos primeiros passos. */
 export function evaluate(facts: Facts): DiagnosticCheck[] {
@@ -89,10 +90,10 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'claude',
-        'Claude Code',
+        t('Claude Code'),
         'error',
-        'não instalado',
-        'Não encontrei o Claude Code (`claude`).',
+        t('não instalado'),
+        t('Não encontrei o Claude Code (`claude`).'),
         {
           fix: INSTALL_FIX,
           action: 'demo'
@@ -103,21 +104,26 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'claude',
-        'Claude Code',
+        t('Claude Code'),
         'warn',
-        `versão ${claude.version}, velha`,
-        `O Claude Code ${claude.version} é mais velho do que o Wisp precisa (${MIN_CLAUDE}).`,
-        { fix: 'Atualize num terminal:\n\n```sh\nclaude update\n```', action: 'terminal' }
+        t('versão {version}, velha', { version: claude.version }),
+        t('O Claude Code {version} é mais velho do que o Wisp precisa ({MIN_CLAUDE}).', {
+          version: claude.version,
+          MIN_CLAUDE
+        }),
+        { fix: t('Atualize num terminal:\n\n```sh\nclaude update\n```'), action: 'terminal' }
       )
     )
   } else {
     checks.push(
       check(
         'claude',
-        'Claude Code',
+        t('Claude Code'),
         'ok',
-        claude.version ? `versão ${claude.version}` : 'instalado',
-        claude.version ? `Claude Code ${claude.version}.` : 'Instalado (não deu para ler a versão).'
+        claude.version ? t('versão {version}', { version: claude.version }) : t('instalado'),
+        claude.version
+          ? t('Claude Code {version}.', { version: claude.version })
+          : t('Instalado (não deu para ler a versão).')
       )
     )
   }
@@ -125,40 +131,59 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
   // O login.
   if (!claude.installed) {
     checks.push(
-      check('login', 'Login', 'off', 'depois de instalar', 'Depois de instalar o Claude Code.')
+      check(
+        'login',
+        t('Login'),
+        'off',
+        t('depois de instalar'),
+        t('Depois de instalar o Claude Code.')
+      )
     )
   } else if (facts.provider === 'openrouter') {
     checks.push(
       check(
         'login',
-        'Login',
+        t('Login'),
         'ok',
-        'pela OpenRouter',
-        'As conversas novas vão pela OpenRouter, com a sua chave: o login da assinatura não é usado.'
+        t('pela OpenRouter'),
+        t(
+          'As conversas novas vão pela OpenRouter, com a sua chave: o login da assinatura não é usado.'
+        )
       )
     )
   } else if (claude.loggedIn === false) {
     checks.push(
-      check('login', 'Login', 'error', 'sem login', 'O Claude Code não está logado na sua conta.', {
-        fix:
-          'Abra um terminal, rode `claude` e faça o login (ele abre o navegador). Depois, ' +
-          'clique em **Conferir de novo**.',
-        action: 'terminal'
-      })
+      check(
+        'login',
+        t('Login'),
+        'error',
+        t('sem login'),
+        t('O Claude Code não está logado na sua conta.'),
+        {
+          fix:
+            t('Abra um terminal, rode `claude` e faça o login (ele abre o navegador). Depois, ') +
+            t('clique em **Conferir de novo**.'),
+          action: 'terminal'
+        }
+      )
     )
   } else if (claude.loggedIn === null) {
     checks.push(
       check(
         'login',
-        'Login',
+        t('Login'),
         'warn',
-        'não deu para conferir',
-        'Não deu para conferir o login (o `claude auth status` não respondeu como esperado).',
-        { fix: 'Se uma mensagem falhar pedindo login, rode `claude` num terminal e faça o login.' }
+        t('não deu para conferir'),
+        t('Não deu para conferir o login (o `claude auth status` não respondeu como esperado).'),
+        {
+          fix: t('Se uma mensagem falhar pedindo login, rode `claude` num terminal e faça o login.')
+        }
       )
     )
   } else {
-    checks.push(check('login', 'Login', 'ok', 'logado', 'Logado na sua conta, pela assinatura.'))
+    checks.push(
+      check('login', t('Login'), 'ok', 'logado', t('Logado na sua conta, pela assinatura.'))
+    )
   }
 
   // O atalho global.
@@ -167,12 +192,14 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'shortcut',
-        'Atalho global',
+        t('Atalho global'),
         'off',
         'desligado',
-        'Sem atalho global (`shortcut` está vazio).',
+        t('Sem atalho global (`shortcut` está vazio).'),
         {
-          fix: 'Ligue um atalho em **Configurações → Atalhos e sistema**, ou use `wisp --toggle` num atalho do sistema.',
+          fix: t(
+            'Ligue um atalho em **Configurações → Atalhos e sistema**, ou use `wisp --toggle` num atalho do sistema.'
+          ),
           action: 'settings'
         }
       )
@@ -181,14 +208,14 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'shortcut',
-        'Atalho global',
+        t('Atalho global'),
         'warn',
-        'não ligado',
-        `O atalho não foi ligado${shortcut.problem ? `: ${shortcut.problem}` : ''}.`,
+        t('não ligado'),
+        t('O atalho não foi ligado{v1}.', { v1: shortcut.problem ? `: ${shortcut.problem}` : '' }),
         {
           fix:
-            'Escolha outra combinação em **Configurações → Atalhos e sistema**, ou ligue ' +
-            '`wisp --toggle` a um atalho nas configurações do sistema.',
+            t('Escolha outra combinação em **Configurações → Atalhos e sistema**, ou ligue ') +
+            t('`wisp --toggle` a um atalho nas configurações do sistema.'),
           action: 'settings'
         }
       )
@@ -197,10 +224,13 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'shortcut',
-        'Atalho global',
+        t('Atalho global'),
         'ok',
-        shortcut.via === 'portal' ? 'pelo portal do desktop' : 'pelo X11',
-        `${shortcut.label ?? 'O atalho'} abre e fecha o painel${shortcut.via === 'portal' ? ' (pelo portal do desktop)' : ''}.`
+        shortcut.via === 'portal' ? t('pelo portal do desktop') : t('pelo X11'),
+        t('{v1} abre e fecha o painel{v2}.', {
+          v1: shortcut.label ?? t('O atalho'),
+          v2: shortcut.via === 'portal' ? t(' (pelo portal do desktop)') : ''
+        })
       )
     )
   }
@@ -211,32 +241,32 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'tray',
-        'Ícone na bandeja',
+        t('Ícone na bandeja'),
         'warn',
-        'sem bandeja',
-        'O desktop não mostra ícones de bandeja.',
+        t('sem bandeja'),
+        t('O desktop não mostra ícones de bandeja.'),
         {
           fix: gnome
-            ? 'No GNOME, instale e ligue a extensão **AppIndicator** (ubuntu-appindicators ou ' +
-              '"AppIndicator and KStatusNotifierItem Support"). Sem ela, o mesmo menu fica no ' +
-              'botão direito do mascote.'
-            : 'O mesmo menu fica no botão direito do mascote.',
+            ? t('No GNOME, instale e ligue a extensão **AppIndicator** (ubuntu-appindicators ou ') +
+              t('"AppIndicator and KStatusNotifierItem Support"). Sem ela, o mesmo menu fica no ') +
+              t('botão direito do mascote.')
+            : t('O mesmo menu fica no botão direito do mascote.'),
           optional: true
         }
       )
     )
   } else if (facts.tray === 'running') {
     checks.push(
-      check('tray', 'Ícone na bandeja', 'ok', 'aparece', 'O ícone do Wisp fica na bandeja.')
+      check('tray', t('Ícone na bandeja'), 'ok', 'aparece', t('O ícone do Wisp fica na bandeja.'))
     )
   } else {
     checks.push(
       check(
         'tray',
-        'Ícone na bandeja',
+        t('Ícone na bandeja'),
         'off',
-        'não deu para conferir',
-        'Não deu para conferir a bandeja (sem D-Bus).',
+        t('não deu para conferir'),
+        t('Não deu para conferir a bandeja (sem D-Bus).'),
         {
           optional: true
         }
@@ -249,10 +279,10 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'keyring',
-        'Chaveiro do sistema',
+        t('Chaveiro do sistema'),
         'ok',
-        'disponível',
-        'O chaveiro do sistema (Secret Service) responde.',
+        t('disponível'),
+        t('O chaveiro do sistema (Secret Service) responde.'),
         { optional: true }
       )
     )
@@ -260,12 +290,16 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'keyring',
-        'Chaveiro do sistema',
+        t('Chaveiro do sistema'),
         facts.needsKeyring ? 'warn' : 'off',
-        'não achado',
-        'Não achei um chaveiro do sistema (Secret Service). Ele só faz falta para a OpenRouter e para aprovar pelo celular.',
+        t('não achado'),
+        t(
+          'Não achei um chaveiro do sistema (Secret Service). Ele só faz falta para a OpenRouter e para aprovar pelo celular.'
+        ),
         {
-          fix: 'Instale e abra o GNOME Keyring, o KWallet 6 ou o KeePassXC (com a integração do Secret Service ligada).',
+          fix: t(
+            'Instale e abra o GNOME Keyring, o KWallet 6 ou o KeePassXC (com a integração do Secret Service ligada).'
+          ),
           optional: true
         }
       )
@@ -274,25 +308,36 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
 
   // A voz.
   if (facts.voice === 'off') {
-    checks.push(check('voice', 'Voz', 'off', 'desligada', 'Sem atalho de voz.', { optional: true }))
+    checks.push(
+      check('voice', t('Voz'), 'off', 'desligada', t('Sem atalho de voz.'), { optional: true })
+    )
   } else if (facts.voice === 'ok') {
     checks.push(
-      check('voice', 'Voz', 'ok', 'pronta', 'O whisper.cpp e o modelo de voz estão no lugar.', {
-        optional: true
-      })
+      check(
+        'voice',
+        t('Voz'),
+        'ok',
+        'pronta',
+        t('O whisper.cpp e o modelo de voz estão no lugar.'),
+        {
+          optional: true
+        }
+      )
     )
   } else {
     checks.push(
       check(
         'voice',
-        'Voz',
+        t('Voz'),
         'warn',
-        facts.voice === 'binary' ? 'sem o whisper.cpp' : 'sem o modelo de voz',
+        facts.voice === 'binary' ? t('sem o whisper.cpp') : t('sem o modelo de voz'),
         facts.voice === 'binary'
-          ? 'Não achei o whisper.cpp (o programa `whisper-cli`).'
-          : 'Falta o modelo de voz do whisper.cpp.',
+          ? t('Não achei o whisper.cpp (o programa `whisper-cli`).')
+          : t('Falta o modelo de voz do whisper.cpp.'),
         {
-          fix: 'A voz é opcional. Para ligar, siga **Voz** no README (instalar o whisper.cpp e baixar o modelo), e use **Testar a voz** nas configurações.',
+          fix: t(
+            'A voz é opcional. Para ligar, siga **Voz** no README (instalar o whisper.cpp e baixar o modelo), e use **Testar a voz** nas configurações.'
+          ),
           optional: true
         }
       )
@@ -304,16 +349,25 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     facts.terminal
       ? check(
           'terminal',
-          'Terminal',
+          t('Terminal'),
           'ok',
           'achado',
-          'Há um terminal para abrir projetos e o login.',
+          t('Há um terminal para abrir projetos e o login.'),
           { optional: true }
         )
-      : check('terminal', 'Terminal', 'warn', 'não achado', 'Não achei um terminal instalado.', {
-          fix: 'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).',
-          optional: true
-        })
+      : check(
+          'terminal',
+          t('Terminal'),
+          'warn',
+          t('não achado'),
+          t('Não achei um terminal instalado.'),
+          {
+            fix: t(
+              'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).'
+            ),
+            optional: true
+          }
+        )
   )
 
   // O config.json.
@@ -324,14 +378,19 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
           'config.json',
           'warn',
           `${facts.configProblems} problema${facts.configProblems > 1 ? 's' : ''}`,
-          `O config.json tem ${facts.configProblems} problema${facts.configProblems > 1 ? 's' : ''}: os campos errados usam o padrão.`,
+          t('O config.json tem {configProblems} problema{v2}: os campos errados usam o padrão.', {
+            configProblems: facts.configProblems,
+            v2: facts.configProblems > 1 ? 's' : ''
+          }),
           {
-            fix: 'Os problemas aparecem no topo das configurações.',
+            fix: t('Os problemas aparecem no topo das configurações.'),
             action: 'settings',
             optional: true
           }
         )
-      : check('config', 'config.json', 'ok', 'sem problemas', 'Sem problemas.', { optional: true })
+      : check('config', 'config.json', 'ok', t('sem problemas'), t('Sem problemas.'), {
+          optional: true
+        })
   )
 
   // A versão nova.
@@ -339,12 +398,17 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     checks.push(
       check(
         'update',
-        'Versão nova',
+        t('Versão nova'),
         'warn',
-        `${facts.update.version} disponível`,
-        `O Wisp ${facts.update.version} saiu (você tem o ${facts.app.version}).`,
+        t('{version} disponível', { version: facts.update.version }),
+        t('O Wisp {version} saiu (você tem o {version2}).', {
+          version: facts.update.version,
+          version2: facts.app.version
+        }),
         {
-          fix: 'Baixe o .deb ou o AppImage novo na página da versão e instale por cima: as configurações e as conversas continuam.',
+          fix: t(
+            'Baixe o .deb ou o AppImage novo na página da versão e instale por cima: as configurações e as conversas continuam.'
+          ),
           action: 'release',
           optional: true
         }
@@ -355,7 +419,12 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
 }
 
 const ICONS: Record<DiagnosticStatus, string> = { ok: '✅', warn: '⚠️', error: '❌', off: '➖' }
-const INSTALLS = { dev: 'código', appimage: 'AppImage', package: 'pacote' } as const
+const INSTALLS = {
+  dev: t('código'),
+  appimage: 'AppImage',
+  package: t('pacote'),
+  flatpak: 'Flatpak'
+} as const
 
 /** Só o que é seguro no relatório: letras, números e pontuação comum, sem quebras, cortado. */
 function clean(text: string, max = 80): string {
@@ -368,26 +437,26 @@ function clean(text: string, max = 80): string {
 /** O relatório para uma issue, em Markdown. */
 export function buildReport(facts: Facts, checks: DiagnosticCheck[]): string {
   const claude = !facts.claude.installed
-    ? 'não instalado'
-    : `${facts.claude.version ?? 'versão desconhecida'}, ${
+    ? t('não instalado')
+    : `${facts.claude.version ?? t('versão desconhecida')}, ${
         facts.provider === 'openrouter'
-          ? 'pela OpenRouter'
+          ? t('pela OpenRouter')
           : facts.claude.loggedIn === false
-            ? 'sem login'
+            ? t('sem login')
             : facts.claude.loggedIn
-              ? 'logado na assinatura'
-              : 'login não conferido'
+              ? t('logado na assinatura')
+              : t('login não conferido')
       }`
   const lines = [
     '### Diagnóstico do Wisp',
     '',
     `- **Wisp:** ${clean(facts.app.version, 20)} (${INSTALLS[facts.app.install]}), Electron ${clean(facts.app.electron, 20)}, Node ${clean(facts.app.node, 20)}`,
     `- **Sistema:** ${clean(facts.os.name, 60) || 'Linux'}, kernel ${clean(facts.os.kernel, 40)}, ${clean(facts.os.arch, 10)}`,
-    `- **Desktop:** ${clean(facts.desktop.name, 40) || 'desconhecido'}, ${facts.desktop.session === 'outra' ? 'sessão desconhecida' : facts.desktop.session === 'x11' ? 'X11' : 'Wayland'}`,
+    `- **Desktop:** ${clean(facts.desktop.name, 40) || 'desconhecido'}, ${facts.desktop.session === 'outra' ? t('sessão desconhecida') : facts.desktop.session === 'x11' ? 'X11' : t('Wayland')}`,
     `- **Claude Code:** ${claude}`,
-    `- **Ligado:** ${facts.features.length ? facts.features.join(', ') : 'nada além do básico'}`,
+    `- **Ligado:** ${facts.features.length ? facts.features.join(', ') : t('nada além do básico')}`,
     '',
-    '| | Conferência | Situação |',
+    t('| | Conferência | Situação |'),
     '| - | - | - |',
     ...checks.map((item) => `| ${ICONS[item.status]} | ${item.title} | ${item.summary} |`)
   ]
@@ -396,7 +465,9 @@ export function buildReport(facts: Facts, checks: DiagnosticCheck[]): string {
 
 /** O endereço da issue nova, com o relatório no corpo. */
 export function issueUrl(report: string): string {
-  const body = `<!-- Conte o que aconteceu e o que você esperava. -->\n\n\n${report}\n`
+  const body = t('<!-- Conte o que aconteceu e o que você esperava. -->\n\n\n{report}\n', {
+    report
+  })
   return `${ISSUES_URL}?body=${encodeURIComponent(body)}`
 }
 

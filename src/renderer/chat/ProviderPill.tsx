@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import type { Provider } from '../../shared/ipc'
 import { CheckIcon, ChevronDownIcon, RouteIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 const LABELS: Record<Provider, { title: string; hint: string }> = {
-  subscription: { title: 'Assinatura', hint: 'o seu Claude Code, com o plano do Claude' },
-  openrouter: { title: 'OpenRouter', hint: 'a API da OpenRouter, com a sua chave e outros modelos' }
+  subscription: { title: t('Assinatura'), hint: t('o seu Claude Code, com o plano do Claude') },
+  openrouter: {
+    title: 'OpenRouter',
+    hint: t('a API da OpenRouter, com a sua chave e outros modelos')
+  }
 }
 
 /**
@@ -48,7 +52,7 @@ export function ProviderPill({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Por onde a conversa vai (trocar começa uma conversa nova)"
+        title={t('Por onde a conversa vai (trocar começa uma conversa nova)')}
       >
         <RouteIcon />
         <span>{LABELS[provider].title}</span>
@@ -80,7 +84,7 @@ export function ProviderPill({
             </button>
           ))}
           <p className="model-menu-note">
-            Trocar começa uma conversa nova; a atual fica no histórico.
+            {t('Trocar começa uma conversa nova; a atual fica no histórico.')}
           </p>
         </div>
       )}

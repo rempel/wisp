@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import type { WeekSummaries, WeekSummary } from '../../shared/ipc'
+import { t, dateLocale } from '../../shared/i18n'
 
-const DAY = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
+const DAY = new Intl.DateTimeFormat(dateLocale(), { day: '2-digit', month: '2-digit' })
 
 /** "1 h 20 min", "45 min", "—". */
 function minutes(total: number): string {
@@ -10,7 +11,7 @@ function minutes(total: number): string {
   if (total < 60) return `${total} min`
   const h = Math.floor(total / 60)
   const m = total % 60
-  return m ? `${h} h ${m} min` : `${h} h`
+  return m ? t('{h} h {m} min', { h, m }) : `${h} h`
 }
 
 /** A diferença para a semana anterior, pequena, ao lado do número. */
@@ -34,18 +35,18 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
             {week.conversations}
             {before && <Delta now={week.conversations} before={before.conversations} />}
           </strong>
-          <span>{week.conversations === 1 ? 'conversa' : 'conversas'}</span>
+          <span>{week.conversations === 1 ? t('conversa') : t('conversas')}</span>
         </div>
         <div>
           <strong>{minutes(week.claudeMinutes)}</strong>
-          <span>o Claude trabalhando</span>
+          <span>{t('o Claude trabalhando')}</span>
         </div>
         <div>
           <strong>
             <em className="plus">+{week.added}</em> <em className="minus">−{week.removed}</em>
           </strong>
           <span>
-            linhas em {week.edits} {week.edits === 1 ? 'edição' : 'edições'}
+            {t('linhas em')} {week.edits} {week.edits === 1 ? t('edição') : t('edições')}
           </span>
         </div>
         <div>
@@ -53,18 +54,30 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
             {week.approved}
             <em className="minus"> / {week.denied}</em>
           </strong>
-          <span>aprovadas / negadas</span>
+          <span>{t('aprovadas / negadas')}</span>
         </div>
       </div>
-      {week.tools.length > 0 && <p className="week-line">Mais usadas: {list(week.tools)}</p>}
-      {week.apps.length > 0 && <p className="week-line">Apps abertos: {list(week.apps)}</p>}
+      {week.tools.length > 0 && (
+        <p className="week-line">
+          {t('Mais usadas:')} {list(week.tools)}
+        </p>
+      )}
+      {week.apps.length > 0 && (
+        <p className="week-line">
+          {t('Apps abertos:')} {list(week.apps)}
+        </p>
+      )}
       {week.terminal > 0 && (
         <p className="week-line">
-          Terminal: {week.terminal} {week.terminal === 1 ? 'mensagem' : 'mensagens'}
+          {t('Terminal:')} {week.terminal} {week.terminal === 1 ? t('mensagem') : t('mensagens')}
           {week.projects.length > 0 && ` em ${list(week.projects)}`}
         </p>
       )}
-      {week.reminders > 0 && <p className="week-line">Lembretes: {week.reminders}</p>}
+      {week.reminders > 0 && (
+        <p className="week-line">
+          {t('Lembretes:')} {week.reminders}
+        </p>
+      )}
     </>
   )
 }
@@ -86,7 +99,7 @@ export function WeekCard(): JSX.Element | null {
   if (!data?.enabled) return null
   const week = data[which]
   return (
-    <section className="week-card" aria-label="Resumo da semana">
+    <section className="week-card" aria-label={t('Resumo da semana')}>
       <div className="week-head">
         <div className="week-tabs" role="tablist">
           <button
@@ -96,7 +109,7 @@ export function WeekCard(): JSX.Element | null {
             className={which === 'current' ? 'active' : ''}
             onClick={() => setWhich('current')}
           >
-            Esta semana
+            {t('Esta semana')}
           </button>
           <button
             type="button"
@@ -105,7 +118,7 @@ export function WeekCard(): JSX.Element | null {
             className={which === 'previous' ? 'active' : ''}
             onClick={() => setWhich('previous')}
           >
-            Semana passada
+            {t('Semana passada')}
           </button>
         </div>
         <span className="week-range">

@@ -15,7 +15,8 @@
 // set_permission_mode. `auth status` diz que há login (FAKE_CLAUDE_LOGGED_OUT=1: não há), e
 // `--version`, a versão (FAKE_CLAUDE_VERSION troca).
 // Cada processo anota em $HOME/.fake-claude/spawns.log os argumentos e se recebeu a
-// ANTHROPIC_API_KEY, e em controls.log os pedidos de controle.
+// ANTHROPIC_API_KEY (e o idioma pedido no prompt do sistema), e em controls.log os pedidos de
+// controle.
 // A sessão lembra as mensagens de cada turno e o uuid da última resposta dele: [memória]
 // responde o que ele lembra, e --resume-session-at <uuid> (com --fork-session, numa sessão nova)
 // volta até a resposta com esse uuid, como o de verdade (um uuid desconhecido: erro).
@@ -55,6 +56,12 @@ fs.appendFileSync(
     memory: process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY,
     internal: process.env.WISP_INTERNAL,
     cwd: process.cwd(),
+    // O idioma em que o Wisp pede as respostas (Fase 25), pelo prompt do sistema.
+    replyIn: /Reply in English/.test(flag('--append-system-prompt') ?? '')
+      ? 'en'
+      : /Responda em português/.test(flag('--append-system-prompt') ?? '')
+        ? 'pt'
+        : null,
     // O provedor: pela OpenRouter, o endereço, a chave (só o fim), a pasta e os modelos.
     ...(process.env.ANTHROPIC_BASE_URL
       ? {

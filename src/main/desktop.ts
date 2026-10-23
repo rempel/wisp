@@ -4,6 +4,7 @@ import { homedir } from 'os'
 import { delimiter, join, resolve, sep } from 'path'
 import { expandHome } from './paths'
 import { viaHost } from './host'
+import { t } from '../shared/i18n'
 
 // Ferramentas de desktop do servidor MCP (seção 6). Node puro: sem Electron, para dar para
 // testar fora do app. Processos sempre com spawn e lista de argumentos, nunca via shell.
@@ -234,7 +235,10 @@ export async function openApp(id: string): Promise<Outcome> {
   const cleanId = id.trim().replace(/\.desktop$/, '')
   const app = /^[\w.@+-]+$/.test(cleanId) ? readApps().find((a) => a.id === cleanId) : undefined
   if (!app) {
-    return { ok: false, message: `Não achei o app "${id}". Use list_apps para ver os ids.` }
+    return {
+      ok: false,
+      message: t('Não achei o app "{id}". Use list_apps para ver os ids.', { id })
+    }
   }
   const attempts: [string, string[]][] = [
     ['gtk-launch', [app.id]],
@@ -246,14 +250,21 @@ export async function openApp(id: string): Promise<Outcome> {
     const result = await launch(command, args)
     if (result === 'missing') continue
     return result === 0
-      ? { ok: true, message: `Abri ${app.nome}.` }
-      : { ok: false, message: `${command} não conseguiu abrir ${app.nome} (código ${result}).` }
+      ? { ok: true, message: t('Abri {nome}.', { nome: app.nome }) }
+      : {
+          ok: false,
+          message: t('{command} não conseguiu abrir {nome} (código {result}).', {
+            command,
+            nome: app.nome,
+            result
+          })
+        }
   }
   return {
     ok: false,
     message:
-      'Não achei um lançador de apps. Instale o gtk-launch (pacote libgtk-3-bin no Ubuntu ' +
-      'e no Debian).'
+      t('Não achei um lançador de apps. Instale o gtk-launch (pacote libgtk-3-bin no Ubuntu ') +
+      t('e no Debian).')
   }
 }
 
@@ -263,18 +274,21 @@ export async function openUrl(url: string): Promise<Outcome> {
   try {
     parsed = new URL(url)
   } catch {
-    return { ok: false, message: `"${url}" não é uma URL válida.` }
+    return { ok: false, message: t('"{url}" não é uma URL válida.', { url }) }
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-    return { ok: false, message: 'Só abro links http e https.' }
+    return { ok: false, message: t('Só abro links http e https.') }
   }
   const result = await launch('xdg-open', [parsed.href], 3000)
   if (result === 'missing') {
-    return { ok: false, message: 'O xdg-open não está instalado (pacote xdg-utils).' }
+    return { ok: false, message: t('O xdg-open não está instalado (pacote xdg-utils).') }
   }
   return result === 0
-    ? { ok: true, message: `Abri ${parsed.href} no navegador.` }
-    : { ok: false, message: `O xdg-open não conseguiu abrir o link (código ${result}).` }
+    ? { ok: true, message: t('Abri {href} no navegador.', { href: parsed.href }) }
+    : {
+        ok: false,
+        message: t('O xdg-open não conseguiu abrir o link (código {result}).', { result })
+      }
 }
 
 // ---------------------------------------------------------------------------
@@ -351,7 +365,8 @@ export async function openProject(
   editorCommand: string
 ): Promise<Outcome> {
   const target = realpathOrNull(resolve(expandHome(path.trim())))
-  if (!target || !isDir(target)) return { ok: false, message: `A pasta "${path}" não existe.` }
+  if (!target || !isDir(target))
+    return { ok: false, message: t('A pasta "{path}" não existe.', { path }) }
   const roots = projectRoots
     .map((root) => realpathOrNull(resolve(expandHome(root))))
     .filter((root): root is string => root !== null)
@@ -359,8 +374,10 @@ export async function openProject(
     return {
       ok: false,
       message:
-        `"${target}" está fora das pastas de projetos (${projectRoots.join(', ')}). ` +
-        'Só abro projetos que estejam dentro delas.'
+        t('"{target}" está fora das pastas de projetos ({v2}). ', {
+          target,
+          v2: projectRoots.join(', ')
+        }) + t('Só abro projetos que estejam dentro delas.')
     }
   }
   return openInEditor(target, editorCommand)
@@ -372,16 +389,20 @@ export async function openProject(
  */
 export async function openInEditor(path: string, editorCommand: string): Promise<Outcome> {
   const target = realpathOrNull(resolve(expandHome(path.trim())))
-  if (!target || !isDir(target)) return { ok: false, message: `A pasta "${path}" não existe.` }
+  if (!target || !isDir(target))
+    return { ok: false, message: t('A pasta "{path}" não existe.', { path }) }
   const [command, ...args] = editorCommand.trim().split(/\s+/)
-  if (!command) return { ok: false, message: 'editorCommand está vazio no config.json.' }
+  if (!command) return { ok: false, message: t('editorCommand está vazio no config.json.') }
   const result = await launch(command, [...args, target], 5000)
   if (result === 'missing') {
-    return { ok: false, message: `Não achei o editor "${command}" (editorCommand no config.json).` }
+    return {
+      ok: false,
+      message: t('Não achei o editor "{command}" (editorCommand no config.json).', { command })
+    }
   }
   return result === 0
-    ? { ok: true, message: `Abri ${target} no editor.` }
-    : { ok: false, message: `O editor saiu com erro (código ${result}).` }
+    ? { ok: true, message: t('Abri {target} no editor.', { target }) }
+    : { ok: false, message: t('O editor saiu com erro (código {result}).', { result }) }
 }
 
 // ---------------------------------------------------------------------------
@@ -452,24 +473,27 @@ export async function openTerminal(
     if (result === 'missing') {
       return {
         ok: false,
-        message: `Não achei o terminal "${command}" (terminalCommand no config.json).`
+        message: t('Não achei o terminal "{command}" (terminalCommand no config.json).', {
+          command
+        })
       }
     }
     return result === 0
-      ? { ok: true, message: `Abri o terminal em ${dir}.` }
-      : { ok: false, message: `O terminal saiu com erro (código ${result}).` }
+      ? { ok: true, message: t('Abri o terminal em {dir}.', { dir }) }
+      : { ok: false, message: t('O terminal saiu com erro (código {result}).', { result }) }
   }
   for (const command of terminalOrder(env)) {
     if (!inPath(command)) continue
     const known = TERMINALS[command.split('/').pop() ?? command]
     const result = await launch(command, known ? known.args(dir) : [], 1500, dir)
-    if (result === 0) return { ok: true, message: `Abri o ${known?.name ?? command} em ${dir}.` }
+    if (result === 0)
+      return { ok: true, message: t('Abri o {v1} em {dir}.', { v1: known?.name ?? command, dir }) }
   }
   return {
     ok: false,
     message:
-      'Não achei um terminal instalado. Diga qual usar em terminalCommand no config.json ' +
-      '(por exemplo "kitty" ou "konsole --workdir {dir}").'
+      t('Não achei um terminal instalado. Diga qual usar em terminalCommand no config.json ') +
+      t('(por exemplo "kitty" ou "konsole --workdir {dir}").')
   }
 }
 
@@ -484,14 +508,18 @@ export async function openTerminalIn(
 ): Promise<Outcome> {
   const asked = path?.trim() || '~'
   const target = realpathOrNull(resolve(expandHome(asked)))
-  if (!target || !isDir(target)) return { ok: false, message: `A pasta "${asked}" não existe.` }
+  if (!target || !isDir(target))
+    return { ok: false, message: t('A pasta "{asked}" não existe.', { asked }) }
   const roots = [homedir(), ...projectRoots]
     .map((root) => realpathOrNull(resolve(expandHome(root))))
     .filter((root): root is string => root !== null)
   if (!roots.some((root) => target === root || target.startsWith(root + sep))) {
     return {
       ok: false,
-      message: `"${target}" fica fora da pasta pessoal e das pastas de projetos; só abro terminais nelas.`
+      message: t(
+        '"{target}" fica fora da pasta pessoal e das pastas de projetos; só abro terminais nelas.',
+        { target }
+      )
     }
   }
   return openTerminal(target, terminalCommand)

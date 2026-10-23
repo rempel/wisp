@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { JSX } from 'react'
 import type { Item } from './state'
 import { useArmed } from './useArmed'
+import { t } from '../../shared/i18n'
 
 type PermissionItem = Extract<Item, { kind: 'permission' }>
 
@@ -43,9 +44,9 @@ function parseQuestions(input: unknown): Question[] | null {
 }
 
 const RESULT: Record<string, string> = {
-  answered: 'Respondida',
-  deny: 'Pulada',
-  cancelled: 'Cancelada'
+  answered: t('Respondida'),
+  deny: t('Pulada'),
+  cancelled: t('Cancelada')
 }
 
 /**
@@ -70,9 +71,9 @@ export function QuestionCard({
       <div
         className={`permission question permission-${request.status}`}
         role="group"
-        aria-label="Pergunta do Claude"
+        aria-label={t('Pergunta do Claude')}
       >
-        <div className="permission-title">Pergunta do Claude</div>
+        <div className="permission-title">{t('Pergunta do Claude')}</div>
         {questions?.map((q) => (
           <div key={q.question} className="question-block">
             <div className="question-text">{q.question}</div>
@@ -91,13 +92,13 @@ export function QuestionCard({
       <div
         className="permission question permission-pending"
         role="group"
-        aria-label="Pergunta do Claude"
+        aria-label={t('Pergunta do Claude')}
       >
-        <div className="permission-title">Pergunta do Claude</div>
-        <p className="question-text">Não consegui mostrar esta pergunta.</p>
+        <div className="permission-title">{t('Pergunta do Claude')}</div>
+        <p className="question-text">{t('Não consegui mostrar esta pergunta.')}</p>
         <div className="permission-actions">
           <button type="button" className="deny" onClick={() => armed() && onAnswer(null)}>
-            Pular
+            {t('Pular')}
           </button>
         </div>
       </div>
@@ -145,9 +146,9 @@ export function QuestionCard({
     <div
       className="permission question permission-pending"
       role="group"
-      aria-label="Pergunta do Claude"
+      aria-label={t('Pergunta do Claude')}
     >
-      <div className="permission-title">Pergunta do Claude</div>
+      <div className="permission-title">{t('Pergunta do Claude')}</div>
       {questions.map((q, index) => (
         <div key={q.question} className="question-block">
           {q.header && <span className="question-header">{q.header}</span>}
@@ -174,7 +175,7 @@ export function QuestionCard({
           <input
             className="question-other"
             value={other[index]}
-            placeholder={q.multiSelect ? 'Mais alguma coisa…' : 'Outra resposta…'}
+            placeholder={q.multiSelect ? t('Mais alguma coisa…') : t('Outra resposta…')}
             onChange={(event) => type(index, event.target.value)}
             onKeyDown={(event) => {
               if (event.key === 'Enter' && !event.nativeEvent.isComposing) submit()
@@ -185,11 +186,11 @@ export function QuestionCard({
       <div className="permission-actions">
         {(!quick || other[0].trim() !== '') && (
           <button type="button" className="allow" disabled={!complete} onClick={submit}>
-            Responder
+            {t('Responder')}
           </button>
         )}
         <button type="button" className="deny" onClick={() => armed() && onAnswer(null)}>
-          Pular
+          {t('Pular')}
         </button>
       </div>
     </div>

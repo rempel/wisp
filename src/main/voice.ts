@@ -12,6 +12,7 @@ import { speakable } from './piper'
 import type { Speech } from './piper'
 import { isApprove, isDeny, parseQuickCommand } from './voice-commands'
 import type { QuickCommand } from './voice-commands'
+import { t } from '../shared/i18n'
 
 // A voz do Wisp, no main: quando ouvir, o que fazer com o que foi dito e quando falar a resposta.
 // A captura roda na página do mascote (o microfone abre só enquanto ele ouve); a transcrição, no
@@ -29,20 +30,23 @@ const SLOW_MS = 8000
 export function voiceHint(result: { text: string; peakDb: number; ms?: number }): string | null {
   if (result.peakDb < QUIET_PEAK_DB) {
     return (
-      `Quase não chegou som (pico de ${result.peakDb} dB). Confira nas configurações de som do ` +
-      'sistema qual microfone está como entrada, e se ele não está mudo ou com o volume baixo.'
+      t('Quase não chegou som (pico de {peakDb} dB). Confira nas configurações de som do ', {
+        peakDb: result.peakDb
+      }) +
+      t('sistema qual microfone está como entrada, e se ele não está mudo ou com o volume baixo.')
     )
   }
   if (!result.text) {
     return (
-      'Chegou som, mas o whisper.cpp não reconheceu fala. Fale perto do microfone e confira o ' +
-      'idioma da fala.'
+      t('Chegou som, mas o whisper.cpp não reconheceu fala. Fale perto do microfone e confira o ') +
+      t('idioma da fala.')
     )
   }
   if (result.ms !== undefined && result.ms > SLOW_MS) {
     return (
-      `A transcrição levou ${Math.round(result.ms / 1000)} s: um modelo menor (o ggml-base ou o ` +
-      'ggml-small) responde bem mais rápido.'
+      t('A transcrição levou {v1} s: um modelo menor (o ggml-base ou o ', {
+        v1: Math.round(result.ms / 1000)
+      }) + t('ggml-small) responde bem mais rápido.')
     )
   }
   return null
@@ -125,7 +129,7 @@ export class Voice {
       return Promise.resolve({
         ok: false,
         text: '',
-        error: 'Já estou ouvindo: tente daqui a pouco.'
+        error: t('Já estou ouvindo: tente daqui a pouco.')
       })
     }
     // A fala de uma resposta para antes, para não entrar no teste.
@@ -204,9 +208,13 @@ export class Voice {
       case 'empty':
         if (this.state !== 'listening') return
         if (this.source === 'test') {
-          this.endTest({ ok: false, text: '', error: 'O microfone abriu, mas não mandou áudio.' })
+          this.endTest({
+            ok: false,
+            text: '',
+            error: t('O microfone abriu, mas não mandou áudio.')
+          })
         } else if (this.source === 'panel') {
-          this.deps.notice('info', 'Não ouvi nada.')
+          this.deps.notice('info', t('Não ouvi nada.'))
         }
         this.reset()
         return
@@ -214,9 +222,9 @@ export class Voice {
         if (this.state !== 'listening') return
         const message =
           event.reason === 'denied'
-            ? 'Não consegui ouvir: o acesso ao microfone foi negado. Confira as permissões de ' +
-              'microfone do sistema.'
-            : `Não consegui ouvir: ${event.message}.`
+            ? t('Não consegui ouvir: o acesso ao microfone foi negado. Confira as permissões de ') +
+              t('microfone do sistema.')
+            : t('Não consegui ouvir: {message}.', { message: event.message })
         if (this.source === 'test') this.endTest({ ok: false, text: '', error: message })
         else this.deps.notice('warning', message)
         this.reset()
@@ -263,7 +271,7 @@ export class Voice {
       if (source !== 'test') this.deps.notice(level, message)
       return false
     }
-    if (this.deps.locked()) return refuse('info', 'Com a tela bloqueada, eu não escuto.')
+    if (this.deps.locked()) return refuse('info', t('Com a tela bloqueada, eu não escuto.'))
     try {
       this.deps.check()
     } catch (err) {
@@ -279,7 +287,7 @@ export class Voice {
     const id = this.id
     this.openTimer = setTimeout(() => {
       if (this.id !== id || this.state !== 'listening') return
-      const message = 'Não consegui ouvir: o microfone não abriu.'
+      const message = t('Não consegui ouvir: o microfone não abriu.')
       if (this.source === 'test') this.endTest({ ok: false, text: '', error: message })
       else this.deps.notice('warning', message)
       this.cancel()
@@ -354,9 +362,10 @@ export class Voice {
       this.deps.notice(
         peakDb < QUIET_PEAK_DB ? 'warning' : 'info',
         peakDb < QUIET_PEAK_DB
-          ? `Não entendi o que você disse. ${voiceHint({ text, peakDb })} O **Testar voz**, nas ` +
-              'configurações, ajuda a achar o problema.'
-          : 'Não entendi o que você disse. Tente de novo, mais perto do microfone.'
+          ? t('Não entendi o que você disse. {v1} O **Testar voz**, nas ', {
+              v1: voiceHint({ text, peakDb })
+            }) + t('configurações, ajuda a achar o problema.')
+          : t('Não entendi o que você disse. Tente de novo, mais perto do microfone.')
       )
       return
     }
@@ -365,7 +374,10 @@ export class Voice {
       if (isApprove(text)) {
         this.deps.notice(
           'warning',
-          `Ouvi “${text}”, mas por voz eu só nego um pedido. Para permitir, clique em **Permitir** no card.`
+          t(
+            'Ouvi “{text}”, mas por voz eu só nego um pedido. Para permitir, clique em **Permitir** no card.',
+            { text }
+          )
         )
         return
       }
@@ -394,7 +406,10 @@ export class Voice {
     } catch (err) {
       if (this.id !== id) return
       this.reset()
-      this.deps.notice('warning', `Não consegui falar a resposta: ${(err as Error).message}.`)
+      this.deps.notice(
+        'warning',
+        t('Não consegui falar a resposta: {message}.', { message: (err as Error).message })
+      )
       return
     }
     if (this.id !== id || this.state !== 'speaking') return
@@ -408,7 +423,7 @@ export class Voice {
 
   /** De volta ao repouso; o que ainda chegar da escuta anterior é ignorado. */
   private reset(): void {
-    this.endTest({ ok: false, text: '', error: 'O teste foi interrompido.' })
+    this.endTest({ ok: false, text: '', error: t('O teste foi interrompido.') })
     this.clearOpenTimer()
     if (this.sayTimer) clearTimeout(this.sayTimer)
     this.sayTimer = null

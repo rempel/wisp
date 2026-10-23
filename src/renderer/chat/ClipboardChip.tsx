@@ -1,27 +1,28 @@
 import type { JSX } from 'react'
 import type { ClipboardOffer } from '../../shared/ipc'
 import { ClipboardIcon, CloseIcon } from './icons'
+import { t, dateLocale } from '../../shared/i18n'
 
-const count = new Intl.NumberFormat('pt-BR')
+const count = new Intl.NumberFormat(dateLocale())
 
 /** O que o chip diz: a ação e o tamanho, sem mostrar o conteúdo (pode ser uma senha). */
 function describe(offer: ClipboardOffer): { label: string; meta: string } {
   switch (offer.kind) {
     case 'link':
-      return { label: 'Usar o link copiado', meta: offer.host ?? '' }
+      return { label: t('Usar o link copiado'), meta: offer.host ?? '' }
     case 'image':
       return {
-        label: 'Anexar a imagem copiada',
+        label: t('Anexar a imagem copiada'),
         meta: offer.width && offer.height ? `${offer.width}×${offer.height}` : ''
       }
     case 'text': {
       const lines = offer.lines ?? 1
       return {
-        label: offer.asFile ? 'Anexar o texto copiado' : 'Usar o texto copiado',
+        label: offer.asFile ? t('Anexar o texto copiado') : t('Usar o texto copiado'),
         meta:
           lines > 1
             ? `${count.format(lines)} linhas`
-            : `${count.format(offer.chars ?? 0)} ${offer.chars === 1 ? 'caractere' : 'caracteres'}`
+            : `${count.format(offer.chars ?? 0)} ${offer.chars === 1 ? t('caractere') : t('caracteres')}`
       }
     }
   }
@@ -44,7 +45,7 @@ export function ClipboardChip({
         type="button"
         className="clip-take"
         onClick={onTake}
-        title="Nada sai do computador até você enviar a mensagem"
+        title={t('Nada sai do computador até você enviar a mensagem')}
       >
         <ClipboardIcon />
         <span className="clip-label">{label}</span>
@@ -54,8 +55,8 @@ export function ClipboardChip({
         type="button"
         className="clip-dismiss"
         onClick={onDismiss}
-        title="Dispensar"
-        aria-label="Dispensar"
+        title={t('Dispensar')}
+        aria-label={t('Dispensar')}
       >
         <CloseIcon />
       </button>

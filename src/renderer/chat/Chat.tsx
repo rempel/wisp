@@ -47,6 +47,7 @@ import type { TabStatus } from './TabBar'
 import { CostPill } from './CostPill'
 import { UsagePill } from './UsagePill'
 import { useSessions } from './useSessions'
+import { t } from '../../shared/i18n'
 
 /** De quanto em quanto tempo (ms), no máximo, o painel avisa que o usuário está mexendo nele. */
 const ACTIVITY_EVERY_MS = 20_000
@@ -88,11 +89,11 @@ async function zoomPanel(key: string): Promise<void> {
 
 /** O título e a linha de baixo do cabeçalho de cada tela. */
 const VIEW_TITLES: Record<string, [string, string]> = {
-  history: ['Conversas', 'guardadas neste computador'],
-  settings: ['Configurações', 'gravadas no config.json'],
-  sessions: ['Sessões', 'do Claude Code no terminal'],
-  diagnostics: ['Diagnóstico', 'o que o Wisp precisa e o que está ligado'],
-  welcome: ['Primeiros passos', 'uma coisa de cada vez']
+  history: [t('Conversas'), t('guardadas neste computador')],
+  settings: [t('Configurações'), t('gravadas no config.json')],
+  sessions: [t('Sessões'), t('do Claude Code no terminal')],
+  diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
+  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')]
 }
 
 export default function Chat(): JSX.Element {
@@ -329,7 +330,11 @@ export default function Chat(): JSX.Element {
         type: 'events',
         events: [
           result.ok
-            ? { type: 'notice', level: 'info', text: `Conversa exportada para \`${result.path}\`.` }
+            ? {
+                type: 'notice',
+                level: 'info',
+                text: t('Conversa exportada para `{path}`.', { path: result.path })
+              }
             : { type: 'notice', level: 'warning', text: result.message }
         ]
       })
@@ -552,8 +557,8 @@ export default function Chat(): JSX.Element {
                 type="button"
                 className="icon-button pane-close"
                 onClick={() => window.wisp.tabs.unsplit(index)}
-                title="Tirar este painel da janela (a aba continua aberta)"
-                aria-label="Tirar este painel da janela"
+                title={t('Tirar este painel da janela (a aba continua aberta)')}
+                aria-label={t('Tirar este painel da janela')}
               >
                 <CloseIcon />
               </button>
@@ -596,9 +601,10 @@ export default function Chat(): JSX.Element {
         {dragging && (
           <div className="drop-overlay" aria-hidden>
             <PaperclipIcon />
-            <strong>Solte para anexar</strong>
+            <strong>{t('Solte para anexar')}</strong>
             <span>
-              Imagens, PDFs, textos… até {ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB cada
+              {t('Imagens, PDFs, textos… até')} {ATTACHMENT_LIMITS.maxBytes / 1024 / 1024}{' '}
+              {t('MB cada')}
             </span>
           </div>
         )}
@@ -609,8 +615,8 @@ export default function Chat(): JSX.Element {
                 type="button"
                 className="icon-button"
                 onClick={() => setView('chat')}
-                title="Voltar para a conversa (Esc)"
-                aria-label="Voltar para a conversa"
+                title={t('Voltar para a conversa (Esc)')}
+                aria-label={t('Voltar para a conversa')}
               >
                 <BackIcon />
               </button>
@@ -625,7 +631,7 @@ export default function Chat(): JSX.Element {
               <div className="title">
                 <strong>Wisp</strong>
                 <span className={`status${focusedState?.busy ? ' busy' : ''}`}>
-                  {focusedState ? statusText(focusedState) : 'sessão do terminal'}
+                  {focusedState ? statusText(focusedState) : t('sessão do terminal')}
                 </span>
               </div>
             </>
@@ -635,11 +641,13 @@ export default function Chat(): JSX.Element {
               type="button"
               className="demo-pill"
               onClick={() => void window.wisp.settings.set({ demo: false })}
-              title="Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar."
-              aria-label="Modo demonstração (clique para desligar)"
+              title={t(
+                'Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar.'
+              )}
+              aria-label={t('Modo demonstração (clique para desligar)')}
             >
               <DemoIcon />
-              Demo
+              {t('Demo')}
             </button>
           )}
           {!demo &&
@@ -654,10 +662,13 @@ export default function Chat(): JSX.Element {
             onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
             title={
               requests
-                ? `Sessões do terminal (${requests} ${requests === 1 ? 'pedido' : 'pedidos'})`
-                : 'Sessões do Claude Code no terminal'
+                ? t('Sessões do terminal ({requests} {v2})', {
+                    requests,
+                    v2: requests === 1 ? t('pedido') : t('pedidos')
+                  })
+                : t('Sessões do Claude Code no terminal')
             }
-            aria-label="Sessões do terminal"
+            aria-label={t('Sessões do terminal')}
             aria-pressed={view === 'sessions'}
           >
             <TerminalIcon />
@@ -667,8 +678,8 @@ export default function Chat(): JSX.Element {
             type="button"
             className={`icon-button${view === 'history' ? ' active' : ''}`}
             onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
-            title="Conversas anteriores"
-            aria-label="Conversas anteriores"
+            title={t('Conversas anteriores')}
+            aria-label={t('Conversas anteriores')}
             aria-pressed={view === 'history'}
           >
             <HistoryIcon />
@@ -677,8 +688,8 @@ export default function Chat(): JSX.Element {
             type="button"
             className={`icon-button${view === 'settings' ? ' active' : ''}`}
             onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
-            title="Configurações"
-            aria-label="Configurações"
+            title={t('Configurações')}
+            aria-label={t('Configurações')}
             aria-pressed={view === 'settings'}
           >
             <SettingsIcon />
@@ -688,8 +699,8 @@ export default function Chat(): JSX.Element {
               type="button"
               className="icon-button window-dock"
               onClick={() => window.wisp.chat.dock()}
-              title="Voltar para perto do mascote"
-              aria-label="Voltar para perto do mascote"
+              title={t('Voltar para perto do mascote')}
+              aria-label={t('Voltar para perto do mascote')}
             >
               <DockIcon />
             </button>
@@ -698,8 +709,8 @@ export default function Chat(): JSX.Element {
             type="button"
             className="icon-button window-maximize"
             onClick={() => window.wisp.chat.maximize()}
-            title={windowState.maximized ? 'Restaurar' : 'Maximizar'}
-            aria-label={windowState.maximized ? 'Restaurar' : 'Maximizar'}
+            title={windowState.maximized ? t('Restaurar') : t('Maximizar')}
+            aria-label={windowState.maximized ? t('Restaurar') : t('Maximizar')}
           >
             {windowState.maximized ? <RestoreIcon /> : <MaximizeIcon />}
           </button>
@@ -707,8 +718,8 @@ export default function Chat(): JSX.Element {
             type="button"
             className="icon-button"
             onClick={() => window.wisp.chat.hide()}
-            title="Fechar (Esc)"
-            aria-label="Fechar"
+            title={t('Fechar (Esc)')}
+            aria-label={t('Fechar')}
           >
             <CloseIcon />
           </button>

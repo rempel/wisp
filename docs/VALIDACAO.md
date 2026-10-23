@@ -534,3 +534,22 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       desbloqueie: a notificação **Enquanto você estava fora** diz o que ficou pronto.
 - [ ] **Desligar:** Configurações → Atalhos e sistema → **Responder pela notificação**: desligado,
       os cards não viram notificação.
+
+## Idiomas, Flatpak e ARM64 (Fase 25)
+
+- [ ] **Em inglês pelo sistema:** feche o Wisp e abra num terminal com
+      `LANG=en_US.UTF-8 wisp` (ou mude o idioma do sistema e entre de novo). O painel, o menu do
+      mascote, a bandeja, as configurações e o diagnóstico vêm em inglês.
+- [ ] **O Claude responde em inglês:** mande "oi, tudo bem?": a resposta vem em inglês.
+- [ ] **Trocar nas configurações:** em **Settings → Appearance and accessibility → Language**,
+      escolha **Português**: aparece **Open Wisp again now**. Clique: o Wisp fecha e abre em
+      português, com as abas e as conversas de antes. O `config.json` tem `"language": "pt"`.
+- [ ] **Datas e números:** em inglês, o histórico mostra "yesterday" e as horas como "03:05 PM";
+      o custo da OpenRouter aparece como "$0.0123".
+- [ ] **Volte ao padrão:** **Idioma → O do sistema**.
+- [ ] **Flatpak:** instale o `.flatpak` do CI (`flatpak install --user wisp.flatpak`) e abra
+      (`flatpak run io.github.rempel.Wisp`). Uma conversa com o Claude Code de verdade funciona,
+      um card de comando roda o comando na máquina (fora do sandbox), e `wisp --toggle` abre e fecha
+      o painel.
+- [ ] **ARM64:** num Raspberry Pi 4 ou 5 (ou outra máquina ARM64 com Ubuntu ou Debian), instale o
+      `.deb` de ARM64 do CI e abra: o mascote aparece, o painel conversa e o modo terminal abre.

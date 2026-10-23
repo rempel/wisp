@@ -4,6 +4,7 @@
 // títulos das abas, nada do conteúdo.
 
 import type { ChatEvent } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 export interface AwaySummary {
   title: string
@@ -16,7 +17,7 @@ const MAX_TITLES = 3
 const list = (titles: string[]): string => {
   const shown = titles.slice(0, MAX_TITLES).map((title) => `“${title}”`)
   const more = titles.length - shown.length
-  return more > 0 ? `${shown.join(', ')} e mais ${more}` : shown.join(', ')
+  return more > 0 ? t('{v1} e mais {more}', { v1: shown.join(', '), more }) : shown.join(', ')
 }
 
 const plural = (count: number, one: string, many: string): string =>
@@ -32,22 +33,30 @@ export function awaySummary(away: {
   const lines: string[] = []
   if (away.done.length) {
     lines.push(
-      `${plural(away.done.length, 'resposta pronta', 'respostas prontas')}: ${list(away.done)}.`
+      `${plural(away.done.length, t('resposta pronta'), t('respostas prontas'))}: ${list(away.done)}.`
     )
   }
   if (away.failed.length) {
-    lines.push(`${plural(away.failed.length, 'deu erro', 'deram erro')}: ${list(away.failed)}.`)
+    lines.push(
+      `${plural(away.failed.length, t('deu erro'), t('deram erro'))}: ${list(away.failed)}.`
+    )
   }
   if (away.expired) {
     lines.push(
-      `${plural(away.expired, 'pedido ficou negado', 'pedidos ficaram negados')} por tempo, no celular.`
+      t('{v1} por tempo, no celular.', {
+        v1: plural(away.expired, t('pedido ficou negado'), t('pedidos ficaram negados'))
+      })
     )
   }
   if (away.waiting) {
-    lines.push(`${plural(away.waiting, 'pedido espera', 'pedidos esperam')} você no painel.`)
+    lines.push(
+      t('{v1} você no painel.', {
+        v1: plural(away.waiting, t('pedido espera'), t('pedidos esperam'))
+      })
+    )
   }
   if (!lines.length) return null
-  return { title: 'Enquanto você estava fora', body: lines.join('\n') }
+  return { title: t('Enquanto você estava fora'), body: lines.join('\n') }
 }
 
 /** Anota o que acontece entre o bloqueio e o desbloqueio da tela. */

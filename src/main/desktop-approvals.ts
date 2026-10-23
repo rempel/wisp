@@ -13,6 +13,7 @@ import { DBusConnection, Variant } from './dbus'
 import { summarize } from './phone'
 import type { PhoneDecision } from './phone'
 import { explainCommand } from '../shared/commands'
+import { t } from '../shared/i18n'
 
 const DEST = 'org.freedesktop.Notifications'
 const PATH = '/org/freedesktop/Notifications'
@@ -247,10 +248,10 @@ export class DesktopApprovals {
     const buttons = await notifier.hasActions()
     let title: string
     let body: string
-    const actions: string[] = ['default', 'Abrir o painel']
+    const actions: string[] = ['default', t('Abrir o painel')]
     if (!summary) {
-      title = 'O Claude precisa de você'
-      body = 'Uma pergunta espera no painel.'
+      title = t('O Claude precisa de você')
+      body = t('Uma pergunta espera no painel.')
     } else {
       title = summary.title
       const command =
@@ -262,16 +263,16 @@ export class DesktopApprovals {
         card.deny = key('deny')
         if (summary.plan) {
           card.allow = key('allow')
-          actions.push(card.allow, 'Aprovar', card.deny, 'Continuar planejando')
+          actions.push(card.allow, t('Aprovar'), card.deny, t('Continuar planejando'))
         } else {
           if (!summary.denyOnly) {
             card.allow = key('allow')
-            actions.push(card.allow, 'Permitir')
+            actions.push(card.allow, t('Permitir'))
           }
-          actions.push(card.deny, 'Negar')
+          actions.push(card.deny, t('Negar'))
         }
       } else {
-        body += '\nAbra o painel para responder.'
+        body += t('\nAbra o painel para responder.')
       }
     }
     try {
@@ -286,7 +287,9 @@ export class DesktopApprovals {
     } catch (err) {
       card.allow = null
       card.deny = null
-      this.deps.log?.(`não consegui mostrar a notificação (${(err as Error).message})`)
+      this.deps.log?.(
+        t('não consegui mostrar a notificação ({message})', { message: (err as Error).message })
+      )
     }
   }
 }

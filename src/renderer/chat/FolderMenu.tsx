@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import type { FolderChoice } from '../../shared/ipc'
 import { FolderIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 /**
  * "Abrir pasta": uma conversa numa aba nova que roda dentro de um projeto, como o Claude Code no
@@ -52,16 +53,17 @@ export function FolderMenu(): JSX.Element {
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Abrir uma pasta numa conversa (como o Claude Code no terminal)"
-        aria-label="Abrir uma pasta numa conversa"
+        title={t('Abrir uma pasta numa conversa (como o Claude Code no terminal)')}
+        aria-label={t('Abrir uma pasta numa conversa')}
       >
         <FolderIcon />
       </button>
       {open && (
         <div className="model-menu folder-list" role="menu">
           <p className="model-menu-note">
-            Uma conversa nova que roda dentro da pasta, com o CLAUDE.md, as configurações e as
-            skills dela.
+            {t(
+              'Uma conversa nova que roda dentro da pasta, com o CLAUDE.md, as configurações e as skills dela.'
+            )}
           </p>
           {projects?.map((project) => (
             <button
@@ -82,7 +84,7 @@ export function FolderMenu(): JSX.Element {
           ))}
           {projects?.length === 0 && (
             <p className="model-menu-note">
-              Nenhum projeto (com .git) nas suas pastas de projetos.
+              {t('Nenhum projeto (com .git) nas suas pastas de projetos.')}
             </p>
           )}
           <button
@@ -93,7 +95,7 @@ export function FolderMenu(): JSX.Element {
           >
             <span className="model-check" />
             <span className="model-text">
-              <strong>Escolher outra pasta…</strong>
+              <strong>{t('Escolher outra pasta…')}</strong>
             </span>
           </button>
           {error && (

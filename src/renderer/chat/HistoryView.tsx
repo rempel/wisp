@@ -4,6 +4,7 @@ import { formatWhen } from '../../shared/format'
 import type { ConversationSummary } from '../../shared/ipc'
 import { DownloadIcon, PinIcon, SearchIcon, TrashIcon } from './icons'
 import { WeekCard } from './WeekCard'
+import { t } from '../../shared/i18n'
 
 const DAY = 86_400_000
 /** Quantas conversas a lista mostra de cada vez (Fase 23); o resto vem no "Mostrar mais". */
@@ -11,10 +12,10 @@ const PAGE = 50
 
 /** Em que grupo da lista a conversa entra, pela última atividade. */
 function groupOf(updatedAt: number, today: number): string {
-  if (updatedAt >= today) return 'Hoje'
-  if (updatedAt >= today - DAY) return 'Ontem'
-  if (updatedAt >= today - 6 * DAY) return 'Nesta semana'
-  return 'Antes'
+  if (updatedAt >= today) return t('Hoje')
+  if (updatedAt >= today - DAY) return t('Ontem')
+  if (updatedAt >= today - 6 * DAY) return t('Nesta semana')
+  return t('Antes')
 }
 
 /** Busca sem diferenciar maiúsculas nem acentos. */
@@ -56,19 +57,19 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
   async function open(item: ConversationSummary): Promise<void> {
     // Aberta numa aba (talvez fora da vista): o main só mostra a aba dela.
     if (await window.wisp.history.open(item.id)) return onClose()
-    setError('Não consegui abrir esta conversa: o arquivo dela sumiu ou está estragado.')
+    setError(t('Não consegui abrir esta conversa: o arquivo dela sumiu ou está estragado.'))
     load()
   }
 
   async function remove(id: string): Promise<void> {
     setConfirming(null)
-    if (!(await window.wisp.history.remove(id))) setError('Não consegui apagar esta conversa.')
+    if (!(await window.wisp.history.remove(id))) setError(t('Não consegui apagar esta conversa.'))
     load()
   }
 
   async function togglePin(item: ConversationSummary): Promise<void> {
     if (!(await window.wisp.history.pin(item.id, !item.pinned))) {
-      setError('Não consegui guardar a conversa fixada.')
+      setError(t('Não consegui guardar a conversa fixada.'))
     }
     load()
   }
@@ -78,14 +79,14 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
     setExported(null)
     const result = await window.wisp.history.exportMarkdown(item.id)
     if (!result) return
-    if (result.ok) setExported(`Exportada para ${result.path}.`)
+    if (result.ok) setExported(t('Exportada para {path}.', { path: result.path }))
     else setError(result.message)
   }
 
   const found = items?.filter((item) => fold(item.title).includes(fold(query.trim()))) ?? []
   const shown = found.slice(0, limit)
   // O título do grupo vai antes da primeira conversa de cada grupo.
-  const groups = shown.map((item) => (item.pinned ? 'Fixadas' : groupOf(item.updatedAt, today)))
+  const groups = shown.map((item) => (item.pinned ? t('Fixadas') : groupOf(item.updatedAt, today)))
 
   return (
     <div className="history">
@@ -94,8 +95,8 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
         <SearchIcon />
         <input
           value={query}
-          placeholder="Buscar conversas…"
-          aria-label="Buscar conversas"
+          placeholder={t('Buscar conversas…')}
+          aria-label={t('Buscar conversas')}
           autoFocus
           onChange={(event) => {
             setQuery(event.target.value)
@@ -117,8 +118,10 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
         {items === null ? null : found.length === 0 ? (
           <p className="history-empty">
             {items.length === 0
-              ? 'Nenhuma conversa guardada ainda. Elas aparecem aqui a partir da primeira mensagem.'
-              : 'Nenhuma conversa com esse título.'}
+              ? t(
+                  'Nenhuma conversa guardada ainda. Elas aparecem aqui a partir da primeira mensagem.'
+                )
+              : t('Nenhuma conversa com esse título.')}
           </p>
         ) : (
           shown.map((item, index) => {
@@ -128,12 +131,15 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                 {heading && <div className="history-group">{heading}</div>}
                 {confirming === item.id ? (
                   <div className="history-item confirming">
-                    <span className="history-title">Apagar “{item.title}”?</span>
+                    <span className="history-title">
+                      {t('Apagar “')}
+                      {item.title}”?
+                    </span>
                     <button type="button" className="danger" onClick={() => void remove(item.id)}>
-                      Apagar
+                      {t('Apagar')}
                     </button>
                     <button type="button" onClick={() => setConfirming(null)}>
-                      Cancelar
+                      {t('Cancelar')}
                     </button>
                   </div>
                 ) : (
@@ -147,7 +153,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       {item.project && <span className="history-project">{item.project}</span>}
                       <span className="history-title">{item.title}</span>
                       {item.current ? (
-                        <span className="history-badge">aberta</span>
+                        <span className="history-badge">{t('aberta')}</span>
                       ) : (
                         <span className="history-when">{formatWhen(item.updatedAt)}</span>
                       )}
@@ -156,11 +162,11 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       type="button"
                       className={`history-action history-pin${item.pinned ? ' on' : ''}`}
                       onClick={() => void togglePin(item)}
-                      title={item.pinned ? 'Soltar do topo' : 'Fixar no topo'}
+                      title={item.pinned ? t('Soltar do topo') : t('Fixar no topo')}
                       aria-label={
                         item.pinned
-                          ? `Soltar “${item.title}” do topo`
-                          : `Fixar “${item.title}” no topo`
+                          ? t('Soltar “{title}” do topo', { title: item.title })
+                          : t('Fixar “{title}” no topo', { title: item.title })
                       }
                       aria-pressed={!!item.pinned}
                     >
@@ -170,8 +176,8 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       type="button"
                       className="history-action history-export"
                       onClick={() => void exportItem(item)}
-                      title="Exportar em Markdown"
-                      aria-label={`Exportar “${item.title}” em Markdown`}
+                      title={t('Exportar em Markdown')}
+                      aria-label={t('Exportar “{title}” em Markdown', { title: item.title })}
                     >
                       <DownloadIcon />
                     </button>
@@ -179,8 +185,8 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                       type="button"
                       className="history-delete"
                       onClick={() => setConfirming(item.id)}
-                      title="Apagar do histórico"
-                      aria-label={`Apagar “${item.title}” do histórico`}
+                      title={t('Apagar do histórico')}
+                      aria-label={t('Apagar “{title}” do histórico', { title: item.title })}
                     >
                       <TrashIcon />
                     </button>
@@ -196,7 +202,8 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
             className="load-earlier history-more"
             onClick={() => setLimit((count) => count + PAGE)}
           >
-            Mostrar mais ({found.length - shown.length})
+            {t('Mostrar mais (')}
+            {found.length - shown.length})
           </button>
         )}
       </div>
