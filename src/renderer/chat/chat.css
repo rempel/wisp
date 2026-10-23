@@ -3607,3 +3607,197 @@ button.link {
   display: block;
   margin: 2px 0 8px;
 }
+
+/* O diagnóstico e os primeiros passos (Fase 20). */
+.diag-intro {
+  margin: 0 0 12px;
+}
+
+.diag-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.diag-item {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.diag-item-ok {
+  border-left-color: var(--ok);
+}
+
+.diag-item-warn {
+  border-left-color: var(--warning-border);
+}
+
+.diag-item-error {
+  border-left-color: var(--danger-solid);
+}
+
+.diag-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.diag-head h2 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.diag-badge {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 999px;
+  font-size: 11.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.diag-ok {
+  background: color-mix(in srgb, var(--ok) 15%, transparent);
+  color: var(--ok);
+}
+
+.diag-warn {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.diag-error {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.diag-off {
+  background: var(--hover);
+  color: var(--muted);
+}
+
+.diag-detail {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.diag-detail p {
+  margin: 0;
+}
+
+.diag-fix {
+  margin-top: 6px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.diag-fix p {
+  margin: 4px 0;
+}
+
+.diag-fix pre {
+  margin: 4px 0;
+}
+
+.diag-action {
+  margin-top: 6px;
+}
+
+.diag-buttons,
+.diag-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.diag-links .settings-hint {
+  flex-basis: 100%;
+}
+
+.diag-report summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.diag-report pre {
+  overflow-x: auto;
+  padding: 8px;
+  border-radius: 8px;
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  white-space: pre-wrap;
+}
+
+.welcome-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 14px;
+}
+
+.welcome-progress span {
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+}
+
+.welcome-progress span.done {
+  background: var(--accent);
+}
+
+.welcome-step {
+  padding: 4px 2px;
+}
+
+.welcome-hello {
+  text-align: center;
+}
+
+.welcome-hello h2,
+.welcome-end h2 {
+  margin: 10px 0 6px;
+  font-size: 18px;
+}
+
+.welcome-hello p,
+.welcome-end p,
+.welcome-end li {
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.welcome-end ul {
+  padding-left: 18px;
+}
+
+.welcome-optional {
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 400;
+}
+
+.welcome-nav {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.settings-button.primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.welcome-skip {
+  margin-left: auto;
+}

@@ -118,6 +118,8 @@ export interface WispConfig {
   phoneServer: string
   /** Segundos que um card espera antes de ir para o celular; 0: só com a tela bloqueada. */
   phoneAfterSeconds: number
+  /** Confere uma vez por dia se saiu uma versão nova do Wisp (no GitHub). Desligado por padrão. */
+  updateCheck: boolean
 }
 
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
@@ -162,7 +164,8 @@ function defaults(): WispConfig {
     openrouterModel: null,
     phoneApprovals: false,
     phoneServer: 'https://ntfy.sh',
-    phoneAfterSeconds: 60
+    phoneAfterSeconds: 60,
+    updateCheck: false
   }
 }
 
@@ -260,7 +263,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .string()
     .max(300)
     .regex(/^https?:\/\/[^\s?#@]+$/, 'precisa ser um endereço http(s)'),
-  phoneAfterSeconds: z.number().int().min(0).max(3600)
+  phoneAfterSeconds: z.number().int().min(0).max(3600),
+  updateCheck: z.boolean()
 }
 
 const ConfigSchema = z.object(

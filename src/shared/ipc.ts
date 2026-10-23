@@ -96,6 +96,18 @@ export const IPC = {
   phoneDisable: 'phone:disable',
   /** chat → main (invoke): desfaz o pareamento (apaga os tópicos do chaveiro). Devolve PhoneResult. */
   phoneUnpair: 'phone:unpair',
+  /** chat → main (invoke): roda as conferências (Fase 20). Devolve DiagnosticsSnapshot. */
+  diagnosticsRun: 'diagnostics:run',
+  /** chat → main: copia o último relatório do diagnóstico. */
+  diagnosticsCopy: 'diagnostics:copy',
+  /** chat → main: abre uma issue nova no GitHub, com o último relatório. */
+  diagnosticsIssue: 'diagnostics:issue',
+  /** chat → main (invoke): o botão de uma conferência. Arg: DiagnosticAction. Devolve PhoneResult. */
+  diagnosticsAction: 'diagnostics:action',
+  /** main → chat: mostra uma tela do painel. Arg: 'welcome' | 'diagnostics'. */
+  panelView: 'panel:view',
+  /** chat → main: os primeiros passos acabaram (ou foram pulados). */
+  welcomeDone: 'welcome:done',
   /** chat → main: trocar o modo de permissão. Args: (conversa, PermissionMode). */
   chatMode: 'chat:mode',
   /**
@@ -783,6 +795,7 @@ export interface Settings {
   provider: Provider
   openrouterModel: string | null
   phoneAfterSeconds: number
+  updateCheck: boolean
 }
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
@@ -814,7 +827,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'weeklySummary',
   'provider',
   'openrouterModel',
-  'phoneAfterSeconds'
+  'phoneAfterSeconds',
+  'updateCheck'
 ]
 
 /** O que a tela de configurações recebe. */
@@ -833,6 +847,46 @@ export interface SettingsSnapshot {
   /** Aprovar pelo celular (Fase 18). */
   phone: PhoneStatus
 }
+
+/** O resultado de uma conferência do diagnóstico (Fase 20). */
+export type DiagnosticStatus = 'ok' | 'warn' | 'error' | 'off'
+
+/** O que o botão de uma conferência faz. */
+export type DiagnosticAction = 'terminal' | 'demo' | 'settings' | 'release'
+
+/** Uma conferência: o Claude Code, o login, o atalho, a bandeja, o chaveiro, a voz... */
+export interface DiagnosticCheck {
+  id:
+    | 'claude'
+    | 'login'
+    | 'shortcut'
+    | 'tray'
+    | 'keyring'
+    | 'voice'
+    | 'terminal'
+    | 'config'
+    | 'update'
+  title: string
+  status: DiagnosticStatus
+  /** Uma frase curta, a do relatório (nada pessoal). */
+  summary: string
+  /** O que foi visto, para a tela. */
+  detail: string
+  /** O que fazer (Markdown). */
+  fix?: string
+  action?: DiagnosticAction
+  /** Não impede de usar o Wisp (fica como "opcional" nos primeiros passos). */
+  optional?: boolean
+}
+
+/** As conferências de agora e o relatório para uma issue. */
+export interface DiagnosticsSnapshot {
+  checks: DiagnosticCheck[]
+  report: string
+}
+
+/** Uma tela do painel aberta pelo main. */
+export type PanelView = 'welcome' | 'diagnostics'
 
 /** Em que pé está a aprovação pelo celular. */
 export interface PhoneStatus {
@@ -1131,6 +1185,16 @@ export interface WispApi {
     models(): Promise<OpenRouterModelInfo[] | { error: string }>
     setKey(key: string): Promise<OpenRouterKeyResult>
     clearKey(): Promise<OpenRouterKeyResult>
+  }
+  /** O diagnóstico e os primeiros passos (Fase 20). */
+  diagnostics: {
+    run(): Promise<DiagnosticsSnapshot>
+    copy(): void
+    issue(): void
+    action(action: DiagnosticAction): Promise<PhoneResult>
+    /** O main pediu uma tela (os primeiros passos na primeira vez, o Diagnóstico… do menu). */
+    onView(listener: (view: PanelView) => void): () => void
+    welcomeDone(): void
   }
   /** Aprovar pelo celular (Fase 18): o pareamento com o ntfy. */
   phone: {

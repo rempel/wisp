@@ -133,7 +133,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
-- **Fases 18 (aprovar pelo celular) e 19 (avatares):** prontas, esperando a validação com o uso.
+- **Fases 18 (aprovar pelo celular), 19 (avatares) e 20 (primeiros passos e diagnóstico):**
+  prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -373,6 +374,11 @@ Dicas:
 | `dpkg: dependency problems` ao instalar o .deb              | Use `sudo apt install ./arquivo.deb` (com o `./`), que resolve as dependências, e não o `dpkg -i`                    |
 
 ## Primeiros passos
+
+Na primeira vez que abre, o Wisp mostra os **primeiros passos** no painel: confere, um de cada
+vez, se o Claude Code está instalado (e diz como instalar, se não estiver), se ele está logado, o
+atalho global, o ícone na bandeja, o chaveiro e a voz, com o que fazer em cada um. Dá para pular,
+e eles voltam em **Configurações → Avançado → Primeiros passos**.
 
 1. **Faça o login no Claude Code** (só na primeira vez): rode `claude` num terminal e siga o login
    com a sua assinatura. O Wisp usa esse mesmo login.
@@ -806,7 +812,8 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "openrouterModel": null,
   "phoneApprovals": false,
   "phoneServer": "https://ntfy.sh",
-  "phoneAfterSeconds": 60
+  "phoneAfterSeconds": 60,
+  "updateCheck": false
 }
 ```
 
@@ -930,6 +937,11 @@ aba troca o seu na pílula do provedor. `openrouterModel` é o modelo da OpenRou
 (`"provedor/modelo"`); a pílula do modelo, numa conversa pela OpenRouter, grava aqui. A chave
 nunca fica no arquivo: ela vai para o chaveiro do sistema pela tela de configurações.
 
+`updateCheck` liga o aviso de versão nova: uma vez por dia, o Wisp pergunta ao GitHub qual é a
+última versão publicada e, se for mais nova, avisa numa notificação (uma vez por versão), com o
+link da página dela. Nada é baixado nem instalado sozinho. Desligado, o Wisp não faz essa
+consulta.
+
 `phoneApprovals` é a aprovação pelo celular (veja [Aprovar pelo celular](#aprovar-pelo-celular)).
 Ela liga pela tela de configurações, depois de o celular responder ao teste do pareamento; aqui,
 dá para desligar. `phoneServer` é o servidor do ntfy do pareamento (trocar à mão pede parear de
@@ -998,7 +1010,8 @@ do Claude Code segue a regra dele.
 
 - **Sem telemetria.** O Wisp não manda nada para lugar nenhum por conta própria. A rede é só a do
   Claude Code (para a Anthropic, ou para a OpenRouter, se você escolheu) e a do que você ligou: o
-  `gh`, as agendas, o navegador do Claude, o ntfy da aprovação pelo celular.
+  `gh`, as agendas, o navegador do Claude, o ntfy da aprovação pelo celular e, com o aviso de
+  versão ligado, uma consulta por dia às versões do Wisp no GitHub.
 - **A sua assinatura, não uma chave de API.** O Claude Code roda sem `ANTHROPIC_API_KEY` no ambiente,
   para não cobrar por uso sem você saber. Se mesmo assim ele usar uma chave, a conversa avisa.
 - **Permissão antes de mudar qualquer coisa** (veja [Modos de permissão](#modos-de-permissão)). O
@@ -1042,6 +1055,13 @@ Onde fica cada coisa:
 | Chaveiro do sistema                          | A chave da OpenRouter e os tópicos do celular (ntfy)                  |
 
 ## Problemas comuns
+
+Antes de tudo, abra o **Diagnóstico** (no botão direito do mascote, ou em **Configurações →
+Avançado**): ele confere o Claude Code (instalado, versão e login), o atalho, a bandeja, o
+chaveiro, a voz, o terminal e o `config.json`, e diz o que fazer em cada um. Para pedir ajuda,
+**Copiar o relatório** ou **Abrir uma issue** levam um resumo com as versões, o desktop e o
+resultado de cada conferência, sem caminhos, comandos, nomes ou conversas (dá para ver o que vai,
+em **O que vai no relatório**).
 
 | Sintoma                                      | O que fazer                                                                                                                                                                     |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |

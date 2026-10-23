@@ -766,7 +766,10 @@ Notas da entrega:
 **Aceite:** trocar para o fantasminha pelo menu do mascote muda o mascote, a ilha e o avatar do
 painel na hora, e ele continua fantasminha depois de fechar e abrir o Wisp.
 
-### Fase 20: primeira execução e diagnóstico
+### Fase 20: primeira execução e diagnóstico ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/primeiros-passos.mjs`
+(sem o Claude Code, com o de mentira sem login, e um GitHub de mentira com uma versão nova).
 
 - **Primeiros passos guiados (M):** na primeira vez, o painel confere o Claude Code (instalado,
   versão, login), o chaveiro, a voz e o atalho, um de cada vez, com o que fazer em cada um.
@@ -775,6 +778,16 @@ painel na hora, e ele continua fantasminha depois de fechar e abrir o Wisp.
   comandos nem conversas.
 - **Aviso de versão nova (P):** desligado por padrão; quando ligado, confere as releases do
   GitHub uma vez por dia.
+
+Notas da entrega:
+
+- os primeiros passos não aparecem para quem já usava o Wisp (quem já tem abas guardadas);
+- as conferências são funções dos fatos juntados (o Claude Code, o D-Bus, o atalho, a voz), e o
+  relatório só usa frases fixas: o que a pessoa escreveu no `config.json`, caminhos e o problema
+  contado pelo desktop ficam só na tela;
+- a bandeja é conferida pelo `StatusNotifierWatcher` do D-Bus; no GNOME sem a extensão
+  AppIndicator, ele não existe, e o diagnóstico diz qual extensão ligar;
+- o aviso de versão só aceita a página da versão no próprio GitHub como link.
 
 **Aceite:** numa máquina sem o Claude Code, a primeira execução diz o que falta e como instalar;
 o relatório do diagnóstico cola numa issue sem nada pessoal.

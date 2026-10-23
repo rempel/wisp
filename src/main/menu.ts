@@ -22,6 +22,8 @@ export interface TrayActions {
   setDemoEnabled(enabled: boolean): void
   /** Abre a tela de configurações no painel. */
   openSettings(): void
+  /** Abre o diagnóstico no painel (Fase 20). */
+  openDiagnostics(): void
   /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
   shortcutLabel(): string | null
   /** O atalho de voz ("Ctrl+Alt+Space"); null sem atalho. */
@@ -81,6 +83,7 @@ export function menuTemplate(
       click: (item) => actions.setDemoEnabled(item.checked)
     },
     { label: 'Configurações…', click: () => actions.openSettings() },
+    { label: 'Diagnóstico…', click: () => actions.openDiagnostics() },
     { label: 'Abrir config.json', click: () => actions.openConfig() },
     { type: 'separator' },
     {

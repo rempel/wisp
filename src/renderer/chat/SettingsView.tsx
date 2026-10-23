@@ -45,7 +45,13 @@ const LANGUAGES: Record<string, string> = {
  * As configurações, no lugar de editar o config.json: o que muda aqui é gravado no arquivo na
  * hora (sem mexer no resto dele) e vale como uma edição no próprio arquivo.
  */
-export function SettingsView(): JSX.Element {
+export function SettingsView({
+  onDiagnostics,
+  onWelcome
+}: {
+  onDiagnostics: () => void
+  onWelcome: () => void
+}): JSX.Element {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(0)
@@ -407,6 +413,24 @@ export function SettingsView(): JSX.Element {
         </Section>
 
         <Section title="Avançado">
+          <div className="settings-row diag-links">
+            <button type="button" className="settings-button" onClick={onDiagnostics}>
+              Diagnóstico
+            </button>
+            <button type="button" className="settings-button" onClick={onWelcome}>
+              Primeiros passos
+            </button>
+            <small className="settings-hint">
+              O diagnóstico confere o Claude Code, o atalho, a bandeja, o chaveiro e a voz, e copia
+              um relatório para uma issue, sem nada pessoal.
+            </small>
+          </div>
+          <Toggle
+            label="Avisar de versão nova"
+            hint="Uma vez por dia, confere no GitHub se saiu uma versão nova do Wisp e avisa numa notificação. Nada é baixado sozinho."
+            checked={values.updateCheck}
+            onChange={(updateCheck) => void save({ updateCheck })}
+          />
           <Toggle
             label="Navegador do Claude"
             hint="Um navegador separado que o Claude controla, com permissão por site. Vale nas conversas novas."
