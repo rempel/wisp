@@ -13,6 +13,7 @@ import type {
   MascotReaction,
   MascotState,
   MascotView,
+  PanelView,
   SettingsSnapshot,
   SoundName,
   SoundSettings,
@@ -151,6 +152,14 @@ const api: WispApi = {
     models: () => ipcRenderer.invoke(IPC.openrouterModels),
     setKey: (key) => ipcRenderer.invoke(IPC.openrouterSetKey, key),
     clearKey: () => ipcRenderer.invoke(IPC.openrouterClearKey)
+  },
+  diagnostics: {
+    run: () => ipcRenderer.invoke(IPC.diagnosticsRun),
+    copy: () => ipcRenderer.send(IPC.diagnosticsCopy),
+    issue: () => ipcRenderer.send(IPC.diagnosticsIssue),
+    action: (action) => ipcRenderer.invoke(IPC.diagnosticsAction, action),
+    onView: (listener) => subscribe<[PanelView]>(IPC.panelView, listener),
+    welcomeDone: () => ipcRenderer.send(IPC.welcomeDone)
   },
   phone: {
     pair: (server, token) => ipcRenderer.invoke(IPC.phonePair, server, token),

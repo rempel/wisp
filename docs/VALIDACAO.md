@@ -448,3 +448,22 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Ilha:** ligue a **Ilha no topo**: a cápsula mostra o fantasminha.
 - [ ] **Volta igual:** feche e abra o Wisp: continua fantasminha. Volte para o robô pelas
       configurações (**Mascote e sons → Avatar**).
+
+## Primeiros passos e diagnóstico (Fase 20)
+
+- [ ] **Primeira vez:** com um usuário novo (ou apagando `~/.local/share/wisp/boas-vindas.json`
+      e `~/.local/share/wisp/abas.json`), abra o Wisp: o painel abre sozinho em **Primeiros
+      passos**. Siga os passos: cada um diz o que viu e o que fazer.
+- [ ] **Sem o Claude Code:** numa máquina sem ele (ou com `claudePath` apontando para nada), o
+      passo do Claude Code mostra como instalar e oferece a demonstração.
+- [ ] **Sem login:** com o Claude Code deslogado (`claude auth logout`), o passo do login oferece
+      **Abrir um terminal**.
+- [ ] **Não volta:** feche e abra o Wisp: os primeiros passos não aparecem de novo. Eles voltam em
+      **Configurações → Avançado → Primeiros passos**.
+- [ ] **Diagnóstico:** botão direito no mascote → **Diagnóstico…**: a lista mostra o Claude Code,
+      o login, o atalho, a bandeja, o chaveiro, a voz, o terminal e o `config.json`.
+- [ ] **Relatório:** **Copiar o relatório** e cole num editor: só versões, o desktop e os
+      resultados, sem o seu nome de usuário, caminhos ou conversas. **Abrir uma issue** abre o
+      GitHub com ele no corpo.
+- [ ] **Versão nova:** ligue **Avisar de versão nova** (Configurações → Avançado). Quando sair uma
+      versão mais nova que a sua, vem uma notificação (uma vez), e o diagnóstico mostra a versão.

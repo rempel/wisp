@@ -17,6 +17,7 @@ import type {
   VoiceStatus
 } from '../../shared/ipc'
 import { AvatarContext } from './avatar-context'
+import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { fromTerminal, isWispTerminalShortcut } from './terminal-keys'
 import { HistoryView } from './HistoryView'
@@ -69,10 +70,22 @@ const ARROWS: Record<string, Side> = {
  * O painel: o cabeçalho, as abas e até MAX_PANES painéis lado a lado, cada um com uma conversa
  * (ou uma sessão do terminal). O estado de cada conversa fica aqui, pelo id dela.
  */
+
+/** O título e a linha de baixo do cabeçalho de cada tela. */
+const VIEW_TITLES: Record<string, [string, string]> = {
+  history: ['Conversas', 'guardadas neste computador'],
+  settings: ['Configurações', 'gravadas no config.json'],
+  sessions: ['Sessões', 'do Claude Code no terminal'],
+  diagnostics: ['Diagnóstico', 'o que o Wisp precisa e o que está ligado'],
+  welcome: ['Primeiros passos', 'uma coisa de cada vez']
+}
+
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
-  const [view, setView] = useState<'chat' | 'history' | 'sessions' | 'settings'>('chat')
+  const [view, setView] = useState<
+    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome'
+  >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
   /** O próximo compromisso da agenda (o painel vazio mostra). */
@@ -163,6 +176,7 @@ export default function Chat(): JSX.Element {
     })
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offSettingsShow = window.wisp.settings.onShow(() => setView('settings'))
+    const offPanelView = window.wisp.diagnostics.onView(setView)
     const offSettings = window.wisp.settings.onChanged(setSettings)
     const offAgenda = window.wisp.agenda.onNext(setAgendaNext)
     const offSummary = window.wisp.summary.onShow(() => setView('history'))
@@ -189,6 +203,7 @@ export default function Chat(): JSX.Element {
       offShown()
       offSessions()
       offSettingsShow()
+      offPanelView()
       offSettings()
       offAgenda()
       offSummary()
@@ -534,20 +549,8 @@ export default function Chat(): JSX.Element {
                 <BackIcon />
               </button>
               <div className="title">
-                <strong>
-                  {view === 'history'
-                    ? 'Conversas'
-                    : view === 'settings'
-                      ? 'Configurações'
-                      : 'Sessões'}
-                </strong>
-                <span className="status">
-                  {view === 'history'
-                    ? 'guardadas neste computador'
-                    : view === 'settings'
-                      ? 'gravadas no config.json'
-                      : 'do Claude Code no terminal'}
-                </span>
+                <strong>{VIEW_TITLES[view][0]}</strong>
+                <span className="status">{VIEW_TITLES[view][1]}</span>
               </div>
             </>
           ) : (
@@ -646,7 +649,14 @@ export default function Chat(): JSX.Element {
         </header>
 
         {view === 'settings' ? (
-          <SettingsView />
+          <SettingsView
+            onDiagnostics={() => setView('diagnostics')}
+            onWelcome={() => setView('welcome')}
+          />
+        ) : view === 'diagnostics' ? (
+          <DiagnosticsView onSettings={() => setView('settings')} />
+        ) : view === 'welcome' ? (
+          <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
         ) : view === 'history' ? (
           <HistoryView onClose={() => setView('chat')} />
         ) : view === 'sessions' ? (

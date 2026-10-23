@@ -396,6 +396,49 @@ export async function checkClaude(command: string): Promise<CheckResult> {
   return { ok: true, bin }
 }
 
+/** O que o diagnóstico precisa saber do Claude Code (Fase 20). */
+export interface ClaudeStatus {
+  installed: boolean
+  /** A versão ("2.1.296"); null se não deu para saber. */
+  version: string | null
+  /** Logado na assinatura; null se não deu para saber. */
+  loggedIn: boolean | null
+}
+
+/** Roda o CLI com uns argumentos e devolve a saída (null se não rodou ou demorou). */
+function runClaude(bin: string, args: string[]): Promise<string | null> {
+  return new Promise((resolve) => {
+    const child = spawn(bin, args, {
+      env: claudeEnv(bin),
+      stdio: ['ignore', 'pipe', 'ignore'],
+      timeout: AUTH_TIMEOUT_MS
+    })
+    let stdout = ''
+    child.stdout.setEncoding('utf8')
+    child.stdout.on('data', (chunk: string) => (stdout += chunk))
+    child.on('error', () => resolve(null))
+    child.on('close', (code) => resolve(code === 0 || stdout ? stdout : null))
+  })
+}
+
+/** O Claude Code instalado, a versão e o login, para o diagnóstico. */
+export async function claudeStatus(command: string): Promise<ClaudeStatus> {
+  const bin = resolveCommand(command)
+  if (!bin) return { installed: false, version: null, loggedIn: null }
+  const [version, auth] = await Promise.all([
+    runClaude(bin, ['--version']),
+    runClaude(bin, ['auth', 'status', '--json'])
+  ])
+  let loggedIn: boolean | null = null
+  try {
+    const parsed = JSON.parse(auth ?? '') as { loggedIn?: unknown }
+    if (typeof parsed.loggedIn === 'boolean') loggedIn = parsed.loggedIn
+  } catch {
+    // Versão antiga ou saída inesperada: não dá para saber.
+  }
+  return { installed: true, version: /\d+\.\d+\.\d+/.exec(version ?? '')?.[0] ?? null, loggedIn }
+}
+
 // ---------------------------------------------------------------------------
 // Formato da saída stream-json (só os campos usados aqui)
 

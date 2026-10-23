@@ -78,6 +78,8 @@ import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
 import { setupPhone } from './phone-ipc'
+import { setupDiagnostics } from './diagnostics-ipc'
+import { UpdateChecker } from './updates'
 import type { Phone } from './phone-ipc'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
@@ -768,6 +770,30 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     },
     phone: () => phone!.status()
   })
+  // O aviso de versão nova (Fase 20), desligado por padrão: uma conferência por dia no GitHub.
+  const updates = new UpdateChecker({
+    current: app.getVersion(),
+    enabled: () => getConfig().updateCheck,
+    stateFile: join(DATA_DIR, 'versao.json'),
+    notify: (release) =>
+      notify(
+        `Wisp ${release.version} disponível`,
+        'Clique para ver o que mudou e baixar. As configurações e as conversas continuam.',
+        () => void shell.openExternal(release.url)
+      )
+  })
+  updates.schedule()
+  onConfigChange(() => updates.schedule())
+  // O diagnóstico e os primeiros passos (Fase 20).
+  const diagnostics = setupDiagnostics({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    version: app.getVersion(),
+    install: kind,
+    shortcut: () => shortcuts.get('toggle') ?? null,
+    updates,
+    showView: (view) => chat?.showView(view)
+  })
+  diagnostics.maybeWelcome()
   // Aprovar pelo celular (Fase 18), pelo ntfy; desligado por padrão.
   const phoneExpiry = Number(process.env.WISP_TEST_PHONE_EXPIRY_MS)
   phone = setupPhone({
@@ -922,6 +948,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       notifyConfigChange()
     },
     openSettings: () => chat?.openSettings(),
+    openDiagnostics: () => chat?.showView('diagnostics'),
     shortcutLabel: () => shortcutLabel('toggle'),
     voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {
@@ -1089,6 +1116,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     voice?.cancel()
     screenLock?.dispose()
     phone?.dispose()
+    updates.dispose()
     if (midnight) clearTimeout(midnight)
     presence.dispose()
     xpointer?.close()

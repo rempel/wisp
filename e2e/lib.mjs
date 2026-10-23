@@ -107,6 +107,10 @@ export function testHome(config = {}) {
       ...config
     })
   )
+  // Os primeiros passos (Fase 20) já vistos: cada roteiro abre direto na conversa. O
+  // e2e/primeiros-passos.mjs apaga o arquivo para ver a primeira vez.
+  mkdirSync(join(home, '.local/share/wisp'), { recursive: true })
+  writeFileSync(join(home, '.local/share/wisp/boas-vindas.json'), '{"done":"e2e"}')
   return { home, runtime, remove: () => rmSync(home, { recursive: true, force: true }) }
 }
 

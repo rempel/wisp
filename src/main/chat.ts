@@ -59,6 +59,7 @@ import type {
   DroppedFiles,
   MascotState,
   NoticeLevel,
+  PanelView,
   OutgoingAttachment,
   PastedImage,
   PermissionDecision,
@@ -237,6 +238,8 @@ export interface Chat {
   newConversation(): void
   /** Abre o painel na tela de configurações (menu do mascote). */
   openSettings(): void
+  /** Abre o painel numa tela: os primeiros passos ou o diagnóstico (Fase 20). */
+  showView(view: PanelView): void
   /** Abre o painel no histórico, com o resumo da semana em cima (a notificação de segunda). */
   openSummary(): void
   /** De que lado do mascote o painel fica (para o mascote olhar para ele). */
@@ -340,6 +343,7 @@ export function setupChat({
   let showSessionsOnReady = false
   let showSettingsOnReady = false
   let showSummaryOnReady = false
+  let viewOnReady: PanelView | null = null
   // Arquivos soltos no mascote antes de a página carregar.
   const pendingAttach: DroppedFiles[] = []
   // O último uso do plano (vale para a conta toda), para mostrar de novo se a página recarregar.
@@ -791,6 +795,8 @@ export function setupChat({
     showSettingsOnReady = false
     if (showSummaryOnReady) win.webContents.send(IPC.summaryShow)
     showSummaryOnReady = false
+    if (viewOnReady) win.webContents.send(IPC.panelView, viewOnReady)
+    viewOnReady = null
     for (const dropped of pendingAttach.splice(0)) win.webContents.send(IPC.chatAttach, dropped)
     win.webContents.send(IPC.voiceStatus, voice)
     win.webContents.send(IPC.agendaNext, agendaNext)
@@ -1359,6 +1365,12 @@ export function setupChat({
     openSettings() {
       if (win && pageReady) win.webContents.send(IPC.settingsShow)
       else showSettingsOnReady = true
+      if (!win) win = createWindow()
+      else show(win)
+    },
+    showView(view) {
+      if (win && pageReady) win.webContents.send(IPC.panelView, view)
+      else viewOnReady = view
       if (!win) win = createWindow()
       else show(win)
     },

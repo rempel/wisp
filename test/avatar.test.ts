@@ -42,6 +42,7 @@ test('avatar: the menu has the choice, with the current one checked', () => {
     demoEnabled: () => false,
     setDemoEnabled: () => {},
     openSettings: () => {},
+    openDiagnostics: () => {},
     shortcutLabel: () => 'Ctrl+Alt+W',
     voiceShortcutLabel: () => null,
     openConfig: () => {},

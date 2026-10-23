@@ -417,6 +417,16 @@ export function terminalOrder(env: NodeJS.ProcessEnv = process.env): string[] {
   return [...new Set([...chosen, ...preferred, 'x-terminal-emulator', ...Object.keys(TERMINALS)])]
 }
 
+/** O terminal que o Wisp abriria (o configurado ou o primeiro achado); null se nenhum. */
+export function findTerminal(
+  terminalCommand: string | null,
+  env: NodeJS.ProcessEnv = process.env
+): string | null {
+  const configured = terminalCommand?.trim().split(/\s+/)[0]
+  if (configured) return inPath(configured) ? configured : null
+  return terminalOrder(env).find(inPath) ?? null
+}
+
 /**
  * Abre um terminal na pasta: o do `terminalCommand` (com {dir} no lugar da pasta, ou só rodando
  * nela), senão o primeiro que achar na ordem de terminalOrder.

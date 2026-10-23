@@ -68,6 +68,9 @@ src/
 │  ├─ pick.ts        # escolher uma pasta pelo diálogo do sistema
 │  ├─ openrouter.ts  # a OpenRouter: o ambiente do Claude Code, os modelos, a chave e o custo
 │  ├─ secrets.ts     # o chaveiro do sistema (Secret Service, pelo D-Bus)
+│  ├─ diagnostics.ts # as conferências (Claude Code, atalho, bandeja, voz...) e o relatório
+│  ├─ diagnostics-ipc.ts # junta os fatos, a tela de diagnóstico e os primeiros passos
+│  ├─ updates.ts     # o aviso de versão nova (as versões do Wisp no GitHub, uma vez por dia)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
@@ -96,7 +99,7 @@ src/
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da
    │                 # barra, histórico, aba Sessões, configurações (com o QR code do
-   │                 # pareamento do celular) e o Testar voz
+   │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos
    └─ common/        # miniaturas das imagens (painel e mascote)
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
@@ -604,6 +607,15 @@ electron-builder.yml   # os pacotes .deb e AppImage
   conversa), e o stream fecha. Sem resposta em 2 minutos, o card é negado com um motivo para o
   Claude. Quando o card acaba, de qualquer jeito, sai uma mensagem de prioridade 2 com o
   desfecho, e o próximo da fila vai. O teste do pareamento é a mesma coisa, com um botão só.
+- **Diagnóstico e primeiros passos:** o `diagnostics-ipc.ts` junta os fatos: o `claude
+--version` e o `claude auth status --json` (com o mesmo ambiente das conversas), o
+  `NameHasOwner` e o `ListActivatableNames` do D-Bus para o chaveiro (`org.freedesktop.secrets`)
+  e a bandeja (`org.kde.StatusNotifierWatcher`), o estado do atalho, o `whisperSetup`, o
+  terminal que seria aberto e os problemas do `config.json`. O `diagnostics.ts` transforma os
+  fatos nas conferências e no relatório (só frases fixas). Os primeiros passos aparecem quando
+  não há `boas-vindas.json` nem `abas.json` na pasta de dados. O `updates.ts` pede
+  `/repos/rempel/wisp/releases/latest`, aceita só uma versão estável com o link da página no
+  GitHub e guarda em `versao.json` quando conferiu e o que já avisou.
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR
