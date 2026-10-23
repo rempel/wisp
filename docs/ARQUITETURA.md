@@ -675,7 +675,9 @@ CONTRIBUTING.md        # o guia de contribuição
   resumo do pedido é o mesmo do celular (`summarize` do `phone.ts`); a resposta volta pelo mesmo
   caminho (`answerRemote`). O `away.ts` anota os fins de turno e as expirações entre o bloqueio e o
   desbloqueio da tela (o `ScreenLock` da Fase 10). A explicação dos comandos fica em
-  `shared/commands.ts`, usada pelo card (`describe-request.tsx`) e pela notificação.
+  `shared/commands.ts`, usada pelo card (`describe-request.tsx`) e pela notificação. As outras
+  notificações (lembretes, tarefas, o resumo) vão pelo Notification do Electron, que no Linux
+  precisa da libnotify; sem ela, vão pelo mesmo cliente D-Bus dos cards, com o clique no corpo.
 - **Flatpak:** dentro do sandbox (o `FLATPAK_ID`), o `host.ts` troca cada programa do sistema (o
   Claude Code no chat e no terminal, o gh, o whisper, o Piper, o volume, os apps e terminais
   abertos) por `flatpak-spawn --host --watch-bus [--directory=…] env -u … VAR=… programa`: o

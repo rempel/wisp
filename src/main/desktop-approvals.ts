@@ -26,6 +26,8 @@ export interface ShownNotification {
   /** Pares chave e rótulo; a chave "default" é o clique no corpo da notificação. */
   actions: string[]
   replaces?: number
+  /** Em quanto tempo ela some (ms); -1, o padrão do servidor; sem isso, só quando respondida. */
+  expires?: number
 }
 
 /** O servidor de notificações do desktop. */
@@ -104,7 +106,7 @@ export async function dbusNotifier(
           notification.actions,
           { urgency: new Variant('y', 1), 'desktop-entry': new Variant('s', 'wisp') },
           // 0: não some sozinha (o card continua esperando).
-          0
+          notification.expires ?? 0
         ]
       })
       return Number(id)
@@ -125,7 +127,7 @@ export async function dbusNotifier(
 }
 
 /** O corpo da notificação vai como texto: o servidor pode entender marcação. */
-const escape = (text: string): string =>
+export const escape = (text: string): string =>
   text.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' })[c] ?? c)
 
 export interface DesktopApprovalsDeps {

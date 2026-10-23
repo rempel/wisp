@@ -1822,5 +1822,6 @@ export const EN: Record<string, string> = {
     "Write the commit message for the changes in {v1}, in the style of the previous commits (git log). Only the message: don't commit.",
   'Explique, em poucas linhas e sem jargão, o que é isto:\n\n{v1}':
     'Explain, in a few lines and without jargon, what this is:\n\n{v1}',
-  'Nenhum dia marcado': 'No day selected'
+  'Nenhum dia marcado': 'No day selected',
+  Abrir: 'Open'
 }

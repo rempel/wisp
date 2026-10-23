@@ -93,7 +93,7 @@ import { AwayTracker } from './away'
 import { TaskScheduler } from './scheduler'
 import type { ScheduledTask } from '../shared/prompts'
 import { DBusConnection } from './dbus'
-import { DesktopApprovals, dbusNotifier } from './desktop-approvals'
+import { DesktopApprovals, dbusNotifier, escape as escapeMarkup } from './desktop-approvals'
 import type { Notifier } from './desktop-approvals'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
@@ -210,12 +210,30 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let media: Media | null = null
   let music = false
 
+  // O servidor de notificações pelo D-Bus (Fase 24): os cards, e as outras quando falta a libnotify.
+  let notifier: Notifier | null = null
+  /** O clique de cada notificação simples que foi pelo D-Bus. */
+  const notifyClicks = new Map<number, () => void>()
   /** Uma notificação do sistema; `onClick`, quando o desktop repassa o clique. */
   const notify = (title: string, body: string, onClick?: () => void): void => {
-    if (!Notification.isSupported()) return
-    const notification = new Notification({ title, body, icon: appIcon })
-    if (onClick) notification.on('click', onClick)
-    notification.show()
+    if (Notification.isSupported()) {
+      const notification = new Notification({ title, body, icon: appIcon })
+      if (onClick) notification.on('click', onClick)
+      notification.show()
+      return
+    }
+    // Sem a libnotify, o Electron não mostra nada: ela vai direto pelo D-Bus, como os cards.
+    notifier
+      ?.show({
+        summary: title,
+        body: escapeMarkup(body),
+        actions: onClick ? ['default', t('Abrir')] : [],
+        expires: -1
+      })
+      .then((id) => {
+        if (onClick) notifyClicks.set(id, onClick)
+      })
+      .catch((err: Error) => console.warn(`[wisp] notificação: ${err.message}`))
   }
 
   // O registro da semana (só contagens e nomes, nada do conteúdo), para o resumo de segunda.
@@ -267,7 +285,6 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
 
   // Responder pela notificação do sistema (Fase 24): o card que espera com o painel escondido
   // vira uma notificação com Permitir e Negar, pela org.freedesktop.Notifications.
-  let notifier: Notifier | null = null
   const desktopApprovals = new DesktopApprovals({
     enabled: () => getConfig().notifyApprovals,
     // Ninguém olhando o painel: escondido, ou aberto sem o foco (o card o faz aparecer assim).
@@ -282,8 +299,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       if (!bus) return
       notifier = await dbusNotifier(
         bus,
-        (id, key) => desktopApprovals.action(id, key),
-        (id) => desktopApprovals.closed(id)
+        (id, key) => {
+          const click = notifyClicks.get(id)
+          if (!click) return desktopApprovals.action(id, key)
+          if (key !== 'default') return
+          notifyClicks.delete(id)
+          click()
+        },
+        (id) => {
+          notifyClicks.delete(id)
+          desktopApprovals.closed(id)
+        }
       )
     })
     .catch((err: Error) => console.warn(`[wisp] notificação: sem o D-Bus (${err.message})`))
