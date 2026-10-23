@@ -1742,5 +1742,36 @@ export const EN: Record<string, string> = {
   '{count} passos': '{count} steps',
   O: 'The',
   e: 'and',
-  aberta: 'open'
+  aberta: 'open',
+  '- Edições: {edits} (+{added} −{removed} linhas)': '- Edits: {edits} (+{added} −{removed} lines)',
+  '- Permissões: {v1}, {v2}': '- Permissions: {v1}, {v2}',
+  'Abre o Wisp quando você entra na sessão': 'Opens Wisp when you log in',
+  'pedido inválido': 'invalid request',
+  'Não consegui tirar o print: {reason}.': "I couldn't take the screenshot: {reason}.",
+  'Essa pasta não está nas suas pastas de projetos.': "That folder isn't in your project folders.",
+  'Não dá para abrir essa pasta numa conversa.': "That folder can't be opened in a conversation.",
+  'Abri um terminal. Rode `claude` nele.': 'I opened a terminal. Run `claude` in it.',
+  'Modo demonstração ligado: as respostas são gravadas.': 'Demo mode on: the replies are recorded.',
+  'Não há versão nova.': "There's no new version.",
+  'ação desconhecida': 'unknown action',
+  '### Diagnóstico do Wisp': '### Wisp diagnostics',
+  desconhecido: 'unknown',
+  '## Você': '## You',
+  '(sem título)': '(untitled)',
+  'O servidor precisa ser um endereço http(s), como https://ntfy.sh.':
+    'The server must be an http(s) address, like https://ntfy.sh.',
+  'A ficha de acesso tem caracteres que não são de uma ficha.':
+    "The access token has characters that aren't from a token.",
+  'O celular respondeu. Os pedidos vão para ele quando você não estiver aqui.':
+    "The phone answered. Requests go to it when you're not here.",
+  'não consegui rodar o Piper ({message})': "couldn't run Piper ({message})",
+  'Não achei esta sessão.': "I couldn't find this session.",
+  'Esta sessão já foi encerrada.': 'This session has already ended.',
+  'esta configuração não muda por aqui': "this setting doesn't change from here",
+  'O config.json está com um erro e o Wisp não grava nele assim. Corrija o arquivo (ou apague-o, para voltar aos padrões) e tente de novo.':
+    "config.json has an error and Wisp doesn't write to it like this. Fix the file (or delete it, to go back to the defaults) and try again.",
+  '{accelerator} já é o atalho {same}': '{accelerator} is already the {same} shortcut',
+  '{accelerator} já é usado por outro programa': '{accelerator} is already used by another program',
+  '"{accelerator}" não é um atalho válido': '"{accelerator}" isn\'t a valid shortcut',
+  'Não consegui rodar o whisper.cpp ({message}).': "I couldn't run whisper.cpp ({message})."
 }

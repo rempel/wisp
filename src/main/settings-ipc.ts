@@ -14,7 +14,7 @@ import {
 import { LOG_PATH } from './log'
 import { IPC, SETTINGS_KEYS } from '../shared/ipc'
 import type { PhoneStatus, Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
-import { getLocale, resolveLocale } from '../shared/i18n'
+import { getLocale, resolveLocale, t } from '../shared/i18n'
 import { systemTag } from './locale-init'
 
 export interface SettingsOptions {
@@ -69,25 +69,26 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
 
   ipcMain.handle(IPC.settingsGet, (event) => (options.isSender(event.sender) ? snapshot() : null))
   ipcMain.handle(IPC.settingsSet, (event, patch: unknown): SettingsResult => {
-    if (!options.isSender(event.sender)) return { ok: false, field: '', message: 'pedido inválido' }
+    if (!options.isSender(event.sender))
+      return { ok: false, field: '', message: t('pedido inválido') }
     if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-      return { ok: false, field: '', message: 'mudança inválida' }
+      return { ok: false, field: '', message: t('mudança inválida') }
     }
     const { autostart, ...fields } = patch as Record<string, unknown>
     const unknown = Object.keys(fields).find(
       (key) => !SETTINGS_KEYS.includes(key as keyof Settings)
     )
     if (unknown)
-      return { ok: false, field: unknown, message: 'esta configuração não muda por aqui' }
+      return { ok: false, field: unknown, message: t('esta configuração não muda por aqui') }
     const checked = checkSettings(fields)
     if (!checked.ok) return checked
     if (Object.keys(checked.patch).length && !isConfigWritable()) {
       return {
         ok: false,
         field: '',
-        message:
-          'O config.json está com um erro e o Wisp não grava nele assim. Corrija o arquivo (ou ' +
-          'apague-o, para voltar aos padrões) e tente de novo.'
+        message: t(
+          'O config.json está com um erro e o Wisp não grava nele assim. Corrija o arquivo (ou apague-o, para voltar aos padrões) e tente de novo.'
+        )
       }
     }
     if (autostart !== undefined) {

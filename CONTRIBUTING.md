@@ -87,7 +87,9 @@ t('Passo {v1} de {total}', { v1: step, total }) // as variáveis vão entre chav
 
 - **Um texto novo** pede a entrada dele no `i18n-en.ts`, com as mesmas `{variáveis}`. O
   `test/idiomas.test.ts` falha com o arquivo e a linha do que faltou; `npm run i18n` lista tudo de
-  uma vez (e as traduções que nenhum código usa mais).
+  uma vez (e as traduções que nenhum código usa mais). Para muitas de uma vez,
+  `node scripts/i18n-add.mjs novas.json` acrescenta um JSON `{"português": "English"}` ao
+  dicionário.
 - **Frases inteiras:** um texto partido em pedaços (por causa de um `<strong>` no meio, por
   exemplo) vira pedaços no outro idioma também, então prefira uma frase por `t()` sempre que der.
   Para um plural, dois textos (`t('1 passo')` e `t('{count} passos', { count })`).

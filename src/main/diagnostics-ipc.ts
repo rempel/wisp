@@ -168,26 +168,26 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
     if (options.isSender(event.sender) && last) void shell.openExternal(issueUrl(last.report))
   })
   ipcMain.handle(IPC.diagnosticsAction, async (event, action: unknown): Promise<PhoneResult> => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     switch (action as DiagnosticAction) {
       case 'terminal': {
         const result = await openTerminal(homedir(), getConfig().terminalCommand)
         return result.ok
-          ? { ok: true, message: 'Abri um terminal. Rode `claude` nele.' }
+          ? { ok: true, message: t('Abri um terminal. Rode `claude` nele.') }
           : { ok: false, message: result.message }
       }
       case 'demo':
         updateConfig({ demo: true })
         notifyConfigChange()
-        return { ok: true, message: 'Modo demonstração ligado: as respostas são gravadas.' }
+        return { ok: true, message: t('Modo demonstração ligado: as respostas são gravadas.') }
       case 'release': {
         const update = options.updates.available()
-        if (!update) return { ok: false, message: 'Não há versão nova.' }
+        if (!update) return { ok: false, message: t('Não há versão nova.') }
         void shell.openExternal(update.url)
         return { ok: true }
       }
       default:
-        return { ok: false, message: 'ação desconhecida' }
+        return { ok: false, message: t('ação desconhecida') }
     }
   })
 

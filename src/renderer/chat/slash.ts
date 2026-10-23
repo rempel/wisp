@@ -1,5 +1,6 @@
-import { t } from '../../shared/i18n'
 // Os comandos com barra da caixa de texto: os que o Wisp atende e os do Claude Code.
+
+import { t } from '../../shared/i18n'
 
 /** Um comando com barra: os do Wisp (compactar, conversa nova) e os do Claude Code. */
 export interface SlashCommand {

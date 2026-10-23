@@ -62,7 +62,7 @@ export function exportMarkdown(saved: SavedConversation, now = new Date()): stri
   const head = (who: 'user' | 'claude'): void => {
     if (speaker === who) return
     speaker = who
-    out.push('', who === 'user' ? '## Você' : '## Claude')
+    out.push('', who === 'user' ? t('## Você') : '## Claude')
   }
   const texts = new Map<string, number>()
   for (const event of events as ChatEvent[]) {

@@ -6,6 +6,7 @@ import { applyHooks, hooksStatus, previewHooks } from './hooks/install'
 import type { ExternalSessions } from './sessions'
 import { focusTerminal } from './terminal'
 import type { FocusResult } from './terminal'
+import { t } from '../shared/i18n'
 
 export interface SessionsIpcOptions {
   sessions: ExternalSessions
@@ -69,8 +70,8 @@ export function setupSessionsIpc(options: SessionsIpcOptions): void {
   ipcMain.handle(IPC.sessionsFocus, async (event, sessionId: unknown): Promise<FocusResult> => {
     const where =
       isChat(event.sender) && id(sessionId) ? sessions.locate(sessionId as string) : null
-    if (!where) return { ok: false, message: 'Não achei esta sessão.' }
-    if (!where.alive) return { ok: false, message: 'Esta sessão já foi encerrada.' }
+    if (!where) return { ok: false, message: t('Não achei esta sessão.') }
+    if (!where.alive) return { ok: false, message: t('Esta sessão já foi encerrada.') }
     return focusTerminal(where)
   })
   ipcMain.on(IPC.sessionsFolder, (event, sessionId: unknown) => {
@@ -85,12 +86,12 @@ export function setupSessionsIpc(options: SessionsIpcOptions): void {
     if (isChat(event.sender) && id(sessionId)) sessions.forget(sessionId as string)
   })
   ipcMain.handle(IPC.hooksPreview, (event, action: unknown) => {
-    if (!isChat(event.sender) || !isAction(action)) return { error: 'pedido inválido' }
+    if (!isChat(event.sender) || !isAction(action)) return { error: t('pedido inválido') }
     return previewHooks(action)
   })
   ipcMain.handle(IPC.hooksApply, (event, action: unknown, fingerprint: unknown) => {
     if (!isChat(event.sender) || !isAction(action) || typeof fingerprint !== 'string') {
-      return { error: 'pedido inválido' }
+      return { error: t('pedido inválido') }
     }
     const result = applyHooks(action, fingerprint)
     options.changed()

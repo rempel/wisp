@@ -102,16 +102,16 @@ export function setupPhone(options: PhoneOptions): Phone {
   })
 
   ipcMain.handle(IPC.phonePair, async (event, server: unknown, token: unknown) => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     const url = typeof server === 'string' ? normalizeServer(server) : null
     if (!url)
       return {
         ok: false,
-        message: 'O servidor precisa ser um endereço http(s), como https://ntfy.sh.'
+        message: t('O servidor precisa ser um endereço http(s), como https://ntfy.sh.')
       }
     const ticket = typeof token === 'string' ? token.trim() : ''
     if (ticket && !/^[\x21-\x7e]{1,200}$/.test(ticket)) {
-      return { ok: false, message: 'A ficha de acesso tem caracteres que não são de uma ficha.' }
+      return { ok: false, message: t('A ficha de acesso tem caracteres que não são de uma ficha.') }
     }
     const next = newChannel(url, ticket || null)
     try {
@@ -130,13 +130,13 @@ export function setupPhone(options: PhoneOptions): Phone {
   })
 
   ipcMain.handle(IPC.phoneLink, async (event): Promise<PhonePairResult> => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     const current = channel ?? (await load())
     return current ? linkOf(current) : { ok: false, message: 'Nenhum celular pareado.' }
   })
 
   ipcMain.handle(IPC.phoneConfirm, async (event): Promise<PhoneResult> => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     const current = channel ?? (await load())
     if (!current) return { ok: false, message: 'Pareie o celular antes.' }
     pairing?.abort()
@@ -151,7 +151,7 @@ export function setupPhone(options: PhoneOptions): Phone {
       notifyConfigChange()
       return {
         ok: true,
-        message: 'O celular respondeu. Os pedidos vão para ele quando você não estiver aqui.'
+        message: t('O celular respondeu. Os pedidos vão para ele quando você não estiver aqui.')
       }
     } catch (err) {
       return { ok: false, message: (err as Error).message }
@@ -165,13 +165,13 @@ export function setupPhone(options: PhoneOptions): Phone {
   })
 
   ipcMain.handle(IPC.phoneDisable, (event): PhoneResult => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     disable()
     return { ok: true }
   })
 
   ipcMain.handle(IPC.phoneUnpair, async (event): Promise<PhoneResult> => {
-    if (!options.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
+    if (!options.isSender(event.sender)) return { ok: false, message: t('pedido inválido') }
     pairing?.abort()
     try {
       await deleteSecret(PHONE_SECRET)
