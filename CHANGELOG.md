@@ -36,6 +36,12 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
 - O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts` e `scheduledTasks`.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
+
+### Consertado
+
+- Sem a libnotify, as notificações (lembretes, o resumo de quando você saiu, as tarefas) não
+  apareciam: agora vão direto pelo D-Bus.
+- O aviso de tela bloqueada não espera mais o barramento do sistema responder.
 - O CI monta e confere os pacotes ARM64 e o Flatpak.
 
 ## 0.1.0
