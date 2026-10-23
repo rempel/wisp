@@ -13,7 +13,13 @@ import {
 } from './config'
 import { LOG_PATH } from './log'
 import { IPC, SETTINGS_KEYS } from '../shared/ipc'
-import type { PhoneStatus, Settings, SettingsResult, SettingsSnapshot } from '../shared/ipc'
+import type {
+  PhoneStatus,
+  Settings,
+  SettingsResult,
+  SettingsSnapshot,
+  TaskResult
+} from '../shared/ipc'
 import { getLocale, resolveLocale, t } from '../shared/i18n'
 import { systemTag } from './locale-init'
 
@@ -32,6 +38,10 @@ export interface SettingsOptions {
   phone(): PhoneStatus
   /** Fecha e abre o Wisp de novo (o idioma novo vale a partir daí). */
   relaunch(): void
+  /** Quando cada tarefa agendada rodou pela última vez (Fase 26). */
+  taskRuns(): Record<string, number>
+  /** Roda uma tarefa agendada agora (o botão "Rodar agora"). */
+  runTask(id: string): Promise<TaskResult>
 }
 
 const tilde = (path: string): string =>
@@ -57,7 +67,8 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       openrouterKey: options.openrouterKey(),
       phone: options.phone(),
       locale: getLocale(),
-      nextLocale: resolveLocale(config.language, systemTag())
+      nextLocale: resolveLocale(config.language, systemTag()),
+      taskRuns: options.taskRuns()
     }
   }
   const notify = (): void => {
@@ -106,6 +117,14 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
   })
   ipcMain.on(IPC.settingsRelaunch, (event) => {
     if (options.isSender(event.sender)) options.relaunch()
+  })
+  ipcMain.handle(IPC.settingsRunTask, async (event, id: unknown): Promise<TaskResult> => {
+    if (!options.isSender(event.sender) || typeof id !== 'string') {
+      return { ok: false, message: t('pedido inválido') }
+    }
+    const result = await options.runTask(id)
+    notify()
+    return result
   })
   ipcMain.on(IPC.settingsOpenFile, (event, which: unknown) => {
     if (!options.isSender(event.sender)) return

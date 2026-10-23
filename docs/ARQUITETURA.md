@@ -78,6 +78,7 @@ src/
 │  ├─ away.ts        # o resumo de "enquanto você estava fora", ao desbloquear a tela
 │  ├─ host.ts        # no Flatpak: os programas do sistema pelo flatpak-spawn --host
 │  ├─ locale-init.ts # o idioma do main, decidido antes de qualquer outro módulo (o 1º import)
+│  ├─ scheduler.ts   # as tarefas agendadas: a hora de cada uma, o que já rodou e o atraso
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
@@ -96,6 +97,7 @@ src/
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
 │  ├─ commands.ts    # o que um comando do terminal faz, em uma linha (o card e a notificação)
+│  ├─ prompts.ts     # prompts salvos e tarefas: as variáveis e os horários (os próximos e os passados)
 │  ├─ i18n.ts        # os idiomas: o t() (o português é a chave), o idioma de agora e o do sistema
 │  ├─ i18n-en.ts     # o dicionário do inglês
 │  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
@@ -694,6 +696,15 @@ CONTRIBUTING.md        # o guia de contribuição
   oferece abrir o Wisp de novo (`app.relaunch` com o mesmo lançador; no Flatpak, o `/app/bin/wisp`);
   as abas voltam pelo `abas.json`. O `scripts/i18n.mjs` acha cada `t('…')` do código e confere o
   dicionário (o `test/idiomas.test.ts` e o `npm run i18n` usam ele).
+- **Prompts salvos e tarefas agendadas:** os dois ficam no `config.json` (`prompts` e
+  `scheduledTasks`), conferidos campo a campo. O menu da barra pede a lista ao main
+  (`prompts:list`) quando a caixa começa com `/`, e o texto de um prompt (`prompts:expand`) com as
+  variáveis do `shared/prompts.ts`: a pasta da conversa, a área de transferência (lida só se o
+  prompt a usa), a data e a hora. O `scheduler.ts` acorda no próximo horário (no máximo de minuto em
+  minuto) e guarda em `tarefas.json`, por tarefa, a última vez e o horário de quando contou: uma
+  tarefa nova, ou com o horário mudado, conta a partir de agora; a hora perdida com o Wisp fechado
+  roda até `CATCH_UP_MS` depois. Rodar é o `runTask` do `chat.ts`: uma conversa nova no modo
+  `default`, com o nome da tarefa, mostrada no painel em foco só se ninguém está olhando para ele.
 - **Pacotes ARM64:** o `scripts/package-arm64.sh` baixa o Electron de ARM64 (o `@electron/get`, na
   mesma versão), compila o node-pty com o `aarch64-linux-gnu-g++` (o pty.node de x86-64 volta para o
   lugar no fim) e chama o electron-builder com `--arm64` e esse Electron.

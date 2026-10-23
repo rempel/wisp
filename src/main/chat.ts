@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, nativeTheme, screen, shell } from 'electron'
+import { app, BrowserWindow, clipboard, ipcMain, nativeTheme, screen, shell } from 'electron'
 import type { IpcMainEvent, IpcMainInvokeEvent, Rectangle, WebContents } from 'electron'
 import { randomUUID } from 'crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, statSync, writeFileSync } from 'fs'
@@ -74,10 +74,13 @@ import type {
   SoundSettings,
   TabInfo,
   TabsState,
+  TaskResult,
   WindowState,
   VoiceStatus
 } from '../shared/ipc'
-import { t } from '../shared/i18n'
+import { dateLocale, t } from '../shared/i18n'
+import { expandPrompt, MAX_CLIPBOARD, usesClipboard } from '../shared/prompts'
+import type { PromptValues, ScheduledTask } from '../shared/prompts'
 
 /** Largura de cada painel (a janela cresce com a tela dividida) e altura da janela. */
 const PANE_WIDTH = 420
@@ -229,6 +232,12 @@ export interface Chat {
   ask(text: string, options?: { voice?: boolean }): string | null
   /** Põe um texto ditado na caixa de mensagem da aba em foco, para revisar e enviar. */
   compose(text: string): void
+  /**
+   * Roda uma tarefa agendada (Fase 26): o prompt dela numa aba nova, no modo Pedir (o modo do
+   * config.json não vale aqui). Com você olhando o painel, a aba nova não toma o lugar da que está
+   * à vista.
+   */
+  runTask(task: ScheduledTask): TaskResult
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
   /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */
@@ -1125,6 +1134,34 @@ export function setupChat({
     void conversation.checkFolder()
     return { ok: true }
   })
+  /** O que preenche as variáveis de um prompt salvo (Fase 26). */
+  function promptValues(folder: string | null, copied = ''): PromptValues {
+    const now = new Date()
+    return {
+      folder: folder ?? homedir(),
+      clipboard: copied.slice(0, MAX_CLIPBOARD),
+      date: now.toLocaleDateString(dateLocale(), {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric'
+      }),
+      time: now.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+  ipcMain.handle(IPC.promptsList, (event) => (fromChat(event) ? getConfig().prompts : []))
+  ipcMain.handle(
+    IPC.promptsExpand,
+    async (event, id: unknown, name: unknown): Promise<string | null> => {
+      if (!fromChat(event) || typeof name !== 'string') return null
+      const prompt = getConfig().prompts.find((item) => item.name === name)
+      if (!prompt) return null
+      const conversation = typeof id === 'string' ? conversationById(id) : undefined
+      // A área de transferência só é lida a seu pedido (aqui, no menu da barra), nunca numa tarefa.
+      const copied = usesClipboard(prompt.text) ? await clipboard.readText() : ''
+      return expandPrompt(prompt.text, promptValues(conversation?.folder ?? null, copied))
+    }
+  )
   app.on('before-quit', () => {
     quitting = true
     saveTabs()
@@ -1514,6 +1551,36 @@ export function setupChat({
       return conversation.id
     },
     compose,
+    runTask(task) {
+      if (tabs.length >= MAX_TABS) {
+        return {
+          ok: false,
+          message: t('Já há {MAX_TABS} abas abertas: feche uma para a tarefa rodar.', { MAX_TABS })
+        }
+      }
+      let folder: string | null = null
+      if (task.folder) {
+        const asked = task.folder.replace(/^~(?=\/|$)/, homedir())
+        folder = usableFolder(asked)
+        if (!folder) {
+          return {
+            ok: false,
+            message: t('A pasta {folder} não existe (ou não dá para abrir numa conversa).', {
+              folder: task.folder
+            })
+          }
+        }
+      }
+      const conversation = makeConversation('default', undefined, folder)
+      conversation.title = task.name
+      tabs.push({ id: conversation.id, kind: 'chat', conversation })
+      if (!(win?.isVisible() && win.isFocused())) showInFocused(conversation.id)
+      tabsChanged()
+      const text = expandPrompt(task.prompt, promptValues(folder))
+      conversation.showUser(text, false)
+      conversation.send(text, [], previewOf)
+      return { ok: true }
+    },
     utterance(text) {
       focusedConversation().showUser(text, true)
     },

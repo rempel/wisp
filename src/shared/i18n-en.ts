@@ -1773,5 +1773,54 @@ export const EN: Record<string, string> = {
   '{accelerator} já é o atalho {same}': '{accelerator} is already the {same} shortcut',
   '{accelerator} já é usado por outro programa': '{accelerator} is already used by another program',
   '"{accelerator}" não é um atalho válido': '"{accelerator}" isn\'t a valid shortcut',
-  'Não consegui rodar o whisper.cpp ({message}).': "I couldn't run whisper.cpp ({message})."
+  'Não consegui rodar o whisper.cpp ({message}).': "I couldn't run whisper.cpp ({message}).",
+  'Já há {MAX_TABS} abas abertas: feche uma para a tarefa rodar.':
+    'There are already {MAX_TABS} tabs open: close one for the task to run.',
+  'A pasta {folder} não existe (ou não dá para abrir numa conversa).':
+    "The folder {folder} doesn't exist (or can't be opened in a conversation).",
+  'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).':
+    'Each prompt needs a name (lowercase letters, numbers and hyphens, not repeated and not compact or clear) and a text (up to 4,000 characters).',
+  'Cada tarefa precisa de um nome, de um prompt e de uma hora (HH:MM); até 20 tarefas.':
+    'Each task needs a name, a prompt and a time (HH:MM); up to 20 tasks.',
+  'Tarefa agendada (atrasada): {name}': 'Scheduled task (late): {name}',
+  'Tarefa agendada: {name}': 'Scheduled task: {name}',
+  'Começou numa aba nova, no modo Pedir. O que precisar do seu clique espera no painel.':
+    'It started in a new tab, in Ask mode. Whatever needs your click waits in the panel.',
+  'A tarefa “{name}” não rodou': "The task “{name}” didn't run",
+  'Essa tarefa não existe mais.': 'That task no longer exists.',
+  'Prompts salvos': 'Saved prompts',
+  'Pedidos prontos no menu da barra: digite / e o nome. O texto vai para a caixa, já com as variáveis preenchidas, para você revisar e mandar. Variáveis: {v1} (a pasta da conversa), {v2} (o que você copiou), {v3} e {v4}.':
+    "Ready-made requests in the slash menu: type / and the name. The text goes to the box, with the variables already filled in, for you to review and send. Variables: {v1} (the conversation's folder), {v2} (what you copied), {v3} and {v4}.",
+  'Novo prompt': 'New prompt',
+  'Nome do prompt': 'Prompt name',
+  nome: 'name',
+  'Remover /{name}': 'Remove /{name}',
+  'Texto do prompt': 'Prompt text',
+  'O que pedir ao Claude…': 'What to ask Claude…',
+  'Rodando numa aba nova, no modo Pedir.': 'Running in a new tab, in Ask mode.',
+  'Tarefas agendadas': 'Scheduled tasks',
+  'Um prompt que roda sozinho num horário, numa aba nova, sempre no modo Pedir: o que mexer no computador espera o seu clique (ou vai para o celular, se ligado). Com o Wisp fechado na hora, ela roda quando ele abrir, até 2 horas depois. Valem {v1}, {v2} e {v3}; o que foi copiado, não.':
+    "A prompt that runs by itself at a set time, in a new tab, always in Ask mode: anything that touches the computer waits for your click (or goes to the phone, if on). If Wisp is closed at that time, it runs when Wisp opens, up to 2 hours later. {v1}, {v2} and {v3} work; what you copied doesn't.",
+  'Nova tarefa': 'New task',
+  'Nome da tarefa': 'Task name',
+  Ligada: 'On',
+  Hora: 'Time',
+  'Dias da semana': 'Days of the week',
+  'Pasta (opcional): ~/projetos/site': 'Folder (optional): ~/projects/site',
+  'Prompt da tarefa': 'Task prompt',
+  Agendar: 'Schedule',
+  'Próxima: {v1}': 'Next: {v1}',
+  Desligada: 'Off',
+  'rodou {v1}': 'ran {v1}',
+  'Rodar agora': 'Run now',
+  'Remover a tarefa {name}': 'Remove the task {name}',
+  nenhuma: 'none',
+  'prompt salvo': 'saved prompt',
+  'Revise as mudanças ainda não commitadas em {v1} (git diff): aponte bugs, casos esquecidos e o que dá para simplificar. Não mude nada.':
+    "Review the uncommitted changes in {v1} (git diff): point out bugs, forgotten cases and what can be simplified. Don't change anything.",
+  'Escreva a mensagem de commit para as mudanças em {v1}, no estilo dos commits anteriores (git log). Só a mensagem: não faça o commit.':
+    "Write the commit message for the changes in {v1}, in the style of the previous commits (git log). Only the message: don't commit.",
+  'Explique, em poucas linhas e sem jargão, o que é isto:\n\n{v1}':
+    'Explain, in a few lines and without jargon, what this is:\n\n{v1}',
+  'Nenhum dia marcado': 'No day selected'
 }

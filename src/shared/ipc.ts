@@ -2,6 +2,7 @@
 
 import type { AvatarName } from './avatars'
 import type { DropZone, Layout } from './layout'
+import type { SavedPrompt, ScheduledTask } from './prompts'
 
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
@@ -229,6 +230,12 @@ export const IPC = {
   settingsOpenFile: 'settings:open-file',
   /** Abre o Wisp de novo (o idioma novo vale a partir daí). */
   settingsRelaunch: 'settings:relaunch',
+  /** chat → main: roda uma tarefa agendada agora (o botão das configurações). Devolve TaskResult. */
+  settingsRunTask: 'settings:run-task',
+  /** chat → main: os prompts salvos, para o menu da barra. */
+  promptsList: 'prompts:list',
+  /** chat → main: o texto de um prompt salvo, com as variáveis preenchidas para a conversa. */
+  promptsExpand: 'prompts:expand',
   /** main → chat: mostra a tela de configurações (o item do menu do mascote). */
   settingsShow: 'settings:show',
   /** chat → main: desiste da escuta (Esc). */
@@ -836,6 +843,8 @@ export interface Settings {
   openrouterModel: string | null
   phoneAfterSeconds: number
   updateCheck: boolean
+  prompts: SavedPrompt[]
+  scheduledTasks: ScheduledTask[]
 }
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
@@ -875,10 +884,15 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'provider',
   'openrouterModel',
   'phoneAfterSeconds',
-  'updateCheck'
+  'updateCheck',
+  'prompts',
+  'scheduledTasks'
 ]
 
 /** O que a tela de configurações recebe. */
+/** Uma tarefa agendada que rodou (ou não deu para rodar). */
+export type TaskResult = { ok: true } | { ok: false; message: string }
+
 export interface SettingsSnapshot {
   values: Settings
   /** Iniciar com o sistema (um arquivo em ~/.config/autostart, fora do config.json). */
@@ -896,6 +910,8 @@ export interface SettingsSnapshot {
   /** O idioma em que o Wisp abriu, e o que ele terá ao abrir de novo (Fase 25). */
   locale: 'pt' | 'en'
   nextLocale: 'pt' | 'en'
+  /** Quando cada tarefa agendada rodou pela última vez (ms), pelo id (Fase 26). */
+  taskRuns: Record<string, number>
 }
 
 /** O resultado de uma conferência do diagnóstico (Fase 20). */
@@ -1275,8 +1291,15 @@ export interface WispApi {
     openFile(which: 'config' | 'log'): void
     /** Fecha e abre o Wisp de novo (para o idioma novo valer). */
     relaunch(): void
+    /** Roda uma tarefa agendada agora, numa aba nova. */
+    runTask(id: string): Promise<TaskResult>
     /** O menu do mascote pediu a tela de configurações. */
     onShow(listener: () => void): () => void
+  }
+  prompts: {
+    list(): Promise<SavedPrompt[]>
+    /** O texto do prompt com as variáveis da conversa; null se ele não existe. */
+    expand(conversation: string, name: string): Promise<string | null>
   }
   history: {
     list(): Promise<ConversationSummary[]>

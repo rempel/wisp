@@ -137,8 +137,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   interface, o mascote, as notificações e as respostas do Claude.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
-  (notificações e cards) e 25 (inglês, Flatpak e ARM64):** prontas, esperando a validação com o
-  uso.
+  (notificações e cards), 25 (inglês, Flatpak e ARM64) e 26 (prompts salvos e tarefas
+  agendadas):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -716,6 +716,25 @@ OpenRouter publica; o valor cobrado de verdade fica no painel dela. As conversas
 usam uma pasta de configuração do Claude Code só delas (`~/.local/share/wisp/openrouter-claude`),
 então o login da assinatura nunca é tocado.
 
+### Prompts salvos e tarefas agendadas
+
+- **Prompts salvos:** pedidos prontos no menu da barra. Digite `/` na caixa e o nome (`/diff`,
+  `/commit`, `/explica` vêm de exemplo): o texto vai para a caixa com as variáveis preenchidas, para
+  você revisar e mandar com Enter; nada sai sem você mandar. As variáveis são `{pasta}` (a pasta da
+  conversa; sem uma, a pessoal), `{copiado}` (o que você copiou; a área de transferência só é lida
+  nessa hora), `{data}` e `{hora}`; em inglês, `{folder}`, `{clipboard}`, `{date}` e `{time}` (as
+  duas formas valem sempre). Um prompt com o nome de um comando do Claude Code passa na frente dele
+  no menu do Wisp. A lista fica em **Configurações → Prompts salvos**.
+- **Tarefas agendadas:** um prompt que roda sozinho num horário e em dias da semana ("todo dia útil
+  às 9h, o resumo dos PRs"), em **Configurações → Tarefas agendadas**. Na hora, ela abre uma aba
+  com o nome dela, **sempre no modo Pedir** (mesmo que o padrão seja outro): o que mexer no
+  computador vira card e espera o seu clique, ou vai para a notificação e para o celular, se
+  ligados, como qualquer card. Com você olhando o painel, a aba nova abre sem tirar a que está à
+  vista. Uma pasta (opcional) faz a conversa rodar nela, como **Abrir uma pasta numa conversa**.
+  Com o Wisp fechado (ou o computador desligado) na hora, a tarefa roda quando ele abrir, até 2
+  horas depois; mais tarde, fica para a próxima. **Rodar agora** testa a tarefa na hora. Valem
+  `{pasta}`, `{data}` e `{hora}`; `{copiado}` não (a área de transferência não é lida sem você).
+
 ### Notificações e cards
 
 - **O que o comando faz:** o card do Bash diz, em uma linha, o que um comando conhecido faz ("Apaga
@@ -925,7 +944,9 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "panelZoom": 1,
   "tabSleepMinutes": 20,
   "notifyApprovals": true,
-  "language": "auto"
+  "language": "auto",
+  "prompts": [{ "name": "diff", "text": "Revise as mudanças ainda não commitadas em {pasta}…" }],
+  "scheduledTasks": []
 }
 ```
 
@@ -1007,6 +1028,11 @@ eles valem mesmo desligados aqui). `panelZoom` é o tamanho do painel, de `0.7` 
 volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa. `0`: nunca. Uma aba
 trabalhando, com um card esperando, com uma tarefa em segundo plano (um servidor que o Claude
 subiu) ou no modo terminal não dorme.
+
+`prompts` são os prompts salvos (`name`: letras minúsculas, números e hífens; `text`: até 4.000
+caracteres; até 50). `scheduledTasks` são as tarefas agendadas, cada uma com `id`, `name`,
+`prompt`, `time` (`"HH:MM"`), `days` (de `0`, domingo, a `6`, sábado), `folder` (ou `null`) e
+`enabled`; até 20. A última vez que cada uma rodou fica em `~/.local/share/wisp/tarefas.json`.
 
 `notifyApprovals` faz o card que espera, com você longe do painel, virar também uma notificação
 do sistema com Permitir e Negar (veja [Notificações e cards](#notificações-e-cards)).

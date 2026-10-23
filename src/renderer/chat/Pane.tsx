@@ -37,6 +37,7 @@ import { PermissionCard } from './PermissionCard'
 import { QuestionCard } from './QuestionCard'
 import { matchCommands, slashQuery } from './slash'
 import type { SlashCommand } from './slash'
+import type { SavedPrompt } from '../../shared/prompts'
 import { SlashMenu } from './SlashMenu'
 import { FindBar } from './FindBar'
 import { awaitingPermission, lastTurnStart } from './state'
@@ -265,6 +266,17 @@ export function Pane({
   // O menu dos comandos com barra: o item escolhido e se foi fechado (Esc) para este texto.
   const [slashIndex, setSlashIndex] = useState(0)
   const [slashClosed, setSlashClosed] = useState<string | null>(null)
+  // Os prompts salvos (Fase 26), lidos de novo cada vez que a barra abre o menu.
+  const [savedPrompts, setSavedPrompts] = useState<SavedPrompt[]>([])
+  const slashTyped = draft.startsWith('/')
+  useEffect(() => {
+    if (!slashTyped) return
+    let alive = true
+    void window.wisp.prompts.list().then((list) => alive && setSavedPrompts(list))
+    return () => {
+      alive = false
+    }
+  }, [slashTyped])
   const [capturing, setCapturing] = useState(false)
   const root = useRef<HTMLElement>(null)
   const list = useRef<HTMLDivElement>(null)
@@ -392,18 +404,32 @@ export function Pane({
   const canSend = draft.trim() !== '' || attachments.pending.length > 0
   const query = slashQuery(draft)
   const slashCommands =
-    query !== null && slashClosed !== draft && !demo ? matchCommands(query, state.commands) : []
+    query !== null && slashClosed !== draft && !demo
+      ? matchCommands(query, state.commands, savedPrompts)
+      : []
   const slashOpen = slashCommands.length > 0
 
-  /** Completa o comando escolhido no menu (o texto continua na caixa, para os argumentos). */
+  /**
+   * Completa o comando escolhido no menu (o texto continua na caixa, para os argumentos). Um
+   * prompt salvo vira o texto dele, com as variáveis preenchidas, para revisar e mandar.
+   */
   function pickCommand(command: SlashCommand): void {
-    setDraft(`/${command.name} `)
     setSlashIndex(0)
     input.current?.focus()
+    if (!command.prompt) return setDraft(`/${command.name} `)
+    void window.wisp.prompts.expand(conversation, command.name).then((text) => {
+      if (text !== null) setDraft(text)
+    })
   }
 
   /** Os comandos que o Wisp atende sozinho; true se era um deles. */
   function runWispCommand(text: string): boolean {
+    // Um prompt salvo mandado pelo nome (/nome, sem o menu): vira o texto, para revisar.
+    const saved = /^\/([a-z0-9-]+)$/.exec(text.trim())
+    if (saved && savedPrompts.some((prompt) => prompt.name === saved[1])) {
+      pickCommand({ name: saved[1], description: '', prompt: true })
+      return true
+    }
     const match = /^\/(compact|clear)(?:\s+([\s\S]*))?$/.exec(text)
     if (!match || attachments.pending.length) return false
     if (match[1] === 'compact') window.wisp.chat.compact(conversation, match[2]?.trim() ?? '')
@@ -517,7 +543,7 @@ export function Pane({
       // Enter completa; se o nome já está inteiro, manda.
       if (event.key === 'Enter' && !event.shiftKey && !event.nativeEvent.isComposing) {
         const command = slashCommands[selected]
-        if (draft !== `/${command.name}`) {
+        if (command.prompt || draft !== `/${command.name}`) {
           event.preventDefault()
           pickCommand(command)
           return

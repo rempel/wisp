@@ -90,6 +90,8 @@ import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
 import { AwayTracker } from './away'
+import { TaskScheduler } from './scheduler'
+import type { ScheduledTask } from '../shared/prompts'
 import { DBusConnection } from './dbus'
 import { DesktopApprovals, dbusNotifier } from './desktop-approvals'
 import type { Notifier } from './desktop-approvals'
@@ -122,6 +124,7 @@ import type {
   OpenRouterKeyResult,
   SkillInfo,
   SkillResult,
+  TaskResult,
   VoiceTestResult
 } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
@@ -832,6 +835,31 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // não tem por que acordá-lo.
   let openrouterKey: boolean | null = null
   let openrouterKeyAsked = false
+  // As tarefas agendadas (Fase 26): cada uma numa aba nova, no modo Pedir; o card dela espera você
+  // (ou vai para o celular e para a notificação, como qualquer card).
+  const runTask = (task: ScheduledTask, late: boolean): TaskResult => {
+    const result: TaskResult = chat
+      ? chat.runTask(task)
+      : { ok: false, message: t('O Wisp ainda está abrindo.') }
+    if (result.ok) {
+      notify(
+        late
+          ? t('Tarefa agendada (atrasada): {name}', { name: task.name })
+          : t('Tarefa agendada: {name}', { name: task.name }),
+        t('Começou numa aba nova, no modo Pedir. O que precisar do seu clique espera no painel.'),
+        () => chat?.open()
+      )
+    } else {
+      notify(t('A tarefa “{name}” não rodou', { name: task.name }), result.message)
+    }
+    return result
+  }
+  const scheduler = new TaskScheduler({
+    tasks: () => getConfig().scheduledTasks,
+    run: (task, late) => void runTask(task, late),
+    file: join(DATA_DIR, 'tarefas.json')
+  })
+  onConfigChange(() => scheduler.refresh())
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
     // No Flatpak, pelo comando de dentro dele (o zypak); no AppImage, pelo arquivo .AppImage.
@@ -855,7 +883,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       }
       return openrouterKey
     },
-    phone: () => phone!.status()
+    phone: () => phone!.status(),
+    taskRuns: () => scheduler.runs(),
+    runTask: async (id) => {
+      const task = getConfig().scheduledTasks.find((item) => item.id === id)
+      if (!task) return { ok: false, message: t('Essa tarefa não existe mais.') }
+      let result: TaskResult = { ok: true }
+      scheduler.runNow(id, (ran) => (result = runTask(ran, false)))
+      return result
+    }
   })
   // O aviso de versão nova (Fase 20), desligado por padrão: uma conferência por dia no GitHub.
   const updates = new UpdateChecker({
@@ -1088,9 +1124,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     dance(media.playing)
   })
   // Os lembretes vencidos com o app fechado saem depois da saudação, com o mascote já na tela.
-  const remindersStart = setTimeout(() => reminders.start(), 3000)
+  const remindersStart = setTimeout(() => {
+    reminders.start()
+    scheduler.start()
+  }, 3000)
   powerMonitor.on('resume', () => {
     reminders.resume()
+    scheduler.resume()
     github.refreshSoon()
     if (agenda.enabled) void agenda.refresh()
   })
@@ -1210,6 +1250,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     clearTimeout(remindersStart)
     media?.dispose()
     reminders.dispose()
+    scheduler.dispose()
     releaseShortcuts()
     voice?.cancel()
     screenLock.dispose()

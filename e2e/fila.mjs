@@ -15,7 +15,8 @@ import {
 } from './lib.mjs'
 
 const { check, failed } = checks()
-const home = testHome()
+// Sem os prompts salvos (Fase 26): o menu da barra fica só com os comandos.
+const home = testHome({ prompts: [] })
 const mascot = await startApp(home)
 wisp(home, '--show')
 const chat = await connect('/chat/')

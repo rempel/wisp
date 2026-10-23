@@ -553,3 +553,22 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       o painel.
 - [ ] **ARM64:** num Raspberry Pi 4 ou 5 (ou outra máquina ARM64 com Ubuntu ou Debian), instale o
       `.deb` de ARM64 do CI e abra: o mascote aparece, o painel conversa e o modo terminal abre.
+
+## Prompts salvos e tarefas agendadas (Fase 26)
+
+- [ ] **Prompt salvo:** numa conversa aberta numa pasta com mudanças não commitadas, digite `/di`:
+      o menu mostra **/diff** com a etiqueta **prompt salvo**. Enter põe o texto na caixa, com o
+      caminho da pasta no lugar de `{pasta}`; nada é mandado. Mande com Enter: o Claude revisa o
+      diff.
+- [ ] **O que foi copiado:** copie uma mensagem de erro de um terminal e use **/explica**: o erro
+      aparece no fim do texto.
+- [ ] **Criar um prompt:** em **Configurações → Prompts salvos → Novo prompt**, crie `/teste` com
+      "Que horas são? {hora}". No chat, `/teste` mostra a hora de agora.
+- [ ] **Tarefa:** em **Configurações → Tarefas agendadas → Nova tarefa**, crie "Resumo" para daqui a
+      2 minutos, com o prompt "lista os arquivos da pasta {pasta} com ls -la". Feche o painel e
+      espere: vem a notificação **Tarefa agendada: Resumo**, e ao abrir o painel há uma aba
+      "Resumo" no modo **Pedir**, com o card do `ls -la` esperando.
+- [ ] **Com o celular ligado** (Fase 18): repita com a tela bloqueada; o card vai para o celular.
+- [ ] **Atrasada:** marque uma tarefa para daqui a 1 minuto, feche o Wisp (Sair) e abra de novo 3
+      minutos depois: a tarefa roda ao abrir, com **(atrasada)** na notificação.
+- [ ] **Rodar agora:** o botão roda a tarefa na hora, numa aba nova.

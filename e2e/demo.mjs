@@ -80,6 +80,8 @@ check(
   JSON.stringify(sections) ===
     JSON.stringify([
       'Conversas',
+      'Prompts salvos',
+      'Tarefas agendadas',
       'Mascote e sons',
       'Aparência e acessibilidade',
       'Atalhos e sistema',

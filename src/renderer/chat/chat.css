@@ -991,6 +991,17 @@ code {
   background: var(--hover);
 }
 
+/* Um prompt salvo (Fase 26): a etiqueta antes da prévia do texto. */
+.slash-saved {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--hover);
+  color: var(--accent);
+  font-size: 11px;
+  font-style: normal;
+}
+
 /* A linha das pílulas rola de lado quando o painel fica estreito. Os menus delas se ancoram no
    invólucro (fora da rolagem), para não serem cortados. */
 .composer-meta-wrap {
@@ -4029,4 +4040,100 @@ button.link {
 ::highlight(wisp-find-current) {
   background-color: rgb(249 115 22 / 0.75);
   color: #1c1917;
+}
+
+/* Os prompts salvos e as tarefas agendadas (Fase 26), nas configurações. */
+.automation-item {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 8px 0;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.automation-item.off {
+  opacity: 0.7;
+}
+
+.automation-item :is(input[type='text'], input[type='time'], textarea) {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.automation-item textarea {
+  resize: vertical;
+}
+
+.automation-item :is(input, textarea):focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.automation-head,
+.automation-when,
+.automation-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.automation-head input {
+  flex: 1;
+  min-width: 0;
+}
+
+/* O liga e desliga da tarefa: só a chave, ao lado do nome. */
+.automation-head .switch {
+  flex: none;
+  width: auto;
+}
+
+.automation-slash {
+  color: var(--muted);
+  font-family: var(--mono);
+}
+
+.automation-when input[type='time'] {
+  width: auto;
+}
+
+.automation-days {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.automation-days button {
+  min-width: 34px;
+  padding: 3px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.automation-days button.on {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.automation-foot {
+  flex-wrap: wrap;
+}
+
+.automation-foot .settings-hint {
+  flex: 1;
+  min-width: 140px;
 }

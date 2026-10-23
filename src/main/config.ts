@@ -17,6 +17,16 @@ import type { AvatarName } from '../shared/avatars'
 import { t } from '../shared/i18n'
 import { LANGUAGE_SETTINGS } from '../shared/i18n'
 import type { LanguageSetting } from '../shared/i18n'
+import {
+  MAX_PROMPT_TEXT,
+  MAX_PROMPTS,
+  MAX_TASKS,
+  PROMPT_NAME,
+  RESERVED_NAMES,
+  TIME,
+  defaultPrompts
+} from '../shared/prompts'
+import type { SavedPrompt, ScheduledTask } from '../shared/prompts'
 
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
@@ -143,6 +153,10 @@ export interface WispConfig {
   phoneAfterSeconds: number
   /** Confere uma vez por dia se saiu uma versão nova do Wisp (no GitHub). Desligado por padrão. */
   updateCheck: boolean
+  /** Os prompts salvos (Fase 26): /nome no menu da barra, com as variáveis preenchidas na hora. */
+  prompts: SavedPrompt[]
+  /** As tarefas agendadas (Fase 26): um prompt num horário, numa aba nova, sempre no modo Pedir. */
+  scheduledTasks: ScheduledTask[]
 }
 
 export const THEME_SETTINGS = ['system', 'light', 'dark'] as const
@@ -198,7 +212,9 @@ function defaults(): WispConfig {
     phoneApprovals: false,
     phoneServer: 'https://ntfy.sh',
     phoneAfterSeconds: 60,
-    updateCheck: false
+    updateCheck: false,
+    prompts: defaultPrompts(),
+    scheduledTasks: []
   }
 }
 
@@ -307,7 +323,33 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .max(300)
     .regex(/^https?:\/\/[^\s?#@]+$/, t('precisa ser um endereço http(s)')),
   phoneAfterSeconds: z.number().int().min(0).max(3600),
-  updateCheck: z.boolean()
+  updateCheck: z.boolean(),
+  prompts: z
+    .array(
+      z.object({
+        name: z
+          .string()
+          .regex(PROMPT_NAME)
+          .refine((name) => !RESERVED_NAMES.includes(name)),
+        text: z.string().trim().min(1).max(MAX_PROMPT_TEXT)
+      })
+    )
+    .max(MAX_PROMPTS)
+    .refine((list) => new Set(list.map((prompt) => prompt.name)).size === list.length),
+  scheduledTasks: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[\w-]{1,40}$/),
+        name: z.string().trim().min(1).max(80),
+        prompt: z.string().trim().min(1).max(MAX_PROMPT_TEXT),
+        time: z.string().regex(TIME),
+        days: z.array(z.number().int().min(0).max(6)).max(7),
+        folder: z.string().trim().min(1).max(500).nullable(),
+        enabled: z.boolean()
+      })
+    )
+    .max(MAX_TASKS)
+    .refine((list) => new Set(list.map((task) => task.id)).size === list.length)
 }
 
 const ConfigSchema = z.object(
@@ -423,7 +465,13 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),
   calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
-  calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).')
+  calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).'),
+  prompts: t(
+    'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).'
+  ),
+  scheduledTasks: t(
+    'Cada tarefa precisa de um nome, de um prompt e de uma hora (HH:MM); até 20 tarefas.'
+  )
 }
 
 /**
