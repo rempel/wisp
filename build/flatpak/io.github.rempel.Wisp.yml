@@ -1,0 +1,67 @@
+# O Flatpak do Wisp (Fase 25). Empacota o app já montado pelo electron-builder
+# (dist/linux-unpacked) sobre a base do Electron do Flathub. Montar:
+#   npm run build && npx electron-builder --linux dir
+#   flatpak-builder --user --install --force-clean .flatpak-build build/flatpak/io.github.rempel.Wisp.yml
+# O que o sandbox libera, e por quê, está no README (Instalar → Flatpak).
+app-id: io.github.rempel.Wisp
+runtime: org.freedesktop.Platform
+runtime-version: '25.08'
+sdk: org.freedesktop.Sdk
+base: org.electronjs.Electron2.BaseApp
+base-version: '25.08'
+command: wisp
+separate-locales: false
+finish-args:
+  # A janela: o mascote precisa do X11 (pelo XWayland) para ficar no topo e se posicionar.
+  - --share=ipc
+  - --socket=x11
+  - --device=dri
+  # Os sons e o microfone (a voz).
+  - --socket=pulseaudio
+  # O Claude Code (fora do sandbox) fala com o servidor MCP do Wisp em 127.0.0.1; o celular
+  # (ntfy), a OpenRouter e o aviso de versão usam a rede.
+  - --share=network
+  # Os projetos, o ~/.claude do Claude Code e os arquivos que você anexa.
+  - --filesystem=home
+  # Os programas do sistema (o Claude Code, o gh, o whisper, os terminais), vistos em /run/host.
+  - --filesystem=host-os:ro
+  # O início com o sistema (~/.config/autostart).
+  - --filesystem=xdg-config/autostart:create
+  # Rodar o Claude Code e os outros programas fora do sandbox (flatpak-spawn --host). É o que faz
+  # o Wisp funcionar, e também o que o deixa sem a proteção de um sandbox de verdade.
+  - --talk-name=org.freedesktop.Flatpak
+  # As notificações (com os botões dos cards), o chaveiro, a bandeja e a proteção de tela.
+  - --talk-name=org.freedesktop.Notifications
+  - --talk-name=org.freedesktop.secrets
+  - --talk-name=org.kde.StatusNotifierWatcher
+  - --talk-name=org.freedesktop.ScreenSaver
+  - --talk-name=org.gnome.ScreenSaver
+  - --system-talk-name=org.freedesktop.login1
+  # A música (MPRIS), a agenda do GNOME (EDS) e o KWin (trazer janelas para a frente).
+  - --talk-name=org.mpris.MediaPlayer2.*
+  - --talk-name=org.gnome.evolution.dataserver.*
+  - --talk-name=org.kde.KWin
+modules:
+  - name: wisp
+    buildsystem: simple
+    sources:
+      - type: dir
+        path: ../../dist/linux-unpacked
+        dest: app
+      - type: file
+        path: wisp.sh
+      - type: file
+        path: io.github.rempel.Wisp.desktop
+      - type: file
+        path: io.github.rempel.Wisp.metainfo.xml
+      - type: file
+        path: ../icons/256x256.png
+      - type: file
+        path: ../icons/512x512.png
+    build-commands:
+      - cp -a app /app/wisp
+      - install -Dm755 wisp.sh /app/bin/wisp
+      - install -Dm644 io.github.rempel.Wisp.desktop /app/share/applications/io.github.rempel.Wisp.desktop
+      - install -Dm644 io.github.rempel.Wisp.metainfo.xml /app/share/metainfo/io.github.rempel.Wisp.metainfo.xml
+      - install -Dm644 256x256.png /app/share/icons/hicolor/256x256/apps/io.github.rempel.Wisp.png
+      - install -Dm644 512x512.png /app/share/icons/hicolor/512x512/apps/io.github.rempel.Wisp.png

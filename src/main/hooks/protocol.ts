@@ -102,7 +102,8 @@ export type RelayReply =
 export function socketDir(env: NodeJS.ProcessEnv = process.env): string {
   const xdg = env.XDG_RUNTIME_DIR
   const base = xdg && isAbsolute(xdg) ? xdg : `/run/user/${process.getuid?.() ?? 0}`
-  return join(base, 'wisp')
+  // No Flatpak, a pasta do app (a mesma em cada instância dele, como a do relay).
+  return env.FLATPAK_ID ? join(base, 'app', env.FLATPAK_ID, 'wisp') : join(base, 'wisp')
 }
 
 export function socketPath(env: NodeJS.ProcessEnv = process.env): string {

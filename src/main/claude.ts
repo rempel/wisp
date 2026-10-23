@@ -37,6 +37,8 @@ import {
   turnTokens
 } from './openrouter'
 import type { OpenRouterModel, TurnUsage } from './openrouter'
+import { hostProgramDirs, viaHost } from './host'
+import type { HostCommand } from './host'
 import { expandHome } from './paths'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
@@ -275,7 +277,7 @@ const INTERRUPT_TIMEOUT_MS = 4000
 export function resolveCommand(command: string): string | null {
   const candidates = command.includes('/')
     ? [expandHome(command)]
-    : [...(process.env.PATH ?? '').split(delimiter), ...installDirs()]
+    : [...(process.env.PATH ?? '').split(delimiter), ...installDirs(), ...hostProgramDirs()]
         .filter(Boolean)
         .map((dir) => join(dir, command))
   return candidates.find(isExecutableFile) ?? null
@@ -363,6 +365,19 @@ function claudeEnv(bin: string): NodeJS.ProcessEnv {
   return env
 }
 
+/** As variáveis que o Claude Code nunca recebe do Wisp (a chave passaria na frente da assinatura). */
+const NEVER_PASS = ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN']
+
+/** O comando que roda o Claude Code (no Flatpak, pelo flatpak-spawn --host). */
+function claudeCommand(
+  bin: string,
+  args: string[],
+  env: NodeJS.ProcessEnv,
+  cwd?: string
+): HostCommand {
+  return viaHost(bin, args, { env, cwd, unset: NEVER_PASS })
+}
+
 type CheckResult = { ok: true; bin: string } | { ok: false; hint: string }
 
 /** Confere se o CLI existe e está logado, com `claude auth status`. */
@@ -372,8 +387,10 @@ export async function checkClaude(command: string): Promise<CheckResult> {
 
   const status = await new Promise<{ code: number | null; stdout: string; failed: boolean }>(
     (resolve) => {
-      const child = spawn(bin, ['auth', 'status', '--json'], {
-        env: claudeEnv(bin),
+      const env = claudeEnv(bin)
+      const run = claudeCommand(bin, ['auth', 'status', '--json'], env)
+      const child = spawn(run.command, run.args, {
+        env,
         stdio: ['ignore', 'pipe', 'ignore'],
         timeout: AUTH_TIMEOUT_MS
       })
@@ -408,8 +425,10 @@ export interface ClaudeStatus {
 /** Roda o CLI com uns argumentos e devolve a saída (null se não rodou ou demorou). */
 function runClaude(bin: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
-    const child = spawn(bin, args, {
-      env: claudeEnv(bin),
+    const env = claudeEnv(bin)
+    const run = claudeCommand(bin, args, env)
+    const child = spawn(run.command, run.args, {
+      env,
       stdio: ['ignore', 'pipe', 'ignore'],
       timeout: AUTH_TIMEOUT_MS
     })
@@ -1045,7 +1064,8 @@ export class ClaudeSession {
     env.TERM = 'xterm-256color'
     env.COLORTERM = 'truecolor'
     this.terminalCostBase = this.cost
-    return { file: bin, args, env, cwd }
+    const run = claudeCommand(bin, args, env, cwd)
+    return { file: run.command, args: run.args, env, cwd }
   }
 
   /**
@@ -1375,10 +1395,12 @@ export class ClaudeSession {
       env.ELECTRON_RUN_AS_NODE = '1'
       env.WISP_DEMO_DIR = demo.recordings
     }
-    const proc = spawn(command, demo ? [demo.player, ...args] : args, {
-      cwd: this.cwd ?? this.folder ?? this.options.workspace(),
-      env
-    })
+    const cwd = this.cwd ?? this.folder ?? this.options.workspace()
+    // A demonstração roda com o Electron do próprio Wisp; o Claude Code, no sistema.
+    const run = demo
+      ? { command, args: [demo.player, ...args] }
+      : claudeCommand(command, args, env, cwd)
+    const proc = spawn(run.command, run.args, { cwd, env })
     this.proc = proc
     this.echoes = []
 

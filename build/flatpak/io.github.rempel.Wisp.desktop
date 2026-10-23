@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Wisp
+GenericName=Assistente
+Comment=Um mascote que flutua na tela e conversa com o Claude Code
+Exec=wisp %U
+Icon=io.github.rempel.Wisp
+Terminal=false
+Categories=Utility;
+StartupWMClass=io.github.rempel.Wisp
+Actions=toggle;new;
+
+[Desktop Action toggle]
+Name=Abrir ou fechar o painel
+Exec=wisp --toggle
+
+[Desktop Action new]
+Name=Nova conversa
+Exec=wisp --new

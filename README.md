@@ -131,7 +131,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Onde roda:** feito para o GNOME e o KDE Plasma, no X11 e no Wayland (pelo XWayland), com o
   Claude Code 2.1 ou mais novo. O CI roda no Ubuntu 22.04 e 24.04; outras distribuições com GNOME ou
   KDE devem funcionar.
-- **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
+- **Pacotes:** .deb e AppImage para x86-64 e ARM64, e um Flatpak. Os de ARM64 são montados num
+  x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo) e 24
@@ -170,9 +171,10 @@ Para compilar do código, veja as dependências em [Compilar a partir do código
 ## Instalar (pacotes prontos)
 
 Os pacotes de cada versão ficam na página de
-[releases](https://github.com/rempel/wisp/releases): o `.deb`, para Ubuntu, Debian e derivados, e o
-AppImage, para qualquer distribuição. (Cada push também gera os dois, no artefato `pacotes-linux` da
-execução do CI, na aba Actions.) Para montar os seus, veja [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
+[releases](https://github.com/rempel/wisp/releases): o `.deb`, para Ubuntu, Debian e derivados, o
+AppImage, para qualquer distribuição (os dois para x86-64 e ARM64), e o Flatpak. (Cada push também
+os gera, nos artefatos `pacotes-linux`, `pacotes-linux-arm64` e `pacote-flatpak` da execução do CI,
+na aba Actions.) Para montar os seus, veja [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
 
 ### .deb (Ubuntu, Debian e derivados)
 
@@ -218,6 +220,45 @@ sudo apparmor_parser -r /etc/apparmor.d/wisp-appimage
 ```
 
 Prefira o .deb no Ubuntu: o perfil dele vale só para o `/opt/Wisp/wisp`.
+
+### ARM64
+
+O .deb (`wisp_<versão>_arm64.deb`) e o AppImage (`Wisp-<versão>-arm64.AppImage`) para ARM64 se
+instalam igual aos de x86-64. Eles são montados num x86-64, com o Electron de ARM64 e o node-pty
+compilado pelo compilador cruzado (`scripts/package-arm64.sh`), e conferidos pela arquitetura de
+cada binário e pelo conteúdo; ainda não foram abertos numa máquina ARM. Se você tem uma, conte como
+foi numa issue.
+
+### Flatpak
+
+```sh
+flatpak install --user Wisp.flatpak
+flatpak run io.github.rempel.Wisp
+```
+
+O Flatpak usa a base do Electron do Flathub (`org.electronjs.Electron2.BaseApp`, que o
+`flatpak install` baixa). O Wisp é um app que comanda outros programas (o Claude Code, o terminal, o
+editor, o gh, o whisper), então o sandbox dele é bem aberto, e vale saber o que ele libera:
+
+| Permissão                                         | Para quê                                                                   |
+| ------------------------------------------------- | -------------------------------------------------------------------------- |
+| `--talk-name=org.freedesktop.Flatpak`             | Rodar o Claude Code e os programas do sistema fora do sandbox              |
+| `--filesystem=home`                               | Os seus projetos, o `~/.claude` do Claude Code e os anexos                 |
+| `--filesystem=host-os:ro`                         | Achar os programas do sistema (vistos em `/run/host`)                      |
+| `--filesystem=xdg-config/autostart:create`        | Iniciar com o sistema                                                      |
+| `--share=network`                                 | O Claude Code fala com o servidor MCP do Wisp; o celular e a OpenRouter    |
+| `--socket=x11`, `--device=dri`, `--share=ipc`     | A janela (o mascote precisa do X11, pelo XWayland, para ficar no topo)     |
+| `--socket=pulseaudio`                             | Os sons e o microfone                                                      |
+| Notificações, chaveiro, bandeja, proteção de tela | Os cards nas notificações, as chaves, o ícone da bandeja, a tela bloqueada |
+| MPRIS, agenda do GNOME, KWin, logind              | A música, os compromissos, trazer janelas para a frente, a tela bloqueada  |
+
+- O Claude Code, o terminal, o editor e os outros programas rodam **no seu sistema**, pelo
+  `flatpak-spawn --host`; instale-os como sempre (o Claude Code em `~/.local/bin`, por exemplo).
+- As configurações e as conversas ficam em `~/.var/app/io.github.rempel.Wisp` (não em
+  `~/.config/wisp`).
+- **Limites:** trazer a janela de um terminal para a frente (aba Sessões) não funciona, porque o
+  sandbox não enxerga os processos do sistema; use o botão **Pasta**. Os hooks das sessões do
+  terminal rodam pelo `flatpak run`, um pouco mais devagar.
 
 ## Compilar a partir do código
 
@@ -1250,6 +1291,9 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 | `npm run setup:apparmor`    | Libera o sandbox do Electron no Ubuntu 24.04+                        |
 | `npm run icons`             | Gera os ícones de `build/icons` a partir do `resources/icon.svg`     |
 | `scripts/smoke-packages.sh` | Confere os pacotes de `dist/` e abre o AppImage de verdade           |
+| `scripts/package-arm64.sh`  | Monta o .deb e o AppImage para ARM64 num x86-64                      |
+| `scripts/smoke-arm64.sh`    | Confere a arquitetura e o conteúdo dos pacotes ARM64                 |
+| `scripts/smoke-flatpak.sh`  | Confere o Flatpak instalado e o abre de verdade                      |
 
 ### Testes
 
@@ -1264,29 +1308,22 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 - **À mão:** os roteiros de aceite de cada fase, com o Claude Code de verdade, estão em
   [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **CI:** a cada push, o GitHub Actions confere tipos, lint e formatação, roda os testes de unidade e
-  os de ponta a ponta e monta os pacotes no Ubuntu 22.04, conferindo o .deb e abrindo o AppImage.
+  os de ponta a ponta e monta os pacotes no Ubuntu 22.04, conferindo o .deb e abrindo o AppImage;
+  monta os de ARM64 e confere a arquitetura; e monta, instala e abre o Flatpak.
 
 ### Contribuindo
 
-- Antes de mandar uma mudança, rode `npm run typecheck`, `npm run lint`, `npx prettier --check .`,
-  `npm test` e os testes de ponta a ponta do que você mexeu.
-- A interface, os avisos e os comentários do código são em português do Brasil, em frases curtas e
-  diretas.
-- Os princípios do projeto (no fim do [ROADMAP](ROADMAP.md)) valem para toda mudança: nada que muda a
-  máquina sem um clique, nenhum arquivo do usuário alterado sem diff e backup, sem telemetria, e o
-  Wisp parado sem gastar CPU.
-- O trabalho vai por fases, cada uma com um aceite que dá para conferir. Ideias novas entram no
-  ROADMAP primeiro.
-- Ao contribuir, você concorda que a sua contribuição sai sob a mesma licença do projeto, a
-  [GPL-3.0 ou mais nova](#licença).
+Veja o [guia de contribuição](CONTRIBUTING.md): como montar, rodar os testes, onde fica cada parte e
+o que vale para toda mudança. O que mudou em cada versão está nas [notas de versão](CHANGELOG.md).
 
 ### Publicando uma versão
 
 1. Atualize o `version` no `package.json` (e no `package-lock.json`, com
    `npm version <versão> --no-git-tag-version`).
 2. Faça o commit e crie a tag: `git tag v<versão>` e `git push origin v<versão>`.
-3. O CI monta os pacotes, confere e cria o release da tag, com o .deb e o AppImage e as notas geradas
-   dos commits.
+3. Mova o "Não lançado" do [CHANGELOG](CHANGELOG.md) para a versão nova.
+4. O CI monta os pacotes, confere e cria o release da tag, com o .deb e o AppImage (x86-64 e ARM64),
+   o Flatpak e as notas geradas dos commits.
 
 ## Como funciona
 

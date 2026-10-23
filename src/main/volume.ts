@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { viaHost } from './host'
 
 // O volume do sistema, para o "aumenta o volume" da voz: pelo wpctl (PipeWire) ou pelo pactl
 // (PulseAudio, e o PipeWire com o pipewire-pulse). Sempre de 5 em 5%, até 100%.
@@ -16,7 +17,8 @@ function run(command: string, args: string[]): Promise<{ code: number; stdout: s
       clearTimeout(timer)
       resolve({ code, stdout })
     }
-    const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'ignore'] })
+    const run = viaHost(command, args)
+    const child = spawn(run.command, run.args, { stdio: ['ignore', 'pipe', 'ignore'] })
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
       done(-1)
