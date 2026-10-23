@@ -1703,6 +1703,18 @@ code {
   word-break: break-all;
 }
 
+/* O que o comando faz, em uma linha (Fase 24). */
+.permission-explain {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.permission-explain-label {
+  color: var(--text);
+  font-weight: 600;
+}
+
 .diff .del {
   color: var(--danger-text);
 }

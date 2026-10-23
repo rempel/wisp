@@ -134,8 +134,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
-  (conversa mais fluida), 22 (acessibilidade e aparência) e 23 (desempenho e consumo):** prontas,
-  esperando a validação com o uso.
+  (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo) e 24
+  (notificações e cards):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -668,6 +668,21 @@ OpenRouter publica; o valor cobrado de verdade fica no painel dela. As conversas
 usam uma pasta de configuração do Claude Code só delas (`~/.local/share/wisp/openrouter-claude`),
 então o login da assinatura nunca é tocado.
 
+### Notificações e cards
+
+- **O que o comando faz:** o card do Bash diz, em uma linha, o que um comando conhecido faz ("Apaga
+  arquivos, sem passar pela lixeira", "Envia os commits para o servidor"), pela tabela do próprio
+  Wisp, ao lado da descrição que o Claude deu. Comandos desconhecidos ficam sem a linha.
+- **Responder pela notificação:** quando um card espera e você não está olhando o painel (escondido,
+  ou aberto sem o foco, como ele aparece com um pedido), o card também vira uma notificação do
+  sistema com **Permitir** e **Negar** (o plano: **Aprovar** e **Continuar planejando**). As regras
+  são as do celular: uma vez só, nada de "sempre"; um comando com arquivos de segredos só pode ser
+  negado; as perguntas só abrem o painel. Olhar o painel tira as notificações. Desliga em
+  **Configurações → Atalhos e sistema → Responder pela notificação**.
+- **Enquanto você estava fora:** ao desbloquear a tela, uma notificação resume o que aconteceu:
+  as respostas que ficaram prontas e as que deram erro (pelos títulos das abas), os pedidos que o
+  celular deixou expirar e os que ainda esperam você.
+
 ### Aprovar pelo celular
 
 Longe do computador, o card que espera por você pode ir para o celular, com **Permitir** e
@@ -860,7 +875,8 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "highContrast": false,
   "reduceMotion": false,
   "panelZoom": 1,
-  "tabSleepMinutes": 20
+  "tabSleepMinutes": 20,
+  "notifyApprovals": true
 }
 ```
 
@@ -939,6 +955,9 @@ eles valem mesmo desligados aqui). `panelZoom` é o tamanho do painel, de `0.7` 
 volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa. `0`: nunca. Uma aba
 trabalhando, com um card esperando, com uma tarefa em segundo plano (um servidor que o Claude
 subiu) ou no modo terminal não dorme.
+
+`notifyApprovals` faz o card que espera, com você longe do painel, virar também uma notificação
+do sistema com Permitir e Negar (veja [Notificações e cards](#notificações-e-cards)).
 
 Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
 `fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`,

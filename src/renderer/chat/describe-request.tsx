@@ -1,4 +1,5 @@
 import type { JSX, ReactNode } from 'react'
+import { explainCommand } from '../../shared/commands'
 import { Markdown } from './Markdown'
 import { toolLabel } from './state'
 import type { Item } from './state'
@@ -198,16 +199,24 @@ export function describe(
     )
   }
   switch (toolName) {
-    case 'Bash':
+    case 'Bash': {
+      // O que o comando faz, pela tabela do Wisp (Fase 24): independente do que o Claude diz.
+      const explained = explainCommand(str(input, 'command'))
       return {
         title: 'Rodar um comando no terminal',
         body: (
           <>
             {str(input, 'description') && <p>{str(input, 'description')}</p>}
             <pre>{str(input, 'command')}</pre>
+            {explained && (
+              <p className="permission-explain">
+                <span className="permission-explain-label">O que faz:</span> {explained}
+              </p>
+            )}
           </>
         )
       }
+    }
     case 'Write':
       return {
         title: 'Criar ou substituir um arquivo',

@@ -63,6 +63,11 @@ export interface WispConfig {
    * próxima mensagem. 0: nunca.
    */
   tabSleepMinutes: number
+  /**
+   * Com o painel escondido, o card que espera também vira uma notificação do sistema com
+   * Permitir e Negar (Fase 24), com as regras do celular.
+   */
+  notifyApprovals: boolean
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -160,6 +165,7 @@ function defaults(): WispConfig {
     reduceMotion: false,
     panelZoom: 1,
     tabSleepMinutes: 20,
+    notifyApprovals: true,
     shortcut: 'Ctrl+Alt+W',
     clipboardChip: true,
     terminalCommand: null,
@@ -260,6 +266,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   reduceMotion: z.boolean(),
   panelZoom: z.number().min(0.7).max(2),
   tabSleepMinutes: z.number().int().min(0).max(1440),
+  notifyApprovals: z.boolean(),
   shortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),

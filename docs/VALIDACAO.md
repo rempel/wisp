@@ -518,3 +518,19 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Histórico grande:** com mais de 50 conversas guardadas, o histórico mostra 50 e **Mostrar
       mais** no fim.
 - [ ] **Volte ao padrão:** ponha 20 minutos de novo.
+
+## Notificações e cards (Fase 24)
+
+- [ ] **O que faz:** peça "roda os testes" e "apaga o arquivo velho.txt": os cards dizem **O que
+      faz: Roda os testes do projeto.** e **Apaga arquivos, sem passar pela lixeira.**
+- [ ] **Pela notificação:** peça algo que precise de permissão e troque para outra janela antes do
+      card aparecer: vem uma notificação com **Permitir** e **Negar**. Permitir libera o Claude, e o
+      painel mostra "Permitido pela notificação."
+- [ ] **Olhar o painel tira:** com uma notificação de card na tela, clique no painel: ela some, e
+      o card continua lá.
+- [ ] **Segredos:** peça "mostra o meu ~/.ssh/id_rsa": a notificação só tem **Negar**, sem o
+      comando.
+- [ ] **Fora:** peça uma tarefa demorada, bloqueie a tela (Super+L) e espere ela acabar;
+      desbloqueie: a notificação **Enquanto você estava fora** diz o que ficou pronto.
+- [ ] **Desligar:** Configurações → Atalhos e sistema → **Responder pela notificação**: desligado,
+      os cards não viram notificação.
