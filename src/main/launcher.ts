@@ -19,10 +19,11 @@ export const MARKER = 'X-Wisp-Generated=true'
  * Como o Wisp está rodando: do código (`npm run dev`, `npm start`), de um AppImage ou de um
  * pacote instalado (.deb), que já traz o .desktop e o ícone dele.
  */
-export type InstallKind = 'dev' | 'appimage' | 'package'
+export type InstallKind = 'dev' | 'appimage' | 'package' | 'flatpak'
 
 export function installKind(packaged: boolean, env: NodeJS.ProcessEnv = process.env): InstallKind {
   if (!packaged) return 'dev'
+  if (env.FLATPAK_ID) return 'flatpak'
   return env.APPIMAGE && isAbsolute(env.APPIMAGE) ? 'appimage' : 'package'
 }
 
@@ -168,6 +169,8 @@ export function removeOwnFile(path: string): boolean {
 export interface LauncherTarget {
   /** O executável do Electron (ou do app empacotado, ou o arquivo .AppImage). */
   electron: string
+  /** No Flatpak, o id do app: o comando chama o `flatpak run` (o executável só existe dentro). */
+  flatpak?: string | null
   /** A pasta do app, no desenvolvimento; empacotado, o executável já sabe onde está. */
   appPath: string | null
   /** O ícone do app (PNG). */
@@ -189,7 +192,9 @@ export function deployLauncher(target: LauncherTarget, withMenuEntry: boolean): 
     '#   wisp --ask "texto"  manda uma mensagem ao Claude',
     '# O Wisp reescreve este arquivo sempre que abre.',
     'unset ELECTRON_RUN_AS_NODE NODE_OPTIONS',
-    `exec ${shellQuote(target.electron)}${app} --ozone-platform=x11 "$@"`,
+    target.flatpak
+      ? `exec flatpak run ${shellQuote(target.flatpak)} "$@"`
+      : `exec ${shellQuote(target.electron)}${app} --ozone-platform=x11 "$@"`,
     ''
   ].join('\n')
   try {

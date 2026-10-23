@@ -17,7 +17,12 @@ export const ISSUES_URL = 'https://github.com/rempel/wisp/issues/new'
 export type BusName = 'running' | 'activatable' | 'absent' | 'unknown'
 
 export interface Facts {
-  app: { version: string; install: 'dev' | 'appimage' | 'package'; electron: string; node: string }
+  app: {
+    version: string
+    install: 'dev' | 'appimage' | 'package' | 'flatpak'
+    electron: string
+    node: string
+  }
   os: { name: string; kernel: string; arch: string }
   desktop: { name: string; session: 'x11' | 'wayland' | 'outra' }
   claude: { installed: boolean; version: string | null; loggedIn: boolean | null }

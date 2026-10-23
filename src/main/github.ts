@@ -11,6 +11,7 @@ import { spawn } from 'child_process'
 import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { dirname, join } from 'path'
 import { DATA_DIR } from './paths'
+import { viaHost } from './host'
 
 export type CiState = 'success' | 'failure' | 'pending' | 'none'
 export type ReviewState = 'APPROVED' | 'CHANGES_REQUESTED' | 'COMMENTED'
@@ -266,7 +267,11 @@ export function runQuery(gh: string, timeoutMs = 30_000): Promise<unknown> {
       NO_COLOR: '1'
     }
     delete env.ANTHROPIC_API_KEY
-    const child = spawn(gh, ['api', 'graphql', '-f', `query=${QUERY}`], {
+    const run = viaHost(gh, ['api', 'graphql', '-f', `query=${QUERY}`], {
+      env,
+      unset: ['ANTHROPIC_API_KEY']
+    })
+    const child = spawn(run.command, run.args, {
       env,
       stdio: ['ignore', 'pipe', 'pipe']
     })

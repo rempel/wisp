@@ -2,6 +2,7 @@ import { execFile } from 'child_process'
 import { readFileSync } from 'fs'
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import { isKde, kwinActivatePids } from './kwin'
+import { viaHost } from './host'
 
 /** O que se sabe de onde uma sessão roda. */
 export interface TerminalTarget {
@@ -21,7 +22,8 @@ const TIMEOUT_MS = 3000
 /** Roda um programa com argumentos (sem shell) e devolve a saída, ou null se falhar. */
 function run(command: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
-    execFile(command, args, { timeout: TIMEOUT_MS }, (error, stdout) =>
+    const host = viaHost(command, args)
+    execFile(host.command, host.args, { timeout: TIMEOUT_MS }, (error, stdout) =>
       resolve(error ? null : stdout)
     )
   })

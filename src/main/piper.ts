@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { expandHome } from './paths'
 import { findProgram, isFile } from './programs'
+import { viaHost } from './host'
 
 // A fala das respostas, com o Piper (TTS local). O texto vai pela entrada padrão e o áudio volta
 // cru pela saída (PCM de 16 bits, mono, na taxa do modelo): nada passa pelo disco.
@@ -59,9 +60,8 @@ export function synthesize(text: string, options: PiperOptions): Promise<Speech>
   if (typeof setup === 'string') return Promise.reject(new Error(setup))
   const rate = modelRate(setup.model)
   return new Promise((resolve, reject) => {
-    const child = spawn(setup.binary, ['--model', setup.model, '--output-raw'], {
-      stdio: ['pipe', 'pipe', 'pipe']
-    })
+    const run = viaHost(setup.binary, ['--model', setup.model, '--output-raw'])
+    const child = spawn(run.command, run.args, { stdio: ['pipe', 'pipe', 'pipe'] })
     const chunks: Buffer[] = []
     let size = 0
     let stderr = ''

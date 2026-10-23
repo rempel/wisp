@@ -6,7 +6,8 @@ import { APP_ID, desktopExec, MARKER, removeOwnFile, writeOwnFile } from './laun
 /** O .desktop em ~/.config/autostart que abre o Wisp quando você entra na sessão. */
 export function autostartPath(env: NodeJS.ProcessEnv = process.env): string {
   const config = env.XDG_CONFIG_HOME
-  const base = config && isAbsolute(config) ? config : join(homedir(), '.config')
+  // No Flatpak, o XDG_CONFIG_HOME é a pasta do app (~/.var/app/…): o autostart é o do sistema.
+  const base = config && isAbsolute(config) && !env.FLATPAK_ID ? config : join(homedir(), '.config')
   return join(base, 'autostart', `${APP_ID}.desktop`)
 }
 

@@ -76,6 +76,7 @@ src/
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
 │  ├─ away.ts        # o resumo de "enquanto você estava fora", ao desbloquear a tela
+│  ├─ host.ts        # no Flatpak: os programas do sistema pelo flatpak-spawn --host
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
@@ -116,8 +117,10 @@ test/                  # testes de unidade (node --test), com um Claude Code de 
                        # tem um modo interativo, para o modo terminal)
 e2e/                   # testes de ponta a ponta: o app num HOME temporário, pelo DevTools
 docs/                  # este arquivo e os roteiros de validação
-build/                 # ícones dos pacotes e o afterPack do electron-builder
+build/                 # ícones dos pacotes, o afterPack do electron-builder e o Flatpak
 electron-builder.yml   # os pacotes .deb e AppImage
+CHANGELOG.md           # as notas de versão
+CONTRIBUTING.md        # o guia de contribuição
 .github/workflows/     # o CI
 ```
 
@@ -668,6 +671,19 @@ electron-builder.yml   # os pacotes .deb e AppImage
   caminho (`answerRemote`). O `away.ts` anota os fins de turno e as expirações entre o bloqueio e o
   desbloqueio da tela (o `ScreenLock` da Fase 10). A explicação dos comandos fica em
   `shared/commands.ts`, usada pelo card (`describe-request.tsx`) e pela notificação.
+- **Flatpak:** dentro do sandbox (o `FLATPAK_ID`), o `host.ts` troca cada programa do sistema (o
+  Claude Code no chat e no terminal, o gh, o whisper, o Piper, o volume, os apps e terminais
+  abertos) por `flatpak-spawn --host --watch-bus [--directory=…] env -u … VAR=… programa`: o
+  `flatpak-spawn` não leva o ambiente de dentro, então o `env` tira o que o Wisp tirou (a chave da
+  API sempre) e põe o que ele mudou, sem o PATH e as pastas XDG do sandbox. Os programas são
+  procurados também em `/run/host` (o `host-os`) e chamados pelo caminho de fora. Os arquivos que o
+  Claude Code lê (o `--mcp-config`, o modo) e o socket dos hooks vão para
+  `$XDG_RUNTIME_DIR/app/<id>`, a única parte da pasta de runtime que dentro e fora enxergam igual. O
+  comando `wisp` e o relay dos hooks chamam o `flatpak run`, e o autostart vai para o `~/.config`
+  de verdade.
+- **Pacotes ARM64:** o `scripts/package-arm64.sh` baixa o Electron de ARM64 (o `@electron/get`, na
+  mesma versão), compila o node-pty com o `aarch64-linux-gnu-g++` (o pty.node de x86-64 volta para o
+  lugar no fim) e chama o electron-builder com `--arm64` e esse Electron.
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR

@@ -1115,9 +1115,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     {
       electron: launchTarget(kind),
       appPath: kind === 'dev' ? app.getAppPath() : null,
-      icon: entryIcon
+      icon: entryIcon,
+      flatpak: kind === 'flatpak' ? (process.env.FLATPAK_ID ?? null) : null
     },
-    kind !== 'package'
+    // O .deb e o Flatpak trazem a entrada do menu de apps deles.
+    kind !== 'package' && kind !== 'flatpak'
   )
   // Os atalhos globais: um abre e fecha o painel; o outro, segurado, ouve. Trocados no
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).

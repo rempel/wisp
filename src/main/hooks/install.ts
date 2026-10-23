@@ -37,17 +37,26 @@ const tilde = (path: string): string =>
  */
 export function deployRelay(
   electron = process.execPath,
-  relay = join(__dirname, 'wisp-hook.js')
+  relay = join(__dirname, 'wisp-hook.js'),
+  flatpak = process.env.FLATPAK_ID ?? null
 ): void {
   const script = [
     '#!/bin/sh',
     '# Relay dos hooks do Claude Code para o Wisp. O Wisp reescreve este arquivo sempre que abre.',
     '# Sem o Wisp neste lugar, sai sem fazer nada e o Claude Code segue normal.',
-    `electron=${shellQuote(electron)}`,
-    `relay=${shellQuote(relay)}`,
-    '[ -x "$electron" ] && [ -f "$relay" ] || exit 0',
-    'unset NODE_OPTIONS',
-    'ELECTRON_RUN_AS_NODE=1 exec "$electron" "$relay" "$@"',
+    ...(flatpak
+      ? [
+          // No Flatpak, o relay roda dentro dele (o Electron só existe lá).
+          'command -v flatpak >/dev/null || exit 0',
+          `exec flatpak run --command=${shellQuote(electron)} --env=ELECTRON_RUN_AS_NODE=1 ${shellQuote(flatpak)} ${shellQuote(relay)} "$@"`
+        ]
+      : [
+          `electron=${shellQuote(electron)}`,
+          `relay=${shellQuote(relay)}`,
+          '[ -x "$electron" ] && [ -f "$relay" ] || exit 0',
+          'unset NODE_OPTIONS',
+          'ELECTRON_RUN_AS_NODE=1 exec "$electron" "$relay" "$@"'
+        ]),
     ''
   ].join('\n')
   try {

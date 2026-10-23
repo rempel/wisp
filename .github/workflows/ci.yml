@@ -1,6 +1,7 @@
 # CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; em
-# jobs à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes .deb e AppImage, que são
-# conferidos (o AppImage é aberto de verdade). Numa tag v*, os pacotes vão para um release.
+# jobs à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes: .deb e AppImage para
+# x86-64 (o AppImage é aberto de verdade) e ARM64, e o Flatpak (instalado e aberto). Numa tag v*,
+# os pacotes vão para um release.
 name: CI
 
 on:
@@ -102,17 +103,99 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # Os pacotes para ARM64, montados aqui mesmo (x86-64) com o Electron de ARM64 e o node-pty
+  # compilado pelo compilador cruzado (scripts/package-arm64.sh). Abrir pede uma máquina ARM: aqui,
+  # a conferência é da arquitetura e do conteúdo.
+  package-arm64:
+    name: Pacotes ARM64
+    runs-on: ubuntu-22.04
+    timeout-minutes: 30
+    needs: check
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: O compilador cruzado
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends g++-aarch64-linux-gnu file
+      - run: npm ci
+      - run: npx install-electron
+      - run: npm run build
+      - run: scripts/package-arm64.sh
+      - run: scripts/smoke-arm64.sh
+      - uses: actions/upload-artifact@v6
+        continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: pacotes-linux-arm64
+          path: |
+            dist/*.deb
+            dist/*.AppImage
+          if-no-files-found: error
+          retention-days: 7
+
+  # O Flatpak: o app montado pelo electron-builder sobre a base do Electron do Flathub, instalado e
+  # aberto de verdade (scripts/smoke-flatpak.sh).
+  flatpak:
+    name: Flatpak
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    needs: check
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - name: O flatpak-builder e a base do Electron
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder xvfb xauth dbus dbus-x11 curl
+          # O bubblewrap do Flatpak precisa de user namespaces, que o AppArmor do Ubuntu 24.04 trava.
+          sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak install --user -y --noninteractive flathub \
+            org.freedesktop.Platform//25.08 org.freedesktop.Sdk//25.08 org.electronjs.Electron2.BaseApp//25.08
+      - run: npm ci
+      - run: npx install-electron
+      - run: npm run build
+      - run: npx electron-builder --linux dir --publish never
+      - run: |
+          flatpak-builder --user --install --force-clean --disable-rofiles-fuse \
+            --repo=.flatpak-repo .flatpak-build build/flatpak/io.github.rempel.Wisp.yml
+      - run: scripts/smoke-flatpak.sh
+      - run: |
+          flatpak build-bundle .flatpak-repo dist/Wisp.flatpak io.github.rempel.Wisp \
+            --runtime-repo=https://dl.flathub.org/repo/flathub.flatpakrepo
+      - uses: actions/upload-artifact@v6
+        continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: pacote-flatpak
+          path: dist/Wisp.flatpak
+          if-no-files-found: error
+          retention-days: 7
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
-    needs: [package, e2e]
+    needs: [package, package-arm64, flatpak, e2e]
     permissions:
       contents: write
     steps:
       - uses: actions/download-artifact@v6
         with:
           name: pacotes-linux
+          path: dist
+      - uses: actions/download-artifact@v6
+        with:
+          name: pacotes-linux-arm64
+          path: dist
+      - uses: actions/download-artifact@v6
+        with:
+          name: pacote-flatpak
           path: dist
       - name: Publica os pacotes no release da tag
         env:

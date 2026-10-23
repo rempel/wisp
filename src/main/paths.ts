@@ -27,5 +27,9 @@ export function expandHome(path: string): string {
  */
 export function runtimeDir(): string {
   const xdg = process.env.XDG_RUNTIME_DIR
-  return xdg && isAbsolute(xdg) ? join(xdg, 'wisp') : CACHE_DIR
+  if (!xdg || !isAbsolute(xdg)) return CACHE_DIR
+  // No Flatpak, só a pasta do app no XDG_RUNTIME_DIR é a mesma dentro e fora do sandbox (o Claude
+  // Code, fora, lê o --mcp-config e o arquivo do modo daqui).
+  const flatpak = process.env.FLATPAK_ID
+  return flatpak ? join(xdg, 'app', flatpak, 'wisp') : join(xdg, 'wisp')
 }

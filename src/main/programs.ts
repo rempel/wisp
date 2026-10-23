@@ -2,6 +2,7 @@ import { accessSync, constants, statSync } from 'fs'
 import { homedir } from 'os'
 import { delimiter, isAbsolute, join } from 'path'
 import { expandHome } from './paths'
+import { hostProgramDirs } from './host'
 
 // Achar um programa que o usuário instalou à parte (o whisper-cli, o piper): pelo caminho do
 // config.json ou pelo nome, no PATH e nas pastas de sempre de quem instala na mão.
@@ -35,7 +36,9 @@ export function findProgram(
   const dirs = [
     ...(env.PATH ?? '').split(delimiter).filter(Boolean),
     join(homedir(), '.local', 'bin'),
-    ...extraDirs.map(expandHome)
+    ...extraDirs.map(expandHome),
+    // No Flatpak, os programas do sistema (vistos em /run/host).
+    ...hostProgramDirs()
   ]
   for (const name of candidates) {
     for (const dir of dirs) {

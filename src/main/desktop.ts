@@ -3,6 +3,7 @@ import { accessSync, constants, readdirSync, readFileSync, realpathSync, statSyn
 import { homedir } from 'os'
 import { delimiter, join, resolve, sep } from 'path'
 import { expandHome } from './paths'
+import { viaHost } from './host'
 
 // Ferramentas de desktop do servidor MCP (seção 6). Node puro: sem Electron, para dar para
 // testar fora do app. Processos sempre com spawn e lista de argumentos, nunca via shell.
@@ -198,10 +199,13 @@ function launch(
       clearTimeout(timer)
       done(result)
     }
-    const child = spawn(command, args, {
+    // No Flatpak, o app abre no sistema, fora do sandbox.
+    const env = launchEnv()
+    const run = viaHost(command, args, { env, cwd })
+    const child = spawn(run.command, run.args, {
       detached: true,
       stdio: 'ignore',
-      env: launchEnv(),
+      env,
       ...(cwd ? { cwd } : {})
     })
     const timer = setTimeout(() => finish(0), waitMs)

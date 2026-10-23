@@ -6,6 +6,7 @@ import { basename, join } from 'path'
 import { VOICE_RATE } from '../shared/vad'
 import { expandHome } from './paths'
 import { findProgram, isFile } from './programs'
+import { viaHost } from './host'
 
 // A transcrição local, com o whisper.cpp (o programa whisper-cli). O áudio vai pela entrada
 // padrão, como um WAV montado na memória: nada de áudio no disco. Um whisper-cli antigo, que não
@@ -141,7 +142,10 @@ function run(
   timeoutMs: number
 ): Promise<Run> {
   return new Promise((resolve, reject) => {
-    const child = spawn(binary, args, { stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'] })
+    const run = viaHost(binary, args)
+    const child = spawn(run.command, run.args, {
+      stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe']
+    })
     let stdout = ''
     let stderr = ''
     const timer = setTimeout(() => {
