@@ -1,5 +1,6 @@
 import type { JSX } from 'react'
 import type { FileDiff } from '../../shared/ipc'
+import { t } from '../../shared/i18n'
 
 /** As linhas de um diff, coloridas, com o número da linha no arquivo quando se sabe. */
 export function DiffView({ diff }: { diff: FileDiff }): JSX.Element {
@@ -19,7 +20,7 @@ export function DiffView({ diff }: { diff: FileDiff }): JSX.Element {
           })}
         </div>
       ))}
-      {diff.truncated && <div className="diff-at">… (mais linhas)</div>}
+      {diff.truncated && <div className="diff-at">{t('… (mais linhas)')}</div>}
     </pre>
   )
 }
@@ -30,7 +31,10 @@ export function DiffCount({ diff }: { diff: FileDiff }): JSX.Element | null {
   return (
     <span
       className="diff-count"
-      aria-label={`${diff.added} linhas a mais, ${diff.removed} a menos`}
+      aria-label={t('{added} linhas a mais, {removed} a menos', {
+        added: diff.added,
+        removed: diff.removed
+      })}
     >
       {diff.added > 0 && <span className="add">+{diff.added}</span>}
       {diff.removed > 0 && <span className="del">−{diff.removed}</span>}

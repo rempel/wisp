@@ -1,6 +1,7 @@
 import qrcode from 'qrcode-generator'
 import { useMemo } from 'react'
 import type { JSX } from 'react'
+import { t } from '../../shared/i18n'
 
 /** Um QR code em SVG (o link do pareamento do celular), com a margem que os leitores pedem. */
 export function QrCode({ text, size = 168 }: { text: string; size?: number }): JSX.Element {
@@ -25,7 +26,7 @@ export function QrCode({ text, size = 168 }: { text: string; size?: number }): J
       viewBox={`0 0 ${count} ${count}`}
       shapeRendering="crispEdges"
       role="img"
-      aria-label="QR code do pareamento"
+      aria-label={t('QR code do pareamento')}
     >
       <rect width={count} height={count} fill="#fff" />
       <path d={path} fill="#000" />

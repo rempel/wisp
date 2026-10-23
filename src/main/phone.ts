@@ -20,6 +20,7 @@ import { basename } from 'path'
 import { BROWSER_PREFIX } from './browser-policy'
 import { touchesSecrets } from './permission-scope'
 import { QUESTION_TOOL } from './questions'
+import { t } from '../shared/i18n'
 
 export const PHONE_SECRET = 'phone'
 /** O servidor do ntfy de quem não tem um. */
@@ -139,8 +140,8 @@ export function summarize(toolName: string, input: unknown): PhoneSummary | null
     return {
       ...base,
       plan: true,
-      title: 'O Claude quer seguir com o plano',
-      text: 'Veja o plano no computador; daqui dá para aprovar ou continuar planejando.'
+      title: t('O Claude quer seguir com o plano'),
+      text: t('Veja o plano no computador; daqui dá para aprovar ou continuar planejando.')
     }
   }
   if (toolName === 'Bash') {
@@ -149,18 +150,20 @@ export function summarize(toolName: string, input: unknown): PhoneSummary | null
       return {
         ...base,
         denyOnly: true,
-        title: 'O Claude quer rodar um comando',
-        text: 'O comando mexe com arquivos de segredos: veja no computador. Daqui, só dá para negar.'
+        title: t('O Claude quer rodar um comando'),
+        text: t(
+          'O comando mexe com arquivos de segredos: veja no computador. Daqui, só dá para negar.'
+        )
       }
     }
-    return { ...base, title: 'O Claude quer rodar um comando', text: cut(command) || 'Bash' }
+    return { ...base, title: t('O Claude quer rodar um comando'), text: cut(command) || 'Bash' }
   }
   if (toolName === 'Edit' || toolName === 'MultiEdit' || toolName === 'Write') {
     const path = field(input, 'file_path')
-    const verb = toolName === 'Write' ? 'escrever' : 'editar'
+    const verb = toolName === 'Write' ? t('escrever') : t('editar')
     return {
       ...base,
-      title: `O Claude quer ${verb} um arquivo`,
+      title: t('O Claude quer {verb} um arquivo', { verb }),
       text: cut(path ? basename(path) : toolName)
     }
   }
@@ -168,14 +171,14 @@ export function summarize(toolName: string, input: unknown): PhoneSummary | null
     const path = field(input, 'notebook_path')
     return {
       ...base,
-      title: 'O Claude quer editar um notebook',
+      title: t('O Claude quer editar um notebook'),
       text: cut(path ? basename(path) : toolName)
     }
   }
   if (toolName === 'WebFetch') {
     return {
       ...base,
-      title: 'O Claude quer abrir uma página',
+      title: t('O Claude quer abrir uma página'),
       text: cut(hostOf(field(input, 'url')) ?? 'WebFetch')
     }
   }
@@ -187,14 +190,14 @@ export function summarize(toolName: string, input: unknown): PhoneSummary | null
       .replace(/_/g, ' ')
     return {
       ...base,
-      title: 'O Claude quer usar o navegador',
+      title: t('O Claude quer usar o navegador'),
       text: cut(site ? `${action}: ${site}` : action)
     }
   }
   const tool = toolName.startsWith('mcp__')
     ? toolName.split('__').slice(2).join('__') || toolName
     : toolName
-  return { ...base, title: 'O Claude quer usar uma ferramenta', text: cut(tool) }
+  return { ...base, title: t('O Claude quer usar uma ferramenta'), text: cut(tool) }
 }
 
 // ---- O ntfy ----------------------------------------------------------------------------------
@@ -252,12 +255,15 @@ export async function publish(
       signal: AbortSignal.timeout(15_000)
     })
   } catch (err) {
-    throw new Error(`Não consegui falar com o ntfy (${(err as Error).message}).`, { cause: err })
+    throw new Error(
+      t('Não consegui falar com o ntfy ({message}).', { message: (err as Error).message }),
+      { cause: err }
+    )
   }
   if (response.status === 401 || response.status === 403) {
-    throw new Error('O ntfy recusou o acesso: confira a ficha de acesso do servidor.')
+    throw new Error(t('O ntfy recusou o acesso: confira a ficha de acesso do servidor.'))
   }
-  if (!response.ok) throw new Error(`O ntfy respondeu ${response.status}.`)
+  if (!response.ok) throw new Error(t('O ntfy respondeu {status}.', { status: response.status }))
 }
 
 /**
@@ -278,7 +284,8 @@ export async function listen(
         headers: headers(channel),
         signal
       })
-      if (!response.ok || !response.body) throw new Error(`o ntfy respondeu ${response.status}`)
+      if (!response.ok || !response.body)
+        throw new Error(t('o ntfy respondeu {status}', { status: response.status }))
       const reader = response.body.getReader()
       const decoder = new TextDecoder()
       let buffer = ''
@@ -336,10 +343,10 @@ export async function confirmPairing(
     await publish(
       channel,
       {
-        title: 'Wisp: parear este celular',
-        message: 'Toque em Confirmar para o Wisp poder pedir aprovações por aqui.',
+        title: t('Wisp: parear este celular'),
+        message: t('Toque em Confirmar para o Wisp poder pedir aprovações por aqui.'),
         tags: ['iphone'],
-        buttons: [{ label: 'Confirmar', ticket }]
+        buttons: [{ label: t('Confirmar'), ticket }]
       },
       fetcher
     )
@@ -428,7 +435,7 @@ export class PhoneApprovals {
       this.active = null
       clearTimeout(active.expiry)
       active.stop.abort()
-      this.confirm(active.outcome ?? 'Respondido no computador.')
+      this.confirm(active.outcome ?? t('Respondido no computador.'))
       this.pump()
     }
   }
@@ -480,7 +487,7 @@ export class PhoneApprovals {
       stop: new AbortController(),
       expiry: setTimeout(() => {
         if (this.active !== active) return
-        active.outcome = 'Expirou: ficou negado.'
+        active.outcome = t('Expirou: ficou negado.')
         // O card fica negado; o resolved que vem dele limpa o resto.
         if (!this.deps.answer(active.id, 'deny', 'expired')) this.resolved(active.id)
       }, expiryMs),
@@ -497,29 +504,29 @@ export class PhoneApprovals {
         // A ficha é de uso único: depois desta, nenhuma outra vale para o card.
         active.allow = null
         active.deny = randomTicket()
-        active.outcome = decision === 'allow' ? 'Permitido.' : 'Negado.'
+        active.outcome = decision === 'allow' ? t('Permitido.') : t('Negado.')
         if (!this.deps.answer(active.id, decision, 'phone')) this.resolved(active.id)
       },
       active.stop.signal,
       fetcher,
-      (err) => this.deps.log?.(`a escuta do ntfy caiu: ${err.message}`)
+      (err) => this.deps.log?.(t('a escuta do ntfy caiu: {message}', { message: err.message }))
     )
     const minutes = Math.round(expiryMs / 60_000)
     const { summary } = entry
     const buttons = summary.plan
       ? [
-          { label: 'Aprovar', ticket: active.allow! },
-          { label: 'Continuar planejando', ticket: active.deny }
+          { label: t('Aprovar'), ticket: active.allow! },
+          { label: t('Continuar planejando'), ticket: active.deny }
         ]
       : [
-          ...(active.allow ? [{ label: 'Permitir', ticket: active.allow }] : []),
-          { label: 'Negar', ticket: active.deny }
+          ...(active.allow ? [{ label: t('Permitir'), ticket: active.allow }] : []),
+          { label: t('Negar'), ticket: active.deny }
         ]
     void publish(
       channel,
       {
         title: `Wisp: ${summary.title}`,
-        message: `${summary.text}\n\nSem resposta em ${minutes > 0 ? `${minutes} min` : 'instantes'}, fica negado.`,
+        message: `${summary.text}\n\nSem resposta em ${minutes > 0 ? `${minutes} min` : t('instantes')}, fica negado.`,
         priority: 4,
         tags: ['robot'],
         buttons
@@ -527,7 +534,7 @@ export class PhoneApprovals {
       fetcher
     ).catch((err: Error) => {
       // Não chegou ao celular: o card continua no computador, como se nada tivesse ido.
-      this.deps.log?.(`não mandei o pedido para o celular: ${err.message}`)
+      this.deps.log?.(t('não mandei o pedido para o celular: {message}', { message: err.message }))
       if (this.active !== active) return
       this.active = null
       clearTimeout(active.expiry)

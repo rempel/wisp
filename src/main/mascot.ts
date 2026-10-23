@@ -22,6 +22,7 @@ import type {
   VoiceCommand,
   VoiceStatus
 } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
@@ -244,7 +245,7 @@ function checkVoiceEvent(value: unknown): VoiceCaptureEvent | null {
             : null
       // Um áudio estragado vira um erro, para a escuta não ficar esperando.
       if (!bytes || bytes.byteLength < 2 || bytes.byteLength > MAX_VOICE_BYTES) {
-        return { type: 'error', id, reason: 'failed', message: 'o áudio chegou estragado' }
+        return { type: 'error', id, reason: 'failed', message: t('o áudio chegou estragado') }
       }
       // Uma cópia com tamanho par: amostras de 16 bits inteiras.
       const copy = bytes.slice(0, bytes.byteLength & ~1)
@@ -301,15 +302,17 @@ function checkDropped(value: unknown): DroppedFiles {
     try {
       const info = statSync(path)
       if (!info.isFile()) {
-        problems.push(`"${name}" não é um arquivo.`)
+        problems.push(t('"{name}" não é um arquivo.', { name }))
       } else if (info.size > ATTACHMENT_LIMITS.maxBytes) {
-        problems.push(`"${name}" passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB.`)
+        problems.push(
+          t('"{name}" passa de {v2} MB.', { name, v2: ATTACHMENT_LIMITS.maxBytes / 1024 / 1024 })
+        )
       } else {
         const thumbnail = isThumbnail(item.thumbnail) ? item.thumbnail : undefined
         files.push({ path, name, size: info.size, ...(thumbnail ? { thumbnail } : {}) })
       }
     } catch {
-      problems.push(`Não consegui ler "${name}".`)
+      problems.push(t('Não consegui ler "{name}".', { name }))
     }
   }
   if (Array.isArray(input.problems)) {
@@ -534,26 +537,31 @@ function newIsland(): Island {
 /** O texto da ilha: a mensagem do momento, a voz, ou o estado do mascote. */
 function islandText(): { title: string; detail: string; tone: MascotIslandTone } {
   if (island?.message) return { ...island.message, tone: 'alert' }
-  if (voiceState === 'listening') return { title: 'ouvindo…', detail: 'pode falar', tone: 'busy' }
+  if (voiceState === 'listening')
+    return { title: 'ouvindo…', detail: t('pode falar'), tone: 'busy' }
   if (voiceState === 'transcribing') {
-    return { title: 'entendendo…', detail: 'transcrevendo o que você disse', tone: 'busy' }
+    return { title: 'entendendo…', detail: t('transcrevendo o que você disse'), tone: 'busy' }
   }
   if (voiceState === 'speaking') return { title: 'falando…', detail: '', tone: 'busy' }
   switch (view.state) {
     case 'talking':
-      return { title: 'respondendo…', detail: 'abra o painel para ver', tone: 'busy' }
+      return { title: 'respondendo…', detail: t('abra o painel para ver'), tone: 'busy' }
     case 'working':
-      return { title: 'trabalhando…', detail: 'abra o painel para ver', tone: 'busy' }
+      return { title: 'trabalhando…', detail: t('abra o painel para ver'), tone: 'busy' }
     case 'permission':
-      return { title: 'esperando você', detail: 'um pedido de permissão no painel', tone: 'alert' }
+      return {
+        title: t('esperando você'),
+        detail: t('um pedido de permissão no painel'),
+        tone: 'alert'
+      }
     case 'happy':
-      return { title: 'pronto!', detail: 'a resposta está no painel', tone: 'happy' }
+      return { title: 'pronto!', detail: t('a resposta está no painel'), tone: 'happy' }
     case 'error':
-      return { title: 'algo deu errado', detail: 'veja no painel', tone: 'alert' }
+      return { title: t('algo deu errado'), detail: t('veja no painel'), tone: 'alert' }
     case 'sleeping':
       return { title: 'cochilando…', detail: islandNote, tone: 'calm' }
     default:
-      return { title: 'Wisp', detail: islandNote || 'clique para conversar', tone: 'calm' }
+      return { title: 'Wisp', detail: islandNote || t('clique para conversar'), tone: 'calm' }
   }
 }
 

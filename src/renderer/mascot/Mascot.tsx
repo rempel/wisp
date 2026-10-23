@@ -16,6 +16,7 @@ import { AccessoryArt } from './Accessory'
 import { Body } from './Bodies'
 import { SoundPlayer } from './sounds'
 import { VoiceCapture, VoiceSpeaker } from './voice'
+import { t } from '../../shared/i18n'
 
 /** Movimento (px) a partir do qual o gesto deixa de ser clique e vira arraste. */
 const DRAG_THRESHOLD = 5
@@ -156,7 +157,9 @@ function collectDropped(data: DataTransfer): {
     if (item.kind !== 'file') continue
     const file = item.getAsFile()
     if (item.webkitGetAsEntry()?.isDirectory) {
-      problems.push(`"${file?.name ?? 'pasta'}" é uma pasta: anexe os arquivos dela.`)
+      problems.push(
+        t('"{v1}" é uma pasta: anexe os arquivos dela.', { v1: file?.name ?? t('pasta') })
+      )
       continue
     }
     if (!file) continue
@@ -167,7 +170,7 @@ function collectDropped(data: DataTransfer): {
       // Sem caminho: não veio de uma pasta do computador.
     }
     if (!path) {
-      problems.push(`"${file.name}" não veio de uma pasta do computador.`)
+      problems.push(t('"{name}" não veio de uma pasta do computador.', { name: file.name }))
       continue
     }
     files.push(file)
@@ -702,7 +705,7 @@ export default function Mascot(): JSX.Element {
 
               {/* "oi!" da saudação. */}
               <div className="bubble" aria-hidden>
-                oi!
+                {t('oi!')}
               </div>
 
               {/* O arquivo solto voando para dentro da gota. */}

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { PaperclipIcon, PlusIcon, ScreenshotIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 /**
  * O "+" da caixa de texto: anexar arquivos e anexar um print da tela, num menu, para sobrar
@@ -49,8 +50,8 @@ export function ComposerMenu({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title="Anexar arquivos ou um print da tela"
-        aria-label="Anexar"
+        title={t('Anexar arquivos ou um print da tela')}
+        aria-label={t('Anexar')}
       >
         {capturing ? <span className="spinner" /> : <PlusIcon />}
       </button>
@@ -61,8 +62,8 @@ export function ComposerMenu({
               <PaperclipIcon />
             </span>
             <span className="model-text">
-              <strong>Anexar arquivos</strong>
-              <small>ou arraste para o painel, ou cole uma imagem</small>
+              <strong>{t('Anexar arquivos')}</strong>
+              <small>{t('ou arraste para o painel, ou cole uma imagem')}</small>
             </span>
           </button>
           <button
@@ -76,8 +77,8 @@ export function ComposerMenu({
               <ScreenshotIcon />
             </span>
             <span className="model-text">
-              <strong>Print da tela</strong>
-              <small>o painel sai da frente por um instante</small>
+              <strong>{t('Print da tela')}</strong>
+              <small>{t('o painel sai da frente por um instante')}</small>
             </span>
           </button>
         </div>

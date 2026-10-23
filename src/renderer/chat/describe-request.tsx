@@ -3,6 +3,7 @@ import { explainCommand } from '../../shared/commands'
 import { Markdown } from './Markdown'
 import { toolLabel } from './state'
 import type { Item } from './state'
+import { t } from '../../shared/i18n'
 
 // O que cada pedido de permissão quer fazer, em português em vez do JSON cru: o título e os
 // detalhes do card, e o título também para o aviso do leitor de tela.
@@ -35,15 +36,16 @@ function describeBrowser(
   site?: string
 ): { title: string; body: ReactNode } {
   const element = str(input, 'element')
-  const target = element ? `“${element}”` : 'um elemento da página'
+  const target = element ? `“${element}”` : t('um elemento da página')
   const where = (
     <p>
       {site ? (
         <>
-          Em <strong>{site}</strong>, no navegador do Claude.
+          {t('Em')} <strong>{site}</strong>
+          {t(', no navegador do Claude.')}
         </>
       ) : (
-        'No navegador do Claude.'
+        t('No navegador do Claude.')
       )}
     </p>
   )
@@ -55,16 +57,16 @@ function describeBrowser(
     case 'browser_navigate':
     case 'browser_tabs':
       return {
-        title: 'Abrir uma página no navegador',
+        title: t('Abrir uma página no navegador'),
         body: <code className="permission-path">{str(input, 'url')}</code>
       }
     case 'browser_click':
-      return { title: `Clicar em ${target}`, body: where }
+      return { title: t('Clicar em {target}', { target }), body: where }
     case 'browser_hover':
-      return { title: `Passar o mouse em ${target}`, body: where }
+      return { title: t('Passar o mouse em {target}', { target }), body: where }
     case 'browser_type':
       return {
-        title: `Digitar em ${target}`,
+        title: t('Digitar em {target}', { target }),
         body: (
           <>
             {where}
@@ -74,7 +76,7 @@ function describeBrowser(
       }
     case 'browser_fill_form':
       return {
-        title: 'Preencher um formulário',
+        title: t('Preencher um formulário'),
         body: (
           <>
             {where}
@@ -92,27 +94,33 @@ function describeBrowser(
       }
     case 'browser_select_option':
       return {
-        title: `Escolher ${list('values').map(String).join(', ')} em ${target}`,
+        title: t('Escolher {v1} em {target}', {
+          v1: list('values').map(String).join(', '),
+          target
+        }),
         body: where
       }
     case 'browser_press_key':
-      return { title: `Apertar a tecla ${str(input, 'key')}`, body: where }
+      return { title: t('Apertar a tecla {v1}', { v1: str(input, 'key') }), body: where }
     case 'browser_drag':
       return {
-        title: `Arrastar “${str(input, 'startElement')}” até “${str(input, 'endElement')}”`,
+        title: t('Arrastar “{v1}” até “{v2}”', {
+          v1: str(input, 'startElement'),
+          v2: str(input, 'endElement')
+        }),
         body: where
       }
     case 'browser_handle_dialog':
       return {
         title: (input as { accept?: unknown })?.accept
-          ? 'Aceitar um aviso da página'
-          : 'Recusar um aviso da página',
+          ? t('Aceitar um aviso da página')
+          : t('Recusar um aviso da página'),
         body: where
       }
     case 'browser_evaluate':
     case 'browser_run_code_unsafe':
       return {
-        title: 'Rodar código na página',
+        title: t('Rodar código na página'),
         body: (
           <>
             {where}
@@ -123,7 +131,7 @@ function describeBrowser(
     case 'browser_file_upload':
     case 'browser_drop':
       return {
-        title: 'Enviar arquivos do computador para a página',
+        title: t('Enviar arquivos do computador para a página'),
         body: (
           <>
             {where}
@@ -133,7 +141,7 @@ function describeBrowser(
       }
     default:
       return {
-        title: `Usar o navegador (${tool})`,
+        title: t('Usar o navegador ({tool})', { tool }),
         body: (
           <>
             {where}
@@ -157,13 +165,14 @@ export function describe(
     const value = (input as Record<string, unknown> | null)?.items
     const items = Array.isArray(value) ? value.map(String) : []
     return {
-      title: 'Confiar nesta pasta?',
+      title: t('Confiar nesta pasta?'),
       body: (
         <>
           <code className="permission-path">{str(input, 'path')}</code>
           <p>
-            As configurações do Claude Code desta pasta rodam comandos ou liberam ferramentas
-            sozinhas, sem passar pelos cards:
+            {t(
+              'As configurações do Claude Code desta pasta rodam comandos ou liberam ferramentas sozinhas, sem passar pelos cards:'
+            )}
           </p>
           <ul className="permission-list">
             {items.map((item) => (
@@ -172,17 +181,17 @@ export function describe(
               </li>
             ))}
           </ul>
-          <p>Confie só se você conhece este projeto. Vale até esses arquivos mudarem.</p>
+          <p>{t('Confie só se você conhece este projeto. Vale até esses arquivos mudarem.')}</p>
         </>
       )
     }
   }
   if (toolName === PLAN) {
     return {
-      title: 'O plano está pronto',
+      title: t('O plano está pronto'),
       body: (
         <div className="permission-plan">
-          <Markdown text={str(input, 'plan') || '(o Claude não mandou o texto do plano)'} />
+          <Markdown text={str(input, 'plan') || t('(o Claude não mandou o texto do plano)')} />
         </div>
       )
     }
@@ -203,14 +212,14 @@ export function describe(
       // O que o comando faz, pela tabela do Wisp (Fase 24): independente do que o Claude diz.
       const explained = explainCommand(str(input, 'command'))
       return {
-        title: 'Rodar um comando no terminal',
+        title: t('Rodar um comando no terminal'),
         body: (
           <>
             {str(input, 'description') && <p>{str(input, 'description')}</p>}
             <pre>{str(input, 'command')}</pre>
             {explained && (
               <p className="permission-explain">
-                <span className="permission-explain-label">O que faz:</span> {explained}
+                <span className="permission-explain-label">{t('O que faz:')}</span> {explained}
               </p>
             )}
           </>
@@ -219,7 +228,7 @@ export function describe(
     }
     case 'Write':
       return {
-        title: 'Criar ou substituir um arquivo',
+        title: t('Criar ou substituir um arquivo'),
         body: (
           <>
             {path('file_path')}
@@ -229,7 +238,7 @@ export function describe(
       }
     case 'Edit':
       return {
-        title: 'Editar um arquivo',
+        title: t('Editar um arquivo'),
         body: (
           <>
             {path('file_path')}
@@ -242,43 +251,45 @@ export function describe(
         )
       }
     case 'MultiEdit':
-      return { title: 'Fazer várias mudanças num arquivo', body: path('file_path') }
+      return { title: t('Fazer várias mudanças num arquivo'), body: path('file_path') }
     case 'NotebookEdit':
-      return { title: 'Editar um notebook', body: path('notebook_path') }
+      return { title: t('Editar um notebook'), body: path('notebook_path') }
     case 'Read':
-      return { title: 'Ler um arquivo protegido', body: path('file_path') }
+      return { title: t('Ler um arquivo protegido'), body: path('file_path') }
     case 'mcp__desktop__open_app':
       return {
-        title: 'Abrir um app',
+        title: t('Abrir um app'),
         body: <code className="permission-path">{str(input, 'id')}</code>
       }
     case 'mcp__desktop__open_project':
-      return { title: 'Abrir um projeto no editor', body: path('path') }
+      return { title: t('Abrir um projeto no editor'), body: path('path') }
     case 'mcp__desktop__open_terminal':
       return {
-        title: 'Abrir um terminal',
-        body: str(input, 'path') ? path('path') : <p>Na pasta pessoal.</p>
+        title: t('Abrir um terminal'),
+        body: str(input, 'path') ? path('path') : <p>{t('Na pasta pessoal.')}</p>
       }
     case 'mcp__desktop__list_windows':
       return {
-        title: 'Ver as janelas abertas',
-        body: <p>O Claude vai ver o nome dos apps e o título das janelas abertas.</p>
+        title: t('Ver as janelas abertas'),
+        body: <p>{t('O Claude vai ver o nome dos apps e o título das janelas abertas.')}</p>
       }
     case 'mcp__desktop__focus_window':
       return {
-        title: 'Trazer uma janela para a frente',
+        title: t('Trazer uma janela para a frente'),
         body: <code className="permission-path">{str(input, 'janela')}</code>
       }
     case 'mcp__desktop__screenshot':
       return {
-        title: 'Tirar um print da tela',
+        title: t('Tirar um print da tela'),
         body: (
-          <p>O Claude vai ver uma imagem da sua tela. O painel sai da frente durante o print.</p>
+          <p>
+            {t('O Claude vai ver uma imagem da sua tela. O painel sai da frente durante o print.')}
+          </p>
         )
       }
     default:
       return {
-        title: `Usar a ferramenta ${toolLabel(toolName)}`,
+        title: t('Usar a ferramenta {v1}', { v1: toolLabel(toolName) }),
         body: <pre>{clip(JSON.stringify(input, null, 2))}</pre>
       }
   }
@@ -286,6 +297,6 @@ export function describe(
 
 /** O título do card, para o aviso do leitor de tela (Fase 22). */
 export function requestTitle(request: PermissionItem): string {
-  if (request.toolName === 'AskUserQuestion') return 'Pergunta do Claude'
+  if (request.toolName === 'AskUserQuestion') return t('Pergunta do Claude')
   return describe(request.toolName, request.input, undefined, request.site).title
 }

@@ -4,16 +4,17 @@ import type { TabsState } from '../../shared/ipc'
 import { TAB_DRAG_TYPE } from '../../shared/layout'
 import { FolderMenu } from './FolderMenu'
 import { CloseIcon, FolderIcon, PlusIcon, SplitIcon, TerminalIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 /** O que o pontinho da aba mostra. */
 export type TabStatus = 'idle' | 'working' | 'waiting' | 'done' | 'error'
 
 const STATUS_LABEL: Record<TabStatus, string> = {
   idle: '',
-  working: 'trabalhando',
-  waiting: 'esperando você',
-  done: 'resposta nova',
-  error: 'com erro'
+  working: t('trabalhando'),
+  waiting: t('esperando você'),
+  done: t('resposta nova'),
+  error: t('com erro')
 }
 
 /**
@@ -32,7 +33,7 @@ export function TabBar({
 }): JSX.Element {
   const focusedId = state.panes[state.focused]
   return (
-    <nav className="tabs" aria-label="Abas">
+    <nav className="tabs" aria-label={t('Abas')}>
       <div className="tabs-list" role="tablist">
         {state.tabs.map((tab, index) => {
           const status = statuses.get(tab.id) ?? 'idle'
@@ -58,7 +59,7 @@ export function TabBar({
                 }}
                 onDragEnd={() => onDragTab(null)}
                 onClick={() => window.wisp.tabs.show(tab.id)}
-                title={`${tab.title}${tab.kind === 'chat' && tab.folder ? ` · ${tab.folder}` : ''}${label ? ` (${label})` : ''}${index < 9 ? ` · Ctrl+${index + 1}` : ''}`}
+                title={`${tab.title}${tab.kind === 'chat' && tab.folder ? ` · ${tab.folder}` : ''}${label ? ` (${label})` : ''}${index < 9 ? t(' · Ctrl+{v1}', { v1: index + 1 }) : ''}`}
               >
                 {tab.kind === 'session' ? (
                   <TerminalIcon />
@@ -77,8 +78,8 @@ export function TabBar({
                 type="button"
                 className="tab-close"
                 onClick={() => window.wisp.tabs.close(tab.id)}
-                title={tab.kind === 'chat' ? 'Fechar a aba (Ctrl+W)' : 'Fechar a aba'}
-                aria-label={`Fechar ${tab.title}`}
+                title={tab.kind === 'chat' ? t('Fechar a aba (Ctrl+W)') : t('Fechar a aba')}
+                aria-label={t('Fechar {title}', { title: tab.title })}
               >
                 <CloseIcon />
               </button>
@@ -90,8 +91,8 @@ export function TabBar({
         type="button"
         className="icon-button tabs-new"
         onClick={() => window.wisp.tabs.create()}
-        title="Nova conversa numa aba (Ctrl+T)"
-        aria-label="Nova conversa numa aba"
+        title={t('Nova conversa numa aba (Ctrl+T)')}
+        aria-label={t('Nova conversa numa aba')}
       >
         <PlusIcon />
       </button>
@@ -103,10 +104,12 @@ export function TabBar({
         disabled={state.panes.length >= MAX_PANES}
         title={
           state.panes.length >= MAX_PANES
-            ? `No máximo ${MAX_PANES} painéis lado a lado`
-            : 'Dividir: mais um painel ao lado (Ctrl+\\; embaixo, Ctrl+Shift+\\). Arraste uma aba para a borda de um painel para dividir ali.'
+            ? t('No máximo {MAX_PANES} painéis lado a lado', { MAX_PANES })
+            : t(
+                'Dividir: mais um painel ao lado (Ctrl+\\; embaixo, Ctrl+Shift+\\). Arraste uma aba para a borda de um painel para dividir ali.'
+              )
         }
-        aria-label="Dividir a janela"
+        aria-label={t('Dividir a janela')}
       >
         <SplitIcon />
       </button>

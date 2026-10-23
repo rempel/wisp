@@ -3,6 +3,7 @@ import type { JSX } from 'react'
 import { priceLabel } from '../../shared/format'
 import type { OpenRouterModelInfo } from '../../shared/ipc'
 import { CheckIcon, ChevronDownIcon, ModelIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 /** O mesmo formato que o main aceita (config.ts, MODEL_NAME). */
 const MODEL_ID = /^[A-Za-z0-9~][\w.:/@[\]-]{0,99}$/
@@ -86,22 +87,26 @@ export function OpenRouterModelPill({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="dialog"
         aria-expanded={open}
-        title={choice ? `Modelo da OpenRouter: ${choice}` : 'Escolha um modelo da OpenRouter'}
+        title={
+          choice
+            ? t('Modelo da OpenRouter: {choice}', { choice })
+            : t('Escolha um modelo da OpenRouter')
+        }
       >
         <ModelIcon />
-        <span>{choice ? shortName(choice) : 'Escolher modelo'}</span>
+        <span>{choice ? shortName(choice) : t('Escolher modelo')}</span>
         <ChevronDownIcon />
       </button>
       {open && (
         <div
           className="model-menu openrouter-menu"
           role="dialog"
-          aria-label="Modelos da OpenRouter"
+          aria-label={t('Modelos da OpenRouter')}
         >
           <input
             type="text"
             className="openrouter-search"
-            placeholder="Buscar ou digitar provedor/modelo"
+            placeholder={t('Buscar ou digitar provedor/modelo')}
             value={query}
             autoFocus
             spellCheck={false}
@@ -118,8 +123,10 @@ export function OpenRouterModelPill({
               <button type="button" className="model-option" onClick={() => pick(typed)}>
                 <span className="model-check" />
                 <span className="model-text">
-                  <strong>Usar {typed}</strong>
-                  <small>um id que não está na lista</small>
+                  <strong>
+                    {t('Usar')} {typed}
+                  </strong>
+                  <small>{t('um id que não está na lista')}</small>
                 </span>
               </button>
             )}
@@ -146,15 +153,20 @@ export function OpenRouterModelPill({
                 </button>
               )
             })}
-            {!models && !error && <p className="model-menu-note">Buscando os modelos…</p>}
-            {error && <p className="model-menu-note">{error} Dá para digitar o id do modelo.</p>}
+            {!models && !error && <p className="model-menu-note">{t('Buscando os modelos…')}</p>}
+            {error && (
+              <p className="model-menu-note">
+                {error} {t('Dá para digitar o id do modelo.')}
+              </p>
+            )}
             {models && !shown.length && !custom && (
-              <p className="model-menu-note">Nenhum modelo com esse nome.</p>
+              <p className="model-menu-note">{t('Nenhum modelo com esse nome.')}</p>
             )}
           </div>
           <p className="model-menu-note">
-            Preços em dólares por milhão de tokens (entrada / saída). Os modelos precisam aceitar
-            ferramentas.
+            {t(
+              'Preços em dólares por milhão de tokens (entrada / saída). Os modelos precisam aceitar ferramentas.'
+            )}
           </p>
         </div>
       )}

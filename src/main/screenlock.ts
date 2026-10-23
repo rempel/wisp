@@ -33,13 +33,15 @@ export class ScreenLock extends EventEmitter {
     return [...this.sources.values()].some(Boolean)
   }
 
-  /** Começa a ouvir as duas fontes. Sem D-Bus, a tela nunca está bloqueada. */
-  static async watch(env: NodeJS.ProcessEnv = process.env): Promise<ScreenLock> {
+  /**
+   * Começa a ouvir as duas fontes, cada uma por si: o 'change' vale assim que uma delas está
+   * ouvindo (o barramento do sistema pode demorar a responder, e a proteção de tela não espera
+   * por ele). Sem D-Bus, a tela nunca está bloqueada.
+   */
+  static watch(env: NodeJS.ProcessEnv = process.env): ScreenLock {
     const lock = new ScreenLock()
-    await Promise.all([
-      lock.watchSavers(env).catch(() => {}),
-      lock.watchLogind(env).catch(() => {})
-    ])
+    void lock.watchSavers(env).catch(() => {})
+    void lock.watchLogind(env).catch(() => {})
     return lock
   }
 

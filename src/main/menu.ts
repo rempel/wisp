@@ -4,6 +4,7 @@
 import type { MenuItemConstructorOptions } from 'electron'
 import { AVATAR_LABELS, AVATARS } from '../shared/avatars'
 import type { AvatarName } from '../shared/avatars'
+import { t } from '../shared/i18n'
 
 export interface TrayActions {
   mascotVisible(): boolean
@@ -39,14 +40,14 @@ export function menuTemplate(
   const visible = actions.mascotVisible()
   return [
     {
-      label: visible ? 'Ocultar mascote' : 'Mostrar mascote',
+      label: visible ? t('Ocultar mascote') : t('Mostrar mascote'),
       click: () => {
         actions.setMascotVisible(!visible)
         refresh()
       }
     },
     {
-      label: 'Avatar',
+      label: t('Avatar'),
       submenu: AVATARS.map((name) => ({
         label: AVATAR_LABELS[name],
         type: 'radio' as const,
@@ -55,20 +56,20 @@ export function menuTemplate(
       }))
     },
     {
-      label: 'Ilha no topo',
+      label: t('Ilha no topo'),
       type: 'checkbox',
       checked: actions.compactEnabled(),
       click: (item) => actions.setCompactEnabled(item.checked)
     },
-    { label: 'Nova conversa', click: () => actions.newConversation() },
+    { label: t('Nova conversa'), click: () => actions.newConversation() },
     {
-      label: 'Sons',
+      label: t('Sons'),
       type: 'checkbox',
       checked: actions.soundEnabled(),
       click: (item) => actions.setSoundEnabled(item.checked)
     },
     {
-      label: 'Iniciar com o sistema',
+      label: t('Iniciar com o sistema'),
       type: 'checkbox',
       checked: actions.autostartEnabled(),
       click: (item) => {
@@ -77,25 +78,25 @@ export function menuTemplate(
       }
     },
     {
-      label: 'Modo demonstração',
+      label: t('Modo demonstração'),
       type: 'checkbox',
       checked: actions.demoEnabled(),
       click: (item) => actions.setDemoEnabled(item.checked)
     },
-    { label: 'Configurações…', click: () => actions.openSettings() },
-    { label: 'Diagnóstico…', click: () => actions.openDiagnostics() },
-    { label: 'Abrir config.json', click: () => actions.openConfig() },
+    { label: t('Configurações…'), click: () => actions.openSettings() },
+    { label: t('Diagnóstico…'), click: () => actions.openDiagnostics() },
+    { label: t('Abrir config.json'), click: () => actions.openConfig() },
     { type: 'separator' },
     {
       label: actions.shortcutLabel()
-        ? `Atalho: ${actions.shortcutLabel()}`
-        : 'Atalho: wisp --toggle (veja o README)',
+        ? t('Atalho: {v1}', { v1: actions.shortcutLabel() })
+        : t('Atalho: wisp --toggle (veja o README)'),
       enabled: false
     },
     ...(actions.voiceShortcutLabel()
-      ? [{ label: `Falar: ${actions.voiceShortcutLabel()} (segure)`, enabled: false }]
+      ? [{ label: t('Falar: {v1} (segure)', { v1: actions.voiceShortcutLabel() }), enabled: false }]
       : []),
     { type: 'separator' },
-    { label: 'Sair', click: () => actions.quit() }
+    { label: t('Sair'), click: () => actions.quit() }
   ]
 }

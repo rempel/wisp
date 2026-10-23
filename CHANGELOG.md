@@ -24,12 +24,15 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Notificações** (Fase 24): o card vira notificação com Permitir e Negar quando você não está
   olhando o painel; o resumo "Enquanto você estava fora" ao desbloquear a tela; o card do Bash diz o
   que o comando faz.
-- **Para a comunidade** (Fase 25): pacotes para ARM64 e o Flatpak; estas notas e o guia de
-  contribuição.
+- **Para a comunidade** (Fase 25): a interface em inglês (pelo idioma do sistema ou nas
+  configurações, e o Claude responde no mesmo idioma); pacotes para ARM64 e o Flatpak; estas notas
+  e o guia de contribuição.
 
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
+- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`).
+- O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
 - O CI monta e confere os pacotes ARM64 e o Flatpak.
 
 ## 0.1.0

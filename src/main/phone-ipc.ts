@@ -22,6 +22,7 @@ import type { PhoneChannel, PhoneDecision } from './phone'
 import { deleteSecret, hasSecret, readSecret, storeSecret } from './secrets'
 import { IPC } from '../shared/ipc'
 import type { ChatEvent, PhonePairResult, PhoneResult, PhoneStatus } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 export interface PhoneOptions {
   /** O pedido veio da página do painel? */
@@ -43,8 +44,9 @@ export interface Phone {
 }
 
 const NO_REPLY =
-  'O celular não respondeu a tempo. Confira se o app do ntfy assinou o tópico (pelo QR code) e ' +
-  'tente de novo.'
+  t(
+    'O celular não respondeu a tempo. Confira se o app do ntfy assinou o tópico (pelo QR code) e '
+  ) + t('tente de novo.')
 
 export function setupPhone(options: PhoneOptions): Phone {
   let channel: PhoneChannel | null = null

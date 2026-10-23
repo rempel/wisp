@@ -44,6 +44,7 @@ import type { ChatState, Item } from './state'
 import { TerminalView } from './TerminalView'
 import { ToolCard } from './ToolCard'
 import { useAttachments } from './useAttachments'
+import { t, dateLocale } from '../../shared/i18n'
 
 /** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
 const STICK_DISTANCE = 48
@@ -76,9 +77,10 @@ function replyAnnouncement(items: Item[]): string {
   const from = lastTurnStart(items)
   for (let i = items.length - 1; i > from; i--) {
     const item = items[i]
-    if (item.kind === 'text' && item.text.trim()) return `Resposta pronta: ${plainStart(item.text)}`
+    if (item.kind === 'text' && item.text.trim())
+      return t('Resposta pronta: {v1}', { v1: plainStart(item.text) })
   }
-  return 'O Claude terminou.'
+  return t('O Claude terminou.')
 }
 
 function Message({
@@ -100,20 +102,20 @@ function Message({
               type="button"
               className="edit-last"
               onClick={onEdit}
-              title="Editar e mandar de novo (↑ na caixa vazia)"
-              aria-label="Editar a última mensagem"
+              title={t('Editar e mandar de novo (↑ na caixa vazia)')}
+              aria-label={t('Editar a última mensagem')}
             >
-              Editar
+              {t('Editar')}
             </button>
           )}
-          <span className="sr-only">Você:</span>
+          <span className="sr-only">{t('Você:')}</span>
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
           {item.text && (
             <div
               className={`msg user${item.voice ? ' spoken' : ''}${item.queued ? ' queued' : ''}`}
             >
               {item.voice && (
-                <span className="voice-badge" title="Falado">
+                <span className="voice-badge" title={t('Falado')}>
                   <MicIcon />
                 </span>
               )}
@@ -123,17 +125,17 @@ function Message({
           {item.queued && (
             <span
               className="queue-badge"
-              title="O Claude recebe na próxima pausa, sem parar o que está fazendo"
+              title={t('O Claude recebe na próxima pausa, sem parar o que está fazendo')}
             >
-              na fila
+              {t('na fila')}
             </span>
           )}
           {item.dropped && (
             <span
               className="queue-badge dropped"
-              title="A resposta parou antes de o Claude pegar esta mensagem"
+              title={t('A resposta parou antes de o Claude pegar esta mensagem')}
             >
-              não chegou ao Claude
+              {t('não chegou ao Claude')}
             </span>
           )}
         </div>
@@ -141,7 +143,7 @@ function Message({
     case 'text':
       return (
         <>
-          <span className="sr-only">Claude:</span>
+          <span className="sr-only">{t('Claude:')}</span>
           <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
             <Markdown text={item.text} />
           </div>
@@ -254,7 +256,9 @@ export function Pane({
   if ((waitingCard?.id ?? null) !== seenCard) {
     setSeenCard(waitingCard?.id ?? null)
     if (waitingCard && focused) {
-      setAnnouncement(`O Claude pede: ${requestTitle(waitingCard)}. Alt+P vai para o card.`)
+      setAnnouncement(
+        t('O Claude pede: {v1}. Alt+P vai para o card.', { v1: requestTitle(waitingCard) })
+      )
     }
   }
   const attachments = useAttachments()
@@ -634,8 +638,8 @@ export function Pane({
             type="button"
             className="icon-button pane-close"
             onClick={() => window.wisp.tabs.unsplit(index)}
-            title="Tirar este painel da janela (a aba continua aberta)"
-            aria-label="Tirar este painel da janela"
+            title={t('Tirar este painel da janela (a aba continua aberta)')}
+            aria-label={t('Tirar este painel da janela')}
           >
             <CloseIcon />
           </button>
@@ -671,25 +675,29 @@ export function Pane({
         onScroll={onScroll}
         hidden={terminalView}
         role="log"
-        aria-label="Conversa"
+        aria-label={t('Conversa')}
       >
         {/* Na demonstração, as sugestões ficam até a primeira pergunta (os avisos não as tiram). */}
         {(state.items.length === 0 || (demo && !started)) && (
           <div className="empty">
             <Avatar size={64} mood={mood} />
-            <p className="hello">Oi! Eu sou o Wisp.</p>
+            <p className="hello">{t('Oi! Eu sou o Wisp.')}</p>
             {state.folder && (
               <p className="empty-folder">
-                Trabalhando em <code>{state.folder}</code>, como o Claude Code no terminal: com o
-                CLAUDE.md, as configurações e as skills deste projeto.
+                {t('Trabalhando em')} <code>{state.folder}</code>
+                {t(
+                  ', como o Claude Code no terminal: com o CLAUDE.md, as configurações e as skills deste projeto.'
+                )}
               </p>
             )}
             {agenda && <NextEvent event={agenda} />}
             {demo ? (
               <>
                 <p>
-                  Esta é a <strong>demonstração</strong>: as respostas são gravadas, e nada roda de
-                  verdade no seu computador. Experimente:
+                  {t('Esta é a')} <strong>{t('demonstração')}</strong>
+                  {t(
+                    ': as respostas são gravadas, e nada roda de verdade no seu computador. Experimente:'
+                  )}
                 </p>
                 <div className="demo-prompts">
                   {DEMO_PROMPTS.map((prompt) => (
@@ -707,15 +715,17 @@ export function Pane({
               </>
             ) : (
               <p>
-                Pergunte qualquer coisa, arraste arquivos para cá ou cole uma imagem. Enter envia,
-                Shift+Enter quebra a linha e Shift+Tab troca o modo de permissão.
+                {t(
+                  'Pergunte qualquer coisa, arraste arquivos para cá ou cole uma imagem. Enter envia, Shift+Enter quebra a linha e Shift+Tab troca o modo de permissão.'
+                )}
               </p>
             )}
           </div>
         )}
         {hiddenItems > 0 && (
           <button type="button" className="load-earlier" onClick={showEarlier}>
-            Mostrar anteriores ({hiddenItems})
+            {t('Mostrar anteriores (')}
+            {hiddenItems})
           </button>
         )}
         {/* A lista só cresce (itens mudam no lugar), então a posição identifica o item. */}
@@ -731,7 +741,7 @@ export function Pane({
           )
         })}
         {thinking && (
-          <div className="thinking" aria-label="Pensando">
+          <div className="thinking" aria-label={t('Pensando')}>
             <span />
             <span />
             <span />
@@ -765,13 +775,14 @@ export function Pane({
         {editing && (
           <div className="edit-banner" role="status">
             <span>
-              Editando a última mensagem: a resposta dela sai da conversa, e vem uma nova (os
-              arquivos que ela mudou continuam como estão).
+              {t(
+                'Editando a última mensagem: a resposta dela sai da conversa, e vem uma nova (os arquivos que ela mudou continuam como estão).'
+              )}
               {editing.attachments > 0 &&
-                ' Os anexos dela não vão junto: anexe de novo se precisar.'}
+                t(' Os anexos dela não vão junto: anexe de novo se precisar.')}
             </span>
             <button type="button" className="link" onClick={cancelEdit}>
-              Cancelar
+              {t('Cancelar')}
             </button>
           </div>
         )}
@@ -823,11 +834,11 @@ export function Pane({
               <span className={`voice-hint ${voice.state}`} role="status">
                 {voice.state === 'listening'
                   ? voice.holding
-                    ? 'Ouvindo… solte o atalho'
-                    : 'Ouvindo… (Esc desiste)'
+                    ? t('Ouvindo… solte o atalho')
+                    : t('Ouvindo… (Esc desiste)')
                   : voice.state === 'transcribing'
-                    ? 'Entendendo…'
-                    : 'Falando… (Esc para)'}
+                    ? t('Entendendo…')
+                    : t('Falando… (Esc para)')}
               </span>
             )}
             {sound && (
@@ -835,8 +846,8 @@ export function Pane({
                 type="button"
                 className={`icon-button sound-toggle${sound.enabled ? '' : ' off'}`}
                 onClick={() => onToggleSound(sound)}
-                title={sound.enabled ? 'Desligar os sons (Ctrl+M)' : 'Ligar os sons (Ctrl+M)'}
-                aria-label={sound.enabled ? 'Desligar os sons' : 'Ligar os sons'}
+                title={sound.enabled ? t('Desligar os sons (Ctrl+M)') : t('Ligar os sons (Ctrl+M)')}
+                aria-label={sound.enabled ? t('Desligar os sons') : t('Ligar os sons')}
                 aria-pressed={!sound.enabled}
               >
                 {sound.enabled ? <SoundOnIcon /> : <SoundOffIcon />}
@@ -857,10 +868,10 @@ export function Pane({
             disabled={voice.state === 'transcribing'}
             title={
               voice.state === 'listening'
-                ? 'Parar de ouvir e usar o que eu ouvi'
-                : 'Falar (o texto vem para a caixa)'
+                ? t('Parar de ouvir e usar o que eu ouvi')
+                : t('Falar (o texto vem para a caixa)')
             }
-            aria-label={voice.state === 'listening' ? 'Parar de ouvir' : 'Falar'}
+            aria-label={voice.state === 'listening' ? t('Parar de ouvir') : t('Falar')}
             aria-pressed={voice.state === 'listening'}
           >
             {voice.state === 'transcribing' ? <span className="spinner" /> : <MicIcon />}
@@ -879,7 +890,7 @@ export function Pane({
           />
           {terminalView && (
             <span className="terminal-hint">
-              Digite no terminal. Arquivos, prints e a voz entram na caixa dele.
+              {t('Digite no terminal. Arquivos, prints e a voz entram na caixa dele.')}
             </span>
           )}
           <textarea
@@ -889,10 +900,10 @@ export function Pane({
             value={draft}
             placeholder={
               state.busy
-                ? 'Mande mais instruções: o Claude recebe sem parar…'
+                ? t('Mande mais instruções: o Claude recebe sem parar…')
                 : started
-                  ? 'Continuar a conversa…'
-                  : 'Pergunte ao Wisp…'
+                  ? t('Continuar a conversa…')
+                  : t('Pergunte ao Wisp…')
             }
             autoFocus={focused}
             onChange={(event) => {
@@ -907,8 +918,8 @@ export function Pane({
               type="button"
               className="icon-button stop"
               onClick={() => window.wisp.chat.stop(conversation)}
-              title="Parar"
-              aria-label="Parar"
+              title={t('Parar')}
+              aria-label={t('Parar')}
             >
               <StopIcon />
             </button>
@@ -920,10 +931,10 @@ export function Pane({
               disabled={!canSend}
               title={
                 state.busy
-                  ? 'Mandar agora: o Claude recebe na próxima pausa (Enter)'
-                  : 'Enviar (Enter)'
+                  ? t('Mandar agora: o Claude recebe na próxima pausa (Enter)')
+                  : t('Enviar (Enter)')
               }
-              aria-label="Enviar"
+              aria-label={t('Enviar')}
             >
               <SendIcon />
             </button>
@@ -944,19 +955,19 @@ function ViewToggle({
   busy: boolean
   onPick: (view: 'chat' | 'terminal') => void
 }): JSX.Element {
-  const hint = busy ? ' (espere a resposta terminar)' : ''
+  const hint = busy ? t(' (espere a resposta terminar)') : ''
   return (
-    <div className="view-toggle" role="group" aria-label="Chat ou terminal">
+    <div className="view-toggle" role="group" aria-label={t('Chat ou terminal')}>
       <button
         type="button"
         className={view === 'chat' ? 'active' : ''}
         aria-pressed={view === 'chat'}
         disabled={busy && view !== 'chat'}
         onClick={() => onPick('chat')}
-        title={`Chat: a conversa nas bolhas do Wisp${hint}`}
+        title={t('Chat: a conversa nas bolhas do Wisp{hint}', { hint })}
       >
         <ChatIcon />
-        <span>Chat</span>
+        <span>{t('Chat')}</span>
       </button>
       <button
         type="button"
@@ -964,10 +975,10 @@ function ViewToggle({
         aria-pressed={view === 'terminal'}
         disabled={busy && view !== 'terminal'}
         onClick={() => onPick('terminal')}
-        title={`Terminal: o Claude Code de verdade, na mesma conversa${hint}`}
+        title={t('Terminal: o Claude Code de verdade, na mesma conversa{hint}', { hint })}
       >
         <TerminalIcon />
-        <span>Terminal</span>
+        <span>{t('Terminal')}</span>
       </button>
     </div>
   )
@@ -984,14 +995,14 @@ function TaskBar({ tasks }: { tasks: TaskInfo[] }): JSX.Element {
     >
       <span className="spinner" />
       <span>
-        Em segundo plano: {first.description || 'uma tarefa'}
+        {t('Em segundo plano:')} {first.description || t('uma tarefa')}
         {rest.length > 0 ? ` (+${rest.length})` : ''}
       </span>
     </div>
   )
 }
 
-const CLOCK = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+const CLOCK = new Intl.DateTimeFormat(dateLocale(), { hour: '2-digit', minute: '2-digit' })
 
 /** "hoje às 14:00", "amanhã às 09:30". */
 function whenLabel(start: number, now: number): string {
@@ -999,24 +1010,24 @@ function whenLabel(start: number, now: number): string {
   const days = Math.round((day(start) - day(now)) / 86_400_000)
   const prefix =
     days === 0
-      ? 'hoje'
+      ? t('hoje')
       : days === 1
-        ? 'amanhã'
-        : new Date(start).toLocaleDateString('pt-BR', { weekday: 'long' })
-  return `${prefix} às ${CLOCK.format(start)}`
+        ? t('amanhã')
+        : new Date(start).toLocaleDateString(dateLocale(), { weekday: 'long' })
+  return t('{prefix} às {v2}', { prefix, v2: CLOCK.format(start) })
 }
 
 /** "em 25 min", "em 2 h", "agora", "termina em 10 min". */
 function relativeLabel(event: AgendaItem, now: number): string {
   if (event.start > now) {
     const minutes = Math.ceil((event.start - now) / 60_000)
-    if (minutes < 60) return `em ${minutes} min`
+    if (minutes < 60) return t('em {minutes} min', { minutes })
     const hours = Math.floor(minutes / 60)
     const rest = minutes % 60
-    return rest ? `em ${hours} h ${rest} min` : `em ${hours} h`
+    return rest ? t('em {hours} h {rest} min', { hours, rest }) : t('em {hours} h', { hours })
   }
-  if (event.end > now) return `agora, até ${CLOCK.format(event.end)}`
-  return 'agora'
+  if (event.end > now) return t('agora, até {v1}', { v1: CLOCK.format(event.end) })
+  return t('agora')
 }
 
 /** O próximo compromisso da agenda, no painel vazio (a hora relativa anda sozinha). */
@@ -1027,12 +1038,12 @@ function NextEvent({ event }: { event: AgendaItem }): JSX.Element {
     return () => window.clearInterval(timer)
   }, [])
   return (
-    <div className="next-event" aria-label="Próximo compromisso">
+    <div className="next-event" aria-label={t('Próximo compromisso')}>
       <CalendarIcon />
       <div>
         <strong>{event.title}</strong>
         <span>
-          {event.start > now ? whenLabel(event.start, now) : 'acontecendo'} ·{' '}
+          {event.start > now ? whenLabel(event.start, now) : t('acontecendo')} ·{' '}
           {relativeLabel(event, now)}
           {event.location ? ` · ${event.location}` : ''}
         </span>

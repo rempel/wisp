@@ -3,6 +3,7 @@ import { createHash } from 'crypto'
 import type { ClipboardOffer, ClipboardUse } from '../shared/ipc'
 import { saveIncoming } from './attachments'
 import { thumbnailOf } from './screenshot'
+import { t } from '../shared/i18n'
 
 // O chip "usar o que você copiou" do painel. O Wisp olha a área de transferência só quando o
 // painel ganha o foco, guarda só o que precisa para oferecer, e nada sai do computador até o
@@ -106,7 +107,7 @@ export class ClipboardChip {
   async use(id: string): Promise<ClipboardUse> {
     const content = this.current
     if (!content || content.offer.id !== id) {
-      return { error: 'O que estava copiado mudou. Copie de novo.' }
+      return { error: t('O que estava copiado mudou. Copie de novo.') }
     }
     this.forget(content)
     try {
@@ -121,7 +122,11 @@ export class ClipboardChip {
       }
       return { text }
     } catch (err) {
-      return { error: `Não consegui usar o que foi copiado: ${(err as Error).message}.` }
+      return {
+        error: t('Não consegui usar o que foi copiado: {message}.', {
+          message: (err as Error).message
+        })
+      }
     }
   }
 

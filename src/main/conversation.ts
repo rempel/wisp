@@ -25,6 +25,7 @@ import type {
   PermissionMode,
   Provider
 } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
@@ -185,8 +186,9 @@ export class Conversation {
       }
       this.notice(
         'warning',
-        `Não confiei em ${tilde(folder)}: o Claude Code não roda nela. Para continuar, mande a ` +
-          'mensagem de novo e clique em **Confiar nesta pasta**, ou abra outra pasta.'
+        t('Não confiei em {v1}: o Claude Code não roda nela. Para continuar, mande a ', {
+          v1: tilde(folder)
+        }) + t('mensagem de novo e clique em **Confiar nesta pasta**, ou abra outra pasta.')
       )
       return false
     })
@@ -312,8 +314,9 @@ export class Conversation {
     if (!point) {
       this.notice(
         'warning',
-        'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar ' +
-          'onde voltar, ou veio do terminal. Mande a mensagem como uma nova.'
+        t(
+          'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar '
+        ) + t('onde voltar, ou veio do terminal. Mande a mensagem como uma nova.')
       )
       return false
     }
@@ -367,7 +370,7 @@ export class Conversation {
   compact(instructions?: string): void {
     if (this.viewMode === 'terminal') {
       if (this.session.isBusy()) {
-        this.notice('info', 'Espere a resposta terminar para compactar.')
+        this.notice('info', t('Espere a resposta terminar para compactar.'))
         return
       }
       const extra = (instructions ?? '').replace(/\s+/g, ' ').trim().slice(0, 500)
@@ -378,8 +381,8 @@ export class Conversation {
       this.notice(
         'info',
         this.session.isBusy()
-          ? 'Espere a resposta terminar para compactar.'
-          : 'Ainda não há o que compactar nesta conversa.'
+          ? t('Espere a resposta terminar para compactar.')
+          : t('Ainda não há o que compactar nesta conversa.')
       )
     }
   }
@@ -483,7 +486,7 @@ export class Conversation {
     for (const [id, approval] of this.approvals) {
       if (approval.event.toolName === QUESTION_TOOL) continue
       this.approvals.delete(id)
-      approval.resolve({ allow: false, message: 'Usuário negou' })
+      approval.resolve({ allow: false, message: t('Usuário negou') })
       this.deliver({ type: 'permission-resolved', id, decision: 'deny' })
     }
   }
@@ -491,7 +494,7 @@ export class Conversation {
   /** O Claude quer usar uma ferramenta que precisa de aprovação: decide pelo modo ou mostra o card. */
   requestApproval(request: ApprovalRequest): Promise<Approval> {
     if (request.signal?.aborted) {
-      return Promise.resolve({ allow: false, message: 'O pedido foi cancelado.' })
+      return Promise.resolve({ allow: false, message: t('O pedido foi cancelado.') })
     }
     const scope = permissionScope(request.toolName, request.input)
     let extra: Pick<PermissionRequestEvent, 'site' | 'always' | 'scope' | 'exact'> = {}
@@ -570,8 +573,8 @@ export class Conversation {
         message:
           denial ??
           (plan
-            ? 'O usuário quer continuar planejando. Pergunte o que ajustar no plano.'
-            : 'Usuário negou')
+            ? t('O usuário quer continuar planejando. Pergunte o que ajustar no plano.')
+            : t('Usuário negou'))
       })
     } else if (decision === 'allow-edits' || decision === 'allow-auto') {
       // Aprovado o plano, o Claude Code passa para o modo escolhido (sem isso, volta ao Pedir).
@@ -594,7 +597,7 @@ export class Conversation {
     const input = approval.event.input as Record<string, unknown>
     if (answers === null) {
       this.approvals.delete(id)
-      approval.resolve({ allow: false, message: 'O usuário preferiu não responder.' })
+      approval.resolve({ allow: false, message: t('O usuário preferiu não responder.') })
       this.deliver({ type: 'permission-resolved', id, decision: 'deny' })
       return true
     }
@@ -650,7 +653,7 @@ export class Conversation {
   async setView(view: ConversationView): Promise<void> {
     if (view === this.viewMode || this.disposed) return
     if (this.session.isBusy()) {
-      this.notice('info', 'Espere a resposta terminar para trocar entre o chat e o terminal.')
+      this.notice('info', t('Espere a resposta terminar para trocar entre o chat e o terminal.'))
       return
     }
     this.viewMode = view
@@ -713,8 +716,9 @@ export class Conversation {
             }
             this.options.host.terminalData(
               this,
-              `\r\n\x1b[2m[O Claude Code saiu${code ? ` com o código ${code}` : ''}. ` +
-                'Mande uma mensagem ou troque de modo para abrir de novo.]\x1b[0m\r\n'
+              t('\r\n\u001b[2m[O Claude Code saiu{v1}. ', {
+                v1: code ? t(' com o código {code}', { code }) : ''
+              }) + t('Mande uma mensagem ou troque de modo para abrir de novo.]\u001b[0m\r\n')
             )
             this.emitTerminal({ state: 'exited', code })
           }
@@ -740,7 +744,10 @@ export class Conversation {
         terminal.start(launch)
       } catch (err) {
         this.terminal = null
-        this.notice('error', `Não consegui abrir o terminal: ${(err as Error).message}`)
+        this.notice(
+          'error',
+          t('Não consegui abrir o terminal: {message}', { message: (err as Error).message })
+        )
         this.viewMode = 'chat'
         this.options.host.emit(this, { type: 'view', view: 'chat' }, false)
         return
@@ -773,7 +780,7 @@ export class Conversation {
       this.restartPending = true
       this.notice(
         'info',
-        'A troca vale quando esta resposta terminar: o terminal recomeça na mesma conversa.'
+        t('A troca vale quando esta resposta terminar: o terminal recomeça na mesma conversa.')
       )
       return
     }
@@ -803,7 +810,10 @@ export class Conversation {
         for (const problem of copied.problems) this.notice('warning', problem)
         content = withAttachments(text, copied.paths)
       } catch (err) {
-        this.notice('error', `Não consegui preparar os anexos: ${(err as Error).message}`)
+        this.notice(
+          'error',
+          t('Não consegui preparar os anexos: {message}', { message: (err as Error).message })
+        )
       }
     }
     // Só arquivos (o + e o print): entram na caixa do Claude Code, sem enviar, para você
@@ -891,8 +901,11 @@ export class Conversation {
       }
       case 'StopFailure': {
         this.cancelApprovals()
-        const error = typeof input.error === 'string' ? input.error : 'a resposta falhou'
-        this.notice('error', `O Claude Code parou com um erro: ${error.slice(0, 500)}`)
+        const error = typeof input.error === 'string' ? input.error : t('a resposta falhou')
+        this.notice(
+          'error',
+          t('O Claude Code parou com um erro: {v1}', { v1: error.slice(0, 500) })
+        )
         this.deliver({ type: 'turn-end', outcome: 'error' })
         this.session.terminalTurn(false, input.session_id)
         this.afterTerminalTurn()
@@ -961,7 +974,7 @@ export class Conversation {
 
   private cancelApprovals(): void {
     for (const [id, approval] of this.approvals) {
-      approval.resolve({ allow: false, message: 'O usuário parou a resposta.' })
+      approval.resolve({ allow: false, message: t('O usuário parou a resposta.') })
       this.approvals.delete(id)
       this.deliver({ type: 'permission-resolved', id, decision: 'cancelled' })
     }

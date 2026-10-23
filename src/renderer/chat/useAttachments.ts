@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { ATTACHMENT_LIMITS } from '../../shared/ipc'
 import type { AttachmentPreview, DroppedFiles } from '../../shared/ipc'
 import { makeThumbnail } from '../common/thumbnail'
+import { t, dateLocale } from '../../shared/i18n'
 
 /** Um anexo ainda na caixa de texto, esperando o envio. */
 export interface PendingAttachment extends AttachmentPreview {
@@ -13,7 +14,7 @@ export interface PendingAttachment extends AttachmentPreview {
 const ERROR_MS = 6000
 const MAX_MB = ATTACHMENT_LIMITS.maxBytes / 1024 / 1024
 
-const sizeFormat = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 })
+const sizeFormat = new Intl.NumberFormat(dateLocale(), { maximumFractionDigits: 1 })
 
 export function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -81,7 +82,11 @@ export function useAttachments(): Attachments {
     (previews: PendingAttachment[], problems: string[]): void => {
       const room = ATTACHMENT_LIMITS.maxFiles - current.current.length
       if (previews.length > room) {
-        problems.push(`Dá para mandar até ${ATTACHMENT_LIMITS.maxFiles} anexos por mensagem.`)
+        problems.push(
+          t('Dá para mandar até {maxFiles} anexos por mensagem.', {
+            maxFiles: ATTACHMENT_LIMITS.maxFiles
+          })
+        )
       }
       update([...current.current, ...previews.slice(0, Math.max(0, room))])
       setError(problems.length ? problems.join(' ') : null)
@@ -111,9 +116,10 @@ export function useAttachments(): Attachments {
       const accepted: Incoming[] = []
       for (const file of files) {
         const path = pathOf(file)
-        if (!path) problems.push(`"${file.name}" não veio de uma pasta do computador.`)
+        if (!path)
+          problems.push(t('"{name}" não veio de uma pasta do computador.', { name: file.name }))
         else if (file.size > ATTACHMENT_LIMITS.maxBytes)
-          problems.push(`"${file.name}" passa de ${MAX_MB} MB.`)
+          problems.push(t('"{name}" passa de {MAX_MB} MB.', { name: file.name, MAX_MB }))
         else if (![...current.current, ...accepted].some((item) => item.path === path))
           accepted.push({ file, path, name: file.name })
       }
@@ -132,12 +138,13 @@ export function useAttachments(): Attachments {
         if (pathOf(file)) {
           ready.push(file)
         } else if (!file.type.startsWith('image/')) {
-          problems.push('Só dá para colar imagens; arquivos, arraste para o painel.')
+          problems.push(t('Só dá para colar imagens; arquivos, arraste para o painel.'))
         } else if (file.size > ATTACHMENT_LIMITS.maxBytes) {
-          problems.push(`A imagem colada passa de ${MAX_MB} MB.`)
+          problems.push(t('A imagem colada passa de {MAX_MB} MB.', { MAX_MB }))
         } else {
           const result = await window.wisp.chat.savePasted(await file.arrayBuffer(), file.type)
-          if ('error' in result) problems.push(`Não consegui colar a imagem: ${result.error}.`)
+          if ('error' in result)
+            problems.push(t('Não consegui colar a imagem: {error}.', { error: result.error }))
           else saved.push({ file, path: result.path, name: result.name })
         }
       }
@@ -156,7 +163,9 @@ export function useAttachments(): Attachments {
         if (item.kind !== 'file') continue
         const file = item.getAsFile()
         if (item.webkitGetAsEntry()?.isDirectory) {
-          problems.push(`"${file?.name ?? 'pasta'}" é uma pasta: anexe os arquivos dela.`)
+          problems.push(
+            t('"{v1}" é uma pasta: anexe os arquivos dela.', { v1: file?.name ?? 'pasta' })
+          )
         } else if (file) {
           files.push(file)
         }

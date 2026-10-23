@@ -6,6 +6,7 @@
 // que é só do usuário (é o que o secret-tool faz por padrão em vários desktops).
 
 import { DBusConnection, DBusError, Variant } from './dbus'
+import { t } from '../shared/i18n'
 
 const SERVICE = 'org.freedesktop.secrets'
 const ROOT = '/org/freedesktop/secrets'
@@ -18,8 +19,8 @@ const PROMPT_TIMEOUT_MS = 120_000
 export class SecretError extends Error {}
 
 const NO_SERVICE =
-  'Não achei um chaveiro do sistema (Secret Service). Instale e abra o GNOME Keyring, o ' +
-  'KWallet ou o KeePassXC com a integração do Secret Service ligada.'
+  t('Não achei um chaveiro do sistema (Secret Service). Instale e abra o GNOME Keyring, o ') +
+  t('KWallet ou o KeePassXC com a integração do Secret Service ligada.')
 
 type Secret = [string, number[], number[], string]
 
@@ -41,7 +42,9 @@ async function open(env: NodeJS.ProcessEnv): Promise<{ bus: DBusConnection; sess
     if (err instanceof DBusError && /ServiceUnknown|NameHasNoOwner/.test(err.type)) {
       throw new SecretError(NO_SERVICE)
     }
-    throw new SecretError(`O chaveiro do sistema não respondeu (${(err as Error).message}).`)
+    throw new SecretError(
+      t('O chaveiro do sistema não respondeu ({message}).', { message: (err as Error).message })
+    )
   }
 }
 
@@ -60,7 +63,7 @@ async function prompt(bus: DBusConnection, path: string): Promise<boolean> {
       else resolve(value)
     }
     const timer = setTimeout(
-      () => finish(new SecretError('O chaveiro não foi destrancado a tempo.')),
+      () => finish(new SecretError(t('O chaveiro não foi destrancado a tempo.'))),
       PROMPT_TIMEOUT_MS
     )
     void bus
@@ -95,7 +98,7 @@ async function unlock(bus: DBusConnection, paths: string[]): Promise<void> {
     body: [paths]
   })
   if (!(await prompt(bus, promptPath as string))) {
-    throw new SecretError('O chaveiro continua trancado: destranque-o para eu usar a chave.')
+    throw new SecretError(t('O chaveiro continua trancado: destranque-o para eu usar a chave.'))
   }
 }
 
@@ -127,7 +130,9 @@ async function withService<T>(
     return await work(bus, session)
   } catch (err) {
     if (err instanceof SecretError) throw err
-    throw new SecretError(`O chaveiro do sistema recusou o pedido (${(err as Error).message}).`)
+    throw new SecretError(
+      t('O chaveiro do sistema recusou o pedido ({message}).', { message: (err as Error).message })
+    )
   } finally {
     bus
       .call({ destination: SERVICE, path: session, interface: `${PREFIX}Session`, member: 'Close' })
@@ -200,8 +205,9 @@ async function defaultCollection(bus: DBusConnection): Promise<string> {
   })
   if (!path || path === '/') {
     throw new SecretError(
-      'O chaveiro do sistema não tem uma coleção padrão. Crie uma (no GNOME, pelo app Senhas e ' +
-        'Chaves) e tente de novo.'
+      t(
+        'O chaveiro do sistema não tem uma coleção padrão. Crie uma (no GNOME, pelo app Senhas e '
+      ) + t('Chaves) e tente de novo.')
     )
   }
   const locked = await bus.getProperty(SERVICE, path as string, `${PREFIX}Collection`, 'Locked')
@@ -236,7 +242,7 @@ export function storeSecret(
     })
     if (!(await prompt(bus, promptPath as string))) {
       throw new SecretError(
-        'A chave não foi guardada: o chaveiro pediu confirmação e ela não veio.'
+        t('A chave não foi guardada: o chaveiro pediu confirmação e ela não veio.')
       )
     }
   })

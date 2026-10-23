@@ -1,6 +1,7 @@
 import { accessSync, constants, readFileSync, realpathSync, statSync } from 'fs'
 import { delimiter, dirname, isAbsolute, join } from 'path'
 import { CACHE_DIR, DATA_DIR, expandHome } from './paths'
+import { t } from '../shared/i18n'
 
 // O navegador do Claude (Fase 9): o servidor MCP do Playwright, rodado pelo próprio Claude Code
 // com o Electron em modo Node, controlando um Chrome ou Chromium separado, com perfil próprio. É
@@ -57,7 +58,11 @@ export function findBrowser(
     const path = expandHome(configured.trim())
     return isAbsolute(path) && executable(path)
       ? { path }
-      : { error: `browserExecutable aponta para "${configured}", que não é um programa.` }
+      : {
+          error: t('browserExecutable aponta para "{configured}", que não é um programa.', {
+            configured
+          })
+        }
   }
   for (const name of CANDIDATES) {
     for (const dir of (env.PATH ?? '').split(delimiter).filter(Boolean)) {
@@ -67,8 +72,9 @@ export function findBrowser(
   }
   return {
     error:
-      'Não achei um Chrome, Chromium, Brave ou Edge instalado (fora do Snap). Instale um deles ' +
-      'ou diga o caminho em browserExecutable no config.json.'
+      t(
+        'Não achei um Chrome, Chromium, Brave ou Edge instalado (fora do Snap). Instale um deles '
+      ) + t('ou diga o caminho em browserExecutable no config.json.')
   }
 }
 

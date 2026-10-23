@@ -14,6 +14,7 @@ import type {
   TaskInfo,
   TerminalStatus
 } from '../../shared/ipc'
+import { t } from '../../shared/i18n'
 
 export type { AttachmentPreview }
 
@@ -213,12 +214,15 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'compacted': {
       const tokens =
         event.before !== null && event.after !== null
-          ? ` (${formatTokens(event.before)} → ${formatTokens(event.after)} tokens)`
+          ? t(' ({v1} → {v2} tokens)', {
+              v1: formatTokens(event.before),
+              v2: formatTokens(event.after)
+            })
           : ''
       const text =
         (event.trigger === 'auto'
-          ? 'A conversa chegou perto do limite e foi compactada sozinha'
-          : 'Conversa compactada') +
+          ? t('A conversa chegou perto do limite e foi compactada sozinha')
+          : t('Conversa compactada')) +
         `${tokens}. O Claude segue com um resumo do que veio antes; o painel continua mostrando tudo.`
       return append(state, notice(state.items, 'info', text))
     }
@@ -300,7 +304,9 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         }
         return item
       })
-      const text = `Conversa de ${formatDate(event.createdAt)}. O Claude continua de onde parou.`
+      const text = t('Conversa de {v1}. O Claude continua de onde parou.', {
+        v1: formatDate(event.createdAt)
+      })
       return append({ ...state, items }, notice(items, 'info', text))
     }
     case 'busy':
@@ -344,7 +350,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
           ? { ...item, status: 'stopped' as const }
           : item
       )
-      return append({ ...state, items }, notice(items, 'info', 'Você parou a resposta.'))
+      return append({ ...state, items }, notice(items, 'info', t('Você parou a resposta.')))
     }
     case 'notice':
       return append(state, notice(state.items, event.level, event.text))
@@ -460,93 +466,93 @@ export function toolActivity(name: string, input: unknown): string {
   const file = field(input, 'file_path')
   switch (name) {
     case 'Read':
-      return file ? `lendo ${fileName(file)}…` : 'lendo um arquivo…'
+      return file ? t('lendo {v1}…', { v1: fileName(file) }) : t('lendo um arquivo…')
     case 'Write':
-      return file ? `escrevendo ${fileName(file)}…` : 'escrevendo um arquivo…'
+      return file ? t('escrevendo {v1}…', { v1: fileName(file) }) : t('escrevendo um arquivo…')
     case 'Edit':
     case 'MultiEdit':
-      return file ? `editando ${fileName(file)}…` : 'editando um arquivo…'
+      return file ? t('editando {v1}…', { v1: fileName(file) }) : t('editando um arquivo…')
     case 'NotebookEdit':
-      return 'editando um notebook…'
+      return t('editando um notebook…')
     case 'Glob':
-      return 'procurando arquivos…'
+      return t('procurando arquivos…')
     case 'Grep': {
       const pattern = field(input, 'pattern')
-      return pattern ? `procurando ${quote(pattern)}…` : 'procurando nos arquivos…'
+      return pattern ? t('procurando {v1}…', { v1: quote(pattern) }) : t('procurando nos arquivos…')
     }
     case 'Bash':
-      return 'rodando um comando…'
+      return t('rodando um comando…')
     case 'WebSearch': {
       const query = field(input, 'query')
-      return query ? `pesquisando ${quote(query)}…` : 'pesquisando na web…'
+      return query ? t('pesquisando {v1}…', { v1: quote(query) }) : t('pesquisando na web…')
     }
     case 'WebFetch':
       try {
-        return `lendo ${new URL(field(input, 'url')).host}…`
+        return t('lendo {host}…', { host: new URL(field(input, 'url')).host })
       } catch {
-        return 'lendo uma página…'
+        return t('lendo uma página…')
       }
     case 'Task':
     case 'Agent':
-      return 'delegando uma tarefa…'
+      return t('delegando uma tarefa…')
     case 'TodoWrite':
-      return 'organizando as tarefas…'
+      return t('organizando as tarefas…')
     case 'Skill': {
       const skill = field(input, 'skill')
-      return skill ? `usando a skill ${quote(skill)}…` : 'usando uma skill…'
+      return skill ? t('usando a skill {v1}…', { v1: quote(skill) }) : t('usando uma skill…')
     }
     case 'mcp__desktop__open_url':
-      return 'abrindo o link…'
+      return t('abrindo o link…')
     case 'mcp__desktop__open_app':
-      return 'abrindo um app…'
+      return t('abrindo um app…')
     case 'mcp__desktop__open_project':
-      return 'abrindo o projeto…'
+      return t('abrindo o projeto…')
     case 'mcp__desktop__list_apps':
-      return 'vendo os apps instalados…'
+      return t('vendo os apps instalados…')
     case 'mcp__desktop__list_projects':
-      return 'vendo seus projetos…'
+      return t('vendo seus projetos…')
     case 'mcp__desktop__notify':
-      return 'mandando uma notificação…'
+      return t('mandando uma notificação…')
     case 'mcp__desktop__screenshot':
-      return 'tirando um print da tela…'
+      return t('tirando um print da tela…')
     case 'mcp__desktop__open_terminal':
-      return 'abrindo o terminal…'
+      return t('abrindo o terminal…')
     case 'mcp__desktop__list_windows':
-      return 'vendo as janelas abertas…'
+      return t('vendo as janelas abertas…')
     case 'mcp__desktop__focus_window':
-      return 'trazendo a janela para a frente…'
+      return t('trazendo a janela para a frente…')
     case 'mcp__playwright__browser_navigate':
       try {
-        return `abrindo ${new URL(field(input, 'url')).host}…`
+        return t('abrindo {host}…', { host: new URL(field(input, 'url')).host })
       } catch {
-        return 'abrindo uma página…'
+        return t('abrindo uma página…')
       }
     case 'mcp__playwright__browser_snapshot':
     case 'mcp__playwright__browser_find':
-      return 'lendo a página…'
+      return t('lendo a página…')
     case 'mcp__playwright__browser_take_screenshot':
-      return 'olhando a página…'
+      return t('olhando a página…')
     case 'mcp__playwright__browser_click':
-      return 'clicando na página…'
+      return t('clicando na página…')
     case 'mcp__playwright__browser_type':
     case 'mcp__playwright__browser_fill_form':
-      return 'preenchendo a página…'
+      return t('preenchendo a página…')
     case 'mcp__desktop__set_reminder':
-      return 'marcando o lembrete…'
+      return t('marcando o lembrete…')
     case 'mcp__desktop__list_reminders':
-      return 'vendo os lembretes…'
+      return t('vendo os lembretes…')
     case 'mcp__desktop__cancel_reminder':
-      return 'cancelando o lembrete…'
+      return t('cancelando o lembrete…')
     case 'mcp__desktop__media_status':
-      return 'vendo o que está tocando…'
+      return t('vendo o que está tocando…')
     case 'mcp__desktop__media_control':
-      return 'mexendo na música…'
+      return t('mexendo na música…')
     case 'mcp__desktop__media_volume':
-      return 'mudando o volume…'
+      return t('mudando o volume…')
     default:
       return name.startsWith('mcp__playwright__')
-        ? 'usando o navegador…'
-        : `usando ${toolLabel(name)}…`
+        ? t('usando o navegador…')
+        : t('usando {v1}…', { v1: toolLabel(name) })
   }
 }
 
@@ -558,49 +564,51 @@ export function stepLabel(name: string, input: unknown): string {
   const file = fileName(field(input, 'file_path'))
   switch (name) {
     case 'Read':
-      return file ? `Ler ${file}` : 'Ler um arquivo'
+      return file ? t('Ler {file}', { file }) : t('Ler um arquivo')
     case 'Write':
-      return file ? `Escrever ${file}` : 'Escrever um arquivo'
+      return file ? t('Escrever {file}', { file }) : t('Escrever um arquivo')
     case 'Edit':
     case 'MultiEdit':
-      return file ? `Editar ${file}` : 'Editar um arquivo'
+      return file ? t('Editar {file}', { file }) : t('Editar um arquivo')
     case 'NotebookEdit':
-      return 'Editar um notebook'
+      return t('Editar um notebook')
     case 'Bash': {
       const command = field(input, 'command').split('\n')[0]
-      return command ? `Rodar ${clip(command, 60)}` : 'Rodar um comando'
+      return command ? t('Rodar {v1}', { v1: clip(command, 60) }) : t('Rodar um comando')
     }
     case 'Glob':
       return field(input, 'pattern')
-        ? `Procurar ${clip(field(input, 'pattern'), 40)}`
-        : 'Procurar arquivos'
+        ? t('Procurar {v1}', { v1: clip(field(input, 'pattern'), 40) })
+        : t('Procurar arquivos')
     case 'Grep': {
       const pattern = field(input, 'pattern')
-      return pattern ? `Buscar ${quote(pattern)}` : 'Buscar nos arquivos'
+      return pattern ? t('Buscar {v1}', { v1: quote(pattern) }) : t('Buscar nos arquivos')
     }
     case 'WebSearch': {
       const query = field(input, 'query')
-      return query ? `Pesquisar ${quote(query)}` : 'Pesquisar na web'
+      return query ? t('Pesquisar {v1}', { v1: quote(query) }) : t('Pesquisar na web')
     }
     case 'WebFetch':
       try {
-        return `Abrir ${new URL(field(input, 'url')).host}`
+        return t('Abrir {host}', { host: new URL(field(input, 'url')).host })
       } catch {
-        return 'Abrir uma página'
+        return t('Abrir uma página')
       }
     case 'Task':
     case 'Agent': {
       const description = field(input, 'description')
-      return description ? `Delegar: ${clip(description, 50)}` : 'Delegar uma tarefa'
+      return description
+        ? t('Delegar: {v1}', { v1: clip(description, 50) })
+        : t('Delegar uma tarefa')
     }
     case 'TodoWrite':
-      return 'Atualizar as tarefas'
+      return t('Atualizar as tarefas')
     case 'Skill': {
       const skill = field(input, 'skill')
-      return skill ? `Usar a skill ${clip(skill, 50)}` : 'Usar uma skill'
+      return skill ? t('Usar a skill {v1}', { v1: clip(skill, 50) }) : t('Usar uma skill')
     }
     case 'AskUserQuestion':
-      return 'Perguntar'
+      return t('Perguntar')
     default:
       return toolLabel(name)
   }
@@ -608,12 +616,12 @@ export function stepLabel(name: string, input: unknown): string {
 
 /** O que o cabeçalho mostra embaixo do nome. */
 export function statusText(state: ChatState): string {
-  if (!state.busy) return 'pronto'
+  if (!state.busy) return t('pronto')
   const pending = pendingRequest(state)
   if (pending) {
     return pending.toolName === 'AskUserQuestion'
-      ? 'esperando sua resposta…'
-      : 'esperando sua permissão…'
+      ? t('esperando sua resposta…')
+      : t('esperando sua permissão…')
   }
   const last = state.items[state.items.length - 1]
   if (last?.kind === 'tool' && last.status === 'running') return toolActivity(last.name, last.input)

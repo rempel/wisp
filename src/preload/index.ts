@@ -179,6 +179,7 @@ const api: WispApi = {
     set: (patch) => ipcRenderer.invoke(IPC.settingsSet, patch),
     onChanged: (listener) => subscribe<[SettingsSnapshot]>(IPC.settingsChanged, listener),
     openFile: (which) => ipcRenderer.send(IPC.settingsOpenFile, which),
+    relaunch: () => ipcRenderer.send(IPC.settingsRelaunch),
     onShow: (listener) => subscribe<[]>(IPC.settingsShow, listener)
   },
   history: {

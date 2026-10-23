@@ -174,7 +174,12 @@ check(
   'N8 ao desbloquear, o resumo: o que ficou pronto e o que espera',
   /1 resposta pronta: “roda os testes \[pede npm test\]”\./.test(summary?.body ?? '') &&
     /1 pedido espera você no painel\./.test(summary?.body ?? ''),
-  JSON.stringify(summary)
+  // Sem o resumo, o que dá para ver do lado de fora: as notificações e a conversa.
+  JSON.stringify({
+    summary,
+    shown: notifications().shown.map((n) => [n.summary, n.body.slice(0, 80)]),
+    transcript: (await transcript()).slice(-400)
+  })
 )
 check(
   'N9 sem erros nas páginas',

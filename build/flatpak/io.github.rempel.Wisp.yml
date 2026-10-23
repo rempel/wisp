@@ -44,6 +44,10 @@ finish-args:
 modules:
   - name: wisp
     buildsystem: simple
+    build-options:
+      # O Electron e o node-pty já vêm montados pelo electron-builder: nada a separar (o
+      # flatpak-builder pediria o eu-strip para isso).
+      no-debuginfo: true
     sources:
       - type: dir
         path: ../../dist/linux-unpacked

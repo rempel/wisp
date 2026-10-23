@@ -1,6 +1,7 @@
 import { EventEmitter } from 'events'
 import { DBusConnection, plain, Variant } from './dbus'
 import type { Signal } from './dbus'
+import { t } from '../shared/i18n'
 
 // Os players de música e vídeo, pelo MPRIS (D-Bus): o que está tocando, tocar, pausar, pular e
 // volume. Funciona com Spotify, Firefox, Chrome, VLC e qualquer player que fale MPRIS, sem chave
@@ -47,7 +48,9 @@ const fold = (text: string): string =>
 /** Uma descrição curta do que toca: "“Song” de Artist". */
 export function describeTrack(player: PlayerInfo): string {
   if (!player.title) return ''
-  return player.artist ? `“${player.title}” de ${player.artist}` : `“${player.title}”`
+  return player.artist
+    ? t('“{title}” de {artist}', { title: player.title, artist: player.artist })
+    : `“${player.title}”`
 }
 
 /**
@@ -115,10 +118,10 @@ export class Media extends EventEmitter {
         const track = describeTrack(player)
         const state =
           player.status === 'Playing'
-            ? 'tocando'
+            ? t('tocando')
             : player.status === 'Paused'
-              ? 'pausado'
-              : 'parado'
+              ? t('pausado')
+              : t('parado')
         return `${player.name}: ${state}${track ? `, ${track}` : ''}.`
       })
       .join(' ')
@@ -134,7 +137,8 @@ export class Media extends EventEmitter {
     const chosen = this.choose(players, 'tocar', target)
     if (typeof chosen === 'string') return chosen
     const player = chosen[0]
-    if (player.volume === undefined) return `${player.name} não informa o volume pelo MPRIS.`
+    if (player.volume === undefined)
+      return t('{name} não informa o volume pelo MPRIS.', { name: player.name })
     const next = level !== undefined ? level / 100 : player.volume + (delta ?? 0) / 100
     const clamped = Math.min(1, Math.max(0, next))
     await this.bus.call({
@@ -146,7 +150,7 @@ export class Media extends EventEmitter {
       body: [PLAYER, 'Volume', new Variant('d', clamped)],
       timeout: CALL_TIMEOUT_MS
     })
-    return `Volume do ${player.name}: ${Math.round(clamped * 100)}%.`
+    return t('Volume do {name}: {v2}%.', { name: player.name, v2: Math.round(clamped * 100) })
   }
 
   /**
@@ -162,8 +166,8 @@ export class Media extends EventEmitter {
     const controllable = players.filter((player) => player.canControl)
     if (!controllable.length) {
       return players.length
-        ? 'Os players abertos não aceitam controle.'
-        : 'Nenhum player de música ou vídeo aberto (que fale MPRIS).'
+        ? t('Os players abertos não aceitam controle.')
+        : t('Nenhum player de música ou vídeo aberto (que fale MPRIS).')
     }
     if (target?.trim()) {
       const wanted = fold(target.trim())
@@ -172,11 +176,14 @@ export class Media extends EventEmitter {
       )
       return found.length
         ? [found[0]]
-        : `Não achei o player "${target}". Abertos: ${controllable.map((p) => p.name).join(', ')}.`
+        : t('Não achei o player "{target}". Abertos: {v2}.', {
+            target,
+            v2: controllable.map((p) => p.name).join(', ')
+          })
     }
     const playing = controllable.filter((player) => player.status === 'Playing')
     if (action === 'pausar' || action === 'parar') {
-      return playing.length ? playing : 'Nada está tocando.'
+      return playing.length ? playing : t('Nada está tocando.')
     }
     if (playing.length) return [playing[0]]
     const last = controllable.find((player) => player.bus === this.lastActive)

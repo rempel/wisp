@@ -919,7 +919,11 @@ Notas da entrega:
 **Aceite:** com o painel escondido, um card respondido pela notificação libera o Claude; ao
 desbloquear a tela, o resumo lista o que passou.
 
-### Fase 25: para a comunidade
+### Fase 25: para a comunidade ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/ingles.mjs` (um sistema em
+inglês, a troca de idioma nas configurações e o Wisp aberto de novo); os pacotes ARM64 e o Flatpak
+são montados e conferidos no CI.
 
 - **Interface em inglês (G):** os textos num lugar só, com o português como padrão e o inglês
   pelo idioma do sistema.
@@ -927,6 +931,25 @@ desbloquear a tela, o resumo lista o que passou.
   o .deb e o AppImage para ARM64.
 - **Notas de versão e guia de contribuição (P):** o que mudou em cada versão, como rodar os
   testes e onde fica cada parte.
+
+Notas da entrega:
+
+- os textos ficam no código, em português, dentro de `t()`: o português é a chave, e o inglês fica
+  num dicionário (`src/shared/i18n-en.ts`, uns 1.400 textos). Um teste confere que todo texto tem
+  tradução, com as mesmas variáveis, e que nenhuma tradução sobra; `npm run i18n` lista o que falta;
+- o idioma é o do sistema (português para `pt*`, inglês para os outros) ou o escolhido nas
+  configurações (`language`). Ele é decidido quando o app abre, então trocar pede para abrir o
+  Wisp de novo, com um botão; as abas e as conversas voltam;
+- o Claude também responde no idioma da interface: o prompt do sistema pede, mesmo que um
+  CLAUDE.md peça outro;
+- ficam em português: os comandos de voz rápidos ("pausa a música"), as gravações do modo
+  demonstração e os nomes das ferramentas e dos campos do config.json;
+- o Flatpak roda os programas do sistema (o Claude Code, o gh, o whisper, o Piper, os apps) fora
+  do sandbox, pelo `flatpak-spawn --host`, sem a chave da API no ambiente; o socket dos hooks e os
+  arquivos que o Claude Code lê ficam na parte da pasta de runtime que os dois lados enxergam;
+- os pacotes ARM64 são montados num x86-64 (o Electron de ARM64 e o node-pty compilado em
+  cruzado) e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina
+  ARM (está no roteiro de validação).
 
 **Aceite:** num sistema em inglês, o Wisp abre em inglês; o Flatpak e o .deb ARM64 passam no
 teste dos pacotes.

@@ -77,6 +77,7 @@ import type {
   WindowState,
   VoiceStatus
 } from '../shared/ipc'
+import { t } from '../shared/i18n'
 
 /** Largura de cada painel (a janela cresce com a tela dividida) e altura da janela. */
 const PANE_WIDTH = 420
@@ -111,11 +112,19 @@ const DECISIONS: PermissionDecision[] = [
 ]
 
 const APPEND_SYSTEM_PROMPT =
-  'Você está respondendo dentro do Wisp, um painel de chat pequeno no desktop Linux do usuário. ' +
-  'Responda em português do Brasil, de forma breve. O painel é estreito: use Markdown leve, com ' +
-  'parágrafos curtos e listas simples, sem títulos grandes nem tabelas largas. Quando o usuário ' +
-  'anexa arquivos, a mensagem termina com um bloco <anexos> com os caminhos deles: leia-os com a ' +
-  'ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles.'
+  t(
+    'Você está respondendo dentro do Wisp, um painel de chat pequeno no desktop Linux do usuário. '
+  ) +
+  t(
+    'Responda em português do Brasil, de forma breve. O painel é estreito: use Markdown leve, com '
+  ) +
+  t(
+    'parágrafos curtos e listas simples, sem títulos grandes nem tabelas largas. Quando o usuário '
+  ) +
+  t(
+    'anexa arquivos, a mensagem termina com um bloco <anexos> com os caminhos deles: leia-os com a '
+  ) +
+  t('ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles.')
 
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 function outgoing(value: unknown): OutgoingAttachment[] {
@@ -504,7 +513,7 @@ export function setupChat({
       id: tab.id,
       kind: 'chat',
       // Uma conversa numa pasta, ainda sem mensagens, leva o nome do projeto.
-      title: title ?? project ?? 'Nova conversa',
+      title: title ?? project ?? t('Nova conversa'),
       ...(project ? { project } : {}),
       ...(folder ? { folder: tilde(folder) } : {})
     }
@@ -698,7 +707,7 @@ export function setupChat({
           id: `sessao-${randomUUID()}`,
           kind: 'session',
           sessionId: entry.sessionId,
-          title: typeof entry.title === 'string' ? entry.title.slice(0, 80) : 'Sessão'
+          title: typeof entry.title === 'string' ? entry.title.slice(0, 80) : t('Sessão')
         })
         continue
       }
@@ -774,16 +783,16 @@ export function setupChat({
     focusedConversation().notice(
       'info',
       demoOn
-        ? 'Modo demonstração ligado: as respostas são gravadas, e nada roda de verdade. ' +
-            'Experimente "abre o Firefox" ou "arruma o bug do contador".'
-        : 'Modo demonstração desligado: as próximas respostas vêm do Claude Code de verdade.'
+        ? t('Modo demonstração ligado: as respostas são gravadas, e nada roda de verdade. ') +
+            t('Experimente "abre o Firefox" ou "arruma o bug do contador".')
+        : t('Modo demonstração desligado: as próximas respostas vêm do Claude Code de verdade.')
     )
   })
 
   // Problemas no config.json aparecem na conversa (o terminal nem sempre está à vista): ao abrir
   // o painel pela primeira vez e quando o arquivo muda com eles.
   const configNotice = (problems: string[]): string =>
-    `Encontrei problemas no \`${CONFIG_PATH.replace(homedir(), '~')}\`:\n\n` +
+    t('Encontrei problemas no `{v1}`:\n\n', { v1: CONFIG_PATH.replace(homedir(), '~') }) +
     problems.map((problem) => `- ${problem}`).join('\n')
   onConfigProblems((problems) => {
     if (win && problems.length) focusedConversation().notice('warning', configNotice(problems))
@@ -873,9 +882,9 @@ export function setupChat({
   })
   /** Exporta uma conversa guardada: o diálogo do sistema escolhe onde. */
   const exportConversation = async (saved: SavedConversation | null): Promise<ExportResult> => {
-    if (!saved) return { ok: false, message: 'Esta conversa ainda não tem mensagens guardadas.' }
+    if (!saved) return { ok: false, message: t('Esta conversa ainda não tem mensagens guardadas.') }
     const file = await pickSaveFile(
-      'Exportar a conversa',
+      t('Exportar a conversa'),
       join(app.getPath('documents'), exportFileName(saved.title)),
       [{ name: 'Markdown', extensions: ['md'] }],
       win
@@ -884,7 +893,10 @@ export function setupChat({
     try {
       writeFileSync(file, exportMarkdown(saved))
     } catch (err) {
-      return { ok: false, message: `Não consegui gravar o arquivo: ${(err as Error).message}` }
+      return {
+        ok: false,
+        message: t('Não consegui gravar o arquivo: {message}', { message: (err as Error).message })
+      }
     }
     return { ok: true, path: tilde(file) }
   }
@@ -1413,7 +1425,7 @@ export function setupChat({
       if (lastUsage) toPage(lastUsage[0], lastUsage[1])
       focusedConversation().notice(
         'warning',
-        'O painel reiniciou depois de uma falha. As conversas continuam.'
+        t('O painel reiniciou depois de uma falha. As conversas continuam.')
       )
     })
 
@@ -1489,8 +1501,10 @@ export function setupChat({
         conversation.notice(
           'warning',
           voice
-            ? 'Ainda estou respondendo a mensagem anterior. Deixei o que você disse na caixa: mande quando eu terminar.'
-            : 'Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.'
+            ? t(
+                'Ainda estou respondendo a mensagem anterior. Deixei o que você disse na caixa: mande quando eu terminar.'
+              )
+            : t('Ainda estou respondendo a mensagem anterior. Mande de novo quando eu terminar.')
         )
         return null
       }
@@ -1519,24 +1533,24 @@ export function setupChat({
       const ok = owner.answer(
         id,
         decision,
-        expired ? 'Ninguém respondeu a tempo: o pedido foi para o celular e expirou.' : undefined
+        expired ? t('Ninguém respondeu a tempo: o pedido foi para o celular e expirou.') : undefined
       )
       if (ok) {
-        const where = how === 'notification' ? 'pela notificação' : 'pelo celular'
+        const where = how === 'notification' ? t('pela notificação') : t('pelo celular')
         owner.notice(
           'info',
           expired
-            ? 'O pedido foi para o celular e ninguém respondeu em 2 minutos: ficou negado.'
+            ? t('O pedido foi para o celular e ninguém respondeu em 2 minutos: ficou negado.')
             : decision === 'allow'
-              ? `Permitido ${where}.`
-              : `Negado ${where}.`
+              ? t('Permitido {where}.', { where })
+              : t('Negado {where}.', { where })
         )
       }
       return ok
     },
     conversationTitle(id) {
       const conversation = conversationById(id)
-      return conversation ? (conversation.title ?? conversation.project ?? 'Nova conversa') : ''
+      return conversation ? (conversation.title ?? conversation.project ?? t('Nova conversa')) : ''
     },
     visible() {
       return win?.isVisible() ?? false
@@ -1580,7 +1594,7 @@ export function setupChat({
       if (tabs.length >= MAX_TABS && !emptyFocusedConversation()) {
         focusedConversation().notice(
           'warning',
-          `Já há ${MAX_TABS} abas abertas. Feche uma para continuar a sessão aqui.`
+          t('Já há {MAX_TABS} abas abertas. Feche uma para continuar a sessão aqui.', { MAX_TABS })
         )
         return
       }
@@ -1599,8 +1613,13 @@ export function setupChat({
         type: 'notice',
         level: 'info',
         text: seed.alive
-          ? `Sessão do terminal em ${seed.project}. Ela continua aberta lá, então o Wisp segue numa cópia: as duas não se misturam.`
-          : `Sessão do terminal em ${seed.project}. O Claude continua de onde parou.`
+          ? t(
+              'Sessão do terminal em {project}. Ela continua aberta lá, então o Wisp segue numa cópia: as duas não se misturam.',
+              { project: seed.project }
+            )
+          : t('Sessão do terminal em {project}. O Claude continua de onde parou.', {
+              project: seed.project
+            })
       })
       conversation.continueSession({ ...seed, preface })
       for (const event of preface) toPage(conversation.id, event)

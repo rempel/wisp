@@ -2,13 +2,14 @@ import { useRef, useState } from 'react'
 import type { JSX, PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import { TAB_DRAG_TYPE, zoneAt } from '../../shared/layout'
 import type { DropZone, Layout } from '../../shared/layout'
+import { t } from '../../shared/i18n'
 
 const ZONE_LABEL: Record<DropZone, string> = {
-  left: 'À esquerda',
-  right: 'À direita',
-  top: 'Em cima',
-  bottom: 'Embaixo',
-  center: 'Neste painel'
+  left: t('À esquerda'),
+  right: t('À direita'),
+  top: t('Em cima'),
+  bottom: t('Embaixo'),
+  center: t('Neste painel')
 }
 
 /**
@@ -127,7 +128,7 @@ function SplitView({
           className={`grid-divider grid-divider-${dir}`}
           role="separator"
           aria-orientation={dir === 'row' ? 'vertical' : 'horizontal'}
-          title="Arraste para ajustar; duplo clique iguala"
+          title={t('Arraste para ajustar; duplo clique iguala')}
           onPointerDown={startDrag(i)}
           onDoubleClick={() => onCommit(sizes.map(() => 1 / sizes.length))}
         />

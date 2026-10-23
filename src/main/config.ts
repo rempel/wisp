@@ -14,6 +14,9 @@ import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
 import { AVATARS } from '../shared/avatars'
 import type { AvatarName } from '../shared/avatars'
+import { t } from '../shared/i18n'
+import { LANGUAGE_SETTINGS } from '../shared/i18n'
+import type { LanguageSetting } from '../shared/i18n'
 
 export const CONFIG_PATH = join(CONFIG_DIR, 'config.json')
 
@@ -68,6 +71,8 @@ export interface WispConfig {
    * Permitir e Negar (Fase 24), com as regras do celular.
    */
   notifyApprovals: boolean
+  /** O idioma da interface (Fase 25): o do sistema, português ou inglês. Vale ao abrir de novo. */
+  language: LanguageSetting
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -166,6 +171,7 @@ function defaults(): WispConfig {
     panelZoom: 1,
     tabSleepMinutes: 20,
     notifyApprovals: true,
+    language: 'auto',
     shortcut: 'Ctrl+Alt+W',
     clipboardChip: true,
     terminalCommand: null,
@@ -236,7 +242,10 @@ function field<T>(key: keyof WispConfig, schema: z.ZodType<T>, fallback: () => T
       const reason = ctx.error.issues[0]?.message
       console.warn(`[wisp] config: valor inválido em "${key}" (${reason}); usando o padrão.`)
       fieldProblems.push(
-        `\`${key}\` tem um valor inválido; usei o padrão (\`${JSON.stringify(fallback())}\`).`
+        t('`{key}` tem um valor inválido; usei o padrão (`{v2}`).', {
+          key,
+          v2: JSON.stringify(fallback())
+        })
       )
     }
     return fallback()
@@ -267,6 +276,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   panelZoom: z.number().min(0.7).max(2),
   tabSleepMinutes: z.number().int().min(0).max(1440),
   notifyApprovals: z.boolean(),
+  language: z.enum(LANGUAGE_SETTINGS),
   shortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
@@ -295,7 +305,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   phoneServer: z
     .string()
     .max(300)
-    .regex(/^https?:\/\/[^\s?#@]+$/, 'precisa ser um endereço http(s)'),
+    .regex(/^https?:\/\/[^\s?#@]+$/, t('precisa ser um endereço http(s)')),
   phoneAfterSeconds: z.number().int().min(0).max(3600),
   updateCheck: z.boolean()
 }
@@ -330,7 +340,7 @@ function mtimeOf(path: string): number | null {
 
 export function loadConfig(): WispConfig {
   seenMtime = mtimeOf(CONFIG_PATH)
-  const current = loaded ? 'a configuração anterior' : 'os padrões'
+  const current = loaded ? t('a configuração anterior') : t('os padrões')
   let text: string
   try {
     text = readFileSync(CONFIG_PATH, 'utf8')
@@ -344,7 +354,7 @@ export function loadConfig(): WispConfig {
     } else {
       writable = false
       console.warn(`[wisp] não consegui ler ${CONFIG_PATH}; usando ${current}.`, err)
-      setProblems([`Não consegui ler o arquivo; usei ${current}.`])
+      setProblems([t('Não consegui ler o arquivo; usei {current}.', { current })])
     }
     return config
   }
@@ -359,15 +369,19 @@ export function loadConfig(): WispConfig {
         `Usando ${current}; o arquivo não será sobrescrito até ser corrigido.`
     )
     setProblems([
-      `O arquivo não é um JSON válido (\`${(err as Error).message}\`). Usei ${current} e não ` +
-        'vou gravar nele até você corrigir.'
+      t('O arquivo não é um JSON válido (`{message}`). Usei {current} e não ', {
+        message: (err as Error).message,
+        current
+      }) + t('vou gravar nele até você corrigir.')
     ])
     return config
   }
   if (typeof json !== 'object' || json === null || Array.isArray(json)) {
     writable = false
     console.warn(`[wisp] ${CONFIG_PATH} deveria conter um objeto JSON; usando ${current}.`)
-    setProblems([`O arquivo deveria conter um objeto JSON (\`{ ... }\`); usei ${current}.`])
+    setProblems([
+      t('O arquivo deveria conter um objeto JSON (`{ ... }`); usei {current}.', { current })
+    ])
     return config
   }
 
@@ -395,21 +409,21 @@ export function getConfig(): WispConfig {
 
 /** O que cada campo espera, para o aviso de um valor recusado na tela de configurações. */
 const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
-  claudePath: 'Diga o comando ou o caminho do Claude Code.',
-  editorCommand: 'Diga o comando do editor (code, codium…).',
-  projectRoots: 'Uma pasta por linha.',
-  extraAllowedTools: 'Um nome de ferramenta por linha.',
-  model: 'Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).',
-  openrouterModel: 'O id do modelo na OpenRouter, como aparece no site: provedor/modelo.',
-  volume: 'O volume vai de 0 a 1.',
-  sleepAfterMinutes: 'Um número de minutos, 0 ou mais (0 desliga o cochilo).',
-  tabSleepMinutes: 'Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).',
-  shortcut: 'O atalho tem no máximo 60 caracteres.',
-  voiceShortcut: 'O atalho tem no máximo 60 caracteres.',
-  terminalCommand: 'O comando do terminal tem no máximo 300 caracteres.',
-  voiceLanguage: 'Um código de idioma (pt, en, es…) ou auto.',
-  calendarFiles: 'Um arquivo .ics ou uma pasta por linha (até 20).',
-  calendarAlertMinutes: 'Um número inteiro de minutos, de 0 a 240 (0 não avisa).'
+  claudePath: t('Diga o comando ou o caminho do Claude Code.'),
+  editorCommand: t('Diga o comando do editor (code, codium…).'),
+  projectRoots: t('Uma pasta por linha.'),
+  extraAllowedTools: t('Um nome de ferramenta por linha.'),
+  model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),
+  openrouterModel: t('O id do modelo na OpenRouter, como aparece no site: provedor/modelo.'),
+  volume: t('O volume vai de 0 a 1.'),
+  sleepAfterMinutes: t('Um número de minutos, 0 ou mais (0 desliga o cochilo).'),
+  tabSleepMinutes: t('Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).'),
+  shortcut: t('O atalho tem no máximo 60 caracteres.'),
+  voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
+  voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),
+  calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
+  calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).')
 }
 
 /**
@@ -420,17 +434,18 @@ export function checkSettings(
   patch: unknown
 ): { ok: true; patch: Partial<WispConfig> } | { ok: false; field: string; message: string } {
   if (!patch || typeof patch !== 'object' || Array.isArray(patch)) {
-    return { ok: false, field: '', message: 'mudança inválida' }
+    return { ok: false, field: '', message: t('mudança inválida') }
   }
   const checked: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(patch)) {
-    if (!Object.hasOwn(FIELDS, key)) return { ok: false, field: key, message: 'campo desconhecido' }
+    if (!Object.hasOwn(FIELDS, key))
+      return { ok: false, field: key, message: t('campo desconhecido') }
     const result = FIELDS[key as keyof WispConfig].safeParse(value)
     if (!result.success) {
       return {
         ok: false,
         field: key,
-        message: EXPECTED[key as keyof WispConfig] ?? 'valor inválido'
+        message: EXPECTED[key as keyof WispConfig] ?? t('valor inválido')
       }
     }
     checked[key] = result.data

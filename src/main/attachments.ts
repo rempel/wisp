@@ -3,6 +3,7 @@ import { copyFile, mkdir, readdir, rm, stat, unlink, writeFile } from 'fs/promis
 import { basename, dirname, extname, isAbsolute, join } from 'path'
 import { ATTACHMENT_LIMITS } from '../shared/ipc'
 import { CACHE_DIR } from './paths'
+import { t } from '../shared/i18n'
 
 /** Pasta dos anexos: uma subpasta por conversa, com o session_id do Claude Code. */
 export const ATTACHMENTS_DIR = join(CACHE_DIR, 'anexos')
@@ -80,10 +81,10 @@ function copyUnique(source: string, dir: string, name: string): Promise<string> 
 function reason(err: unknown): string {
   switch ((err as NodeJS.ErrnoException).code) {
     case 'ENOENT':
-      return 'o arquivo não existe mais'
+      return t('o arquivo não existe mais')
     case 'EACCES':
     case 'EPERM':
-      return 'sem permissão para ler'
+      return t('sem permissão para ler')
     default:
       return (err as Error).message
   }
@@ -113,23 +114,25 @@ export async function copyAttachments(
   for (const source of sources.slice(0, maxFiles)) {
     const name = safeName(basename(source))
     try {
-      if (!isAbsolute(source)) throw new Error('caminho inválido')
+      if (!isAbsolute(source)) throw new Error(t('caminho inválido'))
       const info = await stat(source)
       if (!info.isFile()) {
-        problems.push(`"${name}" não é um arquivo: pastas não podem ser anexadas.`)
+        problems.push(t('"{name}" não é um arquivo: pastas não podem ser anexadas.', { name }))
       } else if (info.size > maxBytes) {
-        problems.push(`"${name}" passa de ${maxBytes / 1024 / 1024} MB e ficou de fora.`)
+        problems.push(
+          t('"{name}" passa de {v2} MB e ficou de fora.', { name, v2: maxBytes / 1024 / 1024 })
+        )
       } else {
         paths.push(await copyUnique(source, dir, name))
         // Algo colado ou capturado já tem a cópia na conversa; o arquivo de espera sai.
         if (dirname(source) === PASTED_DIR) await unlink(source).catch(() => {})
       }
     } catch (err) {
-      problems.push(`Não consegui anexar "${name}": ${reason(err)}.`)
+      problems.push(t('Não consegui anexar "{name}": {v2}.', { name, v2: reason(err) }))
     }
   }
   if (sources.length > maxFiles) {
-    problems.push(`Só os ${maxFiles} primeiros anexos foram enviados.`)
+    problems.push(t('Só os {maxFiles} primeiros anexos foram enviados.', { maxFiles }))
   }
   return { paths, problems }
 }
@@ -154,7 +157,9 @@ export async function saveIncoming(
   now = new Date()
 ): Promise<{ path: string; name: string; size: number }> {
   if (data.byteLength > ATTACHMENT_LIMITS.maxBytes) {
-    throw new Error(`o arquivo passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB`)
+    throw new Error(
+      t('o arquivo passa de {v1} MB', { v1: ATTACHMENT_LIMITS.maxBytes / 1024 / 1024 })
+    )
   }
   await mkdir(PASTED_DIR, { recursive: true, mode: 0o700 })
   const path = await createUnique(PASTED_DIR, `${prefix}-${stamp(now)}.${ext}`, (target) =>
@@ -173,9 +178,11 @@ export async function savePasted(
   now = new Date()
 ): Promise<{ path: string; name: string }> {
   const ext = PASTED_TYPES[type]
-  if (!ext) throw new Error('só dá para colar imagens PNG, JPEG, GIF ou WebP')
+  if (!ext) throw new Error(t('só dá para colar imagens PNG, JPEG, GIF ou WebP'))
   if (data.byteLength > ATTACHMENT_LIMITS.maxBytes) {
-    throw new Error(`a imagem passa de ${ATTACHMENT_LIMITS.maxBytes / 1024 / 1024} MB`)
+    throw new Error(
+      t('a imagem passa de {v1} MB', { v1: ATTACHMENT_LIMITS.maxBytes / 1024 / 1024 })
+    )
   }
   const { path, name } = await saveIncoming(data, 'imagem-colada', ext, now)
   return { path, name }

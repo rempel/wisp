@@ -3,6 +3,7 @@ import { readFileSync } from 'fs'
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import { isKde, kwinActivatePids } from './kwin'
 import { viaHost } from './host'
+import { t } from '../shared/i18n'
 
 /** O que se sabe de onde uma sessão roda. */
 export interface TerminalTarget {
@@ -90,7 +91,7 @@ async function focusWithEwmh(windowId: string | undefined, pids: number[]): Prom
  * EWMH. No GNOME com Wayland não há como (o chat oferece abrir a pasta no editor).
  */
 export async function focusTerminal(target: TerminalTarget): Promise<FocusResult> {
-  if (!target.pid) return { ok: false, message: 'Não sei em que terminal esta sessão roda.' }
+  if (!target.pid) return { ok: false, message: t('Não sei em que terminal esta sessão roda.') }
   const pids = ancestors(target.pid)
   for (const client of await tmuxClients(target.env)) pids.push(...ancestors(client))
   // O próprio Claude Code e o shell não têm janela; ficam no fim.
@@ -103,7 +104,9 @@ export async function focusTerminal(target: TerminalTarget): Promise<FocusResult
     ok: false,
     message:
       process.env.XDG_SESSION_TYPE === 'wayland'
-        ? 'Nesta área de trabalho com Wayland, o Wisp não consegue trazer outra janela para a frente.'
-        : 'Não achei a janela do terminal.'
+        ? t(
+            'Nesta área de trabalho com Wayland, o Wisp não consegue trazer outra janela para a frente.'
+          )
+        : t('Não achei a janela do terminal.')
   }
 }

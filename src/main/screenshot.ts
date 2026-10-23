@@ -3,6 +3,7 @@ import type { DesktopCapturerSource, NativeImage } from 'electron'
 import { readFile, stat, unlink } from 'fs/promises'
 import { fileURLToPath } from 'url'
 import { options, portalBus, portalRequest, portalVersion, token } from './portal'
+import { t } from '../shared/i18n'
 
 // O print da tela: pelo portal de captura no Wayland (o sistema pede permissão na primeira vez)
 // e pelo próprio Electron no X11, onde qualquer app pode ler a tela.
@@ -52,7 +53,9 @@ async function viaElectron(): Promise<ScreenImage[]> {
       fetchWindowIcons: false
     })
   } catch (err) {
-    throw new CaptureError(`não consegui ler a tela (${(err as Error).message})`)
+    throw new CaptureError(
+      t('não consegui ler a tela ({message})', { message: (err as Error).message })
+    )
   }
   const position = (source: DesktopCapturerSource): number[] => {
     const display = displays.find((d) => String(d.id) === source.display_id)
@@ -65,10 +68,12 @@ async function viaElectron(): Promise<ScreenImage[]> {
       const [bx, by] = position(b)
       return ax - bx || ay - by
     })
-  if (!shots.length) throw new CaptureError('não consegui ler a tela')
+  if (!shots.length) throw new CaptureError(t('não consegui ler a tela'))
   return shots.map((source, index) => ({
     image: source.thumbnail,
-    ...(shots.length > 1 ? { label: `tela ${index + 1} de ${shots.length}` } : {})
+    ...(shots.length > 1
+      ? { label: t('tela {v1} de {length}', { v1: index + 1, length: shots.length }) }
+      : {})
   }))
 }
 
@@ -78,9 +83,9 @@ async function viaElectron(): Promise<ScreenImage[]> {
  */
 async function viaPortal(): Promise<ScreenImage> {
   const bus = await portalBus()
-  if (!bus) throw new CaptureError('sem acesso ao D-Bus da sessão')
+  if (!bus) throw new CaptureError(t('sem acesso ao D-Bus da sessão'))
   if ((await portalVersion(bus, SCREENSHOT)) === null) {
-    throw new CaptureError('este desktop não tem o portal de captura de tela')
+    throw new CaptureError(t('este desktop não tem o portal de captura de tela'))
   }
   const started = Date.now()
   const handleToken = token()
@@ -95,12 +100,12 @@ async function viaPortal(): Promise<ScreenImage> {
     handleToken,
     PORTAL_TIMEOUT_MS
   )
-  if (response === 1) throw new CaptureError('o print foi cancelado')
+  if (response === 1) throw new CaptureError(t('o print foi cancelado'))
   const uri = typeof results.uri === 'string' ? results.uri : ''
   if (response !== 0 || !uri.startsWith('file://')) {
     throw new CaptureError(
-      'o sistema não deixou tirar o print. Se a permissão foi negada antes, o desktop lembra ' +
-        'dela: veja no README como liberar de novo'
+      t('o sistema não deixou tirar o print. Se a permissão foi negada antes, o desktop lembra ') +
+        t('dela: veja no README como liberar de novo')
     )
   }
   const path = fileURLToPath(uri)
@@ -108,7 +113,9 @@ async function viaPortal(): Promise<ScreenImage> {
   try {
     data = await readFile(path)
   } catch (err) {
-    throw new CaptureError(`não consegui ler o print (${(err as Error).message})`)
+    throw new CaptureError(
+      t('não consegui ler o print ({message})', { message: (err as Error).message })
+    )
   }
   // O portal grava o print num arquivo (o GNOME, na pasta de imagens). Ele foi pedido só para a
   // conversa, então sai de lá; só se foi criado agora, para nunca apagar outro arquivo.
@@ -119,7 +126,7 @@ async function viaPortal(): Promise<ScreenImage> {
     // Fica onde está.
   }
   const image = nativeImage.createFromBuffer(data)
-  if (image.isEmpty()) throw new CaptureError('o print veio num formato que não sei ler')
+  if (image.isEmpty()) throw new CaptureError(t('o print veio num formato que não sei ler'))
   return { image }
 }
 

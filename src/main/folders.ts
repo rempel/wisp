@@ -11,6 +11,7 @@ import { homedir } from 'os'
 import { dirname, join } from 'path'
 import { DATA_DIR } from './paths'
 import { parseFrontmatter } from './skills'
+import { t } from '../shared/i18n'
 
 export const TRUST_FILE = join(DATA_DIR, 'pastas-confiaveis.json')
 
@@ -55,7 +56,7 @@ export function settingsRisks(text: string, file: string): string[] {
   try {
     settings = JSON.parse(text) as Record<string, unknown>
   } catch {
-    return [`${file}: não é um JSON válido (o Claude Code pode recusar ou ignorar)`]
+    return [t('{file}: não é um JSON válido (o Claude Code pode recusar ou ignorar)', { file })]
   }
   if (!settings || typeof settings !== 'object') return []
   const out: string[] = []
@@ -66,8 +67,9 @@ export function settingsRisks(text: string, file: string): string[] {
         const list = (group as { hooks?: unknown })?.hooks
         for (const hook of Array.isArray(list) ? list : []) {
           const command = (hook as { command?: unknown })?.command
-          if (typeof command === 'string') out.push(`hook ${event} roda: ${clip(command)}`)
-          else out.push(`hook ${event} (${clip(JSON.stringify(hook), 80)})`)
+          if (typeof command === 'string')
+            out.push(t('hook {event} roda: {v2}', { event, v2: clip(command) }))
+          else out.push(t('hook {event} ({v2})', { event, v2: clip(JSON.stringify(hook), 80) }))
         }
       }
     }
@@ -77,11 +79,11 @@ export function settingsRisks(text: string, file: string): string[] {
   }
   const allow = (settings.permissions as { allow?: unknown } | undefined)?.allow
   if (Array.isArray(allow) && allow.length) {
-    out.push(`libera sem card: ${clip(allow.map(String).join(', '))}`)
+    out.push(t('libera sem card: {v1}', { v1: clip(allow.map(String).join(', ')) }))
   }
   const env = settings.env
   if (env && typeof env === 'object' && Object.keys(env).length) {
-    out.push(`muda o ambiente do Claude Code: ${clip(Object.keys(env).join(', '))}`)
+    out.push(t('muda o ambiente do Claude Code: {v1}', { v1: clip(Object.keys(env).join(', ')) }))
   }
   return out.map((line) => `${file}: ${line}`)
 }
@@ -111,10 +113,10 @@ export function folderRisks(dir: string): FolderRisks {
     const tools = parseFrontmatter(text)['allowed-tools']
     if (!tools) continue
     hash.update(`skill:${name}\0${text}\0`)
-    items.push(`skill ${name} libera sem card: ${clip(tools)}`)
+    items.push(t('skill {name} libera sem card: {v2}', { name, v2: clip(tools) }))
   }
   return {
-    items: items.length > MAX_ITEMS ? [...items.slice(0, MAX_ITEMS), '…e mais'] : items,
+    items: items.length > MAX_ITEMS ? [...items.slice(0, MAX_ITEMS), t('…e mais')] : items,
     fingerprint: hash.digest('hex')
   }
 }

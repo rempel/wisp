@@ -1,6 +1,7 @@
 import { app } from 'electron'
 import type { BrowserWindow } from 'electron'
 import { join } from 'path'
+import { getLocale } from '../shared/i18n'
 
 /** Preload compartilhado pelas janelas (expõe window.wisp). */
 export const PRELOAD = join(__dirname, '../preload/index.js')
@@ -28,8 +29,11 @@ export function reloadOnCrash(win: BrowserWindow, onReload?: () => void): void {
 export function loadPage(win: BrowserWindow, page: 'mascot' | 'chat'): void {
   const devServer = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devServer) {
-    void win.loadURL(`${devServer}/${page}/index.html`)
+    void win.loadURL(`${devServer}/${page}/index.html?lang=${getLocale()}`)
   } else {
-    void win.loadFile(join(__dirname, `../renderer/${page}/index.html`))
+    // O idioma vai na URL: a página o lê antes de montar qualquer texto (Fase 25).
+    void win.loadFile(join(__dirname, `../renderer/${page}/index.html`), {
+      query: { lang: getLocale() }
+    })
   }
 }

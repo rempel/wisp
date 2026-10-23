@@ -12,6 +12,7 @@ import {
   requestPath,
   token
 } from './portal'
+import { t } from '../shared/i18n'
 
 /** Um atalho global e por onde ele funciona. */
 export interface ShortcutStatus {
@@ -298,7 +299,7 @@ async function bindWithPortal(
   }
   const iface = 'org.freedesktop.portal.GlobalShortcuts'
   if ((await portalVersion(bus, iface)) === null) {
-    return fail('este desktop não tem o portal de atalhos globais')
+    return fail(t('este desktop não tem o portal de atalhos globais'))
   }
   // 1. A sessão, à qual os atalhos ficam presos.
   const handle = token()
@@ -313,7 +314,7 @@ async function bindWithPortal(
     },
     handle
   )
-  if (created.response !== 0) return fail('o desktop recusou a sessão de atalhos')
+  if (created.response !== 0) return fail(t('o desktop recusou a sessão de atalhos'))
   const session =
     typeof created.results.session_handle === 'string'
       ? created.results.session_handle
@@ -403,8 +404,8 @@ async function bindWithPortal(
     close()
     return fail(
       bound.response === 1
-        ? 'o atalho foi recusado na janela do desktop'
-        : 'o desktop não ligou o atalho'
+        ? t('o atalho foi recusado na janela do desktop')
+        : t('o desktop não ligou o atalho')
     )
   }
   unbind = close

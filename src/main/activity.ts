@@ -6,6 +6,7 @@
 import { appendFileSync, mkdirSync, readFileSync, renameSync, statSync, writeFileSync } from 'fs'
 import { dirname } from 'path'
 import type { ChatEvent, WeekSummary } from '../shared/ipc'
+import { t, dateLocale } from '../shared/i18n'
 
 export type ActivityEntry =
   /** Uma conversa nova (a primeira mensagem dela). */
@@ -250,11 +251,11 @@ export function isEmpty(s: WeekSummary): boolean {
 
 /** "1 h 20 min", "45 min", "menos de 1 min". */
 export function formatMinutes(minutes: number): string {
-  if (minutes < 1) return 'menos de 1 min'
+  if (minutes < 1) return t('menos de 1 min')
   if (minutes < 60) return `${minutes} min`
   const h = Math.floor(minutes / 60)
   const m = minutes % 60
-  return m ? `${h} h ${m} min` : `${h} h`
+  return m ? t('{h} h {m} min', { h, m }) : `${h} h`
 }
 
 /** "(+3)", "(−2)", "(igual)" — a diferença para a semana anterior. */
@@ -263,7 +264,7 @@ function delta(now: number, before: number): string {
   return now > before ? ` (+${now - before})` : ` (−${before - now})`
 }
 
-const DAY = new Intl.DateTimeFormat('pt-BR', { day: '2-digit', month: '2-digit' })
+const DAY = new Intl.DateTimeFormat(dateLocale(), { day: '2-digit', month: '2-digit' })
 
 /** "1 conversa", "3 conversas". */
 export const plural = (n: number, one: string, many: string): string =>
@@ -273,15 +274,15 @@ export const plural = (n: number, one: string, many: string): string =>
 export function describeWeek(current: WeekSummary, previous: WeekSummary | null): string {
   const p = previous
   const lines = [
-    `Semana de ${DAY.format(current.from)} a ${DAY.format(current.to - 1)}:`,
-    `- ${plural(current.conversations, 'conversa', 'conversas')}` +
+    t('Semana de {v1} a {v2}:', { v1: DAY.format(current.from), v2: DAY.format(current.to - 1) }),
+    `- ${plural(current.conversations, t('conversa'), t('conversas'))}` +
       `${p ? delta(current.conversations, p.conversations) : ''}, ` +
-      `${plural(current.turns, 'mensagem', 'mensagens')}; ` +
-      `o Claude trabalhou ${formatMinutes(current.claudeMinutes)}` +
-      (p ? ` (antes: ${formatMinutes(p.claudeMinutes)})` : ''),
+      `${plural(current.turns, t('mensagem'), t('mensagens'))}; ` +
+      t('o Claude trabalhou {v1}', { v1: formatMinutes(current.claudeMinutes) }) +
+      (p ? t(' (antes: {v1})', { v1: formatMinutes(p.claudeMinutes) }) : ''),
     `- Edições: ${current.edits} (+${current.added} −${current.removed} linhas)`,
-    `- Permissões: ${plural(current.approved, 'aprovada', 'aprovadas')}, ` +
-      plural(current.denied, 'negada', 'negadas')
+    `- Permissões: ${plural(current.approved, t('aprovada'), t('aprovadas'))}, ` +
+      plural(current.denied, t('negada'), t('negadas'))
   ]
   if (current.tools.length) {
     lines.push(
@@ -293,9 +294,9 @@ export function describeWeek(current: WeekSummary, previous: WeekSummary | null)
   }
   if (current.terminal) {
     lines.push(
-      `- Terminal: ${plural(current.terminal, 'mensagem', 'mensagens')} no Claude Code` +
+      `- Terminal: ${plural(current.terminal, t('mensagem'), t('mensagens'))} no Claude Code` +
         (current.projects.length
-          ? `, em ${current.projects.map(([n, c]) => `${n} (${c})`).join(', ')}`
+          ? t(', em {v1}', { v1: current.projects.map(([n, c]) => `${n} (${c})`).join(', ') })
           : '')
     )
   }

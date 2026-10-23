@@ -16,35 +16,43 @@ import { MODE_TEXT } from './modes'
 import { QrCode } from './QrCode'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
+import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
 type Save = (patch: Patch) => Promise<void>
 
 const MODEL_LABELS: Record<string, string> = {
-  haiku: 'Haiku (rápido)',
+  haiku: t('Haiku (rápido)'),
   sonnet: 'Sonnet',
   opus: 'Opus',
   fable: 'Fable'
 }
 
 const ACCESSORIES: Record<Settings['accessory'], string> = {
-  auto: 'Pelo calendário (gorro no Natal, óculos no verão)',
-  none: 'Nenhum',
-  christmas: 'Gorro de Natal',
-  summer: 'Óculos de sol'
+  auto: t('Pelo calendário (gorro no Natal, óculos no verão)'),
+  none: t('Nenhum'),
+  christmas: t('Gorro de Natal'),
+  summer: t('Óculos de sol')
+}
+
+/** Os idiomas, cada um no próprio idioma (quem não lê um acha o outro). */
+const LANGUAGE_NAMES: Record<Settings['language'], string> = {
+  auto: t('O do sistema'),
+  pt: 'Português',
+  en: 'English'
 }
 
 const THEMES: Record<Settings['theme'], string> = {
-  system: 'O do sistema',
-  light: 'Claro',
-  dark: 'Escuro'
+  system: t('O do sistema'),
+  light: t('Claro'),
+  dark: t('Escuro')
 }
 
 const LANGUAGES: Record<string, string> = {
-  pt: 'Português',
-  en: 'Inglês',
-  es: 'Espanhol',
-  auto: 'Detectar sozinho'
+  pt: t('Português'),
+  en: t('Inglês'),
+  es: t('Espanhol'),
+  auto: t('Detectar sozinho')
 }
 
 /**
@@ -99,7 +107,7 @@ export function SettingsView({
       <div className="settings-scroll">
         {snapshot.problems.length > 0 && (
           <div className="settings-problems" role="alert">
-            <strong>O config.json tem problemas</strong>
+            <strong>{t('O config.json tem problemas')}</strong>
             <ul>
               {snapshot.problems.map((problem) => (
                 <li key={problem}>{problem}</li>
@@ -108,13 +116,16 @@ export function SettingsView({
           </div>
         )}
 
-        <Section title="Conversas">
-          <Row label="Modelo" hint="O das conversas novas; cada aba troca o seu na pílula.">
+        <Section title={t('Conversas')}>
+          <Row
+            label={t('Modelo')}
+            hint={t('O das conversas novas; cada aba troca o seu na pílula.')}
+          >
             <select
               value={values.model ?? ''}
               onChange={(event) => void save({ model: event.target.value || null })}
             >
-              <option value="">Padrão do Claude Code</option>
+              <option value="">{t('Padrão do Claude Code')}</option>
               {MODEL_CHOICES.map((model) => (
                 <option key={model} value={model}>
                   {MODEL_LABELS[model] ?? model}
@@ -126,7 +137,7 @@ export function SettingsView({
             </select>
           </Row>
           <Row
-            label="Permissões"
+            label={t('Permissões')}
             hint={`${MODE_TEXT[values.permissionMode].hint}. O das conversas novas; cada aba troca o seu.`}
             error={errors.permissionMode}
           >
@@ -144,8 +155,8 @@ export function SettingsView({
             </select>
           </Row>
           <Row
-            label="Pastas de projetos"
-            hint="Uma por linha. O Claude só abre projetos (repositórios git) dentro delas."
+            label={t('Pastas de projetos')}
+            hint={t('Uma por linha. O Claude só abre projetos (repositórios git) dentro delas.')}
             error={errors.projectRoots}
           >
             <ListInput
@@ -155,8 +166,8 @@ export function SettingsView({
             />
           </Row>
           <Row
-            label="Editor"
-            hint="O comando que abre um projeto (a pasta vai no fim): code, codium, code -n…"
+            label={t('Editor')}
+            hint={t('O comando que abre um projeto (a pasta vai no fim): code, codium, code -n…')}
             error={errors.editorCommand}
           >
             <TextInput
@@ -165,19 +176,21 @@ export function SettingsView({
             />
           </Row>
           <Row
-            label="Terminal"
-            hint="Vazio escolhe sozinho. Use {dir} para a pasta: konsole --workdir {dir}."
+            label={t('Terminal')}
+            hint={t('Vazio escolhe sozinho. Use {dir} para a pasta: konsole --workdir {dir}.')}
             error={errors.terminalCommand}
           >
             <TextInput
               value={values.terminalCommand ?? ''}
-              placeholder="automático"
+              placeholder={t('automático')}
               onCommit={(text) => save({ terminalCommand: text || null })}
             />
           </Row>
           <Row
-            label="Abas paradas dormem depois de"
-            hint="Minutos sem uso. O Claude Code da aba sai (a memória volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa, com alguns segundos a mais. 0: nunca."
+            label={t('Abas paradas dormem depois de')}
+            hint={t(
+              'Minutos sem uso. O Claude Code da aba sai (a memória volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa, com alguns segundos a mais. 0: nunca.'
+            )}
             error={errors.tabSleepMinutes}
           >
             <NumberInput
@@ -186,8 +199,10 @@ export function SettingsView({
             />
           </Row>
           <Row
-            label="Ferramentas liberadas"
-            hint="Rodam sem o card, uma por linha (mcp__desktop__open_app…). Comandos Bash sempre pedem, menos no modo Automático."
+            label={t('Ferramentas liberadas')}
+            hint={t(
+              'Rodam sem o card, uma por linha (mcp__desktop__open_app…). Comandos Bash sempre pedem, menos no modo Automático.'
+            )}
             error={errors.extraAllowedTools}
           >
             <ListInput
@@ -198,10 +213,10 @@ export function SettingsView({
           </Row>
         </Section>
 
-        <Section title="Mascote e sons">
+        <Section title={t('Mascote e sons')}>
           <Row
-            label="Avatar"
-            hint="O mascote, a ilha e o avatar do painel. Também no botão direito do mascote."
+            label={t('Avatar')}
+            hint={t('O mascote, a ilha e o avatar do painel. Também no botão direito do mascote.')}
           >
             <select
               value={values.avatar}
@@ -215,13 +230,19 @@ export function SettingsView({
             </select>
           </Row>
           <Toggle
-            label="Ilha no topo"
-            hint="No lugar do mascote flutuante, uma cápsula no centro do topo da tela com o Wisp em miniatura e o que ele está fazendo. Cresce com o cursor; o clique abre o painel logo abaixo."
+            label={t('Ilha no topo')}
+            hint={t(
+              'No lugar do mascote flutuante, uma cápsula no centro do topo da tela com o Wisp em miniatura e o que ele está fazendo. Cresce com o cursor; o clique abre o painel logo abaixo.'
+            )}
             checked={values.compact}
             onChange={(compact) => void save({ compact })}
           />
-          <Toggle label="Sons" checked={values.sound} onChange={(sound) => void save({ sound })} />
-          <Row label="Volume">
+          <Toggle
+            label={t('Sons')}
+            checked={values.sound}
+            onChange={(sound) => void save({ sound })}
+          />
+          <Row label={t('Volume')}>
             <input
               type="range"
               min={0}
@@ -229,12 +250,12 @@ export function SettingsView({
               step={5}
               value={Math.round(values.volume * 100)}
               onChange={(event) => void save({ volume: Number(event.target.value) / 100 })}
-              aria-label="Volume"
+              aria-label={t('Volume')}
             />
           </Row>
           <Row
-            label="Cochilar depois de"
-            hint="Minutos sem nada acontecer (e com o cursor longe). 0: nunca."
+            label={t('Cochilar depois de')}
+            hint={t('Minutos sem nada acontecer (e com o cursor longe). 0: nunca.')}
             error={errors.sleepAfterMinutes}
           >
             <NumberInput
@@ -242,7 +263,7 @@ export function SettingsView({
               onCommit={(sleepAfterMinutes) => save({ sleepAfterMinutes })}
             />
           </Row>
-          <Row label="Acessório">
+          <Row label={t('Acessório')}>
             <select
               value={values.accessory}
               onChange={(event) =>
@@ -257,15 +278,48 @@ export function SettingsView({
             </select>
           </Row>
           <Toggle
-            label="Oferecer o que você copiou"
-            hint="O chip acima da caixa de texto, ao abrir o painel."
+            label={t('Oferecer o que você copiou')}
+            hint={t('O chip acima da caixa de texto, ao abrir o painel.')}
             checked={values.clipboardChip}
             onChange={(clipboardChip) => void save({ clipboardChip })}
           />
         </Section>
 
-        <Section title="Aparência e acessibilidade">
-          <Row label="Tema" hint="O painel e os menus. O terminal fica sempre escuro.">
+        <Section title={t('Aparência e acessibilidade')}>
+          <Row
+            label={t('Idioma')}
+            hint={t(
+              'Da interface e das respostas do Claude. O do sistema: português se o sistema estiver em português, inglês nos outros. Vale ao abrir o Wisp de novo.'
+            )}
+          >
+            <select
+              value={values.language}
+              onChange={(event) =>
+                void save({ language: event.target.value as Settings['language'] })
+              }
+            >
+              {Object.entries(LANGUAGE_NAMES).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Row>
+          {snapshot.nextLocale !== snapshot.locale && (
+            <div className="settings-row">
+              <button
+                type="button"
+                className="settings-button primary"
+                onClick={() => window.wisp.settings.relaunch()}
+              >
+                {t('Abrir o Wisp de novo agora')}
+              </button>
+              <small className="settings-hint">
+                {t('As conversas e as abas continuam; uma resposta em andamento para.')}
+              </small>
+            </div>
+          )}
+          <Row label={t('Tema')} hint={t('O painel e os menus. O terminal fica sempre escuro.')}>
             <select
               value={values.theme}
               onChange={(event) => void save({ theme: event.target.value as Settings['theme'] })}
@@ -278,50 +332,56 @@ export function SettingsView({
             </select>
           </Row>
           <Toggle
-            label="Alto contraste"
-            hint="Cores mais fortes, bordas mais visíveis e o foco do teclado bem marcado. Liga sozinho se o sistema pedir."
+            label={t('Alto contraste')}
+            hint={t(
+              'Cores mais fortes, bordas mais visíveis e o foco do teclado bem marcado. Liga sozinho se o sistema pedir.'
+            )}
             checked={values.highContrast}
             onChange={(highContrast) => void save({ highContrast })}
           />
           <Toggle
-            label="Reduzir animações"
-            hint="O mascote e o painel quase param de se mexer. Liga sozinho se o sistema pedir."
+            label={t('Reduzir animações')}
+            hint={t(
+              'O mascote e o painel quase param de se mexer. Liga sozinho se o sistema pedir.'
+            )}
             checked={values.reduceMotion}
             onChange={(reduceMotion) => void save({ reduceMotion })}
           />
           <ZoomRow value={values.panelZoom} onCommit={(panelZoom) => save({ panelZoom })} />
         </Section>
 
-        <Section title="Atalhos e sistema">
+        <Section title={t('Atalhos e sistema')}>
           <Row
-            label="Abrir o painel"
-            hint="Clique e aperte o atalho. Apagar (Backspace) desliga."
+            label={t('Abrir o painel')}
+            hint={t('Clique e aperte o atalho. Apagar (Backspace) desliga.')}
             error={errors.shortcut}
           >
             <ShortcutInput value={values.shortcut} onCommit={(shortcut) => save({ shortcut })} />
           </Row>
-          <Row label="Falar" hint="Segure enquanto fala." error={errors.voiceShortcut}>
+          <Row label={t('Falar')} hint={t('Segure enquanto fala.')} error={errors.voiceShortcut}>
             <ShortcutInput
               value={values.voiceShortcut}
               onCommit={(voiceShortcut) => save({ voiceShortcut })}
             />
           </Row>
           <Toggle
-            label="Responder pela notificação"
-            hint="Com o painel escondido, o card que espera também vira uma notificação do sistema com Permitir e Negar (uma vez só: nada de “sempre”). Um comando com arquivos de segredos só pode ser negado por ela."
+            label={t('Responder pela notificação')}
+            hint={t(
+              'Com o painel escondido, o card que espera também vira uma notificação do sistema com Permitir e Negar (uma vez só: nada de “sempre”). Um comando com arquivos de segredos só pode ser negado por ela.'
+            )}
             checked={values.notifyApprovals}
             onChange={(notifyApprovals) => void save({ notifyApprovals })}
           />
           <Toggle
-            label="Iniciar com o sistema"
+            label={t('Iniciar com o sistema')}
             checked={snapshot.autostart}
             error={errors.autostart}
             onChange={(autostart) => void save({ autostart })}
           />
         </Section>
 
-        <Section title="Voz">
-          <Row label="Idioma da fala" error={errors.voiceLanguage}>
+        <Section title={t('Voz')}>
+          <Row label={t('Idioma da fala')} error={errors.voiceLanguage}>
             <select
               value={values.voiceLanguage}
               onChange={(event) => void save({ voiceLanguage: event.target.value })}
@@ -337,34 +397,34 @@ export function SettingsView({
             </select>
           </Row>
           <Toggle
-            label="Revisar antes de mandar"
-            hint="O que você disse pelo atalho vai para a caixa, em vez de seguir direto."
+            label={t('Revisar antes de mandar')}
+            hint={t('O que você disse pelo atalho vai para a caixa, em vez de seguir direto.')}
             checked={values.voiceReview}
             onChange={(voiceReview) => void save({ voiceReview })}
           />
           <Toggle
-            label="Comandos rápidos"
-            hint={'"Pausa a música", "aumenta o volume", "abre o Firefox": sem o Claude.'}
+            label={t('Comandos rápidos')}
+            hint={t('"Pausa a música", "aumenta o volume", "abre o Firefox": sem o Claude.')}
             checked={values.quickCommands}
             onChange={(quickCommands) => void save({ quickCommands })}
           />
           <Toggle
-            label="Falar as respostas"
-            hint="Do que foi pedido por voz, com o Piper."
+            label={t('Falar as respostas')}
+            hint={t('Do que foi pedido por voz, com o Piper.')}
             checked={values.voiceReplies}
             onChange={(voiceReplies) => void save({ voiceReplies })}
           />
           <VoiceTest />
         </Section>
 
-        <Section title="Skills">
+        <Section title={t('Skills')}>
           <SkillsSection />
         </Section>
 
-        <Section title="OpenRouter (experimental)">
+        <Section title={t('OpenRouter (experimental)')}>
           <Row
-            label="Conversas novas vão por"
-            hint="Cada aba troca a sua na pílula abaixo da caixa de texto."
+            label={t('Conversas novas vão por')}
+            hint={t('Cada aba troca a sua na pílula abaixo da caixa de texto.')}
             error={errors.provider}
           >
             <select
@@ -373,14 +433,16 @@ export function SettingsView({
                 void save({ provider: event.target.value as Settings['provider'] })
               }
             >
-              <option value="subscription">Assinatura do Claude (o seu Claude Code)</option>
-              <option value="openrouter">OpenRouter (experimental)</option>
+              <option value="subscription">{t('Assinatura do Claude (o seu Claude Code)')}</option>
+              <option value="openrouter">{t('OpenRouter (experimental)')}</option>
             </select>
           </Row>
           <OpenRouterKey present={snapshot.openrouterKey} />
           <Row
-            label="Modelo"
-            hint="Qualquer modelo de openrouter.ai/models que aceite ferramentas, como provedor/modelo. A pílula do modelo busca na lista."
+            label={t('Modelo')}
+            hint={t(
+              'Qualquer modelo de openrouter.ai/models que aceite ferramentas, como provedor/modelo. A pílula do modelo busca na lista.'
+            )}
             error={errors.openrouterModel}
           >
             <TextInput
@@ -390,30 +452,36 @@ export function SettingsView({
             />
           </Row>
           <p className="settings-hint">
-            O Claude Code continua sendo o cérebro, falando com a OpenRouter em vez da Anthropic: o
-            custo é por uso, na sua conta de lá. Ferramentas, permissões e cards funcionam igual,
-            mas modelos de outras empresas podem se sair pior com elas.
+            {t(
+              'O Claude Code continua sendo o cérebro, falando com a OpenRouter em vez da Anthropic: o custo é por uso, na sua conta de lá. Ferramentas, permissões e cards funcionam igual, mas modelos de outras empresas podem se sair pior com elas.'
+            )}
           </p>
         </Section>
 
-        <Section title="Integrações">
+        <Section title={t('Integrações')}>
           <Toggle
-            label="Alertas do GitHub"
-            hint="CI e revisões dos seus PRs, e pedidos de revisão, a cada 3 minutos. Usa o gh (GitHub CLI) já logado: rode gh auth login antes."
+            label={t('Alertas do GitHub')}
+            hint={t(
+              'CI e revisões dos seus PRs, e pedidos de revisão, a cada 3 minutos. Usa o gh (GitHub CLI) já logado: rode gh auth login antes.'
+            )}
             checked={values.github}
             onChange={(github) => void save({ github })}
           />
           <Toggle
-            label="Agenda"
-            hint="Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura."
+            label={t('Agenda')}
+            hint={t(
+              'Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura.'
+            )}
             checked={values.calendar}
             onChange={(calendar) => void save({ calendar })}
           />
           {values.calendar && (
             <>
               <Row
-                label="Arquivos de agenda"
-                hint="Arquivos .ics ou pastas com eles (vdirsyncer, KOrganizer), um por linha. Opcional."
+                label={t('Arquivos de agenda')}
+                hint={t(
+                  'Arquivos .ics ou pastas com eles (vdirsyncer, KOrganizer), um por linha. Opcional.'
+                )}
                 error={errors.calendarFiles}
               >
                 <ListInput
@@ -423,8 +491,8 @@ export function SettingsView({
                 />
               </Row>
               <Row
-                label="Avisar antes"
-                hint="Minutos antes de cada compromisso com hora marcada. 0: não avisa."
+                label={t('Avisar antes')}
+                hint={t('Minutos antes de cada compromisso com hora marcada. 0: não avisa.')}
                 error={errors.calendarAlertMinutes}
               >
                 <NumberInput
@@ -435,18 +503,22 @@ export function SettingsView({
             </>
           )}
           <Toggle
-            label="Resumo da semana"
-            hint="Conta conversas, tempo do Claude, linhas editadas e aprovações (nada do conteúdo) e mostra o resumo na segunda. Fica no histórico."
+            label={t('Resumo da semana')}
+            hint={t(
+              'Conta conversas, tempo do Claude, linhas editadas e aprovações (nada do conteúdo) e mostra o resumo na segunda. Fica no histórico.'
+            )}
             checked={values.weeklySummary}
             onChange={(weeklySummary) => void save({ weeklySummary })}
           />
         </Section>
 
-        <Section title="Celular">
+        <Section title={t('Celular')}>
           <PhoneSection status={snapshot.phone} />
           <Row
-            label="Mandar depois de"
-            hint="Segundos que um card espera por você antes de ir para o celular. Com a tela bloqueada, vai na hora. 0: só com a tela bloqueada."
+            label={t('Mandar depois de')}
+            hint={t(
+              'Segundos que um card espera por você antes de ir para o celular. Com a tela bloqueada, vai na hora. 0: só com a tela bloqueada.'
+            )}
             error={errors.phoneAfterSeconds}
           >
             <NumberInput
@@ -455,69 +527,75 @@ export function SettingsView({
             />
           </Row>
           <p className="settings-hint">
-            Pelo ntfy (o app do ntfy no celular, do servidor público ou de um seu). Vai um pedido
-            por vez, só com o resumo (o comando, o arquivo, o site), nada da conversa. Pelo celular
-            só dá para permitir uma vez ou negar: nada de &quot;sempre&quot;, de trocar o modo nem
-            de responder perguntas. Sem resposta em 2 minutos, o pedido fica negado.
+            {t(
+              'Pelo ntfy (o app do ntfy no celular, do servidor público ou de um seu). Vai um pedido por vez, só com o resumo (o comando, o arquivo, o site), nada da conversa. Pelo celular só dá para permitir uma vez ou negar: nada de “sempre”, de trocar o modo nem de responder perguntas. Sem resposta em 2 minutos, o pedido fica negado.'
+            )}
           </p>
         </Section>
 
-        <Section title="Avançado">
+        <Section title={t('Avançado')}>
           <div className="settings-row diag-links">
             <button type="button" className="settings-button" onClick={onDiagnostics}>
-              Diagnóstico
+              {t('Diagnóstico')}
             </button>
             <button type="button" className="settings-button" onClick={onWelcome}>
-              Primeiros passos
+              {t('Primeiros passos')}
             </button>
             <small className="settings-hint">
-              O diagnóstico confere o Claude Code, o atalho, a bandeja, o chaveiro e a voz, e copia
-              um relatório para uma issue, sem nada pessoal.
+              {t(
+                'O diagnóstico confere o Claude Code, o atalho, a bandeja, o chaveiro e a voz, e copia um relatório para uma issue, sem nada pessoal.'
+              )}
             </small>
           </div>
           <Toggle
-            label="Avisar de versão nova"
-            hint="Uma vez por dia, confere no GitHub se saiu uma versão nova do Wisp e avisa numa notificação. Nada é baixado sozinho."
+            label={t('Avisar de versão nova')}
+            hint={t(
+              'Uma vez por dia, confere no GitHub se saiu uma versão nova do Wisp e avisa numa notificação. Nada é baixado sozinho.'
+            )}
             checked={values.updateCheck}
             onChange={(updateCheck) => void save({ updateCheck })}
           />
           <Toggle
-            label="Navegador do Claude"
-            hint="Um navegador separado que o Claude controla, com permissão por site. Vale nas conversas novas."
+            label={t('Navegador do Claude')}
+            hint={t(
+              'Um navegador separado que o Claude controla, com permissão por site. Vale nas conversas novas.'
+            )}
             checked={values.browserAutomation}
             onChange={(browserAutomation) => void save({ browserAutomation })}
           />
           <Toggle
-            label="Modo demonstração"
-            hint="Respostas gravadas, sem o Claude Code: nada roda de verdade. As conversas recomeçam."
+            label={t('Modo demonstração')}
+            hint={t(
+              'Respostas gravadas, sem o Claude Code: nada roda de verdade. As conversas recomeçam.'
+            )}
             checked={values.demo}
             onChange={(demo) => void save({ demo })}
           />
           <p className="settings-file">
-            Tudo fica em <code>{snapshot.configPath}</code>.{' '}
+            {t('Tudo fica em')} <code>{snapshot.configPath}</code>.{' '}
             <button
               type="button"
               className="link"
               onClick={() => window.wisp.settings.openFile('config')}
             >
-              Abrir o arquivo
+              {t('Abrir o arquivo')}
             </button>
           </p>
           <p className="settings-file">
-            O registro do que deu errado fica em <code>{snapshot.logPath}</code> (até 1 MB, sem
-            comandos nem endereços).{' '}
+            {t('O registro do que deu errado fica em')} <code>{snapshot.logPath}</code>{' '}
+            {t('(até 1 MB, sem comandos nem endereços).')}{' '}
             <button
               type="button"
               className="link"
               onClick={() => window.wisp.settings.openFile('log')}
             >
-              Abrir o registro
+              {t('Abrir o registro')}
             </button>
           </p>
         </Section>
       </div>
       <div className={`settings-saved${saved ? ' show' : ''}`} role="status" aria-live="polite">
-        {saved ? 'Salvo' : ''}
+        {saved ? t('Salvo') : ''}
       </div>
     </div>
   )
@@ -550,15 +628,15 @@ function OpenRouterKey({ present }: { present: boolean | null }): JSX.Element {
 
   return (
     <div className={`settings-row${message && !message.ok ? ' invalid' : ''}`}>
-      <span className="settings-label">Chave</span>
+      <span className="settings-label">{t('Chave')}</span>
       <div className="openrouter-key">
         <input
           type="password"
           value={draft}
-          placeholder={present ? '•••••••• guardada' : 'sk-or-…'}
+          placeholder={present ? t('•••••••• guardada') : 'sk-or-…'}
           autoComplete="off"
           spellCheck={false}
-          aria-label="Chave da OpenRouter"
+          aria-label={t('Chave da OpenRouter')}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
             if (event.key === 'Enter' && draft.trim()) {
@@ -574,7 +652,7 @@ function OpenRouterKey({ present }: { present: boolean | null }): JSX.Element {
             void run(() => window.wisp.openrouter.setKey(draft), 'Chave conferida e guardada')
           }
         >
-          Guardar
+          {t('Guardar')}
         </button>
         {present && (
           <button
@@ -583,16 +661,20 @@ function OpenRouterKey({ present }: { present: boolean | null }): JSX.Element {
             disabled={busy}
             onClick={() => void run(() => window.wisp.openrouter.clearKey(), 'Chave apagada')}
           >
-            Apagar
+            {t('Apagar')}
           </button>
         )}
       </div>
       <small className="settings-hint">
         {present === null
-          ? 'Não consegui consultar o chaveiro do sistema (Secret Service).'
+          ? t('Não consegui consultar o chaveiro do sistema (Secret Service).')
           : present
-            ? 'Guardada no chaveiro do sistema. Nunca vai para o config.json nem para o registro.'
-            : 'Crie uma em openrouter.ai/keys. Ela fica no chaveiro do sistema, nunca no config.json.'}
+            ? t(
+                'Guardada no chaveiro do sistema. Nunca vai para o config.json nem para o registro.'
+              )
+            : t(
+                'Crie uma em openrouter.ai/keys. Ela fica no chaveiro do sistema, nunca no config.json.'
+              )}
       </small>
       {message && (
         <small className={message.ok ? 'settings-hint' : 'settings-error'} role="status">
@@ -630,7 +712,9 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
       setLink({ link: result.link, web: result.web })
       setMessage({
         ok: true,
-        text: 'Pareamento guardado no chaveiro. Leia o QR code com o app do ntfy e mande o teste.'
+        text: t(
+          'Pareamento guardado no chaveiro. Leia o QR code com o app do ntfy e mande o teste.'
+        )
       })
     } finally {
       setBusy(null)
@@ -669,13 +753,13 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
   return (
     <div className="phone-section">
       <Toggle
-        label="Aprovar pelo celular"
+        label={t('Aprovar pelo celular')}
         hint={
           status.enabled
-            ? 'Ligado: os cards que esperam por você vão para o celular.'
+            ? t('Ligado: os cards que esperam por você vão para o celular.')
             : status.paired
-              ? 'Pareado. Para ligar, o Wisp manda um teste e espera o celular confirmar.'
-              : 'Desligado. Pareie um celular abaixo.'
+              ? t('Pareado. Para ligar, o Wisp manda um teste e espera o celular confirmar.')
+              : t('Desligado. Pareie um celular abaixo.')
         }
         checked={status.enabled}
         onChange={(enabled) => {
@@ -686,25 +770,25 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
       />
       {pairing && !link && (
         <>
-          <Row label="Servidor do ntfy" hint="O público (https://ntfy.sh) ou um seu.">
+          <Row label={t('Servidor do ntfy')} hint={t('O público (https://ntfy.sh) ou um seu.')}>
             <input
               type="text"
               value={server}
               spellCheck={false}
-              aria-label="Servidor do ntfy"
+              aria-label={t('Servidor do ntfy')}
               onChange={(event) => setServer(event.target.value)}
             />
           </Row>
           <Row
-            label="Ficha de acesso"
-            hint="Opcional: a de um servidor com login (tk_…). Fica no chaveiro do sistema."
+            label={t('Ficha de acesso')}
+            hint={t('Opcional: a de um servidor com login (tk_…). Fica no chaveiro do sistema.')}
           >
             <input
               type="password"
               value={token}
               autoComplete="off"
               spellCheck={false}
-              aria-label="Ficha de acesso do ntfy"
+              aria-label={t('Ficha de acesso do ntfy')}
               onChange={(event) => setToken(event.target.value)}
             />
           </Row>
@@ -715,7 +799,7 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
               disabled={busy !== null || !server.trim()}
               onClick={() => void pair()}
             >
-              Parear um celular
+              {t('Parear um celular')}
             </button>
           </div>
         </>
@@ -725,25 +809,27 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
           <QrCode text={link.link} />
           <div className="phone-steps">
             <ol>
-              <li>Instale o app do ntfy no celular (Play Store, F-Droid ou App Store).</li>
+              <li>{t('Instale o app do ntfy no celular (Play Store, F-Droid ou App Store).')}</li>
               <li>
-                Leia o QR code com a câmera (ou, no app, toque em + e cole o tópico do link abaixo).
+                {t(
+                  'Leia o QR code com a câmera (ou, no app, toque em + e cole o tópico do link abaixo).'
+                )}
               </li>
-              <li>Mande o teste e toque em Confirmar na notificação.</li>
+              <li>{t('Mande o teste e toque em Confirmar na notificação.')}</li>
             </ol>
             <code className="phone-topic">{link.web}</code>
             <div className="phone-buttons">
               {busy === 'confirm' ? (
                 <>
                   <span className="settings-hint" role="status">
-                    Esperando o celular…
+                    {t('Esperando o celular…')}
                   </span>
                   <button
                     type="button"
                     className="settings-button"
                     onClick={() => window.wisp.phone.cancel()}
                   >
-                    Cancelar
+                    {t('Cancelar')}
                   </button>
                 </>
               ) : (
@@ -754,7 +840,7 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
                     disabled={busy !== null}
                     onClick={() => void confirm()}
                   >
-                    Mandar o teste
+                    {t('Mandar o teste')}
                   </button>
                   <button
                     type="button"
@@ -762,7 +848,7 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
                     disabled={busy !== null}
                     onClick={() => setLink(null)}
                   >
-                    Fechar
+                    {t('Fechar')}
                   </button>
                 </>
               )}
@@ -778,7 +864,7 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
             disabled={busy !== null}
             onClick={() => void showLink()}
           >
-            Mostrar o QR code
+            {t('Mostrar o QR code')}
           </button>
           <button
             type="button"
@@ -786,13 +872,13 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
             disabled={busy !== null}
             onClick={() => void other(() => window.wisp.phone.unpair())}
           >
-            Desparear
+            {t('Desparear')}
           </button>
         </div>
       )}
       {status.paired === null && (
         <small className="settings-hint">
-          Não consegui consultar o chaveiro do sistema (Secret Service).
+          {t('Não consegui consultar o chaveiro do sistema (Secret Service).')}
         </small>
       )}
       {message && (
@@ -822,7 +908,7 @@ function ZoomRow({
   return (
     <div className="settings-row">
       <span className="settings-label" id="zoom-label">
-        Tamanho do painel
+        {t('Tamanho do painel')}
       </span>
       <div className="zoom-control" role="group" aria-labelledby="zoom-label">
         <button
@@ -830,7 +916,7 @@ function ZoomRow({
           className="settings-button"
           disabled={value <= 0.7}
           onClick={() => step(-0.1)}
-          aria-label="Diminuir"
+          aria-label={t('Diminuir')}
         >
           −
         </button>
@@ -842,18 +928,18 @@ function ZoomRow({
           className="settings-button"
           disabled={value >= 2}
           onClick={() => step(0.1)}
-          aria-label="Aumentar"
+          aria-label={t('Aumentar')}
         >
           +
         </button>
         {value !== 1 && (
           <button type="button" className="link" onClick={() => void onCommit(1)}>
-            Voltar ao normal
+            {t('Voltar ao normal')}
           </button>
         )}
       </div>
       <small className="settings-hint">
-        Também com Ctrl+mais, Ctrl+menos e Ctrl+0, em qualquer tela do painel.
+        {t('Também com Ctrl+mais, Ctrl+menos e Ctrl+0, em qualquer tela do painel.')}
       </small>
     </div>
   )
@@ -1073,10 +1159,12 @@ function ShortcutInput({
       onBlur={() => setListening(false)}
       onKeyDown={onKeyDown}
       aria-label={
-        value ? `Atalho: ${value}. Clique para trocar.` : 'Sem atalho. Clique para definir.'
+        value
+          ? t('Atalho: {value}. Clique para trocar.', { value })
+          : t('Sem atalho. Clique para definir.')
       }
     >
-      {listening ? 'Aperte o atalho…' : (value ?? 'Desligado')}
+      {listening ? t('Aperte o atalho…') : (value ?? t('Desligado'))}
     </button>
   )
 }

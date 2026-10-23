@@ -4,6 +4,7 @@ import ReactMarkdown from 'react-markdown'
 import type { Components, ExtraProps } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import { CheckIcon, CopyIcon } from './icons'
+import { t } from '../../shared/i18n'
 
 /** Linguagem de um bloco de código, pela classe "language-x" do <code> de dentro. */
 function codeLanguage(node: ExtraProps['node']): string | undefined {
@@ -30,10 +31,10 @@ function CodeBlock({ children, node }: ComponentProps<'pre'> & ExtraProps): JSX.
   return (
     <div className="code-block">
       <div className="code-head">
-        <span>{language ?? 'código'}</span>
-        <button type="button" onClick={copy} title="Copiar código">
+        <span>{language ?? t('código')}</span>
+        <button type="button" onClick={copy} title={t('Copiar código')}>
           {copied ? <CheckIcon /> : <CopyIcon />}
-          {copied ? 'Copiado' : 'Copiar'}
+          {copied ? t('Copiado') : t('Copiar')}
         </button>
       </div>
       <pre ref={pre}>{children}</pre>

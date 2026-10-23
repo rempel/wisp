@@ -5,27 +5,28 @@ import type { PermissionItem } from './describe-request'
 import { toolLabel } from './state'
 import type { PermissionStatus } from './state'
 import { useArmed } from './useArmed'
+import { t } from '../../shared/i18n'
 
 const RESULT: Record<Exclude<PermissionStatus, 'pending'>, string> = {
-  allow: 'Permitido',
-  'allow-always': 'Permitido nesta conversa',
-  deny: 'Negado',
-  'allow-edits': 'Plano aprovado, com as edições liberadas',
-  'allow-auto': 'Plano aprovado, no modo Automático',
-  answered: 'Respondido',
-  cancelled: 'Cancelado'
+  allow: t('Permitido'),
+  'allow-always': t('Permitido nesta conversa'),
+  deny: t('Negado'),
+  'allow-edits': t('Plano aprovado, com as edições liberadas'),
+  'allow-auto': t('Plano aprovado, no modo Automático'),
+  answered: t('Respondido'),
+  cancelled: t('Cancelado')
 }
 
 /** Os resultados do card do plano. */
 const PLAN_RESULT: Partial<Record<Exclude<PermissionStatus, 'pending'>, string>> = {
-  allow: 'Plano aprovado: o Claude pede antes de cada ação',
-  deny: 'Continuando o planejamento'
+  allow: t('Plano aprovado: o Claude pede antes de cada ação'),
+  deny: t('Continuando o planejamento')
 }
 
 /** Os resultados do card de confiar numa pasta. */
 const TRUST_RESULT: Partial<Record<Exclude<PermissionStatus, 'pending'>, string>> = {
-  allow: 'Pasta confiável',
-  deny: 'Não confiei na pasta'
+  allow: t('Pasta confiável'),
+  deny: t('Não confiei na pasta')
 }
 
 /** Card de "posso fazer isso?" com Permitir, Negar e Permitir sempre nesta conversa. */
@@ -49,8 +50,8 @@ export function PermissionCard({
   const { title, body } = describe(request.toolName, request.input, baseDir, request.site)
   const until =
     scope === 'sessão'
-      ? 'enquanto esta sessão estiver aberta'
-      : 'até você começar uma conversa nova'
+      ? t('enquanto esta sessão estiver aberta')
+      : t('até você começar uma conversa nova')
   const site = request.always === 'site' ? request.site : undefined
   const plan = request.toolName === PLAN
   const trust = request.toolName === TRUST
@@ -59,24 +60,30 @@ export function PermissionCard({
   const command = request.toolName === 'Bash' ? request.scope : undefined
   const generic = command && !request.exact
   const alwaysHint = site
-    ? `Libera abrir páginas e mexer nelas em ${site} (e nos subdomínios) ${until}.`
+    ? t('Libera abrir páginas e mexer nelas em {site} (e nos subdomínios) {until}.', {
+        site,
+        until
+      })
     : request.toolName === 'Bash'
       ? generic
-        ? `Libera "${command}" com quaisquer argumentos ${until}. Comandos compostos, perigosos ou com arquivos de segredos continuam pedindo.`
-        : `Libera este mesmo comando ${until}.`
-      : `Libera ${toolLabel(request.toolName)} ${until}.`
+        ? t(
+            'Libera "{command}" com quaisquer argumentos {until}. Comandos compostos, perigosos ou com arquivos de segredos continuam pedindo.',
+            { command, until }
+          )
+        : t('Libera este mesmo comando {until}.', { until })
+      : t('Libera {v1} {until}.', { v1: toolLabel(request.toolName), until })
   const alwaysLabel = site
-    ? `Permitir em ${site} nesta ${scope}`
+    ? t('Permitir em {site} nesta {scope}', { site, scope: t(scope) })
     : generic
-      ? `Permitir “${command}” sempre nesta ${scope}`
+      ? t('Permitir “{command}” sempre nesta {scope}', { command, scope: t(scope) })
       : request.toolName === 'Bash'
-        ? `Permitir este comando sempre nesta ${scope}`
-        : `Permitir sempre nesta ${scope}`
+        ? t('Permitir este comando sempre nesta {scope}', { scope: t(scope) })
+        : t('Permitir sempre nesta {scope}', { scope: t(scope) })
   const result =
     request.status === 'allow-always' && site
-      ? `Permitido em ${site} nesta ${scope}`
+      ? t('Permitido em {site} nesta {scope}', { site, scope: t(scope) })
       : request.status === 'allow-always' && generic
-        ? `“${command}” permitido nesta ${scope}`
+        ? t('“{command}” permitido nesta {scope}', { command, scope: t(scope) })
         : request.status === 'pending'
           ? ''
           : ((plan
@@ -89,7 +96,7 @@ export function PermissionCard({
     <div
       className={`permission permission-${request.status}`}
       role="group"
-      aria-label={`Pedido: ${title}`}
+      aria-label={t('Pedido: {title}', { title })}
     >
       <div className="permission-title">{title}</div>
       <div className="permission-body">{body}</div>
@@ -99,42 +106,44 @@ export function PermissionCard({
             type="button"
             className="allow"
             onClick={answer('allow')}
-            title="Aprova o plano; o Claude continua pedindo antes de cada ação"
+            title={t('Aprova o plano; o Claude continua pedindo antes de cada ação')}
           >
-            Aprovar
+            {t('Aprovar')}
           </button>
           <button
             type="button"
             className="always"
             onClick={answer('allow-edits')}
-            title="Aprova o plano e libera as edições de arquivos (modo Aceitar edições)"
+            title={t('Aprova o plano e libera as edições de arquivos (modo Aceitar edições)')}
           >
-            Aprovar e aceitar edições
+            {t('Aprovar e aceitar edições')}
           </button>
           <button
             type="button"
             className="always"
             onClick={answer('allow-auto')}
-            title="Aprova o plano e deixa o Claude Code decidir o que é seguro (modo Automático)"
+            title={t(
+              'Aprova o plano e deixa o Claude Code decidir o que é seguro (modo Automático)'
+            )}
           >
-            Aprovar no automático
+            {t('Aprovar no automático')}
           </button>
           <button
             type="button"
             className="deny"
             onClick={answer('deny')}
-            title="Não aprova: o Claude pergunta o que mudar"
+            title={t('Não aprova: o Claude pergunta o que mudar')}
           >
-            Continuar planejando
+            {t('Continuar planejando')}
           </button>
         </div>
       ) : request.status === 'pending' ? (
         <div className="permission-actions">
           <button type="button" className="allow" onClick={answer('allow')}>
-            {trust ? 'Confiar nesta pasta' : 'Permitir'}
+            {trust ? t('Confiar nesta pasta') : t('Permitir')}
           </button>
           <button type="button" className="deny" onClick={answer('deny')}>
-            {trust ? 'Não confiar' : 'Negar'}
+            {trust ? t('Não confiar') : t('Negar')}
           </button>
           {request.always !== 'none' && (
             <button

@@ -7,6 +7,7 @@ import { VOICE_RATE } from '../shared/vad'
 import { expandHome } from './paths'
 import { findProgram, isFile } from './programs'
 import { viaHost } from './host'
+import { t } from '../shared/i18n'
 
 // A transcrição local, com o whisper.cpp (o programa whisper-cli). O áudio vai pela entrada
 // padrão, como um WAV montado na memória: nada de áudio no disco. Um whisper-cli antigo, que não
@@ -87,16 +88,18 @@ export function whisperSetup(options: WhisperOptions): { binary: string; model: 
   const binary = findWhisper(options.binary)
   if (!binary) {
     throw new WhisperError(
-      'Para eu entender a sua voz, instale o whisper.cpp (o programa whisper-cli) ou diga onde ' +
-        'ele está em whisperPath no config.json.',
+      t(
+        'Para eu entender a sua voz, instale o whisper.cpp (o programa whisper-cli) ou diga onde '
+      ) + t('ele está em whisperPath no config.json.'),
       true
     )
   }
   const model = expandHome(options.model.trim())
   if (!isFile(model)) {
     throw new WhisperError(
-      `Falta o modelo de voz do whisper.cpp: ${model.replace(homedir(), '~')}. O README ` +
-        'explica como baixar.',
+      t('Falta o modelo de voz do whisper.cpp: {v1}. O README ', {
+        v1: model.replace(homedir(), '~')
+      }) + t('explica como baixar.'),
       true
     )
   }
@@ -177,8 +180,9 @@ function runtimeWav(wav: Buffer): string {
   const runtime = process.env.XDG_RUNTIME_DIR
   if (!runtime) {
     throw new WhisperError(
-      'Este whisper.cpp não lê o áudio pela entrada padrão. Atualize o whisper.cpp (a versão 1.5 ' +
-        'ou mais nova lê).'
+      t(
+        'Este whisper.cpp não lê o áudio pela entrada padrão. Atualize o whisper.cpp (a versão 1.5 '
+      ) + t('ou mais nova lê).')
     )
   }
   const dir = join(runtime, 'wisp')
@@ -226,9 +230,11 @@ export async function transcribe(pcm: Int16Array, options: WhisperOptions): Prom
           `${timeoutMs / 1000} s (modelo ${basename(model)}, ${threads} threads)`
       )
       throw new WhisperError(
-        `A transcrição passou de ${timeoutMs / 1000} s e eu desisti. O modelo ` +
-          `${basename(model)} pode ser pesado demais para este computador: um menor, como o ` +
-          'ggml-base ou o ggml-small, entende bem e responde em poucos segundos.'
+        t('A transcrição passou de {v1} s e eu desisti. O modelo ', { v1: timeoutMs / 1000 }) +
+          t('{v1} pode ser pesado demais para este computador: um menor, como o ', {
+            v1: basename(model)
+          }) +
+          t('ggml-base ou o ggml-small, entende bem e responde em poucos segundos.')
       )
     } finally {
       if (file) {
@@ -253,13 +259,13 @@ export async function transcribe(pcm: Int16Array, options: WhisperOptions): Prom
       continue
     }
     if (code === 0 && !(error && !stdout.trim())) return cleanTranscript(stdout)
-    logStderr(stderr, `saiu com ${code}`)
+    logStderr(stderr, t('saiu com {code}', { code }))
     const detail = error ?? stderr.trim().split('\n').pop() ?? ''
     throw new WhisperError(
       code === 0
-        ? `O whisper.cpp não transcreveu: ${detail}.`
-        : `O whisper.cpp saiu com erro (${code})${detail ? `: ${detail}` : ''}.`
+        ? t('O whisper.cpp não transcreveu: {detail}.', { detail })
+        : t('O whisper.cpp saiu com erro ({code}){v2}.', { code, v2: detail ? `: ${detail}` : '' })
     )
   }
-  throw new WhisperError('O whisper.cpp recusou as opções que eu uso. Atualize o whisper.cpp.')
+  throw new WhisperError(t('O whisper.cpp recusou as opções que eu uso. Atualize o whisper.cpp.'))
 }

@@ -1,6 +1,7 @@
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import type { XWindow } from './ewmh'
 import { isKde, kwinActivate, kwinWindows } from './kwin'
+import { t } from '../shared/i18n'
 
 // As janelas dos outros apps: listar e trazer para a frente onde o desktop deixa. No KDE, por um
 // script do KWin (X11 e Wayland); no X11, pelo EWMH. No GNOME com Wayland não há como.
@@ -27,12 +28,12 @@ const fold = (text: string): string =>
 function unsupported(env: NodeJS.ProcessEnv): string {
   if (env.XDG_SESSION_TYPE === 'wayland') {
     return (env.XDG_CURRENT_DESKTOP ?? '').toUpperCase().includes('GNOME')
-      ? 'No GNOME com Wayland, o sistema não deixa um app ver nem trazer para a frente as ' +
-          'janelas dos outros.'
-      : 'Nesta área de trabalho com Wayland, o Wisp não consegue ver as janelas dos outros ' +
-          'apps (funciona no KDE e no X11).'
+      ? t('No GNOME com Wayland, o sistema não deixa um app ver nem trazer para a frente as ') +
+          t('janelas dos outros.')
+      : t('Nesta área de trabalho com Wayland, o Wisp não consegue ver as janelas dos outros ') +
+          t('apps (funciona no KDE e no X11).')
   }
-  return 'O gerenciador de janelas não informa as janelas abertas (EWMH).'
+  return t('O gerenciador de janelas não informa as janelas abertas (EWMH).')
 }
 
 const fromX = (window: XWindow): WindowInfo => ({
@@ -103,7 +104,9 @@ export function findWindows(windows: WindowInfo[], query: string): WindowInfo[] 
 
 /** Uma linha por janela: "Firefox: “GitHub” (ativa)". */
 export function describeWindow(window: WindowInfo): string {
-  const flags = [window.active ? 'ativa' : '', window.minimized ? 'minimizada' : ''].filter(Boolean)
+  const flags = [window.active ? t('ativa') : '', window.minimized ? t('minimizada') : ''].filter(
+    Boolean
+  )
   const title = window.title ? `: “${window.title.slice(0, 120)}”` : ''
-  return `${window.app || 'sem nome'}${title}${flags.length ? ` (${flags.join(', ')})` : ''}`
+  return `${window.app || t('sem nome')}${title}${flags.length ? ` (${flags.join(', ')})` : ''}`
 }

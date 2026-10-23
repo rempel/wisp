@@ -1,3 +1,5 @@
+// O idioma antes de tudo: os textos guardados em constantes já saem nele (Fase 25).
+import './locale-init'
 import {
   app,
   ipcMain,
@@ -123,6 +125,7 @@ import type {
   VoiceTestResult
 } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
+import { t, dateLocale } from '../shared/i18n'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -236,16 +239,21 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     fire: (reminder, late) => {
       presence.activity()
       activity.record({ k: 'lembrete' })
-      islandMessage('Lembrete', reminder.text, 6000)
+      islandMessage(t('Lembrete'), reminder.text, 6000)
       reactMascot('remind')
       sounds.play('lembrete')
-      const body = late ? `${reminder.text} (era para ${describeWhen(reminder.at)})` : reminder.text
-      notify('Lembrete do Wisp', body, () => chat?.open())
+      const body = late
+        ? t('{text} (era para {v2})', { text: reminder.text, v2: describeWhen(reminder.at) })
+        : reminder.text
+      notify(t('Lembrete do Wisp'), body, () => chat?.open())
     },
     missed: (count) =>
       notify(
-        'Lembretes perdidos',
-        `E mais ${count} ${count === 1 ? 'lembrete venceu' : 'lembretes venceram'} com o Wisp fechado.`
+        t('Lembretes perdidos'),
+        t('E mais {count} {v2} com o Wisp fechado.', {
+          count,
+          v2: count === 1 ? t('lembrete venceu') : t('lembretes venceram')
+        })
       )
   })
 
@@ -289,14 +297,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       findProgram('gh', ['gh'], ['/usr/local/bin', '/snap/bin', '/home/linuxbrew/.linuxbrew/bin']),
     onAlerts: (alerts) => githubAlerts(alerts),
     onProblem: (problem) => {
-      if (!problem) return chat?.notice('info', 'Os alertas do GitHub voltaram a funcionar.')
+      if (!problem) return chat?.notice('info', t('Os alertas do GitHub voltaram a funcionar.'))
       chat?.notice(
         'warning',
         problem.kind === 'missing'
-          ? 'Para os alertas do GitHub, instale o **gh** (GitHub CLI) e rode `gh auth login` no ' +
-              'terminal. O Wisp pergunta de novo de tempos em tempos.'
-          : 'O **gh** não está logado no GitHub: rode `gh auth login` no terminal. O Wisp ' +
-              'pergunta de novo de tempos em tempos.'
+          ? t(
+              'Para os alertas do GitHub, instale o **gh** (GitHub CLI) e rode `gh auth login` no '
+            ) + t('terminal. O Wisp pergunta de novo de tempos em tempos.')
+          : t('O **gh** não está logado no GitHub: rode `gh auth login` no terminal. O Wisp ') +
+              t('pergunta de novo de tempos em tempos.')
       )
     }
   })
@@ -310,7 +319,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     }
     if (alerts.length > MAX_ALERTS) {
       const more = alerts.length - MAX_ALERTS
-      notify('GitHub', `E mais ${more} ${more === 1 ? 'novidade' : 'novidades'} nos seus PRs.`)
+      notify(
+        'GitHub',
+        t('E mais {more} {v2} nos seus PRs.', {
+          more,
+          v2: more === 1 ? t('novidade') : t('novidades')
+        })
+      )
     }
     // O mascote reage ao mais importante: CI vermelho ou pedido de mudanças, aprovação ou CI
     // verde, e o resto (pedido de revisão, comentário) com o sininho.
@@ -351,12 +366,16 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       reactMascot('remind')
       sounds.play('lembrete')
       const clock = (ms: number): string =>
-        new Date(ms).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        new Date(ms).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
       const span =
         event.end > event.start ? `${clock(event.start)}–${clock(event.end)}` : clock(event.start)
-      islandMessage(`Em ${minutes} min`, event.title, 8000)
+      islandMessage(t('Em {minutes} min', { minutes }), event.title, 8000)
       notify(
-        `Em ${minutes} ${minutes === 1 ? 'minuto' : 'minutos'}: ${event.title}`,
+        t('Em {minutes} {v2}: {title}', {
+          minutes,
+          v2: minutes === 1 ? t('minuto') : t('minutos'),
+          title: event.title
+        }),
         event.location ? `${span} · ${event.location}` : span,
         () => chat?.open()
       )
@@ -370,7 +389,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       // Na ilha, o próximo compromisso fica na linha de baixo.
       setIslandNote(
         next
-          ? `${new Date(next.start).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} ${next.title}`
+          ? `${new Date(next.start).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })} ${next.title}`
           : ''
       )
     }
@@ -398,7 +417,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       requestApproval: (request) =>
         chat
           ? chat.requestApproval(request)
-          : Promise.resolve({ allow: false, message: 'O Wisp ainda está abrindo.' }),
+          : Promise.resolve({ allow: false, message: t('O Wisp ainda está abrindo.') }),
       notify,
       projectRoots: () => getConfig().projectRoots,
       editorCommand: () => getConfig().editorCommand,
@@ -407,22 +426,22 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       github: async () => {
         if (!getConfig().github) {
           return (
-            'Os alertas do GitHub estão desligados. Dá para ligar em Configurações → ' +
-            'Integrações (precisa do gh, o GitHub CLI, logado).'
+            t('Os alertas do GitHub estão desligados. Dá para ligar em Configurações → ') +
+            t('Integrações (precisa do gh, o GitHub CLI, logado).')
           )
         }
         // Uma leitura com mais de um minuto é refeita na hora.
         const last = github.snapshot()
         if (!last || Date.now() - last.at > 60_000) await github.poll()
         const problem = github.currentProblem()
-        if (problem === 'missing') return 'O gh (GitHub CLI) não está instalado.'
-        if (problem === 'login') return 'O gh não está logado: falta rodar `gh auth login`.'
+        if (problem === 'missing') return t('O gh (GitHub CLI) não está instalado.')
+        if (problem === 'login') return t('O gh não está logado: falta rodar `gh auth login`.')
         const snapshot = github.snapshot()
-        return snapshot ? describeSnapshot(snapshot) : 'Não consegui ler o GitHub agora.'
+        return snapshot ? describeSnapshot(snapshot) : t('Não consegui ler o GitHub agora.')
       },
       weekly: (which) => {
         if (!getConfig().weeklySummary) {
-          return 'O resumo da semana está desligado (Configurações → Integrações).'
+          return t('O resumo da semana está desligado (Configurações → Integrações).')
         }
         const { current, previous } = summaries()
         if (which === 'anterior') {
@@ -439,15 +458,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       agenda: async (days, from) => {
         if (!getConfig().calendar) {
           return (
-            'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ' +
-            'agendas do GNOME e arquivos .ics).'
+            t('A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ') +
+            t('agendas do GNOME e arquivos .ics).')
           )
         }
         const today = new Date()
         let start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
         if (from) {
           const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(from.trim())
-          if (!match) return 'Use a data no formato AAAA-MM-DD.'
+          if (!match) return t('Use a data no formato AAAA-MM-DD.')
           start = new Date(+match[1], +match[2] - 1, +match[3]).getTime()
         }
         const end = new Date(start + days * 86_400_000 + 3_600_000).setHours(0, 0, 0, 0)
@@ -457,7 +476,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       },
       media: () => media,
       screenshot: async () => {
-        if (!chat) throw new Error('o Wisp ainda está abrindo')
+        if (!chat) throw new Error(t('o Wisp ainda está abrindo'))
         const shots = await chat.capture()
         return shots.map((shot) => ({ ...encodeForModel(shot.image), label: shot.label }))
       }
@@ -551,18 +570,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
 
   // A voz: o botão do microfone do painel e o atalho de voz. Escuta só quando pedida, e nunca com
   // a tela bloqueada.
-  let screenLock: ScreenLock | null = null
-  void ScreenLock.watch().then((watching) => {
-    screenLock = watching
-    phone?.approvals.setLocked(watching.locked)
-    if (watching.locked) away.lock()
-    watching.on('change', (locked: boolean) => {
-      voice?.setLocked(locked)
-      phone?.approvals.setLocked(locked)
-      if (locked) return away.lock()
-      const summary = away.unlock(chat?.pendingApprovals() ?? 0)
-      if (summary) notify(summary.title, summary.body, () => chat?.open())
-    })
+  // O 'change' chega também com o estado inicial (uma tela que já estava bloqueada).
+  const screenLock = ScreenLock.watch()
+  screenLock.on('change', (locked: boolean) => {
+    voice?.setLocked(locked)
+    phone?.approvals.setLocked(locked)
+    if (locked) return away.lock()
+    const summary = away.unlock(chat?.pendingApprovals() ?? 0)
+    if (summary) notify(summary.title, summary.body, () => chat?.open())
   })
   const whisperOptions = (): { binary: string; model: string; language: string } => {
     const config = getConfig()
@@ -584,7 +599,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       return await quick(command, text)
     } catch (err) {
       chat.utterance(text)
-      voiceNotice('warning', `Não consegui: ${(err as Error).message}.`)
+      voiceNotice('warning', t('Não consegui: {message}.', { message: (err as Error).message }))
       return true
     }
   }
@@ -603,17 +618,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     switch (command.kind) {
       case 'media': {
         if (!media || !(await media.players()).length) {
-          return done(false, 'Nenhum player de música aberto.')
+          return done(false, t('Nenhum player de música aberto.'))
         }
-        return done(true, (await media.control(command.action)) || 'Feito.')
+        return done(true, (await media.control(command.action)) || t('Feito.'))
       }
       case 'volume': {
         const level = await stepSystemVolume(command.direction)
-        if (level !== null) return done(true, `Volume do sistema em ${level}%.`)
+        if (level !== null) return done(true, t('Volume do sistema em {level}%.', { level }))
         if (media && (await media.players()).length) {
           return done(true, await media.volume(undefined, command.direction * 10))
         }
-        return done(false, 'Não consegui mudar o volume: não achei o wpctl nem o pactl.')
+        return done(false, t('Não consegui mudar o volume: não achei o wpctl nem o pactl.'))
       }
       case 'open': {
         // Um nome que não é de um app instalado vai para o Claude, que sabe procurar melhor.
@@ -656,7 +671,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       )
       return text
     },
-    locked: () => screenLock?.locked ?? false,
+    locked: () => screenLock.locked,
     pendingApprovals: () => chat?.pendingApprovals() ?? 0,
     denyApprovals: () => chat?.denyApprovals(),
     quickCommands: () => getConfig().quickCommands,
@@ -731,14 +746,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     if (found && 'error' in found) {
       chat?.notice(
         'warning',
-        `O navegador do Claude está ligado no config.json, mas ${found.error.charAt(0).toLowerCase()}${found.error.slice(1)}`
+        t('O navegador do Claude está ligado no config.json, mas {v1}{v2}', {
+          v1: found.error.charAt(0).toLowerCase(),
+          v2: found.error.slice(1)
+        })
       )
     } else if (!first) {
       chat?.notice(
         'info',
         found
-          ? 'Navegador do Claude ligado: vale a partir da próxima conversa (Ctrl+K).'
-          : 'Navegador do Claude desligado a partir da próxima conversa.'
+          ? t('Navegador do Claude ligado: vale a partir da próxima conversa (Ctrl+K).')
+          : t('Navegador do Claude desligado a partir da próxima conversa.')
       )
     }
   }
@@ -816,6 +834,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let openrouterKeyAsked = false
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
+    // No Flatpak, pelo comando de dentro dele (o zypak); no AppImage, pelo arquivo .AppImage.
+    relaunch: () => {
+      app.relaunch({
+        execPath: kind === 'flatpak' ? '/app/bin/wisp' : launchTarget(kind),
+        args: process.argv.slice(1).filter((arg) => !parseCommand([arg]))
+      })
+      app.quit()
+    },
     send: (snapshot) => chat?.notifySettings(snapshot),
     autostart: {
       get: isAutostartEnabled,
@@ -838,8 +864,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     stateFile: join(DATA_DIR, 'versao.json'),
     notify: (release) =>
       notify(
-        `Wisp ${release.version} disponível`,
-        'Clique para ver o que mudou e baixar. As configurações e as conversas continuam.',
+        t('Wisp {version} disponível', { version: release.version }),
+        t('Clique para ver o que mudou e baixar. As configurações e as conversas continuam.'),
         () => void shell.openExternal(release.url)
       )
   })
@@ -868,7 +894,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     ...(phoneExpiry > 0 ? { expiryMs: phoneExpiry } : {})
   })
   // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
-  phone.approvals.setLocked((screenLock as ScreenLock | null)?.locked ?? false)
+  phone.approvals.setLocked(screenLock.locked)
   const refreshOpenRouterKey = async (): Promise<void> => {
     try {
       openrouterKey = await hasSecret(OPENROUTER_SECRET)
@@ -1004,7 +1030,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     autostartEnabled: isAutostartEnabled,
     setAutostartEnabled: (enabled) => {
       const problem = setAutostart(enabled, entryIcon)
-      if (problem) notify('Não mudei o início com o sistema', problem)
+      if (problem) notify(t('Não mudei o início com o sistema'), problem)
       settings.notify()
     },
     demoEnabled: () => getConfig().demo,
@@ -1094,10 +1120,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     const { previous } = summaries()
     if (isEmpty(previous)) return
     notify(
-      'O resumo da sua semana',
-      `${plural(previous.conversations, 'conversa', 'conversas')}, o Claude trabalhou ` +
+      t('O resumo da sua semana'),
+      t('{v1}, o Claude trabalhou ', {
+        v1: plural(previous.conversations, t('conversa'), t('conversas'))
+      }) +
         `${formatMinutes(previous.claudeMinutes)}, ` +
-        `+${previous.added} −${previous.removed} linhas editadas.`,
+        t('+{added} −{removed} linhas editadas.', {
+          added: previous.added,
+          removed: previous.removed
+        }),
       () => chat?.openSummary()
     )
   }
@@ -1133,7 +1164,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       {
         id: 'toggle',
         accelerator: shortcut,
-        description: 'Abrir ou fechar o painel do Wisp',
+        description: t('Abrir ou fechar o painel do Wisp'),
         press: () => {
           presence.activity()
           chat?.toggle()
@@ -1142,7 +1173,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       {
         id: 'voice',
         accelerator: voiceShortcut,
-        description: 'Falar com o Wisp (segure enquanto fala)',
+        description: t('Falar com o Wisp (segure enquanto fala)'),
         press: () => voice?.press(shortcuts.get('voice')?.releases ?? false),
         release: () => voice?.release()
       }
@@ -1181,7 +1212,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     reminders.dispose()
     releaseShortcuts()
     voice?.cancel()
-    screenLock?.dispose()
+    screenLock.dispose()
     phone?.dispose()
     desktopApprovals.reset()
     updates.dispose()

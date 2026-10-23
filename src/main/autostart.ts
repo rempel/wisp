@@ -2,6 +2,7 @@ import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { isAbsolute, join } from 'path'
 import { APP_ID, desktopExec, MARKER, removeOwnFile, writeOwnFile } from './launcher'
+import { t } from '../shared/i18n'
 
 /** O .desktop em ~/.config/autostart que abre o Wisp quando você entra na sessão. */
 export function autostartPath(env: NodeJS.ProcessEnv = process.env): string {
@@ -45,9 +46,11 @@ export function setAutostart(enabled: boolean, icon: string): string | null {
   const path = autostartPath()
   try {
     if (enabled) {
-      return writeOwnFile(path, entry(icon)) ? null : `${path} já existe e não é do Wisp`
+      return writeOwnFile(path, entry(icon))
+        ? null
+        : t('{path} já existe e não é do Wisp', { path })
     }
-    return removeOwnFile(path) ? null : `${path} não é do Wisp; tire-o à mão`
+    return removeOwnFile(path) ? null : t('{path} não é do Wisp; tire-o à mão', { path })
   } catch (err) {
     return (err as Error).message
   }

@@ -12,6 +12,7 @@ import type { EdsCalendars } from './eds'
 import { occurrences } from './ical'
 import type { Occurrence } from './ical'
 import { expandHome } from './paths'
+import { t, dateLocale } from '../shared/i18n'
 
 /** De quanto em quanto tempo relê as agendas (ms). */
 export const REFRESH_MS = 5 * 60_000
@@ -90,7 +91,11 @@ export function readIcsSources(
           out.push({ calendar: basename(path).replace(/\.ics$/i, ''), texts: [text] })
       }
     } catch {
-      out.push({ calendar: basename(path), texts: [], error: `não achei ${configured}` })
+      out.push({
+        calendar: basename(path),
+        texts: [],
+        error: t('não achei {configured}', { configured })
+      })
     }
   }
   return out
@@ -138,11 +143,16 @@ export class Agenda {
     try {
       const eds = await this.options.eds()
       for (const item of (await eds?.events(from, to)) ?? []) {
-        if (item.error) problems.push(`A agenda "${item.source.name}" não abriu: ${item.error}`)
+        if (item.error)
+          problems.push(
+            t('A agenda "{name}" não abriu: {error}', { name: item.source.name, error: item.error })
+          )
         found.push(...occurrences(item.texts, from, to, item.source.name))
       }
     } catch (err) {
-      problems.push(`As agendas do GNOME não responderam: ${(err as Error).message}`)
+      problems.push(
+        t('As agendas do GNOME não responderam: {message}', { message: (err as Error).message })
+      )
     }
     for (const item of readIcsSources(this.options.files())) {
       if (item.error) problems.push(item.error)
@@ -235,8 +245,12 @@ export class Agenda {
   }
 }
 
-const DAY = new Intl.DateTimeFormat('pt-BR', { weekday: 'short', day: '2-digit', month: '2-digit' })
-const CLOCK = new Intl.DateTimeFormat('pt-BR', { hour: '2-digit', minute: '2-digit' })
+const DAY = new Intl.DateTimeFormat(dateLocale(), {
+  weekday: 'short',
+  day: '2-digit',
+  month: '2-digit'
+})
+const CLOCK = new Intl.DateTimeFormat(dateLocale(), { hour: '2-digit', minute: '2-digit' })
 
 /** Os compromissos em texto, por dia, para a ferramenta list_events. */
 export function describeAgenda(
@@ -253,15 +267,20 @@ export function describeAgenda(
     const days = Math.round((startOfDay(ms) - startOfDay(now)) / 86_400_000)
     const date = DAY.format(ms).replace('.', '')
     return days === 0
-      ? `Hoje (${date})`
+      ? t('Hoje ({date})', { date })
       : days === 1
-        ? `Amanhã (${date})`
+        ? t('Amanhã ({date})', { date })
         : date[0].toUpperCase() + date.slice(1)
   }
-  const lines = [`Agora: ${DAY.format(now).replace('.', '')}, ${CLOCK.format(now)}.`]
+  const lines = [
+    t('Agora: {v1}, {v2}.', { v1: DAY.format(now).replace('.', ''), v2: CLOCK.format(now) })
+  ]
   if (!list.length) {
     lines.push(
-      `Nenhum compromisso de ${DAY.format(from).replace('.', '')} a ${DAY.format(to - 1).replace('.', '')}.`
+      t('Nenhum compromisso de {v1} a {v2}.', {
+        v1: DAY.format(from).replace('.', ''),
+        v2: DAY.format(to - 1).replace('.', '')
+      })
     )
     return lines.join('\n')
   }
@@ -273,7 +292,7 @@ export function describeAgenda(
       lines.push(`${heading}:`)
     }
     const when = o.allDay
-      ? 'dia inteiro'
+      ? t('dia inteiro')
       : o.end > o.start
         ? `${CLOCK.format(o.start)}–${CLOCK.format(o.end)}`
         : CLOCK.format(o.start)

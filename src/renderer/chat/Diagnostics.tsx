@@ -8,25 +8,26 @@ import type {
 } from '../../shared/ipc'
 import { Avatar } from './icons'
 import { Markdown } from './Markdown'
+import { t } from '../../shared/i18n'
 
 // O diagnóstico e os primeiros passos (Fase 20): as mesmas conferências, numa lista (para
 // conferir a qualquer hora e copiar o relatório para uma issue) ou uma de cada vez, na primeira
 // vez que o Wisp abre.
 
 const STATUS_TEXT: Record<DiagnosticStatus, string> = {
-  ok: 'Tudo certo',
-  warn: 'Atenção',
-  error: 'Falta',
-  off: 'Desligado'
+  ok: t('Tudo certo'),
+  warn: t('Atenção'),
+  error: t('Falta'),
+  off: t('Desligado')
 }
 
 const STATUS_ICON: Record<DiagnosticStatus, string> = { ok: '✓', warn: '!', error: '✕', off: '–' }
 
 const ACTION_LABEL: Record<DiagnosticAction, string> = {
-  terminal: 'Abrir um terminal',
-  demo: 'Ligar a demonstração',
-  settings: 'Abrir as configurações',
-  release: 'Ver a versão nova'
+  terminal: t('Abrir um terminal'),
+  demo: t('Ligar a demonstração'),
+  settings: t('Abrir as configurações'),
+  release: t('Ver a versão nova')
 }
 
 /** As conferências de agora; `run` confere de novo. */
@@ -134,11 +135,12 @@ export function DiagnosticsView({ onSettings }: { onSettings: () => void }): JSX
     <div className="settings diagnostics">
       <div className="settings-scroll">
         <p className="settings-hint diag-intro">
-          O que o Wisp precisa e o que está ligado. O relatório leva só versões, o desktop e o
-          resultado de cada conferência: nenhum caminho, comando, nome ou conversa.
+          {t(
+            'O que o Wisp precisa e o que está ligado. O relatório leva só versões, o desktop e o resultado de cada conferência: nenhum caminho, comando, nome ou conversa.'
+          )}
         </p>
         {!snapshot ? (
-          <p className="settings-hint">Conferindo…</p>
+          <p className="settings-hint">{t('Conferindo…')}</p>
         ) : (
           <ul className="diag-list">
             {snapshot.checks.map((check) => (
@@ -163,7 +165,7 @@ export function DiagnosticsView({ onSettings }: { onSettings: () => void }): JSX
             disabled={running}
             onClick={() => void run()}
           >
-            {running ? 'Conferindo…' : 'Conferir de novo'}
+            {running ? t('Conferindo…') : t('Conferir de novo')}
           </button>
           <button
             type="button"
@@ -174,7 +176,7 @@ export function DiagnosticsView({ onSettings }: { onSettings: () => void }): JSX
               setCopied(true)
             }}
           >
-            {copied ? 'Copiado' : 'Copiar o relatório'}
+            {copied ? t('Copiado') : t('Copiar o relatório')}
           </button>
           <button
             type="button"
@@ -182,12 +184,12 @@ export function DiagnosticsView({ onSettings }: { onSettings: () => void }): JSX
             disabled={!snapshot}
             onClick={() => window.wisp.diagnostics.issue()}
           >
-            Abrir uma issue
+            {t('Abrir uma issue')}
           </button>
         </div>
         {snapshot && (
           <details className="diag-report">
-            <summary>O que vai no relatório</summary>
+            <summary>{t('O que vai no relatório')}</summary>
             <pre>{snapshot.report}</pre>
           </details>
         )}
@@ -226,7 +228,10 @@ export function WelcomeView({
   return (
     <div className="settings welcome">
       <div className="settings-scroll">
-        <div className="welcome-progress" aria-label={`Passo ${step + 1} de ${total}`}>
+        <div
+          className="welcome-progress"
+          aria-label={t('Passo {v1} de {total}', { v1: step + 1, total })}
+        >
           {Array.from({ length: total }, (_, index) => (
             <span key={index} className={index <= step ? 'done' : ''} />
           ))}
@@ -234,12 +239,13 @@ export function WelcomeView({
         {step === 0 && (
           <div className="welcome-step welcome-hello">
             <Avatar size={72} />
-            <h2>Oi! Eu sou o Wisp.</h2>
+            <h2>{t('Oi! Eu sou o Wisp.')}</h2>
             <p>
-              Um assistente de mesa que conversa com você e faz coisas no computador, sempre pedindo
-              licença antes. Quem pensa por trás de mim é o Claude Code, com a sua assinatura.
+              {t(
+                'Um assistente de mesa que conversa com você e faz coisas no computador, sempre pedindo licença antes. Quem pensa por trás de mim é o Claude Code, com a sua assinatura.'
+              )}
             </p>
-            <p>Vou conferir umas coisas, uma de cada vez. Leva um minuto.</p>
+            <p>{t('Vou conferir umas coisas, uma de cada vez. Leva um minuto.')}</p>
           </div>
         )}
         {current && (
@@ -247,43 +253,50 @@ export function WelcomeView({
             <div className="diag-head">
               <h2>
                 {current.title}
-                {current.optional && <span className="welcome-optional"> (opcional)</span>}
+                {current.optional && <span className="welcome-optional"> {t('(opcional)')}</span>}
               </h2>
               <StatusBadge status={current.status} />
             </div>
             <CheckBody check={current} onSettings={onSettings} onDone={() => void run()} />
             {current.status !== 'ok' && (
               <button type="button" className="link" disabled={running} onClick={() => void run()}>
-                {running ? 'Conferindo…' : 'Conferir de novo'}
+                {running ? t('Conferindo…') : t('Conferir de novo')}
               </button>
             )}
           </div>
         )}
         {last && (
           <div className="welcome-step welcome-end">
-            <h2>{missing ? 'Quase lá' : 'Tudo pronto'}</h2>
+            <h2>{missing ? t('Quase lá') : t('Tudo pronto')}</h2>
             {missing ? (
               <p>
-                Sem o Claude Code, eu não consigo conversar de verdade. Instale-o (o passo 2 diz
-                como) ou veja como eu funciono no <strong>modo demonstração</strong>, com respostas
-                gravadas.
+                {t(
+                  'Sem o Claude Code, eu não consigo conversar de verdade. Instale-o (o passo 2 diz como) ou veja como eu funciono no'
+                )}{' '}
+                <strong>{t('modo demonstração')}</strong>
+                {t(', com respostas gravadas.')}
               </p>
             ) : (
-              <p>Pode me chamar quando quiser:</p>
+              <p>{t('Pode me chamar quando quiser:')}</p>
             )}
             <ul>
               <li>
-                <strong>Ctrl+Alt+W</strong> (ou um clique em mim) abre e fecha o painel.
+                <strong>{t('Ctrl+Alt+W')}</strong>{' '}
+                {t('(ou um clique em mim) abre e fecha o painel.')}
               </li>
               <li>
-                O <strong>botão direito em mim</strong> tem o menu: o avatar, a ilha, os sons.
+                {t('O')} <strong>{t('botão direito em mim')}</strong>{' '}
+                {t('tem o menu: o avatar, a ilha, os sons.')}
               </li>
               <li>
-                Nada que muda o computador roda sem um clique seu: cada pedido vira um card com{' '}
-                <strong>Permitir</strong> e <strong>Negar</strong>.
+                {t(
+                  'Nada que muda o computador roda sem um clique seu: cada pedido vira um card com'
+                )}{' '}
+                <strong>{t('Permitir')}</strong> {t('e')} <strong>{t('Negar')}</strong>.
               </li>
               <li>
-                O <strong>Diagnóstico</strong>, nas configurações, confere tudo isto de novo.
+                {t('O')} <strong>{t('Diagnóstico')}</strong>
+                {t(', nas configurações, confere tudo isto de novo.')}
               </li>
             </ul>
             {missing && (
@@ -292,7 +305,7 @@ export function WelcomeView({
                 className="settings-button"
                 onClick={() => void window.wisp.diagnostics.action('demo').then(finish)}
               >
-                Ligar a demonstração
+                {t('Ligar a demonstração')}
               </button>
             )}
           </div>
@@ -300,7 +313,7 @@ export function WelcomeView({
         <div className="welcome-nav">
           {step > 0 && (
             <button type="button" className="settings-button" onClick={() => setStep(step - 1)}>
-              Voltar
+              {t('Voltar')}
             </button>
           )}
           {!last ? (
@@ -310,7 +323,7 @@ export function WelcomeView({
               disabled={!snapshot}
               onClick={() => setStep(step + 1)}
             >
-              {step === 0 ? 'Começar' : 'Próximo'}
+              {step === 0 ? t('Começar') : t('Próximo')}
             </button>
           ) : (
             <button
@@ -318,12 +331,12 @@ export function WelcomeView({
               className="settings-button primary welcome-finish"
               onClick={finish}
             >
-              Concluir
+              {t('Concluir')}
             </button>
           )}
           {!last && (
             <button type="button" className="link welcome-skip" onClick={finish}>
-              Pular a apresentação
+              {t('Pular a apresentação')}
             </button>
           )}
         </div>

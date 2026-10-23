@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import type { VoiceTestResult } from '../../shared/ipc'
+import { t, dateLocale } from '../../shared/i18n'
 
 type Phase = 'idle' | 'recording' | 'transcribing'
 
 /** "3,0", "0,4": uma casa decimal, com vírgula. */
 const decimal = (n: number): string =>
-  n.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+  n.toLocaleString(dateLocale(), { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 
 /**
  * O "Testar voz" das configurações: grava 3 s, transcreve e mostra o que o whisper.cpp entendeu,
@@ -40,7 +41,7 @@ export function VoiceTest(): JSX.Element {
         (await window.wisp.voice.test()) ?? {
           ok: false,
           text: '',
-          error: 'A voz não está disponível agora.'
+          error: t('A voz não está disponível agora.')
         }
       )
     } finally {
@@ -57,33 +58,38 @@ export function VoiceTest(): JSX.Element {
           disabled={phase !== 'idle'}
           onClick={() => void run()}
         >
-          {phase === 'idle' ? 'Testar voz' : phase === 'recording' ? 'Gravando…' : 'Entendendo…'}
+          {phase === 'idle'
+            ? t('Testar voz')
+            : phase === 'recording'
+              ? t('Gravando…')
+              : t('Entendendo…')}
         </button>
         {phase === 'recording' && (
           <>
-            <span className="settings-hint">Fale algo por 3 s</span>
+            <span className="settings-hint">{t('Fale algo por 3 s')}</span>
             <span className="voice-test-meter" aria-hidden="true">
               <span style={{ width: `${Math.round(level * 100)}%` }} />
             </span>
           </>
         )}
         {phase === 'idle' && !result && (
-          <span className="settings-hint">Grava 3 s e mostra o que eu entendi.</span>
+          <span className="settings-hint">{t('Grava 3 s e mostra o que eu entendi.')}</span>
         )}
       </div>
       {result && (
         <div className={`voice-test-result${result.ok ? '' : ' failed'}`} role="status">
           {result.ok ? (
             <p className="voice-test-text">
-              {result.text ? `“${result.text}”` : <em>Nada entendido.</em>}
+              {result.text ? `“${result.text}”` : <em>{t('Nada entendido.')}</em>}
             </p>
           ) : (
             <p className="voice-test-text">{result.error}</p>
           )}
           {result.seconds !== undefined && (
             <p className="settings-hint">
-              {decimal(result.seconds)} s gravados, pico de {result.peakDb} dB
-              {result.ms !== undefined && `, transcritos em ${decimal(result.ms / 1000)} s`}
+              {decimal(result.seconds)} {t('s gravados, pico de')} {result.peakDb} dB
+              {result.ms !== undefined &&
+                t(', transcritos em {v1} s', { v1: decimal(result.ms / 1000) })}
             </p>
           )}
           {result.hint && <p className="voice-test-hint">{result.hint}</p>}

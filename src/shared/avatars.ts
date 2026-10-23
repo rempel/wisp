@@ -3,13 +3,15 @@
 // lugar, para os olhares, as reações e os acessórios servirem a todos); as cores, no
 // avatars.css do mascote. Um avatar novo é uma entrada aqui, um corpo e um bloco de cores.
 
+import { t } from './i18n'
+
 export const AVATARS = ['robo', 'fantasma'] as const
 export type AvatarName = (typeof AVATARS)[number]
 
 /** O nome de cada um, no menu e nas configurações. */
 export const AVATAR_LABELS: Record<AvatarName, string> = {
-  robo: 'Robô (a gotinha)',
-  fantasma: 'Fantasminha'
+  robo: t('Robô (a gotinha)'),
+  fantasma: t('Fantasminha')
 }
 
 /** A gotinha robô: base redonda e ponta para cima, onde a antena encaixa. */

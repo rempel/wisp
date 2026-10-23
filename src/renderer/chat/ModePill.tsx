@@ -4,6 +4,7 @@ import { PERMISSION_MODES } from '../../shared/ipc'
 import type { PermissionMode } from '../../shared/ipc'
 import { BoltIcon, CheckIcon, ChevronDownIcon, PencilIcon, PlanIcon, ShieldIcon } from './icons'
 import { MODE_TEXT } from './modes'
+import { t } from '../../shared/i18n'
 
 /** O ícone de cada modo. */
 const ICONS: Record<PermissionMode, () => JSX.Element> = {
@@ -57,7 +58,10 @@ export function ModePill({
         onClick={() => setOpen((value) => !value)}
         aria-haspopup="menu"
         aria-expanded={open}
-        title={`Permissões: ${current.label} (${current.hint}). Shift+Tab troca.`}
+        title={t('Permissões: {label} ({hint}). Shift+Tab troca.', {
+          label: current.label,
+          hint: current.hint
+        })}
       >
         <Icon />
         <span>{current.label}</span>

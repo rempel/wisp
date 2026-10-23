@@ -133,10 +133,12 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64 e ARM64, e um Flatpak. Os de ARM64 são montados num
   x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
-- **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
+- **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
+  interface, o mascote, as notificações e as respostas do Claude.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
-  (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo) e 24
-  (notificações e cards):** prontas, esperando a validação com o uso.
+  (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
+  (notificações e cards) e 25 (inglês, Flatpak e ARM64):** prontas, esperando a validação com o
+  uso.
 
 ## Requisitos
 
@@ -483,6 +485,11 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
 
 Em **Configurações → Aparência e acessibilidade**:
 
+- **Idioma:** o do sistema (padrão: português se o sistema estiver em português, inglês nos
+  outros), português ou inglês. Vale para a interface, o mascote, a bandeja, as notificações e as
+  respostas do Claude (o Wisp pede a ele que responda no idioma escolhido). A troca vale ao abrir o
+  Wisp de novo: o botão **Abrir o Wisp de novo agora** faz isso, e as abas e as conversas voltam.
+  Os comandos de voz rápidos e as gravações do modo demonstração ficam em português.
 - **Tema:** o do sistema (padrão), claro ou escuro, para o painel e os menus. O terminal do modo
   terminal fica sempre escuro (o tema do Claude Code pensa num fundo escuro).
 - **Alto contraste:** cores mais fortes, bordas e textos secundários na cor do texto, e um anel de
@@ -917,7 +924,8 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "reduceMotion": false,
   "panelZoom": 1,
   "tabSleepMinutes": 20,
-  "notifyApprovals": true
+  "notifyApprovals": true,
+  "language": "auto"
 }
 ```
 
@@ -987,6 +995,9 @@ mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem
 (e com o cursor longe) até o mascote cochilar; `0` desliga o cochilo. `accessory` é `"auto"`
 (gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
 `avatar` é `"robo"` (a gotinha) ou `"fantasma"` (o fantasminha).
+
+`language` é `"auto"` (o idioma do sistema, pelo `LC_ALL`, `LC_MESSAGES` ou `LANG`: português
+para `pt*`, inglês para os outros), `"pt"` ou `"en"`. Vale ao abrir o Wisp de novo.
 
 `theme` é `"system"` (o tema do sistema), `"light"` ou `"dark"`. `highContrast` e `reduceMotion`
 ligam o alto contraste e o reduzir animações além do que o sistema pede (com o sistema pedindo,
@@ -1300,7 +1311,8 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 - **Unidade:** `npm test` monta cada `test/*.test.ts` com o esbuild e roda com `node --test`, cada
   arquivo num processo com um HOME temporário. O Claude Code é um de mentira
   (`test/fixtures/fake-claude`), que fala stream-json e tem um modo interativo para o modo terminal.
-  `npm test -- stream terminal` roda só esses arquivos.
+  `npm test -- stream terminal` roda só esses arquivos. O `test/idiomas.test.ts` confere que todo
+  texto da interface tem tradução para o inglês (`npm run i18n` lista os que faltam).
 - **Ponta a ponta:** `npm run build` e depois `e2e/run.sh` (ou `e2e/run.sh e2e/terminal.mjs`, um só).
   Cada roteiro abre o app montado num HOME temporário, com o Claude Code de mentira, num X virtual
   (Xvfb) e num D-Bus só dele, e controla a página pelo protocolo do DevTools. Precisa do `xvfb-run`,

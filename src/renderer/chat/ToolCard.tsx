@@ -5,6 +5,7 @@ import { DiffCount, DiffView } from './DiffView'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { stepLabel, toolLabel } from './state'
 import type { Item, SubagentStep } from './state'
+import { t } from '../../shared/i18n'
 
 type ToolItem = Extract<Item, { kind: 'tool' }>
 
@@ -41,7 +42,7 @@ function ToolImages({ images }: { images: string[] }): JSX.Element {
   return (
     <div className="tool-images">
       {images.map((src, index) => (
-        <img key={index} src={src} alt={`Imagem ${index + 1} do resultado`} />
+        <img key={index} src={src} alt={t('Imagem {v1} do resultado', { v1: index + 1 })} />
       ))}
     </div>
   )
@@ -55,16 +56,16 @@ const INTERRUPTED = /interrupted by user/i
 function statusLabel(tool: ToolItem): string {
   switch (tool.status) {
     case 'running':
-      return 'executando'
+      return t('executando')
     case 'waiting':
-      return 'aguardando você'
+      return t('aguardando você')
     case 'done':
-      return 'feito'
+      return t('feito')
     case 'stopped':
-      return 'interrompido'
+      return t('interrompido')
     case 'error':
-      if (INTERRUPTED.test(tool.output ?? '')) return 'interrompido'
-      return DENIED.test(tool.output ?? '') ? 'negado' : 'erro'
+      if (INTERRUPTED.test(tool.output ?? '')) return t('interrompido')
+      return DENIED.test(tool.output ?? '') ? t('negado') : t('erro')
   }
 }
 
@@ -79,8 +80,12 @@ function SubagentSteps({ steps, all }: { steps: SubagentStep[]; all: boolean }):
   const shown = all ? steps : steps.slice(-VISIBLE_STEPS)
   const hidden = steps.length - shown.length
   return (
-    <ol className="subagent-steps" aria-label="Passos do subagente">
-      {hidden > 0 && <li className="subagent-more">+{hidden} passos antes</li>}
+    <ol className="subagent-steps" aria-label={t('Passos do subagente')}>
+      {hidden > 0 && (
+        <li className="subagent-more">
+          +{hidden} {t('passos antes')}
+        </li>
+      )}
       {shown.map((step) => (
         <li key={step.id} className={`subagent-step step-${step.status}`}>
           <span className="tool-icon">
@@ -142,20 +147,20 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
         <div className="tool-body">
           {diff && diff.hunks.length > 0 ? (
             <>
-              <div className="tool-label">Mudanças</div>
+              <div className="tool-label">{t('Mudanças')}</div>
               <DiffView diff={diff} />
             </>
           ) : (
             tool.input !== undefined && (
               <>
-                <div className="tool-label">Entrada</div>
+                <div className="tool-label">{t('Entrada')}</div>
                 <pre>{JSON.stringify(tool.input, null, 2)}</pre>
               </>
             )
           )}
           {tool.output !== undefined && (
             <>
-              <div className="tool-label">Saída</div>
+              <div className="tool-label">{t('Saída')}</div>
               <pre>{tool.output || '(vazio)'}</pre>
             </>
           )}
