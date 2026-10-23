@@ -643,6 +643,19 @@ electron-builder.yml   # os pacotes .deb e AppImage
   escondida (só no painel em foco); o Alt+P chega pelo `PaneBus` (`focus-card`) e põe o foco no
   primeiro botão do `.permission-pending`. No modo terminal, o xterm.js só solta o Alt+P quando
   há card esperando (`cardWaiting`).
+- **Abas que dormem:** o `chat.ts` confere as conversas uma vez por minuto; a `Conversation`
+  só deixa dormir no chat e sem card esperando, e o `ClaudeSession.sleep()` recusa trabalhando,
+  com tarefa em segundo plano ou com a sessão ainda não gravada. Dormir é como a edição da Fase
+  21 sem o ponto de volta: o processo sai (o `turn` muda, então o que ele ainda mandar é
+  ignorado) e a sessão fica com o `sessionSaved`, para o próximo `start` usar `--resume`.
+- **Conversas longas:** o `Pane.tsx` desenha os últimos 150 itens (`PAGE_ITEMS`), com a posição
+  de cada um na conversa inteira como chave (a edição da última mensagem e a rolagem continuam
+  certas). **Mostrar anteriores** guarda a distância do fim antes de crescer a lista e a devolve
+  num `useLayoutEffect`, para a parte à vista não pular. Com a busca aberta, todos entram.
+- **Medir:** o `e2e/consumo.mjs` soma o PSS (`/proc/<pid>/smaps_rollup`) e os tiques de CPU
+  (`/proc/<pid>/stat`) do processo principal e de todos os descendentes, e grava
+  `out/consumo.json`; o CI põe o arquivo no resumo do job. O Claude Code de mentira segura
+  `FAKE_CLAUDE_HOLD_MB` de memória, para fazer as vezes do de verdade.
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR

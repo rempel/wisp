@@ -503,3 +503,18 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Tamanho:** Ctrl+mais duas vezes: o painel fica em 120% (a tela de configurações mostra);
       feche e abra o Wisp: continua. Ctrl+0 volta ao normal.
 - [ ] **Terminal:** no modo terminal, com o alto contraste ligado, o terminal fica preto e branco.
+
+## Desempenho e consumo (Fase 23)
+
+- [ ] **Abas dormem:** em **Configurações → Conversas**, ponha **Abas paradas dormem depois de** em
+      1 minuto. Abra três abas e mande uma mensagem em cada. Num terminal,
+      `pgrep -fc 'claude.*stream-json'` mostra 3; dois minutos depois, sem mexer, mostra 0.
+- [ ] **Acordar:** mande "do que a gente falava?" numa das abas: a resposta demora uns segundos a
+      mais e lembra da conversa. O modelo e o modo da aba continuam os mesmos.
+- [ ] **Não dorme no meio:** peça algo que deixe um servidor rodando ("sobe um servidor http na
+      porta 8000 em segundo plano"): a aba não dorme enquanto ele roda.
+- [ ] **Conversa longa:** numa conversa bem longa (ou reabrindo uma do histórico), suba até o topo:
+      aparece **Mostrar anteriores (N)**; clicar traz mais sem a tela pular.
+- [ ] **Histórico grande:** com mais de 50 conversas guardadas, o histórico mostra 50 e **Mostrar
+      mais** no fim.
+- [ ] **Volte ao padrão:** ponha 20 minutos de novo.

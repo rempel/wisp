@@ -856,7 +856,10 @@ Notas da entrega:
 
 **Aceite:** dá para pedir, aprovar um card e ler a resposta só pelo teclado e pelo Orca.
 
-### Fase 23: desempenho e consumo
+### Fase 23: desempenho e consumo ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/consumo.mjs`, que também
+mede (os números vão para o resumo do job no CI).
 
 - **Abas paradas dormem (M):** o processo do Claude Code de uma aba sem uso há um tempo sai e
   volta pela sessão quando a aba é usada.
@@ -864,6 +867,25 @@ Notas da entrega:
   histórico carrega por partes.
 - **Medir (P):** um teste que mede a memória e a CPU com o Wisp parado e com dez abas, no CI,
   para uma mudança que piora aparecer.
+
+Notas da entrega:
+
+- medido antes: o Claude Code de verdade (2.1.296), parado depois de um turno curto, ocupa uns
+  125 MB de PSS (215 MB de RSS) por aba. O de mentira dos testes segura 120 MB no e2e de consumo,
+  para os números contarem a mesma história;
+- no e2e, com dez abas: 1762 MB acordadas, 347 MB com as dez dormindo (20%), somando o PSS de
+  todos os processos do Wisp. Parado (o mascote cochilando, depois do minuto dos "z"), 0,6% de CPU
+  no Xvfb, que desenha sem GPU;
+- a aba dorme depois de `tabSleepMinutes` (20 por padrão) sem uso. Não dorme trabalhando, com card
+  esperando, com uma tarefa em segundo plano (um servidor que o Claude subiu morreria junto), no
+  modo terminal nem antes de o Claude Code gravar a sessão. A conferência é uma por minuto;
+- acordar é subir o processo com `--resume` na mesma sessão (sem cópia): o contexto, o modelo, o
+  modo e a pasta continuam; custa alguns segundos na primeira mensagem;
+- em vez de uma lista virtual de verdade (que mede a altura de cada mensagem e erra com o
+  Markdown, os cards abertos e a rolagem que acompanha o fim), o painel desenha os últimos 150
+  itens e põe **Mostrar anteriores** no topo, que traz mais 150 sem a conversa pular. Buscando
+  (Ctrl+F), a conversa inteira entra na página. Uma conversa de mil perguntas abre em 0,2 s;
+- o histórico mostra 50 conversas por vez (a lista já lia só a primeira linha de cada arquivo).
 
 **Aceite:** com dez abas abertas e paradas, o Wisp usa menos da metade da memória de hoje.
 

@@ -775,13 +775,25 @@ export function setupChat({
     if (win && problems.length) focusedConversation().notice('warning', configNotice(problems))
   })
 
-  // O tema do sistema mudou: a página troca sozinha (prefers-color-scheme); o fundo da janela,
-  // que aparece antes de a página pintar e ao redimensionar, acompanha aqui.
+  // O tamanho do painel (Fase 22) mudou nas configurações, no Ctrl+mais ou no arquivo.
   onConfigChange((config) => {
     if (win && !win.isDestroyed() && win.webContents.getZoomFactor() !== config.panelZoom) {
       win.webContents.setZoomFactor(config.panelZoom)
     }
   })
+
+  // As abas paradas dormem (Fase 23): o Claude Code de uma aba sem uso sai, e a próxima mensagem
+  // o sobe de novo, na mesma sessão. Uma conferência por minuto (nos testes, mais rápido).
+  const testSleep = Number(process.env.WISP_TEST_TAB_SLEEP_MS) || 0
+  setInterval(() => {
+    const minutes = getConfig().tabSleepMinutes
+    if (!minutes) return
+    const after = testSleep || minutes * 60_000
+    for (const conversation of conversations()) conversation.sleepIfIdle(after)
+  }, testSleep || 60_000).unref()
+
+  // O tema do sistema mudou: a página troca sozinha (prefers-color-scheme); o fundo da janela,
+  // que aparece antes de a página pintar e ao redimensionar, acompanha aqui.
   nativeTheme.on('updated', () => {
     win?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light)
   })

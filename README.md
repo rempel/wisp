@@ -134,8 +134,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
-  (conversa mais fluida) e 22 (acessibilidade e aparência):** prontas, esperando a validação com
-  o uso.
+  (conversa mais fluida), 22 (acessibilidade e aparência) e 23 (desempenho e consumo):** prontas,
+  esperando a validação com o uso.
 
 ## Requisitos
 
@@ -433,6 +433,10 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   chip oferece usar o que foi copiado, sem mostrar o conteúdo. Senhas do KeePassXC não aparecem.
 - **Abas:** Ctrl+T abre outra conversa; cada uma tem o seu Claude Code, e o pontinho da aba mostra se
   ela está trabalhando, esperando você ou com resposta nova. Ctrl+Tab e Ctrl+1…9 trocam; Ctrl+W fecha.
+  Uma aba parada há 20 minutos dorme: o Claude Code dela sai, e a próxima mensagem o acorda na
+  mesma conversa, com alguns segundos a mais (**Configurações → Conversas**).
+- **Conversas longas:** só o fim fica na página; **Mostrar anteriores**, no topo, traz o resto aos
+  poucos (o Ctrl+F busca na conversa inteira). O histórico mostra 50 conversas por vez.
 
 ### Aparência e acessibilidade
 
@@ -855,7 +859,8 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "theme": "system",
   "highContrast": false,
   "reduceMotion": false,
-  "panelZoom": 1
+  "panelZoom": 1,
+  "tabSleepMinutes": 20
 }
 ```
 
@@ -929,6 +934,11 @@ mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem
 `theme` é `"system"` (o tema do sistema), `"light"` ou `"dark"`. `highContrast` e `reduceMotion`
 ligam o alto contraste e o reduzir animações além do que o sistema pede (com o sistema pedindo,
 eles valem mesmo desligados aqui). `panelZoom` é o tamanho do painel, de `0.7` a `2`.
+
+`tabSleepMinutes` são os minutos sem uso até uma aba dormir: o Claude Code dela sai (a memória
+volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa. `0`: nunca. Uma aba
+trabalhando, com um card esperando, com uma tarefa em segundo plano (um servidor que o Claude
+subiu) ou no modo terminal não dorme.
 
 Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
 `fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`,

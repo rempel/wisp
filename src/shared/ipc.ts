@@ -812,6 +812,7 @@ export interface Settings {
   highContrast: boolean
   reduceMotion: boolean
   panelZoom: number
+  tabSleepMinutes: number
   shortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
@@ -849,6 +850,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'highContrast',
   'reduceMotion',
   'panelZoom',
+  'tabSleepMinutes',
   'shortcut',
   'voiceShortcut',
   'clipboardChip',

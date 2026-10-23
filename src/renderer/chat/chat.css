@@ -444,6 +444,24 @@ button {
   }
 }
 
+/* Conversa longa (Fase 23): o começo fica para um clique. */
+.load-earlier {
+  align-self: center;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.load-earlier:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
 .thinking {
   display: flex;
   gap: 5px;
@@ -2011,6 +2029,11 @@ code {
 .history-list {
   flex: 1;
   overflow-y: auto;
+}
+
+.history-more {
+  display: block;
+  margin: 10px auto;
 }
 
 .history-list::-webkit-scrollbar {

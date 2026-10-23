@@ -58,6 +58,11 @@ export interface WispConfig {
   reduceMotion: boolean
   /** O tamanho do painel (texto e tudo), de 0.7 a 2 (Ctrl+mais e Ctrl+menos). */
   panelZoom: number
+  /**
+   * Minutos sem uso até a aba dormir (Fase 23): o Claude Code dela sai e volta pela sessão na
+   * próxima mensagem. 0: nunca.
+   */
+  tabSleepMinutes: number
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -154,6 +159,7 @@ function defaults(): WispConfig {
     highContrast: false,
     reduceMotion: false,
     panelZoom: 1,
+    tabSleepMinutes: 20,
     shortcut: 'Ctrl+Alt+W',
     clipboardChip: true,
     terminalCommand: null,
@@ -253,6 +259,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   highContrast: z.boolean(),
   reduceMotion: z.boolean(),
   panelZoom: z.number().min(0.7).max(2),
+  tabSleepMinutes: z.number().int().min(0).max(1440),
   shortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
@@ -389,6 +396,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   openrouterModel: 'O id do modelo na OpenRouter, como aparece no site: provedor/modelo.',
   volume: 'O volume vai de 0 a 1.',
   sleepAfterMinutes: 'Um número de minutos, 0 ou mais (0 desliga o cochilo).',
+  tabSleepMinutes: 'Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).',
   shortcut: 'O atalho tem no máximo 60 caracteres.',
   voiceShortcut: 'O atalho tem no máximo 60 caracteres.',
   terminalCommand: 'O comando do terminal tem no máximo 300 caracteres.',

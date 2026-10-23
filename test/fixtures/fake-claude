@@ -32,6 +32,10 @@ if (args[0] === 'auth') {
   )
   process.exit(0)
 }
+// O e2e de consumo (Fase 23): FAKE_CLAUDE_HOLD_MB segura essa memória, como o Claude Code de
+// verdade parado (uns 125 MB de PSS cada, medido no 2.1.296 depois de um turno curto).
+const hold = Number(process.env.FAKE_CLAUDE_HOLD_MB) || 0
+globalThis.ballast = hold ? Buffer.alloc(hold * 1024 * 1024, 1) : null
 const flag = (name) => {
   const i = args.indexOf(name)
   return i >= 0 ? args[i + 1] : null

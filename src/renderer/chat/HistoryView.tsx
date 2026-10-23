@@ -6,6 +6,8 @@ import { DownloadIcon, PinIcon, SearchIcon, TrashIcon } from './icons'
 import { WeekCard } from './WeekCard'
 
 const DAY = 86_400_000
+/** Quantas conversas a lista mostra de cada vez (Fase 23); o resto vem no "Mostrar mais". */
+const PAGE = 50
 
 /** Em que grupo da lista a conversa entra, pela última atividade. */
 function groupOf(updatedAt: number, today: number): string {
@@ -29,6 +31,7 @@ const fold = (text: string): string =>
 export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
   const [items, setItems] = useState<ConversationSummary[] | null>(null)
   const [query, setQuery] = useState('')
+  const [limit, setLimit] = useState(PAGE)
   const [confirming, setConfirming] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [exported, setExported] = useState<string | null>(null)
@@ -79,7 +82,8 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
     else setError(result.message)
   }
 
-  const shown = items?.filter((item) => fold(item.title).includes(fold(query.trim()))) ?? []
+  const found = items?.filter((item) => fold(item.title).includes(fold(query.trim()))) ?? []
+  const shown = found.slice(0, limit)
   // O título do grupo vai antes da primeira conversa de cada grupo.
   const groups = shown.map((item) => (item.pinned ? 'Fixadas' : groupOf(item.updatedAt, today)))
 
@@ -93,7 +97,10 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
           placeholder="Buscar conversas…"
           aria-label="Buscar conversas"
           autoFocus
-          onChange={(event) => setQuery(event.target.value)}
+          onChange={(event) => {
+            setQuery(event.target.value)
+            setLimit(PAGE)
+          }}
         />
       </label>
       {error && (
@@ -107,7 +114,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
         </div>
       )}
       <div className="history-list">
-        {items === null ? null : shown.length === 0 ? (
+        {items === null ? null : found.length === 0 ? (
           <p className="history-empty">
             {items.length === 0
               ? 'Nenhuma conversa guardada ainda. Elas aparecem aqui a partir da primeira mensagem.'
@@ -182,6 +189,15 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
               </div>
             )
           })
+        )}
+        {found.length > shown.length && (
+          <button
+            type="button"
+            className="load-earlier history-more"
+            onClick={() => setLimit((count) => count + PAGE)}
+          >
+            Mostrar mais ({found.length - shown.length})
+          </button>
         )}
       </div>
     </div>
