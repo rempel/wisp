@@ -3,7 +3,7 @@
 // conversas fixadas e a exportação em Markdown.
 import { HOME } from './helpers/home'
 import assert from 'node:assert/strict'
-import { mkdirSync, readFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, utimesSync } from 'node:fs'
 import { join } from 'node:path'
 import { after, test } from 'node:test'
 import { ClaudeSession } from '../src/main/claude'
@@ -101,6 +101,9 @@ test('fixadas: no topo do histórico, e saem quando a conversa é apagada', () =
   history.user('22222222-2222-4222-8222-222222222222', 'nova', [])
   const recent = history.currentId()!
   history.flush()
+  // As duas podem nascer no mesmo milissegundo: a velha fica com uma data de antes.
+  const past = Date.now() / 1000 - 60
+  utimesSync(join(dir, `${old}.jsonl`), past, past)
   assert.equal(history.list()[0].id, recent)
   assert.equal(setPinned(old, true), true)
   assert.deepEqual(readPins(), new Set([old]))
