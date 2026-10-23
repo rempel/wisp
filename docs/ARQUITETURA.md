@@ -74,6 +74,8 @@ src/
 │  ├─ updates.ts     # o aviso de versão nova (as versões do Wisp no GitHub, uma vez por dia)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
+│  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
+│  ├─ away.ts        # o resumo de "enquanto você estava fora", ao desbloquear a tela
 │  ├─ github.ts      # alertas do GitHub pelo gh: a consulta, o que mudou e o vigia
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
@@ -91,6 +93,7 @@ src/
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
+│  ├─ commands.ts    # o que um comando do terminal faz, em uma linha (o card e a notificação)
 │  └─ format.ts      # datas e horários em português
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
@@ -656,6 +659,15 @@ electron-builder.yml   # os pacotes .deb e AppImage
   (`/proc/<pid>/stat`) do processo principal e de todos os descendentes, e grava
   `out/consumo.json`; o CI põe o arquivo no resumo do job. O Claude Code de mentira segura
   `FAKE_CLAUDE_HOLD_MB` de memória, para fazer as vezes do de verdade.
+- **Notificações dos cards:** o `desktop-approvals.ts` fala com a `org.freedesktop.Notifications`
+  pelo `dbus.ts` (Notify, CloseNotification, GetCapabilities e os sinais ActionInvoked e
+  NotificationClosed), porque o Notification do Electron não tem botões no Linux. O
+  `DesktopApprovals` guarda os cards que esperam; o `chat.ts` avisa quando você passa a olhar o
+  painel (à vista e com o foco) ou deixa de olhar, e as notificações aparecem e somem com isso. O
+  resumo do pedido é o mesmo do celular (`summarize` do `phone.ts`); a resposta volta pelo mesmo
+  caminho (`answerRemote`). O `away.ts` anota os fins de turno e as expirações entre o bloqueio e o
+  desbloqueio da tela (o `ScreenLock` da Fase 10). A explicação dos comandos fica em
+  `shared/commands.ts`, usada pelo card (`describe-request.tsx`) e pela notificação.
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR

@@ -889,13 +889,32 @@ Notas da entrega:
 
 **Aceite:** com dez abas abertas e paradas, o Wisp usa menos da metade da memória de hoje.
 
-### Fase 24: notificações e cards
+### Fase 24: notificações e cards ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/notificacoes.mjs`, com um
+servidor de notificações de mentira (e uma proteção de tela de mentira) num D-Bus só do teste.
 
 - **Responder pela notificação do sistema (M):** o card que espera com o painel escondido
   também vira uma notificação com Permitir e Negar (as mesmas regras do celular).
 - **Enquanto você estava fora (P):** ao desbloquear a tela, um resumo do que aconteceu: o que
   terminou, o que foi negado por tempo, o que espera.
 - **Card mais claro (P):** o que o comando faz, em uma linha, para os comandos conhecidos.
+
+Notas da entrega:
+
+- o Notification do Electron não tem botões no Linux: a notificação dos cards vai direto pela
+  `org.freedesktop.Notifications` (o cliente D-Bus do Wisp). Cada botão tem uma chave sorteada, e
+  o sinal só vale vindo do dono do nome das notificações (outro processo no barramento não
+  aprova nada); um clique nos primeiros 600 ms é ignorado, como no card;
+- "painel escondido" virou "ninguém olhando": o painel já aparece sem o foco quando chega um card
+  (desde o MVP), então a notificação vale com o painel escondido ou aberto sem o foco, e sai
+  quando você o foca;
+- sem botões no servidor de notificações (alguns desktops), ela só avisa e o clique abre o painel;
+- o resumo de quando a tela estava bloqueada leva só os títulos das abas e as contagens, nunca o
+  conteúdo; sem nada para contar, não aparece;
+- a explicação dos comandos é uma tabela do Wisp (git, npm, rm, sed, curl, docker, apt, systemctl
+  e uns 80 outros, com as opções que mudam o sentido, como `-rf`, `--force`, `--hard`, `-i`). Ela
+  não decide nada: o clique continua sendo o seu.
 
 **Aceite:** com o painel escondido, um card respondido pela notificação libera o Claude; ao
 desbloquear a tela, o resumo lista o que passou.

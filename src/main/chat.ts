@@ -227,12 +227,20 @@ export interface Chat {
   /** Nega os cards da conversa com o pedido mais recente (o "não" falado). */
   denyApprovals(): void
   /**
-   * A resposta a um card que veio do celular (ou o tempo dele acabou: fica negado). Devolve false
-   * se o card já não esperava.
+   * A resposta a um card que veio de fora do painel: do celular (ou o tempo dele acabou: fica
+   * negado) ou da notificação do sistema. Devolve false se o card já não esperava.
    */
-  answerFromPhone(id: string, decision: 'allow' | 'deny', how: 'phone' | 'expired'): boolean
+  answerRemote(
+    id: string,
+    decision: 'allow' | 'deny',
+    how: 'phone' | 'expired' | 'notification'
+  ): boolean
+  /** O título da aba de uma conversa (para o resumo de quando a tela estava bloqueada). */
+  conversationTitle(id: string): string
   /** O painel está à vista. */
   visible(): boolean
+  /** O painel está à vista e com o foco: você está olhando para ele. */
+  attended(): boolean
   /** Em que pé está a voz (o botão do microfone acompanha). */
   voiceStatus(status: VoiceStatus): void
   /** O volume do microfone enquanto ouve. */
@@ -318,6 +326,11 @@ export interface ChatOptions {
   onActivity?: () => void
   /** A janela do painel apareceu ou sumiu, de qualquer jeito (o modo compacto acompanha). */
   onVisible?: (visible: boolean) => void
+  /**
+   * Você passou a olhar o painel (à vista e com o foco) ou deixou de olhar (Fase 24: os cards
+   * viram notificações enquanto ninguém olha).
+   */
+  onAttention?: (attended: boolean) => void
 }
 
 /**
@@ -332,6 +345,7 @@ export function setupChat({
   sessionTitle,
   onEvent,
   onClose,
+  onAttention,
   onPanel,
   onActivity,
   onVisible
@@ -1329,7 +1343,12 @@ export function setupChat({
     })
 
     chat.on('show', () => onVisible?.(true))
-    chat.on('hide', () => onVisible?.(false))
+    chat.on('hide', () => {
+      onVisible?.(false)
+      onAttention?.(false)
+    })
+    chat.on('focus', () => onAttention?.(true))
+    chat.on('blur', () => onAttention?.(false))
     // Você moveu ou redimensionou: espera parar (o arraste manda muitos) e confere.
     let settle: NodeJS.Timeout | null = null
     const moved = (): void => {
@@ -1493,7 +1512,7 @@ export function setupChat({
         .sort((a, b) => b.lastRequestAt - a.lastRequestAt)[0]
       latest?.denyPending()
     },
-    answerFromPhone(id, decision, how) {
+    answerRemote(id, decision, how) {
       const owner = conversations().find((conversation) => conversation.owns(id))
       if (!owner) return false
       const expired = how === 'expired'
@@ -1503,19 +1522,27 @@ export function setupChat({
         expired ? 'Ninguém respondeu a tempo: o pedido foi para o celular e expirou.' : undefined
       )
       if (ok) {
+        const where = how === 'notification' ? 'pela notificação' : 'pelo celular'
         owner.notice(
           'info',
           expired
             ? 'O pedido foi para o celular e ninguém respondeu em 2 minutos: ficou negado.'
             : decision === 'allow'
-              ? 'Permitido pelo celular.'
-              : 'Negado pelo celular.'
+              ? `Permitido ${where}.`
+              : `Negado ${where}.`
         )
       }
       return ok
     },
+    conversationTitle(id) {
+      const conversation = conversationById(id)
+      return conversation ? (conversation.title ?? conversation.project ?? 'Nova conversa') : ''
+    },
     visible() {
       return win?.isVisible() ?? false
+    },
+    attended() {
+      return (win?.isVisible() && win.isFocused()) ?? false
     },
     voiceStatus(status) {
       voice = status

@@ -307,6 +307,12 @@ export function SettingsView({
             />
           </Row>
           <Toggle
+            label="Responder pela notificação"
+            hint="Com o painel escondido, o card que espera também vira uma notificação do sistema com Permitir e Negar (uma vez só: nada de “sempre”). Um comando com arquivos de segredos só pode ser negado por ela."
+            checked={values.notifyApprovals}
+            onChange={(notifyApprovals) => void save({ notifyApprovals })}
+          />
+          <Toggle
             label="Iniciar com o sistema"
             checked={snapshot.autostart}
             error={errors.autostart}

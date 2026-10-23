@@ -87,6 +87,10 @@ import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
+import { AwayTracker } from './away'
+import { DBusConnection } from './dbus'
+import { DesktopApprovals, dbusNotifier } from './desktop-approvals'
+import type { Notifier } from './desktop-approvals'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
 import { UpdateChecker } from './updates'
@@ -249,6 +253,34 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // configuração do servidor; os pedidos só chegam depois que os dois existem.
   let chat: Chat | null = null
   let phone: Phone | null = null
+
+  // Responder pela notificação do sistema (Fase 24): o card que espera com o painel escondido
+  // vira uma notificação com Permitir e Negar, pela org.freedesktop.Notifications.
+  let notifier: Notifier | null = null
+  const desktopApprovals = new DesktopApprovals({
+    enabled: () => getConfig().notifyApprovals,
+    // Ninguém olhando o painel: escondido, ou aberto sem o foco (o card o faz aparecer assim).
+    hidden: () => !(chat?.attended() ?? false),
+    notifier: () => notifier,
+    answer: (id, decision) => chat?.answerRemote(id, decision, 'notification') ?? false,
+    open: () => chat?.open(),
+    log: (message) => console.warn(`[wisp] notificação: ${message}`)
+  })
+  void DBusConnection.session()
+    .then(async (bus) => {
+      if (!bus) return
+      notifier = await dbusNotifier(
+        bus,
+        (id, key) => desktopApprovals.action(id, key),
+        (id) => desktopApprovals.closed(id)
+      )
+    })
+    .catch((err: Error) => console.warn(`[wisp] notificação: sem o D-Bus (${err.message})`))
+  onConfigChange((config) => {
+    if (!config.notifyApprovals) desktopApprovals.reset()
+  })
+  // Enquanto você estava fora (Fase 24): o que aconteceu com a tela bloqueada, ao desbloquear.
+  const away = new AwayTracker()
 
   // Os alertas do GitHub (opcional), pelo gh já logado: CI e revisões dos seus PRs, e pedidos de
   // revisão. O clique na notificação abre o PR no navegador.
@@ -497,6 +529,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       mood.onEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       phone?.onChatEvent(event)
+      if (event.type === 'permission-request') {
+        desktopApprovals.request(event.id, event.toolName, event.input)
+      } else if (event.type === 'permission-resolved') desktopApprovals.resolved(event.id)
+      away.onEvent(event, conversation, chat?.conversationTitle(conversation) ?? '')
       const sound = soundForEvent(event)
       if (sound) sounds.play(sound)
     },
@@ -505,6 +541,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       presence.activity()
       sounds.play(change === 'open' ? 'abrir' : 'fechar')
       updateAccessory()
+    },
+    onAttention: (attended) => {
+      if (attended) desktopApprovals.panelShown()
+      else desktopApprovals.panelHidden()
     },
     onActivity: () => presence.activity()
   })
@@ -515,9 +555,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   void ScreenLock.watch().then((watching) => {
     screenLock = watching
     phone?.approvals.setLocked(watching.locked)
+    if (watching.locked) away.lock()
     watching.on('change', (locked: boolean) => {
       voice?.setLocked(locked)
       phone?.approvals.setLocked(locked)
+      if (locked) return away.lock()
+      const summary = away.unlock(chat?.pendingApprovals() ?? 0)
+      if (summary) notify(summary.title, summary.body, () => chat?.open())
     })
   })
   const whisperOptions = (): { binary: string; model: string; language: string } => {
@@ -816,7 +860,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   phone = setupPhone({
     isSender: (sender) => chat?.isSender(sender) ?? false,
     notify: () => settings.notify(),
-    answer: (id, decision, how) => chat?.answerFromPhone(id, decision, how) ?? false,
+    answer: (id, decision, how) => {
+      const ok = chat?.answerRemote(id, decision, how) ?? false
+      if (ok && how === 'expired') away.expiredOnPhone()
+      return ok
+    },
     ...(phoneExpiry > 0 ? { expiryMs: phoneExpiry } : {})
   })
   // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
@@ -1133,6 +1181,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     voice?.cancel()
     screenLock?.dispose()
     phone?.dispose()
+    desktopApprovals.reset()
     updates.dispose()
     if (midnight) clearTimeout(midnight)
     presence.dispose()
