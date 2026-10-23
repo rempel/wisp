@@ -49,6 +49,11 @@ import { useAttachments } from './useAttachments'
 const STICK_DISTANCE = 48
 /** Quanto esperar o fim da digitação para guardar o rascunho (ms). */
 const DRAFT_SAVE_MS = 400
+/**
+ * Quantos itens do fim da conversa ficam na página (Fase 23): numa conversa longa, o resto
+ * espera o "Mostrar anteriores", de tantos em tantos. Buscando (Ctrl+F), ficam todos.
+ */
+const PAGE_ITEMS = 150
 
 /**
  * O rascunho de cada conversa, enquanto o painel está aberto: a caixa de uma aba que sai da tela
@@ -262,6 +267,9 @@ export function Pane({
   const input = useRef<HTMLTextAreaElement>(null)
   const picker = useRef<HTMLInputElement>(null)
   const stick = useRef(true)
+  // As páginas a mais de itens antigos à vista, e a distância do fim a manter ao mostrá-las.
+  const [earlier, setEarlier] = useState(0)
+  const keepFromBottom = useRef<number | null>(null)
 
   // O que a casca manda para esta conversa: ditado, anexos, arquivos soltos na janela.
   const { addPrepared, addDropped } = attachments
@@ -346,6 +354,14 @@ export function Pane({
     if (!first) stick.current = true
   }, [first])
 
+  // Os itens antigos apareceram em cima: a parte que estava à vista continua no mesmo lugar.
+  useLayoutEffect(() => {
+    const el = list.current
+    if (!el || keepFromBottom.current === null) return
+    el.scrollTop = el.scrollHeight - keepFromBottom.current
+    keepFromBottom.current = null
+  }, [earlier])
+
   // Acompanha o fim da conversa, a menos que o usuário tenha subido para ler.
   useLayoutEffect(() => {
     const el = list.current
@@ -394,6 +410,16 @@ export function Pane({
 
   // A última mensagem dá para editar com o Claude parado, no chat (no terminal, o Esc Esc dele).
   const editIndex = !state.busy && !terminalView && !demo ? lastTurnStart(state.items) : -1
+  // Só o fim de uma conversa longa fica na página (Fase 23).
+  const hiddenItems = finding ? 0 : Math.max(0, state.items.length - PAGE_ITEMS * (earlier + 1))
+
+  /** Mais uma página de itens antigos, sem a conversa pular na tela. */
+  function showEarlier(): void {
+    const el = list.current
+    if (el) keepFromBottom.current = el.scrollHeight - el.scrollTop
+    stick.current = false
+    setEarlier((count) => count + 1)
+  }
 
   function startEdit(): void {
     const item = state.items[editIndex]
@@ -687,15 +713,23 @@ export function Pane({
             )}
           </div>
         )}
+        {hiddenItems > 0 && (
+          <button type="button" className="load-earlier" onClick={showEarlier}>
+            Mostrar anteriores ({hiddenItems})
+          </button>
+        )}
         {/* A lista só cresce (itens mudam no lugar), então a posição identifica o item. */}
-        {state.items.map((item, position) => (
-          <Message
-            key={`${item.kind}-${position}`}
-            item={item}
-            streaming={state.busy && item === last}
-            onEdit={position === editIndex && !editing ? startEdit : undefined}
-          />
-        ))}
+        {state.items.slice(hiddenItems).map((item, index) => {
+          const position = hiddenItems + index
+          return (
+            <Message
+              key={`${item.kind}-${position}`}
+              item={item}
+              streaming={state.busy && item === last}
+              onEdit={position === editIndex && !editing ? startEdit : undefined}
+            />
+          )
+        })}
         {thinking && (
           <div className="thinking" aria-label="Pensando">
             <span />

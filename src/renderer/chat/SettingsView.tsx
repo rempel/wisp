@@ -176,6 +176,16 @@ export function SettingsView({
             />
           </Row>
           <Row
+            label="Abas paradas dormem depois de"
+            hint="Minutos sem uso. O Claude Code da aba sai (a memória volta para o sistema) e a próxima mensagem o sobe de novo, na mesma conversa, com alguns segundos a mais. 0: nunca."
+            error={errors.tabSleepMinutes}
+          >
+            <NumberInput
+              value={values.tabSleepMinutes}
+              onCommit={(tabSleepMinutes) => save({ tabSleepMinutes })}
+            />
+          </Row>
+          <Row
             label="Ferramentas liberadas"
             hint="Rodam sem o card, uma por linha (mcp__desktop__open_app…). Comandos Bash sempre pedem, menos no modo Automático."
             error={errors.extraAllowedTools}

@@ -644,6 +644,10 @@ export class ClaudeSession {
   /** Caminho do CLI depois de uma checagem bem-sucedida; null força checar de novo. */
   private bin: string | null = null
   private busy = false
+  /** Desde quando a conversa está parada (Fase 23: a aba parada há um tempo dorme). */
+  private idleSince = Date.now()
+  /** O processo saiu porque a aba dormiu: a próxima mensagem o sobe de novo, pela sessão. */
+  private sleeping = false
   /** O texto do turno atual já foi escrito no processo (ainda não, enquanto copia os anexos). */
   private sentText: string | null = null
   /**
@@ -843,6 +847,35 @@ export class ClaudeSession {
   /** Se há uma resposta em andamento (do envio até o fim do turno). */
   isBusy(): boolean {
     return this.busy
+  }
+
+  /** Há quanto tempo a conversa está parada, com o processo vivo (0: trabalhando ou sem processo). */
+  idleFor(now = Date.now()): number {
+    if (this.busy || !this.proc) return 0
+    return now - this.idleSince
+  }
+
+  /** A aba dormiu e o processo saiu (a próxima mensagem retoma a sessão). */
+  get asleep(): boolean {
+    return this.sleeping
+  }
+
+  /**
+   * A aba dorme (Fase 23): o processo do Claude Code sai, e a próxima mensagem sobe outro com
+   * `--resume`, na mesma sessão. Não dorme trabalhando, com tarefa em segundo plano (um servidor
+   * que o Claude subiu morreria junto) nem antes de o CLI gravar a sessão.
+   */
+  sleep(): boolean {
+    const proc = this.proc
+    if (!proc || this.busy || this.stopping || this.tasks.size || !this.sessionSaved) return false
+    if (this.echoes.length) return false
+    this.turn++
+    this.proc = null
+    this.sleeping = true
+    this.streamedMessages.clear()
+    this.hiddenToolUses.clear()
+    void killProcess(proc)
+    return true
   }
 
   /** O modelo escolhido e o que respondeu por último, como o evento que o chat recebe. */
@@ -1140,6 +1173,7 @@ export class ClaudeSession {
     this.turn++
     const proc = this.proc
     this.proc = null
+    this.sleeping = false
     this.cost = null
     this.context = null
     this.sessionId = null
@@ -1742,6 +1776,8 @@ export class ClaudeSession {
   private setBusy(busy: boolean): void {
     if (this.busy === busy) return
     this.busy = busy
+    this.idleSince = Date.now()
+    if (busy) this.sleeping = false
     this.emit({ type: 'busy', busy })
   }
 

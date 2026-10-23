@@ -454,6 +454,16 @@ export class Conversation {
     ]
   }
 
+  /**
+   * A aba dorme se está parada há `after` ms (Fase 23): só no chat (o terminal é do usuário),
+   * sem card esperando. Devolve se dormiu agora.
+   */
+  sleepIfIdle(after: number, now = Date.now()): boolean {
+    if (this.disposed || this.viewMode !== 'chat' || this.approvals.size) return false
+    if (this.session.idleFor(now) < after) return false
+    return this.session.sleep()
+  }
+
   /** Quantos cards de permissão (não perguntas) esperam resposta. */
   pendingCount(): number {
     let count = 0

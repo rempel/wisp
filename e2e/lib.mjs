@@ -131,6 +131,9 @@ export function appEnv({ home, runtime }, extra = {}) {
 
 let app = null
 
+/** O pid do processo principal do Wisp aberto pelo startApp (null: fechado). */
+export const appPid = () => app?.pid ?? null
+
 /** Abre o Wisp e espera o mascote aparecer (`args`: opções a mais do Chromium). */
 export async function startApp(home, extra = {}, args = []) {
   await stopApp()
