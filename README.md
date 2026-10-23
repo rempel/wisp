@@ -133,8 +133,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   KDE devem funcionar.
 - **Pacotes:** .deb e AppImage para x86-64. Outras arquiteturas não foram testadas.
 - **Idioma:** a interface, o mascote e a persona do Claude falam português do Brasil.
-- **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico) e 21
-  (conversa mais fluida):** prontas, esperando a validação com o uso.
+- **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
+  (conversa mais fluida) e 22 (acessibilidade e aparência):** prontas, esperando a validação com
+  o uso.
 
 ## Requisitos
 
@@ -432,6 +433,25 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   chip oferece usar o que foi copiado, sem mostrar o conteúdo. Senhas do KeePassXC não aparecem.
 - **Abas:** Ctrl+T abre outra conversa; cada uma tem o seu Claude Code, e o pontinho da aba mostra se
   ela está trabalhando, esperando você ou com resposta nova. Ctrl+Tab e Ctrl+1…9 trocam; Ctrl+W fecha.
+
+### Aparência e acessibilidade
+
+Em **Configurações → Aparência e acessibilidade**:
+
+- **Tema:** o do sistema (padrão), claro ou escuro, para o painel e os menus. O terminal do modo
+  terminal fica sempre escuro (o tema do Claude Code pensa num fundo escuro).
+- **Alto contraste:** cores mais fortes, bordas e textos secundários na cor do texto, e um anel de
+  foco grosso. Liga sozinho quando o sistema pede mais contraste (se o desktop repassa o pedido
+  ao Chromium; senão, ligue aqui).
+- **Reduzir animações:** o mascote, a ilha e o painel quase param de se mexer. Liga sozinho quando o
+  sistema pede menos movimento.
+- **Tamanho do painel:** de 70% a 200%, também com Ctrl+mais, Ctrl+menos e Ctrl+0. Fica guardado.
+
+Para o leitor de tela (o Orca, por exemplo): os botões, as pílulas e os cards têm nome; cada pedido
+de permissão é anunciado ("O Claude pede: Rodar um comando no terminal. Alt+P vai para o card."),
+sem tirar o foco da caixa de texto; **Alt+P** leva o foco ao primeiro botão do card; e a resposta
+pronta é anunciada pelo começo dela. Dá para conversar e aprovar só com o teclado: escreva, Enter,
+Alt+P, Enter (ou Tab até o botão que quiser).
 
 ### Grade e janela
 
@@ -731,6 +751,8 @@ na bandeja e no botão direito do mascote.
 | Painel         | Ctrl+K                      | Conversa nova na aba                                          |
 | Painel         | Ctrl+F                      | Busca na conversa (Enter: o próximo; Esc: fecha)              |
 | Painel         | Ctrl+Shift+E                | Exporta a conversa em Markdown                                |
+| Painel         | Alt+P                       | Vai para o card que espera resposta                           |
+| Painel         | Ctrl+mais / Ctrl+menos / 0  | Aumenta / diminui / volta ao normal o tamanho do painel       |
 | Painel         | Ctrl+T / Ctrl+W             | Abre / fecha uma aba                                          |
 | Painel         | Ctrl+Tab, Ctrl+1…9          | Troca de aba                                                  |
 | Painel         | Ctrl+\\ / Ctrl+Shift+\\     | Divide o painel em foco ao lado / embaixo                     |
@@ -829,7 +851,11 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "phoneApprovals": false,
   "phoneServer": "https://ntfy.sh",
   "phoneAfterSeconds": 60,
-  "updateCheck": false
+  "updateCheck": false,
+  "theme": "system",
+  "highContrast": false,
+  "reduceMotion": false,
+  "panelZoom": 1
 }
 ```
 
@@ -848,7 +874,8 @@ sobrescreve o arquivo até você corrigir.
 Dá para editar o arquivo com o Wisp aberto:
 
 - `projectRoots`, `editorCommand`, `sound`, `volume`, `sleepAfterMinutes`, `accessory`,
-  `avatar`, `shortcut`, `clipboardChip`, `terminalCommand` e as opções de voz valem na hora;
+  `avatar`, `shortcut`, `clipboardChip`, `terminalCommand`, as opções de voz e as de aparência
+  valem na hora;
 - `model`, na próxima mensagem;
 - `browserAutomation` e `browserExecutable`, na próxima conversa (Ctrl+K);
 - `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
@@ -898,6 +925,10 @@ mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem
 (e com o cursor longe) até o mascote cochilar; `0` desliga o cochilo. `accessory` é `"auto"`
 (gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
 `avatar` é `"robo"` (a gotinha) ou `"fantasma"` (o fantasminha).
+
+`theme` é `"system"` (o tema do sistema), `"light"` ou `"dark"`. `highContrast` e `reduceMotion`
+ligam o alto contraste e o reduzir animações além do que o sistema pede (com o sistema pedindo,
+eles valem mesmo desligados aqui). `panelZoom` é o tamanho do painel, de `0.7` a `2`.
 
 Para trocar um som, ponha em `~/.config/wisp/sounds/` um arquivo com o nome dele: `abrir`,
 `fechar`, `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`,

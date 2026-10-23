@@ -81,6 +81,7 @@ check(
     JSON.stringify([
       'Conversas',
       'Mascote e sons',
+      'Aparência e acessibilidade',
       'Atalhos e sistema',
       'Voz',
       'Skills',

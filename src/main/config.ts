@@ -50,6 +50,14 @@ export interface WispConfig {
   accessory: AccessorySetting
   /** O avatar do Wisp: "robo" (a gotinha) ou "fantasma" (o fantasminha). */
   avatar: AvatarName
+  /** O tema do painel: o do sistema, ou sempre claro ou escuro (Fase 22). */
+  theme: ThemeSetting
+  /** Cores de alto contraste no painel (além do que o sistema pedir). */
+  highContrast: boolean
+  /** Menos movimento no painel e no mascote, mesmo com o sistema animando. */
+  reduceMotion: boolean
+  /** O tamanho do painel (texto e tudo), de 0.7 a 2 (Ctrl+mais e Ctrl+menos). */
+  panelZoom: number
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -122,6 +130,9 @@ export interface WispConfig {
   updateCheck: boolean
 }
 
+export const THEME_SETTINGS = ['system', 'light', 'dark'] as const
+export type ThemeSetting = (typeof THEME_SETTINGS)[number]
+
 export const ACCESSORY_SETTINGS = ['auto', 'none', 'christmas', 'summer'] as const
 export type AccessorySetting = (typeof ACCESSORY_SETTINGS)[number]
 
@@ -139,6 +150,10 @@ function defaults(): WispConfig {
     sleepAfterMinutes: 3,
     accessory: 'auto',
     avatar: 'robo',
+    theme: 'system',
+    highContrast: false,
+    reduceMotion: false,
+    panelZoom: 1,
     shortcut: 'Ctrl+Alt+W',
     clipboardChip: true,
     terminalCommand: null,
@@ -234,6 +249,10 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   sleepAfterMinutes: z.number().min(0),
   accessory: z.enum(ACCESSORY_SETTINGS),
   avatar: z.enum(AVATARS),
+  theme: z.enum(THEME_SETTINGS),
+  highContrast: z.boolean(),
+  reduceMotion: z.boolean(),
+  panelZoom: z.number().min(0.7).max(2),
   shortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),

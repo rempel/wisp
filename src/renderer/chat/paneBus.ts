@@ -12,6 +12,8 @@ export type PaneMessage =
   | { type: 'focus' }
   /** Abre a busca na conversa (Ctrl+F). */
   | { type: 'find' }
+  /** Leva o foco para o card que espera resposta (Alt+P). */
+  | { type: 'focus-card' }
 
 /**
  * Entrega mensagens ao painel de uma conversa. O ditado e os anexos esperam, se o painel ainda
@@ -34,7 +36,7 @@ export class PaneBus {
   emit(conversation: string, message: PaneMessage): void {
     const handler = this.handlers.get(conversation)
     if (handler) return handler(message)
-    if (message.type === 'drop' || message.type === 'focus' || message.type === 'find') return
+    if (message.type !== 'compose' && message.type !== 'attach') return
     this.waiting.set(conversation, [...(this.waiting.get(conversation) ?? []), message])
   }
 }

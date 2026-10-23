@@ -1,4 +1,13 @@
-import { app, ipcMain, Notification, powerMonitor, screen, session, shell } from 'electron'
+import {
+  app,
+  ipcMain,
+  nativeTheme,
+  Notification,
+  powerMonitor,
+  screen,
+  session,
+  shell
+} from 'electron'
 import type { Point } from 'electron'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
@@ -58,6 +67,7 @@ import {
   sendMascotCustomSound,
   setMascotAccessory,
   setMascotAvatar,
+  setMascotMotion,
   setMascotGaze,
   setMascotView,
   setMascotVisible,
@@ -643,10 +653,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     midnight = setTimeout(atMidnight, msUntilMidnight())
   }
   atMidnight()
-  setMascotAvatar(getConfig().avatar)
+  // A aparência (Fase 22): o tema vale para todas as janelas, pelo nativeTheme.
+  const applyAppearance = (): void => {
+    const config = getConfig()
+    setMascotAvatar(config.avatar)
+    setMascotMotion(config.reduceMotion)
+    nativeTheme.themeSource = config.theme
+  }
+  applyAppearance()
   onConfigChange(() => {
     updateAccessory()
-    setMascotAvatar(getConfig().avatar)
+    applyAppearance()
     sounds.check()
     updateBrowser()
     setCompact(getConfig().compact)

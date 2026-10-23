@@ -32,6 +32,7 @@ import { ProviderPill } from './ProviderPill'
 import { ModePill } from './ModePill'
 import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
+import { requestTitle } from './describe-request'
 import { PermissionCard } from './PermissionCard'
 import { QuestionCard } from './QuestionCard'
 import { matchCommands, slashQuery } from './slash'
@@ -54,6 +55,26 @@ const DRAFT_SAVE_MS = 400
  * e volta continua com o que tinha (o main guarda para a próxima abertura do Wisp).
  */
 const drafts = new Map<string, string>()
+
+/** O começo da resposta, em texto corrido, para o leitor de tela (sem a marcação do Markdown). */
+function plainStart(markdown: string, max = 200): string {
+  const text = markdown
+    .replace(/```[\s\S]*?```/g, ' (código) ')
+    .replace(/[#*_`>|~[\]()]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return text.length > max ? `${text.slice(0, max)}…` : text
+}
+
+/** O que dizer quando a resposta termina: o começo do último texto do Claude. */
+function replyAnnouncement(items: Item[]): string {
+  const from = lastTurnStart(items)
+  for (let i = items.length - 1; i > from; i--) {
+    const item = items[i]
+    if (item.kind === 'text' && item.text.trim()) return `Resposta pronta: ${plainStart(item.text)}`
+  }
+  return 'O Claude terminou.'
+}
 
 function Message({
   item,
@@ -80,6 +101,7 @@ function Message({
               Editar
             </button>
           )}
+          <span className="sr-only">Você:</span>
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
           {item.text && (
             <div
@@ -113,9 +135,12 @@ function Message({
       )
     case 'text':
       return (
-        <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
-          <Markdown text={item.text} />
-        </div>
+        <>
+          <span className="sr-only">Claude:</span>
+          <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
+            <Markdown text={item.text} />
+          </div>
+        </>
       )
     case 'tool':
       return <ToolCard tool={item} />
@@ -209,11 +234,30 @@ export function Pane({
   // Editando a última mensagem (Fase 21): o que estava na caixa antes, para voltar se desistir.
   const [editing, setEditing] = useState<{ before: string; attachments: number } | null>(null)
   const [finding, setFinding] = useState(false)
+  // O aviso para o leitor de tela (Fase 22): a resposta que terminou, o pedido que chegou.
+  const [announcement, setAnnouncement] = useState('')
+  const [seenBusy, setSeenBusy] = useState(state.busy)
+  const waitingCard = state.items.find(
+    (item): item is Extract<Item, { kind: 'permission' }> =>
+      item.kind === 'permission' && item.status === 'pending'
+  )
+  const [seenCard, setSeenCard] = useState(waitingCard?.id ?? null)
+  if (state.busy !== seenBusy) {
+    setSeenBusy(state.busy)
+    if (!state.busy && focused) setAnnouncement(replyAnnouncement(state.items))
+  }
+  if ((waitingCard?.id ?? null) !== seenCard) {
+    setSeenCard(waitingCard?.id ?? null)
+    if (waitingCard && focused) {
+      setAnnouncement(`O Claude pede: ${requestTitle(waitingCard)}. Alt+P vai para o card.`)
+    }
+  }
   const attachments = useAttachments()
   // O menu dos comandos com barra: o item escolhido e se foi fechado (Esc) para este texto.
   const [slashIndex, setSlashIndex] = useState(0)
   const [slashClosed, setSlashClosed] = useState<string | null>(null)
   const [capturing, setCapturing] = useState(false)
+  const root = useRef<HTMLElement>(null)
   const list = useRef<HTMLDivElement>(null)
   const input = useRef<HTMLTextAreaElement>(null)
   const picker = useRef<HTMLInputElement>(null)
@@ -260,6 +304,13 @@ export function Pane({
           input.current?.focus()
         } else if (message.type === 'find') {
           if (viewRef.current !== 'terminal') setFinding(true)
+        } else if (message.type === 'focus-card') {
+          // Alt+P (Fase 22): o primeiro botão do card que espera resposta.
+          const target = root.current?.querySelector<HTMLElement>(
+            '.permission-pending :is(button, input, textarea):not(:disabled)'
+          )
+          if (target) target.focus()
+          else setAnnouncement('Nenhum pedido esperando resposta.')
         } else if (!window.getSelection()?.toString()) {
           input.current?.focus()
         }
@@ -541,6 +592,7 @@ export function Pane({
 
   return (
     <section
+      ref={root}
       className={`pane${focused ? ' focused' : ''}`}
       data-conversation={conversation}
       onPointerDownCapture={() => {
@@ -584,7 +636,17 @@ export function Pane({
           }}
         />
       )}
-      <div className="messages" ref={list} onScroll={onScroll} hidden={terminalView}>
+      <div className="sr-only" role="status" aria-live="polite" data-announce>
+        {announcement}
+      </div>
+      <div
+        className="messages"
+        ref={list}
+        onScroll={onScroll}
+        hidden={terminalView}
+        role="log"
+        aria-label="Conversa"
+      >
         {/* Na demonstração, as sugestões ficam até a primeira pergunta (os avisos não as tiram). */}
         {(state.items.length === 0 || (demo && !started)) && (
           <div className="empty">

@@ -39,6 +39,7 @@ let view: MascotView = { state: 'idle', look: 'left' }
 /** O acessório do dia, reenviado quando a página (re)carrega. */
 let accessory: Accessory | null = null
 let avatar: AvatarName = 'robo'
+let reduceMotion = false
 /** O usuário escondeu o mascote pelo menu da bandeja (só nesta execução). */
 let hiddenByUser = false
 /** A saudação sai uma vez só, quando a janela aparece pela primeira vez com a página pronta. */
@@ -84,6 +85,7 @@ export function setupMascot(options: MascotHandlers): void {
     event.sender.send(IPC.mascotState, view)
     event.sender.send(IPC.mascotAccessory, accessory)
     event.sender.send(IPC.mascotAvatar, avatar)
+    event.sender.send(IPC.mascotMotion, reduceMotion)
     event.sender.send(IPC.mascotIsland, islandView())
     options.ready()
     greeting.ready = true
@@ -170,6 +172,13 @@ export function setMascotAvatar(next: AvatarName): void {
   if (next === avatar) return
   avatar = next
   mascotWin?.webContents.send(IPC.mascotAvatar, avatar)
+}
+
+/** Menos movimento no mascote (as configurações; o do sistema o CSS já segue). */
+export function setMascotMotion(reduce: boolean): void {
+  if (reduce === reduceMotion) return
+  reduceMotion = reduce
+  mascotWin?.webContents.send(IPC.mascotMotion, reduce)
 }
 
 export function setMascotAccessory(next: Accessory | null): void {
