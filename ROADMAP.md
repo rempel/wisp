@@ -822,13 +822,37 @@ Notas da entrega:
 **Aceite:** numa conversa longa, editar a última pergunta dá uma resposta nova sem a velha no
 contexto; o rascunho volta depois de fechar e abrir o Wisp.
 
-### Fase 22: acessibilidade e aparência
+### Fase 22: acessibilidade e aparência ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/acessibilidade.mjs` (a
+árvore de acessibilidade do Chromium, que é o que o Orca lê, e o fluxo só com o teclado).
 
 - **Leitor de tela (M):** os cards, as pílulas e os botões com nomes e papéis certos; a resposta
   nova anunciada sem roubar o foco. Conferido com o Orca.
 - **Menos movimento (P):** seguir o "reduzir animações" do sistema, também no mascote.
 - **Tamanho do texto do painel (P):** Ctrl+mais e Ctrl+menos, guardado.
 - **Alto contraste e tema claro conferidos (P):** o terminal da Fase 17 e o diff acompanham.
+
+Notas da entrega:
+
+- o teste percorre a árvore de acessibilidade do chat (vazio e com cards e ferramentas), das
+  configurações, do histórico, das sessões e do diagnóstico, e falha com qualquer botão, campo ou
+  chave sem nome; só a busca do histórico estava sem (o texto de exemplo não conta como nome);
+- uma região escondida (`role="status"`) anuncia o pedido que chegou e a resposta pronta, só no
+  painel em foco; as mensagens ganham "Você:" e "Claude:" só para o leitor de tela, e a conversa é
+  um `log`;
+- **Alt+P** vai para o primeiro botão do card que espera; no modo terminal, ele só fica com o Wisp
+  quando há card esperando (no resto do tempo é do Claude Code, que troca o modelo com ele);
+- o reduzir animações e o alto contraste viram classes no `<html>` (`reduce-motion`, `contrast`),
+  ligadas pelo sistema (`prefers-reduced-motion`, `prefers-contrast`) ou pelas configurações; o
+  CSS só olha as classes, então as duas fontes valem igual, no painel, no mascote e na ilha;
+- o tema vai pelo `nativeTheme.themeSource` do Electron (o `prefers-color-scheme` das páginas e
+  os menus acompanham); o tamanho, pelo zoom da página do painel;
+- o terminal continua escuro no tema claro (as cores do Claude Code pensam num fundo escuro); no
+  alto contraste, fica preto e branco puros. O diff usa as cores do tema e ganha tons mais fortes
+  no alto contraste;
+- o Orca de verdade não roda no CI (precisa de áudio e do AT-SPI): a conferência com ele está no
+  roteiro de validação.
 
 **Aceite:** dá para pedir, aprovar um card e ler a resposta só pelo teclado e pelo Orca.
 

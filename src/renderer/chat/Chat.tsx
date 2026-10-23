@@ -16,10 +16,11 @@ import type {
   WindowState,
   VoiceStatus
 } from '../../shared/ipc'
+import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
-import { fromTerminal, isWispTerminalShortcut } from './terminal-keys'
+import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
 import { HistoryView } from './HistoryView'
 import {
   Avatar,
@@ -70,6 +71,20 @@ const ARROWS: Record<string, Side> = {
  * O painel: o cabeçalho, as abas e até MAX_PANES painéis lado a lado, cada um com uma conversa
  * (ou uma sessão do terminal). O estado de cada conversa fica aqui, pelo id dela.
  */
+
+/** Os passos do tamanho do painel (o zoom da página), de 70% a 200%. */
+const ZOOM_MIN = 0.7
+const ZOOM_MAX = 2
+
+/** Aumenta (+, =), diminui (-) ou volta ao normal (0) o tamanho do painel; fica no config.json. */
+async function zoomPanel(key: string): Promise<void> {
+  const snapshot = await window.wisp.settings.get()
+  const now = snapshot?.values.panelZoom ?? 1
+  const step = key === '-' ? -0.1 : key === '0' ? 0 : 0.1
+  const next =
+    key === '0' ? 1 : Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, now + step)) * 10) / 10
+  if (next !== now) await window.wisp.settings.set({ panelZoom: next })
+}
 
 /** O título e a linha de baixo do cabeçalho de cada tela. */
 const VIEW_TITLES: Record<string, [string, string]> = {
@@ -143,7 +158,6 @@ export default function Chat(): JSX.Element {
   // O humor do mascote (o avatar acompanha), as abas, a voz e a animação de abertura. Antes do
   // ready(), para o main já encontrar quem ouve.
   useEffect(() => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offMood = window.wisp.chat.onMood(setMood)
     const offClipboard = window.wisp.chat.onClipboard(setClip)
     const offTabs = window.wisp.tabs.onState((state) => {
@@ -182,7 +196,7 @@ export default function Chat(): JSX.Element {
     const offSummary = window.wisp.summary.onShow(() => setView('history'))
     void window.wisp.settings.get().then((snapshot) => snapshot && setSettings(snapshot))
     const offShown = window.wisp.chat.onShown(() => {
-      if (!reducedMotion.matches) {
+      if (!reducedMotion()) {
         root.current?.animate(SHOW_KEYFRAMES, {
           duration: 360,
           easing: 'cubic-bezier(0.2, 1.4, 0.4, 1)'
@@ -296,6 +310,16 @@ export default function Chat(): JSX.Element {
     window.wisp.sound.set(next.enabled)
   }, [])
 
+  // A aparência das configurações (Fase 22): menos movimento e alto contraste, além do sistema.
+  useEffect(() => {
+    if (settings) {
+      setAppearance({
+        reduceMotion: settings.values.reduceMotion,
+        highContrast: settings.values.highContrast
+      })
+    }
+  }, [settings])
+
   /** Exporta a conversa em Markdown; o resultado aparece nela, como um aviso (fora do histórico). */
   const exportConversation = useCallback(
     async (conversation: string): Promise<void> => {
@@ -319,7 +343,12 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
-      if (fromTerminal(event.target) && !isWispTerminalShortcut(event)) return
+      if (
+        fromTerminal(event.target) &&
+        !isWispTerminalShortcut(event) &&
+        !(isCardShortcut(event) && cardWaiting(event.target))
+      )
+        return
       const ctrl = event.ctrlKey && !event.altKey && !event.metaKey
       const plain = ctrl && !event.shiftKey
       const state = tabsRef.current
@@ -335,6 +364,15 @@ export default function Chat(): JSX.Element {
         const conversation = focusedConversation()
         if (conversation) window.wisp.chat.newConversation(conversation)
         setView('chat')
+      } else if (ctrl && ['=', '+', '-', '0'].includes(event.key)) {
+        // O tamanho do painel (Fase 22): Ctrl+mais, Ctrl+menos e Ctrl+0 volta ao normal.
+        event.preventDefault()
+        void zoomPanel(event.key)
+      } else if (isCardShortcut(event)) {
+        // Alt+P (Fase 22): o foco vai para o card que espera resposta, sem o mouse.
+        event.preventDefault()
+        const conversation = focusedConversation()
+        if (conversation) bus.emit(conversation, { type: 'focus-card' })
       } else if (plain && key === 'f') {
         // A busca na conversa em foco (Fase 21).
         event.preventDefault()

@@ -91,6 +91,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
         <input
           value={query}
           placeholder="Buscar conversas…"
+          aria-label="Buscar conversas"
           autoFocus
           onChange={(event) => setQuery(event.target.value)}
         />

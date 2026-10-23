@@ -67,7 +67,11 @@ export function QuestionCard({
 
   if (request.status !== 'pending') {
     return (
-      <div className={`permission question permission-${request.status}`}>
+      <div
+        className={`permission question permission-${request.status}`}
+        role="group"
+        aria-label="Pergunta do Claude"
+      >
         <div className="permission-title">Pergunta do Claude</div>
         {questions?.map((q) => (
           <div key={q.question} className="question-block">
@@ -84,7 +88,11 @@ export function QuestionCard({
 
   if (!questions) {
     return (
-      <div className="permission question permission-pending">
+      <div
+        className="permission question permission-pending"
+        role="group"
+        aria-label="Pergunta do Claude"
+      >
         <div className="permission-title">Pergunta do Claude</div>
         <p className="question-text">Não consegui mostrar esta pergunta.</p>
         <div className="permission-actions">
@@ -134,7 +142,11 @@ export function QuestionCard({
   }
 
   return (
-    <div className="permission question permission-pending">
+    <div
+      className="permission question permission-pending"
+      role="group"
+      aria-label="Pergunta do Claude"
+    >
       <div className="permission-title">Pergunta do Claude</div>
       {questions.map((q, index) => (
         <div key={q.question} className="question-block">

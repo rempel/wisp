@@ -9,6 +9,7 @@ import type {
   SoundName,
   VoiceStatus
 } from '../../shared/ipc'
+import { reducedMotion, setAppearance } from '../common/appearance'
 import { makeThumbnail } from '../common/thumbnail'
 import type { AvatarName } from '../../shared/avatars'
 import { AccessoryArt } from './Accessory'
@@ -215,7 +216,6 @@ export default function Mascot(): JSX.Element {
   // Estado vindo do main (seção 5.3), o pulso do brilho, o olhar, as reações pedidas pelo main,
   // o acessório do dia e os sons.
   useEffect(() => {
-    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)')
     const offState = window.wisp.mascot.onState((next) => {
       // Acordou: um susto, os olhos abrem e a antena se endireita.
       if (viewRef.current.state === 'sleeping' && next.state !== 'sleeping') react('wake')
@@ -225,7 +225,7 @@ export default function Mascot(): JSX.Element {
       setView(next)
     })
     const offPulse = window.wisp.mascot.onPulse(() => {
-      if (!reducedMotion.matches) {
+      if (!reducedMotion()) {
         pulse.current?.animate(PULSE_KEYFRAMES, { duration: 460, easing: 'ease-out' })
       }
     })
@@ -247,6 +247,9 @@ export default function Mascot(): JSX.Element {
     const offAccessory = window.wisp.mascot.onAccessory(setAccessory)
     const offIsland = window.wisp.mascot.onIsland(setIsland)
     const offAvatar = window.wisp.mascot.onAvatar(setAvatar)
+    const offMotion = window.wisp.mascot.onMotion((reduce) =>
+      setAppearance({ reduceMotion: reduce })
+    )
     const offSound = window.wisp.mascot.onSound((name, volume) => {
       player.current ??= new SoundPlayer()
       // O último som e quantos já tocaram, para depurar (e para os testes) sem ouvir.
@@ -298,6 +301,7 @@ export default function Mascot(): JSX.Element {
       offAccessory()
       offIsland()
       offAvatar()
+      offMotion()
       offSound()
       offCustom()
       offVoice()

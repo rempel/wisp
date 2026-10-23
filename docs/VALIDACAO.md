@@ -483,3 +483,23 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Fixar:** no histórico, o alfinete põe a conversa em **Fixadas**, no topo; de novo, solta.
 - [ ] **Rascunho:** escreva algo na caixa sem mandar, feche o Wisp (Sair) e abra de novo: o texto
       está lá.
+
+## Acessibilidade e aparência (Fase 22)
+
+- [ ] **Orca:** ligue o Orca (Super+Alt+S no GNOME), abra o painel e peça um comando ("roda os
+      testes"): o Orca lê "O Claude pede: Rodar um comando no terminal. Alt+P vai para o card.",
+      sem tirar o cursor da caixa. Alt+P: o foco vai para **Permitir**, e o Orca lê o botão. Enter:
+      permite; quando a resposta termina, o Orca lê o começo dela.
+- [ ] **Só o teclado:** sem o mouse, Tab passa por todos os botões do painel (as pílulas, o +, o
+      microfone, o enviar) com o anel de foco à vista, e o Orca diz o nome de cada um.
+- [ ] **Tema:** Configurações → **Aparência e acessibilidade → Tema**: Claro e Escuro trocam o
+      painel na hora; **O do sistema** volta a seguir o desktop.
+- [ ] **Alto contraste:** ligue: texto preto puro (ou branco, no escuro), bordas fortes, o foco bem
+      marcado; o diff de uma edição continua legível. Com o alto contraste do sistema ligado (GNOME:
+      Acessibilidade → Alto contraste), veja se ele vale com a opção do Wisp desligada (depende de
+      o desktop repassar o pedido ao Chromium; se não vier, anote).
+- [ ] **Reduzir animações:** ligue: o mascote para de flutuar e piscar, e o painel abre sem o
+      pulo. Com o "Reduzir animação" do sistema ligado, vale igual.
+- [ ] **Tamanho:** Ctrl+mais duas vezes: o painel fica em 120% (a tela de configurações mostra);
+      feche e abra o Wisp: continua. Ctrl+0 volta ao normal.
+- [ ] **Terminal:** no modo terminal, com o alto contraste ligado, o terminal fica preto e branco.

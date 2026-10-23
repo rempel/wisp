@@ -23,6 +23,24 @@ export function isWispTerminalShortcut(event: Keys): boolean {
   return event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && ARROWS.has(event.key)
 }
 
+/** Alt+P: vai para o card que espera resposta (Fase 22). */
+export function isCardShortcut(event: Keys): boolean {
+  return (
+    event.altKey && !event.ctrlKey && !event.shiftKey && !event.metaKey && event.code === 'KeyP'
+  )
+}
+
+/**
+ * Tem card esperando resposta no painel de `target`? No terminal, o Alt+P só fica com o Wisp
+ * nessa hora; no resto do tempo é do Claude Code (lá ele troca o modelo).
+ */
+export function cardWaiting(target: EventTarget | null): boolean {
+  return (
+    target instanceof Element &&
+    target.closest('.pane')?.querySelector('.permission-pending') != null
+  )
+}
+
 /** O evento veio do terminal (o foco está nele)? */
 export function fromTerminal(target: EventTarget | null): boolean {
   return target instanceof Element && target.closest('.terminal-view') !== null

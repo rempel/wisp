@@ -777,6 +777,11 @@ export function setupChat({
 
   // O tema do sistema mudou: a página troca sozinha (prefers-color-scheme); o fundo da janela,
   // que aparece antes de a página pintar e ao redimensionar, acompanha aqui.
+  onConfigChange((config) => {
+    if (win && !win.isDestroyed() && win.webContents.getZoomFactor() !== config.panelZoom) {
+      win.webContents.setZoomFactor(config.panelZoom)
+    }
+  })
   nativeTheme.on('updated', () => {
     win?.setBackgroundColor(nativeTheme.shouldUseDarkColors ? BACKGROUND.dark : BACKGROUND.light)
   })
@@ -1392,6 +1397,10 @@ export function setupChat({
       openExternal(url)
     })
 
+    // O tamanho do painel (Ctrl+mais e Ctrl+menos, Fase 22) vale a cada carga da página.
+    chat.webContents.on('did-finish-load', () => {
+      chat.webContents.setZoomFactor(getConfig().panelZoom)
+    })
     loadPage(chat, 'chat')
     if (configProblems().length) {
       focusedConversation().notice('warning', configNotice(configProblems()))

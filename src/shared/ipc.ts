@@ -32,6 +32,8 @@ export const IPC = {
   mascotAccessory: 'mascot:accessory',
   /** main → mascote: o avatar escolhido (Fase 19). Arg: AvatarName. */
   mascotAvatar: 'mascot:avatar',
+  /** main → mascote: menos movimento, mesmo com o sistema animando (Fase 22). Arg: boolean. */
+  mascotMotion: 'mascot:motion',
   mascotIsland: 'mascot:island',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
@@ -806,6 +808,10 @@ export interface Settings {
   sleepAfterMinutes: number
   accessory: 'auto' | 'none' | 'christmas' | 'summer'
   avatar: AvatarName
+  theme: 'system' | 'light' | 'dark'
+  highContrast: boolean
+  reduceMotion: boolean
+  panelZoom: number
   shortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
@@ -839,6 +845,10 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'sleepAfterMinutes',
   'accessory',
   'avatar',
+  'theme',
+  'highContrast',
+  'reduceMotion',
+  'panelZoom',
   'shortcut',
   'voiceShortcut',
   'clipboardChip',
@@ -1060,6 +1070,8 @@ export interface WispApi {
     onAccessory(listener: (accessory: Accessory | null) => void): () => void
     /** O avatar escolhido (o robô, o fantasminha). */
     onAvatar(listener: (avatar: AvatarName) => void): () => void
+    /** Menos movimento pedido nas configurações (o do sistema vale sempre). */
+    onMotion(listener: (reduce: boolean) => void): () => void
     /** A ilha: aberta ou recolhida, o texto e o tom (null: fora da ilha). */
     onIsland(listener: (island: MascotIsland) => void): () => void
     /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */

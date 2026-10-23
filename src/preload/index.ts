@@ -47,6 +47,7 @@ const api: WispApi = {
     onReact: (listener) => subscribe<[MascotReaction]>(IPC.mascotReact, listener),
     onAccessory: (listener) => subscribe<[Accessory | null]>(IPC.mascotAccessory, listener),
     onAvatar: (listener) => subscribe<[AvatarName]>(IPC.mascotAvatar, listener),
+    onMotion: (listener) => subscribe<[boolean]>(IPC.mascotMotion, listener),
     onIsland: (listener) => subscribe<[MascotIsland]>(IPC.mascotIsland, listener),
     onSound: (listener) => subscribe<[SoundName, number]>(IPC.mascotSound, listener),
     // Os bytes chegam como Uint8Array (o Buffer do main); a página quer o ArrayBuffer.

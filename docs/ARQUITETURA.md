@@ -101,8 +101,10 @@ src/
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da
    │                 # barra, histórico, aba Sessões, configurações (com o QR code do
-   │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos
-   └─ common/        # miniaturas das imagens (painel e mascote)
+   │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos;
+   │                 # describe-request.tsx diz o que cada pedido quer (o card e o leitor de tela)
+   └─ common/        # miniaturas das imagens e appearance.ts (as classes reduce-motion e
+                     # contrast no <html>), do painel e do mascote
 resources/
 ├─ icon.png, tray.png  # ícones do app e da bandeja (gerados de icon.svg)
 ├─ demo/               # as gravações do modo demonstração (JSONL) e o índice delas
@@ -630,6 +632,17 @@ electron-builder.yml   # os pacotes .deb e AppImage
   não há `boas-vindas.json` nem `abas.json` na pasta de dados. O `updates.ts` pede
   `/repos/rempel/wisp/releases/latest`, aceita só uma versão estável com o link da página no
   GitHub e guarda em `versao.json` quando conferiu e o que já avisou.
+- **Aparência e acessibilidade:** o `appearance.ts` das páginas junta o que o sistema pede
+  (`prefers-reduced-motion`, `prefers-contrast`) com o que as configurações pedem e põe as
+  classes `reduce-motion` e `contrast` no `<html>`; o CSS do painel, do mascote e da ilha só olha
+  as classes. O painel recebe as configurações pelo `settings:changed`; o mascote, pelo
+  `mascot:motion`. O tema vai pelo `nativeTheme.themeSource` (o `prefers-color-scheme` das
+  páginas acompanha) e o tamanho do painel pelo `setZoomFactor` da página, a cada carga e a
+  cada mudança do `config.json`. Para o leitor de tela, o `Pane.tsx` compara, a cada render, o
+  `busy` e o card pendente com os da vez anterior e escreve o aviso numa região `role="status"`
+  escondida (só no painel em foco); o Alt+P chega pelo `PaneBus` (`focus-card`) e põe o foco no
+  primeiro botão do `.permission-pending`. No modo terminal, o xterm.js só solta o Alt+P quando
+  há card esperando (`cardWaiting`).
 - **Alertas do GitHub:** o `github.ts` roda `gh api graphql -f query=…` (sem a chave da
   Anthropic no ambiente e com `GH_PROMPT_DISABLED`), confere a resposta campo a campo (só links
   https) e compara com a leitura anterior: CI do commit mais novo de cada PR

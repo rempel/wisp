@@ -34,6 +34,12 @@ const ACCESSORIES: Record<Settings['accessory'], string> = {
   summer: 'Óculos de sol'
 }
 
+const THEMES: Record<Settings['theme'], string> = {
+  system: 'O do sistema',
+  light: 'Claro',
+  dark: 'Escuro'
+}
+
 const LANGUAGES: Record<string, string> = {
   pt: 'Português',
   en: 'Inglês',
@@ -246,6 +252,34 @@ export function SettingsView({
             checked={values.clipboardChip}
             onChange={(clipboardChip) => void save({ clipboardChip })}
           />
+        </Section>
+
+        <Section title="Aparência e acessibilidade">
+          <Row label="Tema" hint="O painel e os menus. O terminal fica sempre escuro.">
+            <select
+              value={values.theme}
+              onChange={(event) => void save({ theme: event.target.value as Settings['theme'] })}
+            >
+              {Object.entries(THEMES).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <Toggle
+            label="Alto contraste"
+            hint="Cores mais fortes, bordas mais visíveis e o foco do teclado bem marcado. Liga sozinho se o sistema pedir."
+            checked={values.highContrast}
+            onChange={(highContrast) => void save({ highContrast })}
+          />
+          <Toggle
+            label="Reduzir animações"
+            hint="O mascote e o painel quase param de se mexer. Liga sozinho se o sistema pedir."
+            checked={values.reduceMotion}
+            onChange={(reduceMotion) => void save({ reduceMotion })}
+          />
+          <ZoomRow value={values.panelZoom} onCommit={(panelZoom) => save({ panelZoom })} />
         </Section>
 
         <Section title="Atalhos e sistema">
@@ -753,6 +787,58 @@ function PhoneSection({ status }: { status: PhoneStatus }): JSX.Element {
           {message.text}
         </small>
       )}
+    </div>
+  )
+}
+
+/** O tamanho do painel: menos, a porcentagem e mais (os mesmos passos do Ctrl+mais e Ctrl+menos). */
+function ZoomRow({
+  value,
+  onCommit
+}: {
+  value: number
+  onCommit: (value: number) => Promise<void>
+}): JSX.Element {
+  const step = (delta: number): void => {
+    const next = Math.round(Math.min(2, Math.max(0.7, value + delta)) * 10) / 10
+    if (next !== value) void onCommit(next)
+  }
+  return (
+    <div className="settings-row">
+      <span className="settings-label" id="zoom-label">
+        Tamanho do painel
+      </span>
+      <div className="zoom-control" role="group" aria-labelledby="zoom-label">
+        <button
+          type="button"
+          className="settings-button"
+          disabled={value <= 0.7}
+          onClick={() => step(-0.1)}
+          aria-label="Diminuir"
+        >
+          −
+        </button>
+        <output className="zoom-value" aria-live="polite">
+          {Math.round(value * 100)}%
+        </output>
+        <button
+          type="button"
+          className="settings-button"
+          disabled={value >= 2}
+          onClick={() => step(0.1)}
+          aria-label="Aumentar"
+        >
+          +
+        </button>
+        {value !== 1 && (
+          <button type="button" className="link" onClick={() => void onCommit(1)}>
+            Voltar ao normal
+          </button>
+        )}
+      </div>
+      <small className="settings-hint">
+        Também com Ctrl+mais, Ctrl+menos e Ctrl+0, em qualquer tela do painel.
+      </small>
     </div>
   )
 }

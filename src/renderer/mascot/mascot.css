@@ -1798,7 +1798,7 @@ body {
 
 /* ---- Menos movimento -------------------------------------------------- */
 
-@media (prefers-reduced-motion: reduce) {
+:root.reduce-motion {
   .float,
   .glow,
   .antenna,
@@ -1975,7 +1975,7 @@ body {
   }
 }
 
-@media (prefers-reduced-motion: reduce) {
+:root.reduce-motion {
   .island,
   .island-mascot,
   .island-scale {
