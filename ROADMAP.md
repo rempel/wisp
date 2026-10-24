@@ -1041,62 +1041,6 @@ AppImage se atualiza pelo botão e abre na versão nova.
 **Aceite:** do teclado, sem o mouse, dá para abrir uma conversa antiga, rodar um prompt salvo e
 trocar o modo; com o "não perturbe" ligado, um card não vira notificação.
 
-## Windows (proposta, sem decisão)
-
-O Wisp nasceu para o Linux, mas a maior parte dele é portável: das ≈23.000 linhas do processo
-principal, ≈4.500 (cerca de 20%, em 19 módulos) dependem do Linux: o cliente D-Bus e o que usa
-ele (notificações dos cards, chaveiro, atalho pelo portal, tela bloqueada, música, agenda do
-GNOME, KWin), o X11 (janelas, cursor, soltar a tecla do "segurar para falar"), os .desktop, o
-socket Unix dos hooks e o Flatpak. O chat, o Claude Code, os cards, o MCP, o mascote, a página
-inteira, os idiomas, o histórico e as tarefas rodam no Windows como estão.
-
-Se for decidido portar, são quatro fases, nesta ordem:
-
-### Fase 32: Windows, o núcleo (G)
-
-- O Claude Code do Windows: achar o `claude.exe` (o instalador nativo); o do npm é um `.cmd`, que
-  o Node só roda pelo `cmd.exe`, então ele entra com argumentos conferidos um a um (a regra de
-  nunca passar uma string ao shell continua). O Claude Code pede o Git for Windows.
-- Pastas em `%APPDATA%` e `%LOCALAPPDATA%`; os hooks por um named pipe no lugar do socket Unix, e
-  o comando do hook sem sintaxe de bash.
-- Segredos com o `safeStorage` (DPAPI) no lugar do Secret Service; tela bloqueada e o início com
-  o sistema pelo próprio Electron; a notificação dos cards com Permitir e Negar pelo toast do
-  Windows.
-
-**Aceite:** num Windows 11 com o Claude Code instalado, o mascote aparece, o painel conversa, um
-card de comando pede e libera, e as sessões do terminal aparecem pelos hooks.
-
-### Fase 33: Windows, o desktop (G)
-
-- Apps pelos atalhos do Menu Iniciar; janelas e "trazer o terminal para a frente" pela API do
-  Windows (um módulo nativo pequeno); música e volume pelos controles de mídia do Windows (SMTC)
-  e pelo Core Audio; terminal pelo Windows Terminal; agenda só pelos arquivos .ics; print pelo
-  Electron.
-
-**Aceite:** "abre o Bloco de Notas", "pausa a música" e "traz o terminal da sessão" funcionam.
-
-### Fase 34: Windows, a voz (M)
-
-- O whisper.cpp e o Piper têm versão para o Windows; o microfone já é da página. O "segurar para
-  falar" precisa saber quando a tecla é solta: um gancho de teclado (módulo nativo), ou o atalho
-  vira "aperte para falar, aperte para parar".
-
-**Aceite:** o atalho de voz transcreve e manda, como no Linux.
-
-### Fase 35: Windows, pacote e testes (G)
-
-- Instalador (NSIS, pelo electron-builder) e, de preferência, assinatura de código (sem ela, o
-  SmartScreen avisa na primeira vez; o certificado custa de US$ 100 a 400 por ano).
-- CI num runner Windows: os testes de unidade (hoje com caminhos e permissões POSIX) e uma versão
-  do ponta a ponta sem Xvfb, sem D-Bus e com os programas de mentira como `.cmd`.
-
-**Aceite:** o CI monta o instalador, roda os testes no Windows, e o instalador abre o Wisp numa
-máquina limpa.
-
-**O que pesa:** o maior trabalho não é o código do app, é o de teste: hoje toda a validação roda
-em Linux (Xvfb, D-Bus, os programas de mentira). E a validação à mão precisa de um Windows de
-verdade, que este ambiente não tem.
-
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
@@ -1108,6 +1052,11 @@ verdade, que este ambiente não tem.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
 - **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18.
+- **Windows:** avaliado depois da Fase 26 e deixado de fora (o uso é no Linux). Cerca de 20% do
+  processo principal (≈4.500 de ≈23.000 linhas) depende do Linux: o cliente D-Bus e o que usa ele,
+  o X11, os .desktop, o socket Unix dos hooks e o Flatpak. Portar seriam quatro fases (o núcleo, o
+  desktop, a voz, e o pacote com os testes), e o maior peso estaria nos testes, que hoje rodam só
+  em Linux. Quem precisar no Windows 11 pode rodar a versão Linux no WSL2.
 
 ## Princípios que ficam
 
