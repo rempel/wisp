@@ -980,6 +980,123 @@ Notas da entrega:
 **Aceite:** uma tarefa das 9h roda com o painel fechado, e o card dela espera você (ou vai para
 o celular, se ligado).
 
+### Fase 27: manutenção e CI
+
+- **CI que não cai sozinho (P):** o job do ARM64 foi cancelado por passar de 30 minutos só no
+  `apt-get install` do compilador cruzado (nos outros pushes, de 20 s a 13 min). O passo ganha um
+  tempo limite próprio e uma segunda tentativa, e os pacotes do apt ficam em cache.
+- **Arquivos menores (M):** `claude.ts` (≈1.950 linhas), `chat.ts` (≈1.750) e `index.ts`
+  (≈1.320) viram módulos por assunto (o processo do Claude Code e o parser do stream-json; as
+  abas e a janela; a ligação de cada recurso), sem mudar o que o app faz.
+- **Dependências em dia (P):** um aviso no CI quando o Electron, o Claude Code mínimo ou uma
+  dependência com falha de segurança conhecida (`npm audit`) pedem atualização.
+
+**Aceite:** cinco pushes seguidos com o CI todo verde; nenhum arquivo do `src/` com mais de
+1.000 linhas; os testes de unidade e de ponta a ponta passam sem mudar.
+
+### Fase 28: o histórico que acha
+
+- **Busca pelo conteúdo (M):** a busca do histórico procura no que foi dito (as suas mensagens e
+  as respostas), não só no título, num índice local. O resultado mostra o trecho, e abrir leva à
+  mensagem.
+- **Filtros (P):** por pasta ou projeto, e por período (hoje, esta semana, antes).
+
+**Aceite:** uma palavra dita numa conversa de um mês atrás acha a conversa, e abrir mostra a
+mensagem dela no painel.
+
+### Fase 29: servidores MCP pelo Wisp
+
+- **Listar e adicionar (M):** os servidores MCP do Claude Code (os do usuário e os do projeto),
+  com o que cada um oferece. Adicionar um (por comando ou endereço) e tirar mostram a mudança no
+  arquivo antes, com backup e confirmação, como os hooks da Fase 7.
+- **Sempre pedindo (P):** as ferramentas de um servidor novo pedem permissão pelo card, como
+  qualquer outra; liberar é uma escolha à parte, por ferramenta.
+
+É o caminho que as "integrações de negócio" deixadas de fora apontam: em vez de código próprio,
+um servidor MCP de terceiros, à vista e com o seu clique.
+
+**Aceite:** um servidor MCP adicionado pelas configurações aparece numa conversa nova, e a
+ferramenta dele pede permissão pelo card.
+
+### Fase 30: levar o Wisp junto
+
+- **Exportar e importar (M):** um arquivo com as configurações, os prompts salvos, as tarefas e
+  (se você quiser) o histórico, sem segredos (as chaves ficam no chaveiro). Importar mostra o que
+  vai mudar antes.
+- **Atualizar com um clique (M):** o aviso de versão nova (Fase 20) ganha "Atualizar": o AppImage
+  baixa a versão nova, confere a assinatura e troca o arquivo; o .deb abre a página. Nada é
+  baixado sem o clique.
+
+**Aceite:** numa máquina nova, importar o arquivo traz os prompts, as tarefas e as conversas; o
+AppImage se atualiza pelo botão e abre na versão nova.
+
+### Fase 31: tudo a um atalho
+
+- **Paleta de comandos (M):** um atalho (no painel e global) abre uma busca única: conversas,
+  prompts salvos, tarefas, sessões do terminal e as ações do Wisp (nova conversa, abrir pasta,
+  modo, modelo, idioma).
+- **Não perturbe (P):** com o "não perturbe" do desktop ligado, o Wisp não mostra notificações
+  nem toca sons (os cards esperam no painel e, se ligado, vão para o celular).
+
+**Aceite:** do teclado, sem o mouse, dá para abrir uma conversa antiga, rodar um prompt salvo e
+trocar o modo; com o "não perturbe" ligado, um card não vira notificação.
+
+## Windows (proposta, sem decisão)
+
+O Wisp nasceu para o Linux, mas a maior parte dele é portável: das ≈23.000 linhas do processo
+principal, ≈4.500 (cerca de 20%, em 19 módulos) dependem do Linux: o cliente D-Bus e o que usa
+ele (notificações dos cards, chaveiro, atalho pelo portal, tela bloqueada, música, agenda do
+GNOME, KWin), o X11 (janelas, cursor, soltar a tecla do "segurar para falar"), os .desktop, o
+socket Unix dos hooks e o Flatpak. O chat, o Claude Code, os cards, o MCP, o mascote, a página
+inteira, os idiomas, o histórico e as tarefas rodam no Windows como estão.
+
+Se for decidido portar, são quatro fases, nesta ordem:
+
+### Fase 32: Windows, o núcleo (G)
+
+- O Claude Code do Windows: achar o `claude.exe` (o instalador nativo); o do npm é um `.cmd`, que
+  o Node só roda pelo `cmd.exe`, então ele entra com argumentos conferidos um a um (a regra de
+  nunca passar uma string ao shell continua). O Claude Code pede o Git for Windows.
+- Pastas em `%APPDATA%` e `%LOCALAPPDATA%`; os hooks por um named pipe no lugar do socket Unix, e
+  o comando do hook sem sintaxe de bash.
+- Segredos com o `safeStorage` (DPAPI) no lugar do Secret Service; tela bloqueada e o início com
+  o sistema pelo próprio Electron; a notificação dos cards com Permitir e Negar pelo toast do
+  Windows.
+
+**Aceite:** num Windows 11 com o Claude Code instalado, o mascote aparece, o painel conversa, um
+card de comando pede e libera, e as sessões do terminal aparecem pelos hooks.
+
+### Fase 33: Windows, o desktop (G)
+
+- Apps pelos atalhos do Menu Iniciar; janelas e "trazer o terminal para a frente" pela API do
+  Windows (um módulo nativo pequeno); música e volume pelos controles de mídia do Windows (SMTC)
+  e pelo Core Audio; terminal pelo Windows Terminal; agenda só pelos arquivos .ics; print pelo
+  Electron.
+
+**Aceite:** "abre o Bloco de Notas", "pausa a música" e "traz o terminal da sessão" funcionam.
+
+### Fase 34: Windows, a voz (M)
+
+- O whisper.cpp e o Piper têm versão para o Windows; o microfone já é da página. O "segurar para
+  falar" precisa saber quando a tecla é solta: um gancho de teclado (módulo nativo), ou o atalho
+  vira "aperte para falar, aperte para parar".
+
+**Aceite:** o atalho de voz transcreve e manda, como no Linux.
+
+### Fase 35: Windows, pacote e testes (G)
+
+- Instalador (NSIS, pelo electron-builder) e, de preferência, assinatura de código (sem ela, o
+  SmartScreen avisa na primeira vez; o certificado custa de US$ 100 a 400 por ano).
+- CI num runner Windows: os testes de unidade (hoje com caminhos e permissões POSIX) e uma versão
+  do ponta a ponta sem Xvfb, sem D-Bus e com os programas de mentira como `.cmd`.
+
+**Aceite:** o CI monta o instalador, roda os testes no Windows, e o instalador abre o Wisp numa
+máquina limpa.
+
+**O que pesa:** o maior trabalho não é o código do app, é o de teste: hoje toda a validação roda
+em Linux (Xvfb, D-Bus, os programas de mentira). E a validação à mão precisa de um Windows de
+verdade, que este ambiente não tem.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
