@@ -27,7 +27,9 @@ const ACTION_LABEL: Record<DiagnosticAction, string> = {
   terminal: t('Abrir um terminal'),
   demo: t('Ligar a demonstração'),
   settings: t('Abrir as configurações'),
-  release: t('Ver a versão nova')
+  release: t('Ver a versão nova'),
+  update: t('Atualizar'),
+  restart: t('Reiniciar o Wisp')
 }
 
 /** As conferências de agora; `run` confere de novo. */
@@ -81,9 +83,14 @@ function CheckBody({
   onDone: () => void
 }): JSX.Element {
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null)
+  const [busy, setBusy] = useState(false)
   const act = async (action: DiagnosticAction): Promise<void> => {
     if (action === 'settings') return onSettings()
+    setBusy(true)
+    if (action === 'update')
+      setMessage({ ok: true, text: t('Baixando e conferindo a assinatura…') })
     const result = await window.wisp.diagnostics.action(action)
+    setBusy(false)
     setMessage(
       result.ok
         ? result.message
@@ -107,6 +114,7 @@ function CheckBody({
         <button
           type="button"
           className="settings-button diag-action"
+          disabled={busy}
           onClick={() => void act(check.action!)}
         >
           {ACTION_LABEL[check.action]}

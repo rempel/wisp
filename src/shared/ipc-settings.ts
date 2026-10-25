@@ -161,7 +161,7 @@ export interface SettingsSnapshot {
 export type DiagnosticStatus = 'ok' | 'warn' | 'error' | 'off'
 
 /** O que o botão de uma conferência faz. */
-export type DiagnosticAction = 'terminal' | 'demo' | 'settings' | 'release'
+export type DiagnosticAction = 'terminal' | 'demo' | 'settings' | 'release' | 'update' | 'restart'
 
 /** Uma conferência: o Claude Code, o login, o atalho, a bandeja, o chaveiro, a voz... */
 export interface DiagnosticCheck {
@@ -289,3 +289,25 @@ export interface McpPreview {
 
 export type McpApplyResult =
   { ok: true; backupPath: string | null } | { ok: false; message: string }
+
+/** O que importar um arquivo do Wisp muda (Fase 31), antes de importar. */
+export interface PortablePreview {
+  /** O arquivo (com ~). */
+  file: string
+  /** A impressão do arquivo lido: só ele é importado com esta prévia. */
+  fingerprint: string
+  /** A versão do Wisp que exportou e quando. */
+  versao: string
+  em: string
+  /** Os campos das configurações que mudam; `sensitive`: muda o que o Wisp roda ou lê. */
+  changes: { key: string; before: string; after: string; sensitive: boolean }[]
+  prompts: { added: number; replaced: number }
+  tasks: { added: number; replaced: number }
+  /** As conversas do arquivo: as que entram e as que já estão aqui (ficam como estão). */
+  conversations: { added: number; present: number }
+  /** Campos que esta versão não conhece (de uma mais nova): ficam de fora. */
+  ignored: string[]
+}
+
+/** Exportar ou importar: deu certo (com o que fez) ou o motivo; null, a pessoa desistiu. */
+export type PortableResult = { ok: boolean; message: string } | null

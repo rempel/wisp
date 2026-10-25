@@ -70,6 +70,7 @@ import { setupNotifications } from './notify'
 import type { Signals } from './notify'
 import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
+import { setupPortableIpc } from './portable-ipc'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
@@ -79,6 +80,7 @@ import { TaskScheduler } from './scheduler'
 import type { ScheduledTask } from '../shared/prompts'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
+import { releaseKey, SelfUpdater, updateTarget } from './self-update'
 import { UpdateChecker } from './updates'
 import type { Phone } from './phone-ipc'
 import { Presence } from './presence'
@@ -596,6 +598,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     isSender: (sender) => chat?.isSender(sender) ?? false,
     run: (args) => runClaudeCli(getConfig().claudePath, args)
   })
+  setupPortableIpc({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    version: app.getVersion()
+  })
   // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -624,17 +630,44 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       return result
     }
   })
+  // Atualizar com um clique (Fase 31): só o AppImage, e só com a chave que confere a assinatura.
+  const updateFile = updateTarget(kind, app.isPackaged)
+  const publicKey = releaseKey(app.isPackaged)
+  const downloadBase = app.isPackaged ? '' : (process.env.WISP_TEST_DOWNLOAD_BASE ?? '')
+  const selfUpdate =
+    updateFile && publicKey
+      ? new SelfUpdater({
+          target: updateFile,
+          publicKey,
+          rewrite: downloadBase
+            ? (url) => url.replace(/^https:\/\/github\.com/, downloadBase)
+            : undefined,
+          relaunch: (target) => {
+            app.relaunch({
+              execPath: target,
+              args: process.argv.slice(1).filter((arg) => !parseCommand([arg]))
+            })
+            app.quit()
+          }
+        })
+      : null
   // O aviso de versão nova (Fase 20), desligado por padrão: uma conferência por dia no GitHub.
   const updates = new UpdateChecker({
     current: app.getVersion(),
     enabled: () => getConfig().updateCheck,
     stateFile: join(DATA_DIR, 'versao.json'),
     notify: (release) =>
-      notify(
-        t('Wisp {version} disponível', { version: release.version }),
-        t('Clique para ver o que mudou e baixar. As configurações e as conversas continuam.'),
-        () => void shell.openExternal(release.url)
-      )
+      selfUpdate
+        ? notify(
+            t('Wisp {version} disponível', { version: release.version }),
+            t('Clique para atualizar: o Wisp baixa, confere a assinatura e troca o AppImage.'),
+            () => chat?.showView('diagnostics')
+          )
+        : notify(
+            t('Wisp {version} disponível', { version: release.version }),
+            t('Clique para ver o que mudou e baixar. As configurações e as conversas continuam.'),
+            () => void shell.openExternal(release.url)
+          )
   })
   updates.schedule()
   onConfigChange(() => updates.schedule())
@@ -645,6 +678,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     install: kind,
     shortcut: () => shortcuts.get('toggle') ?? null,
     updates,
+    selfUpdate,
     showView: (view) => chat?.showView(view)
   })
   diagnostics.maybeWelcome()

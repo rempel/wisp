@@ -226,6 +226,8 @@ jobs:
     permissions:
       contents: write
     steps:
+      # Só para o scripts/sign-release.mjs (o Node do runner basta).
+      - uses: actions/checkout@v6
       - uses: actions/download-artifact@v6
         with:
           name: pacotes-linux
@@ -238,6 +240,11 @@ jobs:
         with:
           name: pacote-flatpak
           path: dist
+      # Assina os AppImage para o Atualizar do Wisp (Fase 31); sem o segredo, saem sem assinatura.
+      - name: Assina os AppImage
+        env:
+          WISP_RELEASE_KEY: ${{ secrets.WISP_RELEASE_KEY }}
+        run: node scripts/sign-release.mjs dist/*.AppImage
       - name: Publica os pacotes no release da tag
         env:
           GH_TOKEN: ${{ github.token }}

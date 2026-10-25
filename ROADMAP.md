@@ -1142,7 +1142,12 @@ user`, que cuida do arquivo como o resto do Claude Code (o `~/.claude.json` muda
 **Aceite:** um servidor MCP adicionado pelas configurações aparece numa conversa nova, e a
 ferramenta dele pede permissão pelo card.
 
-### Fase 31: levar o Wisp junto
+### Fase 31: levar o Wisp junto ✅
+
+**Status:** pronta, esperando validação. Testes: `test/levar.test.ts` e `e2e/levar.mjs` (exportar
+de um HOME e importar noutro; o Atualizar com um GitHub de mentira, a assinatura errada e a
+certa, e o Reiniciar abrindo o arquivo novo). Falta uma coisa que é sua: gerar a chave que
+assina os AppImage (veja abaixo); sem ela, o botão Atualizar não aparece.
 
 - **Exportar e importar (M):** um arquivo com as configurações, os prompts salvos, as tarefas e
   (se você quiser) o histórico, sem segredos (as chaves ficam no chaveiro). Importar mostra o que
@@ -1153,6 +1158,35 @@ ferramenta dele pede permissão pelo card.
 
 **Aceite:** numa máquina nova, importar o arquivo traz os prompts, as tarefas e as conversas; o
 AppImage se atualiza pelo botão e abre na versão nova.
+
+Notas da entrega:
+
+- em Configurações → Levar o Wisp junto, **Exportar…** grava um JSON (só seu, 0600) com os campos
+  da tela de configurações (os prompts e as tarefas entre eles) e, marcando "Incluir o histórico
+  das conversas", cada conversa como está no disco e as fixadas. As chaves nunca: a da OpenRouter
+  e o pareamento do celular ficam no chaveiro e nunca estiveram no `config.json`;
+- **Importar…** mostra antes cada campo que muda (de → para), com os que mudam o que o Wisp roda ou
+  lê marcados (pastas, comandos do editor e do terminal, ferramentas liberadas, servidores MCP,
+  navegador, agendas), e quantos prompts, tarefas e conversas entram. Nada é apagado: prompts com
+  o mesmo nome e tarefas com o mesmo id são trocados, o resto se junta; uma conversa que já está
+  aqui fica como está. Os campos são conferidos como os da tela de configurações; os de uma versão
+  mais nova ficam de fora (a prévia diz quais). Antes de gravar, o `config.json` vai para
+  `config.json.backup-wisp-<data>`, e um arquivo mexido depois da prévia não entra;
+- **Atualizar**, só no AppImage: com o aviso de versão ligado e uma versão nova, o diagnóstico
+  ganha o botão (e a notificação abre o diagnóstico). O clique baixa o
+  `Wisp-<versão>-<arquitetura>.AppImage` e o `.sig` dele do release no GitHub, confere a
+  assinatura ed25519 de `wisp-release\n<nome>\n<sha256>\n` com a chave pública que vem no Wisp
+  (`src/main/release-key.ts`) e só então troca o arquivo (baixa ao lado, `.wisp-new`, e renomeia).
+  O nome na assinatura amarra a versão e a arquitetura: uma assinatura velha não serve para
+  "atualizar" para uma versão mais antiga. Depois, "Reiniciar o Wisp" abre o arquivo novo. O .deb
+  e o Flatpak continuam pela página da versão;
+- **a chave é sua:** rode uma vez `node scripts/release-key.mjs` (grava a pública no
+  `release-key.ts` e a privada em `wisp-release-key.pem`, fora do git), ponha a privada no segredo
+  do repositório (`gh secret set WISP_RELEASE_KEY < wisp-release-key.pem`), guarde uma cópia fora
+  do repositório e faça o commit do `release-key.ts`. O job de release do CI assina os AppImage
+  com `scripts/sign-release.mjs`; sem o segredo, eles saem sem assinatura e o Wisp leva à página,
+  como antes. Os AppImage feitos antes da chave ainda não sabem conferir: a primeira versão com
+  ela se instala pela página.
 
 ### Fase 32: tudo a um atalho
 

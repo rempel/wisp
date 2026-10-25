@@ -94,6 +94,10 @@ src/
 │  ├─ diagnostics.ts # as conferências (Claude Code, atalho, bandeja, voz...) e o relatório
 │  ├─ diagnostics-ipc.ts # junta os fatos, a tela de diagnóstico e os primeiros passos
 │  ├─ updates.ts     # o aviso de versão nova (as versões do Wisp no GitHub, uma vez por dia)
+│  ├─ self-update.ts # o Atualizar do AppImage: baixar, conferir a assinatura e trocar o arquivo
+│  ├─ release-key.ts # a chave pública que confere os AppImage (gerada por scripts/release-key.mjs)
+│  ├─ portable.ts    # levar o Wisp junto: exportar, ler, a prévia e importar
+│  ├─ portable-ipc.ts # exportar e importar nas configurações (os diálogos e o backup)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
@@ -715,7 +719,25 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   fatos nas conferências e no relatório (só frases fixas). Os primeiros passos aparecem quando
   não há `boas-vindas.json` nem `abas.json` na pasta de dados. O `updates.ts` pede
   `/repos/rempel/wisp/releases/latest`, aceita só uma versão estável com o link da página no
-  GitHub e guarda em `versao.json` quando conferiu e o que já avisou.
+  GitHub e guarda em `versao.json` quando conferiu e o que já avisou, com os arquivos da versão
+  (só os de `github.com/<dono>/<repo>/releases/download/`).
+- **Atualizar o AppImage:** o `self-update.ts` só existe no AppImage (o `APPIMAGE` do runtime) e
+  com a chave pública do `release-key.ts`. O clique baixa o `.sig` e o
+  `Wisp-<versão>-<arquitetura>.AppImage` para `<AppImage>.wisp-new` ao lado do atual, contando os
+  bytes (para no tamanho do release) e calculando o sha256 enquanto grava; confere a assinatura
+  ed25519 de `wisp-release\n<nome>\n<sha256>\n` e só então dá `chmod 755` e renomeia por cima
+  (no mesmo sistema de arquivos: o processo aberto continua no arquivo antigo até fechar). O
+  nome assinado amarra a versão e a arquitetura. "Reiniciar o Wisp" é um `app.relaunch` pelo
+  arquivo novo. No CI, o job de release assina cada AppImage com `scripts/sign-release.mjs` e o
+  segredo `WISP_RELEASE_KEY`. Fora do pacote, `WISP_TEST_APPIMAGE`, `WISP_TEST_RELEASE_KEY` e
+  `WISP_TEST_DOWNLOAD_BASE` fazem as vezes do AppImage, da chave e do GitHub nos testes.
+- **Levar o Wisp junto:** o `portable.ts` exporta os campos de `SETTINGS_KEYS` (os da tela de
+  configurações) e, se pedido, as linhas de cada conversa como estão no disco. Ler um arquivo
+  confere os campos pelo mesmo `checkSettings` da tela, separa os de uma versão mais nova e
+  recusa o histórico inteiro se uma conversa não tem o cabeçalho com o mesmo id (o id vira o nome
+  do arquivo). A prévia guarda a impressão (sha256) do arquivo lido, e importar relê e confere
+  antes de copiar o `config.json` para o backup e gravar; as conversas novas são gravadas com
+  `wx` (nunca por cima) e 0600.
 - **Aparência e acessibilidade:** o `appearance.ts` das páginas junta o que o sistema pede
   (`prefers-reduced-motion`, `prefers-contrast`) com o que as configurações pedem e põe as
   classes `reduce-motion` e `contrast` no `<html>`; o CSS do painel, do mascote e da ilha só olha

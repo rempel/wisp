@@ -41,6 +41,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   e os dos projetos; pôr e tirar um mostram a mudança no `~/.claude.json` antes, com backup, e
   gravam pelo `claude mcp`. Os ligados entram nas conversas do Wisp, e cada ferramenta deles pede
   permissão pelo card até você liberá-la.
+- **Levar o Wisp junto** (Fase 31): exportar as configurações, os prompts, as tarefas e, se quiser,
+  o histórico para um arquivo, e importar noutra máquina vendo antes o que muda (sem chaves, sem
+  apagar nada, com backup do `config.json`). No AppImage, o aviso de versão nova ganha
+  **Atualizar**: baixa, confere a assinatura ed25519 e troca o arquivo (depois que quem publica
+  gerar a chave com `scripts/release-key.mjs`).
 
 ### Mudou
 

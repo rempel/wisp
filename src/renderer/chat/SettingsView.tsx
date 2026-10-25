@@ -14,6 +14,7 @@ import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
 import { PhoneSection } from './PhoneSection'
+import { PortableSection } from './PortableSection'
 import {
   ListInput,
   NumberInput,
@@ -573,6 +574,10 @@ export function SettingsView({
               'Pelo ntfy (o app do ntfy no celular, do servidor público ou de um seu). Vai um pedido por vez, só com o resumo (o comando, o arquivo, o site), nada da conversa. Pelo celular só dá para permitir uma vez ou negar: nada de “sempre”, de trocar o modo nem de responder perguntas. Sem resposta em 2 minutos, o pedido fica negado.'
             )}
           </p>
+        </Section>
+
+        <Section title={t('Levar o Wisp junto')}>
+          <PortableSection />
         </Section>
 
         <Section title={t('Avançado')}>

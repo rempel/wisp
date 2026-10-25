@@ -53,6 +53,8 @@ import type {
   PanelView,
   PhonePairResult,
   PhoneResult,
+  PortablePreview,
+  PortableResult,
   Settings,
   SettingsResult,
   SettingsSnapshot,
@@ -329,6 +331,12 @@ export const IPC = {
   mcpPreview: 'mcp:preview',
   /** chat → main (invoke): grava a mudança vista. Args: (McpChange, impressão). Devolve McpApplyResult. */
   mcpApply: 'mcp:apply',
+  /** chat → main (invoke): exporta para um arquivo (Fase 31). Arg: com o histórico. Devolve PortableResult. */
+  portableExport: 'portable:export',
+  /** chat → main (invoke): escolhe um arquivo para importar. Devolve PortablePreview, { error } ou null. */
+  portablePick: 'portable:pick',
+  /** chat → main (invoke): importa o arquivo da prévia. Devolve PortableResult. */
+  portableImport: 'portable:import',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
   historyDelete: 'history:delete',
   /** chat → main (invoke): fixa ou solta uma conversa no topo. Args: (id, fixada). Devolve boolean. */
@@ -582,6 +590,12 @@ export interface WispApi {
     list(): Promise<SavedPrompt[]>
     /** O texto do prompt com as variáveis da conversa; null se ele não existe. */
     expand(conversation: string, name: string): Promise<string | null>
+  }
+  /** Levar o Wisp junto (Fase 31): exportar e importar. */
+  portable: {
+    export(withHistory: boolean): Promise<PortableResult>
+    pick(): Promise<PortablePreview | { error: string } | null>
+    import(): Promise<PortableResult>
   }
   /** Os servidores MCP do Claude Code (Fase 30). */
   mcp: {

@@ -15,6 +15,7 @@ import { buildReport, desktopOf, evaluate, issueUrl, osName } from './diagnostic
 import type { BusName, Facts } from './diagnostics'
 import type { InstallKind } from './launcher'
 import { DATA_DIR } from './paths'
+import type { SelfUpdater } from './self-update'
 import type { ShortcutStatus } from './shortcut'
 import type { UpdateChecker } from './updates'
 import { whisperSetup } from './whisper'
@@ -35,6 +36,8 @@ export interface DiagnosticsOptions {
   /** O atalho de abrir o painel (null antes de ligar). */
   shortcut(): ShortcutStatus | null
   updates: UpdateChecker
+  /** Atualizar com um clique (Fase 31); null se este Wisp não se atualiza sozinho. */
+  selfUpdate: SelfUpdater | null
   /** Mostra uma tela no painel. */
   showView(view: PanelView): void
 }
@@ -147,7 +150,9 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         configProblems: configProblems().length,
         features: features(),
         needsKeyring: config.provider === 'openrouter' || config.phoneApprovals,
-        update: options.updates.available()
+        update: options.updates.available(),
+        selfUpdate: options.selfUpdate !== null,
+        installed: options.selfUpdate?.installed() ?? null
       }
     } finally {
       bus?.close()
@@ -186,6 +191,25 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         void shell.openExternal(update.url)
         return { ok: true }
       }
+      case 'update': {
+        const update = options.updates.available()
+        if (!update || !options.selfUpdate) return { ok: false, message: t('Não há versão nova.') }
+        const result = await options.selfUpdate.install(update)
+        return result.ok
+          ? {
+              ok: true,
+              message: t('Pronto: o Wisp {version} já está no lugar. Reinicie para usar.', {
+                version: update.version
+              })
+            }
+          : result
+      }
+      case 'restart':
+        if (!options.selfUpdate?.installed()) {
+          return { ok: false, message: t('Não há versão nova instalada.') }
+        }
+        options.selfUpdate.restart()
+        return { ok: true }
       default:
         return { ok: false, message: t('ação desconhecida') }
     }
