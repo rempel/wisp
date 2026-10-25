@@ -37,7 +37,9 @@ const server = spawn(process.execPath, [bundle], {
     ...process.env,
     DBUS_SESSION_BUS_ADDRESS: address,
     FAKE_NOTIFY_FILE: notifyFile,
-    FAKE_NOTIFY_CLICK: clickFile
+    FAKE_NOTIFY_CLICK: clickFile,
+    // O "não perturbe" do KDE, desligado até o fim.
+    FAKE_NOTIFY_INHIBITED: '0'
   },
   stdio: ['ignore', 'pipe', 'inherit']
 })
@@ -186,8 +188,53 @@ check(
       .slice(-10)
   })
 )
+console.log('== Não perturbe')
+// O pedido do ls continua esperando: negado no painel.
+wisp(home, '--show')
+await waitFor(() => ev(`document.visibilityState === 'visible'`), 5000)
+await sleep(800)
+await ev(
+  `[...document.querySelectorAll('.permission-pending button')].find(b => b.textContent.trim() === 'Negar')?.click()`
+)
+await idle()
+const dndNow = () => ev(`window.wisp.settings.get().then((s) => s.dnd)`)
+check('N10 o desktop diz que o "não perturbe" está desligado', (await dndNow()) === false)
+command({ inhibit: true })
 check(
-  'N9 sem erros nas páginas',
+  'N11 ligado no desktop, o Wisp sabe na hora (pelo sinal)',
+  (await waitFor(async () => ((await dndNow()) === true ? true : null), 5000)) === true
+)
+await ev(`window.wisp.chat.hide()`)
+await sleep(300)
+const quietBefore = notifications().shown.length
+await ask('status [pede git status]')
+await waitFor(() => ev(`document.querySelector('.permission-pending') !== null`), 8000)
+await sleep(1500)
+check(
+  'N12 com o "não perturbe", o card espera no painel e não vira notificação',
+  notifications().shown.length === quietBefore,
+  JSON.stringify(notifications().shown.slice(quietBefore))
+)
+command({ inhibit: false })
+await waitFor(async () => ((await dndNow()) === false ? true : null), 5000)
+wisp(home, '--show')
+await waitFor(() => ev(`document.visibilityState === 'visible'`), 5000)
+await sleep(800)
+await ev(
+  `[...document.querySelectorAll('.permission-pending button')].find(b => b.textContent.trim() === 'Negar')?.click()`
+)
+await idle()
+await ev(`window.wisp.chat.hide()`)
+await sleep(300)
+await ask('onde [pede pwd]')
+const loud = await waitFor(() => {
+  const n = lastRequest()
+  return n && /^pwd/.test(n.body) ? n : null
+}, 8000)
+check('N13 desligado, o card volta a virar notificação', !!loud, JSON.stringify(loud))
+
+check(
+  'N14 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,
   [...mascot.logs, ...chat.logs].join('\n')
 )

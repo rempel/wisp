@@ -189,7 +189,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let phone: Phone | null = null
 
   // As notificações do sistema e os cards que viram notificação (notify.ts).
-  const { notify, approvals: desktopApprovals } = setupNotifications(() => chat)
+  const { notify, approvals: desktopApprovals, dnd, quiet } = setupNotifications(() => chat)
   /** Como os avisos chegam até você: o mascote e os sons vêm mais abaixo. */
   const signals: Signals = {
     notify,
@@ -304,6 +304,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let voice: Voice | null = null
   const sounds = new Sounds({
     play: playMascotSound,
+    muted: quiet,
     custom: sendMascotCustomSound,
     changed: (settings) => {
       chat?.notifySound(settings)
@@ -622,6 +623,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     openrouterKey: () => openrouter.hasKey(),
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
+    dnd: () => dnd.state().active,
     runTask: async (id) => {
       const task = getConfig().scheduledTasks.find((item) => item.id === id)
       if (!task) return { ok: false, message: t('Essa tarefa não existe mais.') }
@@ -629,6 +631,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       scheduler.runNow(id, (ran) => (result = runTask(ran, false)))
       return result
     }
+  })
+  // O "não perturbe" do desktop mudou: a tela de configurações mostra (Fase 32).
+  dnd.onChange(() => {
+    settings.notify()
+    menu?.refresh()
   })
   // Atualizar com um clique (Fase 31): só o AppImage, e só com a chave que confere a assinatura.
   const updateFile = updateTarget(kind, app.isPackaged)
@@ -726,6 +733,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     },
     openSettings: () => chat?.openSettings(),
     openDiagnostics: () => chat?.showView('diagnostics'),
+    openPalette: () => chat?.showView('palette'),
+    quiet,
     shortcutLabel: () => shortcutLabel('toggle'),
     voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {
@@ -800,12 +809,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     // O .deb e o Flatpak trazem a entrada do menu de apps deles.
     kind !== 'package' && kind !== 'flatpak'
   )
-  // Os atalhos globais: um abre e fecha o painel; o outro, segurado, ouve. Trocados no
+  // Os atalhos globais: um abre e fecha o painel; outro, segurado, ouve; e o da paleta (Fase 32). Trocados no
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
   let boundShortcuts: string | undefined
   const bindShortcuts = async (): Promise<void> => {
-    const { shortcut, voiceShortcut } = getConfig()
-    const key = JSON.stringify([shortcut, voiceShortcut])
+    const { shortcut, voiceShortcut, paletteShortcut } = getConfig()
+    const key = JSON.stringify([shortcut, voiceShortcut, paletteShortcut])
     if (key === boundShortcuts) return
     boundShortcuts = key
     shortcuts = await setupShortcuts([
@@ -824,6 +833,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         description: t('Falar com o Wisp (segure enquanto fala)'),
         press: () => voice?.press(shortcuts.get('voice')?.releases ?? false),
         release: () => voice?.release()
+      },
+      {
+        id: 'palette',
+        accelerator: paletteShortcut,
+        description: t('Abrir a paleta de comandos do Wisp'),
+        press: () => {
+          presence.activity()
+          chat?.showView('palette')
+        }
       }
     ])
     for (const [id, status] of shortcuts) {
@@ -850,6 +868,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         break
       case 'ask':
         chat?.ask(command.text)
+        break
+      case 'palette':
+        chat?.showView('palette')
         break
     }
   })

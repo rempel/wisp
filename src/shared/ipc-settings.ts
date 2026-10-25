@@ -64,8 +64,10 @@ export interface Settings {
   panelZoom: number
   tabSleepMinutes: number
   notifyApprovals: boolean
+  quietWithDnd: boolean
   language: 'auto' | 'pt' | 'en'
   shortcut: string | null
+  paletteShortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
   browserAutomation: boolean
@@ -108,8 +110,10 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'panelZoom',
   'tabSleepMinutes',
   'notifyApprovals',
+  'quietWithDnd',
   'language',
   'shortcut',
+  'paletteShortcut',
   'voiceShortcut',
   'clipboardChip',
   'browserAutomation',
@@ -155,6 +159,8 @@ export interface SettingsSnapshot {
   nextLocale: 'pt' | 'en'
   /** Quando cada tarefa agendada rodou pela última vez (ms), pelo id (Fase 26). */
   taskRuns: Record<string, number>
+  /** O "não perturbe" do desktop agora (Fase 32); null se o desktop não diz. */
+  dnd: boolean | null
 }
 
 /** O resultado de uma conferência do diagnóstico (Fase 20). */
@@ -195,7 +201,7 @@ export interface DiagnosticsSnapshot {
 }
 
 /** Uma tela do painel aberta pelo main. */
-export type PanelView = 'welcome' | 'diagnostics'
+export type PanelView = 'welcome' | 'diagnostics' | 'palette'
 
 /** Em que pé está a aprovação pelo celular. */
 export interface PhoneStatus {

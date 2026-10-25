@@ -399,6 +399,18 @@ export function SettingsView({
               onCommit={(voiceShortcut) => save({ voiceShortcut })}
             />
           </Row>
+          <Row
+            label={t('Paleta de comandos')}
+            hint={t(
+              'De qualquer lugar: conversas, prompts, tarefas e ações numa busca só. No painel, Ctrl+P.'
+            )}
+            error={errors.paletteShortcut}
+          >
+            <ShortcutInput
+              value={values.paletteShortcut}
+              onCommit={(paletteShortcut) => save({ paletteShortcut })}
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(
@@ -406,6 +418,22 @@ export function SettingsView({
             )}
             checked={values.notifyApprovals}
             onChange={(notifyApprovals) => void save({ notifyApprovals })}
+          />
+          <Toggle
+            label={t('Ficar quieto no “não perturbe”')}
+            hint={
+              t(
+                'Com o “não perturbe” do desktop ligado, o Wisp não manda notificações nem toca sons: os cards esperam no painel (e vão para o celular, se ligado).'
+              ) +
+              ' ' +
+              (snapshot.dnd === null
+                ? t('Este desktop não diz quando ele está ligado.')
+                : snapshot.dnd
+                  ? t('Agora: ligado.')
+                  : t('Agora: desligado.'))
+            }
+            checked={values.quietWithDnd}
+            onChange={(quietWithDnd) => void save({ quietWithDnd })}
           />
           <Toggle
             label={t('Iniciar com o sistema')}

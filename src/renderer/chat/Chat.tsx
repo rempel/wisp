@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSX, ReactNode } from 'react'
 import { ATTACHMENT_LIMITS, MAX_PANES } from '../../shared/ipc'
 import { leaf, neighbor } from '../../shared/layout'
@@ -18,6 +18,7 @@ import type {
 } from '../../shared/ipc'
 import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
+import { CommandPalette } from './CommandPalette'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
@@ -37,6 +38,8 @@ import {
 } from './icons'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
+import { paletteActions } from './palette-actions'
+import type { PaletteItem } from './palette'
 import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
 import { SettingsView } from './SettingsView'
@@ -127,6 +130,12 @@ export default function Chat(): JSX.Element {
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
   // Conversas com uma resposta nova que ainda não foi vista (o pontinho da aba).
   const [unread, setUnread] = useState<Set<string>>(() => new Set())
+  // A paleta de comandos (Fase 32): Ctrl+P no painel, ou o atalho global.
+  const [palette, setPalette] = useState(false)
+  const paletteRef = useRef(palette)
+  useEffect(() => {
+    paletteRef.current = palette
+  }, [palette])
   const root = useRef<HTMLDivElement>(null)
   const [bus] = useState(() => new PaneBus())
   // O que os atalhos e os eventos precisam ler sem esperar o render.
@@ -191,7 +200,9 @@ export default function Chat(): JSX.Element {
     })
     const offSessions = window.wisp.sessions.onShow(() => setView('sessions'))
     const offSettingsShow = window.wisp.settings.onShow(() => setView('settings'))
-    const offPanelView = window.wisp.diagnostics.onView(setView)
+    const offPanelView = window.wisp.diagnostics.onView((next) =>
+      next === 'palette' ? setPalette(true) : setView(next)
+    )
     const offSettings = window.wisp.settings.onChanged(setSettings)
     const offAgenda = window.wisp.agenda.onNext(setAgendaNext)
     const offSummary = window.wisp.summary.onShow(() => setView('history'))
@@ -349,6 +360,8 @@ export default function Chat(): JSX.Element {
   // Ctrl+M liga e desliga os sons. Voltar ao painel devolve o foco para a caixa de texto.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
+      // Com a paleta aberta, as teclas são dela.
+      if (paletteRef.current) return
       // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
       if (
         fromTerminal(event.target) &&
@@ -361,7 +374,11 @@ export default function Chat(): JSX.Element {
       const state = tabsRef.current
       const key = event.key.toLowerCase()
       const focusedTab = state.panes[state.focused]
-      if (event.key === 'Escape') {
+      if (ctrl && key === 'p' && (event.shiftKey || !fromTerminal(event.target))) {
+        // A paleta de comandos (Fase 32): Ctrl+P (no terminal, que usa o Ctrl+P, Ctrl+Shift+P).
+        event.preventDefault()
+        setPalette(true)
+      } else if (event.key === 'Escape') {
         // Ouvindo, transcrevendo ou falando, o Esc só desiste disso.
         if (voiceRef.current.state !== 'idle') window.wisp.voice.cancel()
         else if (viewRef.current !== 'chat') setView('chat')
@@ -597,6 +614,66 @@ export default function Chat(): JSX.Element {
     )
   }
 
+  // As ações da paleta, para a aba em foco (refeitas se algo muda com ela aberta).
+  const actions = useMemo((): PaletteItem[] => {
+    if (!palette) return []
+    const focusedTab = tabs.panes[tabs.focused] ?? null
+    const conversation =
+      tabs.tabs.find((tab) => tab.id === focusedTab)?.kind === 'chat' ? focusedTab : null
+    const state = conversation ? conversations.get(conversation) : undefined
+    return paletteActions({
+      conversation,
+      state: state ? { mode: state.mode, provider: state.provider, view: state.view } : null,
+      tabs: tabs.tabs,
+      focusedTab,
+      settings,
+      sessions: sessions?.sessions ?? [],
+      sound: sound?.enabled ?? null,
+      canSplit: tabs.panes.length < MAX_PANES,
+      setView,
+      find: (id) => {
+        setView('chat')
+        bus.emit(id, { type: 'find' })
+      },
+      exportMarkdown: (id) => void exportConversation(id),
+      toggleSound: () => {
+        if (sound) toggleSound(sound)
+      },
+      usePrompt: (id, name) => {
+        setView('chat')
+        bus.emit(id, { type: 'prompt', name })
+      },
+      notice: (text, warning = false) => {
+        if (!conversation) return
+        apply(conversation, {
+          type: 'events',
+          events: [{ type: 'notice', level: warning ? 'warning' : 'info', text }]
+        })
+      }
+    })
+  }, [
+    palette,
+    tabs,
+    conversations,
+    settings,
+    sessions,
+    sound,
+    bus,
+    exportConversation,
+    toggleSound,
+    apply
+  ])
+  const closePalette = useCallback(
+    (ran: boolean): void => {
+      setPalette(false)
+      // Sem fazer nada, a caixa de texto volta a ter o foco.
+      if (ran) return
+      const conversation = focusedConversation()
+      if (conversation) bus.emit(conversation, { type: 'focus' })
+    },
+    [bus, focusedConversation]
+  )
+
   return (
     <AvatarContext.Provider value={settings?.values.avatar ?? 'robo'}>
       <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
@@ -750,6 +827,7 @@ export default function Chat(): JSX.Element {
             </div>
           </>
         )}
+        {palette && <CommandPalette actions={actions} onClose={closePalette} />}
       </div>
     </AvatarContext.Provider>
   )

@@ -92,10 +92,17 @@ export interface WispConfig {
    * Permitir e Negar (Fase 24), com as regras do celular.
    */
   notifyApprovals: boolean
+  /**
+   * Com o "não perturbe" do desktop ligado, o Wisp não manda notificações nem toca sons (Fase 32);
+   * os cards esperam no painel.
+   */
+  quietWithDnd: boolean
   /** O idioma da interface (Fase 25): o do sistema, português ou inglês. Vale ao abrir de novo. */
   language: LanguageSetting
   /** Atalho global que abre e fecha o painel (formato do Electron); null desliga. */
   shortcut: string | null
+  /** Atalho global que abre a paleta de comandos (Fase 32); null desliga. */
+  paletteShortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
   clipboardChip: boolean
   /**
@@ -198,8 +205,10 @@ function defaults(): WispConfig {
     panelZoom: 1,
     tabSleepMinutes: 20,
     notifyApprovals: true,
+    quietWithDnd: true,
     language: 'auto',
     shortcut: 'Ctrl+Alt+W',
+    paletteShortcut: 'Ctrl+Alt+P',
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
@@ -307,8 +316,10 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   panelZoom: z.number().min(0.7).max(2),
   tabSleepMinutes: z.number().int().min(0).max(1440),
   notifyApprovals: z.boolean(),
+  quietWithDnd: z.boolean(),
   language: z.enum(LANGUAGE_SETTINGS),
   shortcut: z.string().max(60).nullable(),
+  paletteShortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
   browserAutomation: z.boolean(),
@@ -477,6 +488,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   sleepAfterMinutes: t('Um número de minutos, 0 ou mais (0 desliga o cochilo).'),
   tabSleepMinutes: t('Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).'),
   shortcut: t('O atalho tem no máximo 60 caracteres.'),
+  paletteShortcut: t('O atalho tem no máximo 60 caracteres.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),

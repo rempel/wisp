@@ -1,6 +1,7 @@
 // Um servidor de notificações de mentira (org.freedesktop.Notifications) para os testes: guarda
 // as notificações mostradas e as fechadas, e "clica" num botão emitindo o ActionInvoked, como o
-// de verdade faz.
+// de verdade faz. Com `inhibited`, ele tem a propriedade Inhibited do KDE (o "não perturbe").
+import { Variant } from '../../src/main/dbus'
 import type { DBusConnection } from '../../src/main/dbus'
 
 const NAME = 'org.freedesktop.Notifications'
@@ -19,12 +20,19 @@ export interface NotifyState {
   shown: ShownEntry[]
   closed: number[]
   changed?(): void
+  /** O "não perturbe" do KDE (a propriedade Inhibited); sem ele, o servidor não a tem. */
+  inhibited?: boolean
 }
 
 export function serveNotifications(
   bus: DBusConnection,
   state: NotifyState
-): { click(id: number, key: string): void; dismiss(id: number): void } {
+): {
+  click(id: number, key: string): void
+  dismiss(id: number): void
+  /** Liga ou desliga o "não perturbe" e avisa (PropertiesChanged), como o Plasma. */
+  inhibit(value: boolean): void
+} {
   let seq = 0
   bus.export(PATH, NAME, {
     methods: {
@@ -60,10 +68,21 @@ export function serveNotifications(
         }
       }
     },
-    signals: { ActionInvoked: 'us', NotificationClosed: 'uu' }
+    signals: { ActionInvoked: 'us', NotificationClosed: 'uu' },
+    ...(state.inhibited === undefined
+      ? {}
+      : { properties: { Inhibited: { type: 'b', get: () => state.inhibited } } })
   })
   return {
     click: (id, key) => bus.emitSignal(PATH, NAME, 'ActionInvoked', 'us', [id, key]),
-    dismiss: (id) => bus.emitSignal(PATH, NAME, 'NotificationClosed', 'uu', [id, 2])
+    dismiss: (id) => bus.emitSignal(PATH, NAME, 'NotificationClosed', 'uu', [id, 2]),
+    inhibit: (value) => {
+      state.inhibited = value
+      bus.emitSignal(PATH, 'org.freedesktop.DBus.Properties', 'PropertiesChanged', 'sa{sv}as', [
+        NAME,
+        { Inhibited: new Variant('b', value) },
+        []
+      ])
+    }
   }
 }

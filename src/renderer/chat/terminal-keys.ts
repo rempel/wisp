@@ -1,6 +1,6 @@
 // Quem fica com cada tecla no modo terminal: quase tudo vai para o Claude Code (o Esc
-// interrompe, o Ctrl+K apaga a linha, o Ctrl+M é o Enter), menos os atalhos das abas e da grade
-// do Wisp, que continuam valendo com o foco no terminal.
+// interrompe, o Ctrl+K apaga a linha, o Ctrl+M é o Enter), menos os atalhos das abas, da grade
+// e da paleta do Wisp, que continuam valendo com o foco no terminal.
 
 interface Keys {
   key: string
@@ -20,6 +20,8 @@ export function isWispTerminalShortcut(event: Keys): boolean {
   if (ctrl && !event.shiftKey && (key === 't' || /^[1-9]$/.test(event.key))) return true
   if (ctrl && event.key === 'Tab') return true
   if (ctrl && event.code === 'Backslash') return true
+  // A paleta de comandos (Fase 32): no terminal, o Ctrl+P é do Claude Code; o Ctrl+Shift+P, não.
+  if (ctrl && event.shiftKey && key === 'p') return true
   return event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && ARROWS.has(event.key)
 }
 

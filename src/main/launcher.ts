@@ -65,13 +65,17 @@ export function desktopIcon(kind: InstallKind, icon: string): string {
 
 /** O que o comando `wisp` pede ao app. */
 export type WispCommand =
-  { kind: 'toggle' } | { kind: 'show' } | { kind: 'new' } | { kind: 'ask'; text: string }
+  | { kind: 'toggle' }
+  | { kind: 'show' }
+  | { kind: 'new' }
+  | { kind: 'palette' }
+  | { kind: 'ask'; text: string }
 
 /** Limite do texto de um `--ask` (o resto fica de fora). */
 const MAX_ASK = 20_000
 
 /**
- * O pedido que veio na linha de comando: `--toggle`, `--show`, `--new` ou `--ask "texto"`
+ * O pedido que veio na linha de comando: `--toggle`, `--show`, `--new`, `--palette` ou `--ask "texto"`
  * (também `--ask=texto`). Sem nenhum deles, null.
  */
 export function parseCommand(argv: readonly string[]): WispCommand | null {
@@ -80,6 +84,7 @@ export function parseCommand(argv: readonly string[]): WispCommand | null {
     if (arg === '--toggle') return { kind: 'toggle' }
     if (arg === '--show') return { kind: 'show' }
     if (arg === '--new') return { kind: 'new' }
+    if (arg === '--palette') return { kind: 'palette' }
     if (arg === '--ask' || arg.startsWith('--ask=')) {
       const text = (arg === '--ask' ? (argv[i + 1] ?? '') : arg.slice('--ask='.length)).trim()
       return text ? { kind: 'ask', text: text.slice(0, MAX_ASK) } : { kind: 'show' }
@@ -95,6 +100,7 @@ export function checkCommand(value: unknown): WispCommand | null {
     case 'toggle':
     case 'show':
     case 'new':
+    case 'palette':
       return { kind: command.kind }
     case 'ask':
       return typeof command.text === 'string' && command.text.trim()
@@ -189,6 +195,7 @@ export function deployLauncher(target: LauncherTarget, withMenuEntry: boolean): 
     '# Abre o Wisp, ou entrega o pedido ao Wisp já aberto:',
     '#   wisp --toggle       abre ou fecha o painel',
     '#   wisp --new          começa uma conversa nova',
+    '#   wisp --palette      abre a paleta de comandos',
     '#   wisp --ask "texto"  manda uma mensagem ao Claude',
     '# O Wisp reescreve este arquivo sempre que abre.',
     'unset ELECTRON_RUN_AS_NODE NODE_OPTIONS',

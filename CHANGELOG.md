@@ -46,6 +46,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   apagar nada, com backup do `config.json`). No AppImage, o aviso de versão nova ganha
   **Atualizar**: baixa, confere a assinatura ed25519 e troca o arquivo (depois que quem publica
   gerar a chave com `scripts/release-key.mjs`).
+- **Paleta de comandos** (Fase 32): Ctrl+P no painel (Ctrl+Shift+P no modo terminal), Ctrl+Alt+P de
+  qualquer lugar ou `wisp --palette`: abas, ações, modo e modelo, prompts salvos, tarefas, sessões
+  do terminal, projetos e conversas numa busca só, sem acentos, pelo teclado.
+- **Não perturbe** (Fase 32): com o "não perturbe" do KDE ou do GNOME ligado, o Wisp não manda
+  notificações nem toca sons; os cards esperam no painel (`quietWithDnd`).
 
 ### Mudou
 
@@ -58,7 +63,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - Dependências atualizadas pelo `npm audit fix`: o Electron 44.9.3 (era o 44.7.0) e, no servidor
   MCP e no build, body-parser, fast-uri, ip-address, qs, undici e zod.
 - O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks`,
-  `dance` (a dança de quando toca música) e `enabledMcpServers`.
+  `dance` (a dança de quando toca música), `enabledMcpServers`, `paletteShortcut` e
+  `quietWithDnd`.
 - O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
   permissão, os olhos brilham.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.

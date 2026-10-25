@@ -42,6 +42,8 @@ export interface SettingsOptions {
   taskRuns(): Record<string, number>
   /** Roda uma tarefa agendada agora (o botão "Rodar agora"). */
   runTask(id: string): Promise<TaskResult>
+  /** O "não perturbe" do desktop agora (Fase 32); null se o desktop não diz. */
+  dnd(): boolean | null
 }
 
 const tilde = (path: string): string =>
@@ -68,7 +70,8 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       phone: options.phone(),
       locale: getLocale(),
       nextLocale: resolveLocale(config.language, systemTag()),
-      taskRuns: options.taskRuns()
+      taskRuns: options.taskRuns(),
+      dnd: options.dnd()
     }
   }
   const notify = (): void => {

@@ -98,6 +98,7 @@ src/
 │  ├─ release-key.ts # a chave pública que confere os AppImage (gerada por scripts/release-key.mjs)
 │  ├─ portable.ts    # levar o Wisp junto: exportar, ler, a prévia e importar
 │  ├─ portable-ipc.ts # exportar e importar nas configurações (os diálogos e o backup)
+│  ├─ dnd.ts         # o "não perturbe" do desktop (KDE e GNOME, pelo D-Bus, por sinal)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
@@ -147,8 +148,10 @@ src/
    │                 # barra, histórico, aba Sessões, configurações (com o QR code do
    │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos;
    │                 # describe-request.tsx diz o que cada pedido quer (o card e o leitor de tela);
-   │                 # o chat.css liga as folhas de styles/ (base, mensagens, caixa de texto,
-   │                 # cards, telas, abas, configurações e o resto, nessa ordem)
+   │                 # a paleta de comandos: palette.ts (achar e ordenar), palette-actions.ts (as
+   │                 # ações) e CommandPalette.tsx (a tela); o chat.css liga as folhas de styles/
+   │                 # (base, mensagens, caixa de texto, cards, telas, abas, configurações, o resto
+   │                 # e a paleta, nessa ordem)
    └─ common/        # miniaturas das imagens e appearance.ts (as classes reduce-motion e
                      # contrast no <html>), do painel e do mascote
 resources/
@@ -731,6 +734,23 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   arquivo novo. No CI, o job de release assina cada AppImage com `scripts/sign-release.mjs` e o
   segredo `WISP_RELEASE_KEY`. Fora do pacote, `WISP_TEST_APPIMAGE`, `WISP_TEST_RELEASE_KEY` e
   `WISP_TEST_DOWNLOAD_BASE` fazem as vezes do AppImage, da chave e do GitHub nos testes.
+- **Paleta de comandos:** o `Chat.tsx` abre a paleta pelo Ctrl+P (Ctrl+Shift+P no terminal, que o
+  `terminal-keys.ts` deixa passar) ou pela tela `palette` que o main pede (o atalho global
+  `paletteShortcut`, o `wisp --palette` e o menu da bandeja, pelo mesmo `panel:view` do
+  diagnóstico). As ações são montadas do estado do painel (`palette-actions.ts`) e chamam a mesma
+  API que os botões; o prompt salvo vai pelo `PaneBus` (`{ type: 'prompt' }`) para o painel em
+  foco, que o expande como o menu da barra. A `CommandPalette.tsx` pede ao main as conversas
+  (`history.list`), os projetos (`tabs.projects`) e, com 3 letras, a busca do histórico
+  (`history.search`, depois de 150 ms parado); o `palette.ts` acha (todas as palavras, sem acento,
+  no título, no detalhe ou nas palavras escondidas) e ordena (o começo do título, o começo de uma
+  palavra, o meio; no empate, a ordem dos grupos). Uma conversa aparece uma vez: pelo título, ou
+  pelo trecho achado.
+- **Não perturbe:** o `dnd.ts` usa a conexão do D-Bus das notificações. No KDE, lê a propriedade
+  `Inhibited` de `org.freedesktop.Notifications` e assina o `PropertiesChanged` dela; no GNOME, lê
+  `show-banners` de `org.gnome.desktop.notifications` pelo `org.freedesktop.portal.Settings`
+  (`ReadOne`, ou o `Read` antigo) e assina o `SettingChanged`. Os sinais só valem do dono do nome
+  (o nome único, no `sender` da regra). O `notify.ts` não manda nada (nem os cards) com o Wisp
+  quieto (`quietWithDnd` e o "não perturbe" ligado), e o `Sounds` pergunta antes de tocar.
 - **Levar o Wisp junto:** o `portable.ts` exporta os campos de `SETTINGS_KEYS` (os da tela de
   configurações) e, se pedido, as linhas de cada conversa como estão no disco. Ler um arquivo
   confere os campos pelo mesmo `checkSettings` da tela, separa os de uma versão mais nova e
