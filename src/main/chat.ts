@@ -507,7 +507,7 @@ export function setupChat({
     if (fromChat(event) && typeof sessionId === 'string') tabs.openSession(sessionId)
   })
   // O histórico, a exportação, as pastas e os prompts salvos (chat-library.ts).
-  registerLibrary({
+  const search = registerLibrary({
     fromChat,
     window: () => win,
     store,
@@ -521,6 +521,7 @@ export function setupChat({
   app.on('before-quit', () => {
     quitting = true
     saveTabs()
+    search.dispose()
   })
 
   /**

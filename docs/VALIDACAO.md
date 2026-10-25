@@ -614,3 +614,20 @@ O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferen�
       chegam como notificação, com a reação do mascote; na segunda, o resumo da semana.
 - [ ] **Voz:** "pausa a música" e "abre a calculadora" (o card aparece antes de abrir) funcionam
       sem o Claude.
+
+## O histórico que acha (Fase 29)
+
+- [ ] **Uma conversa antiga:** pense numa palavra que você ou o Claude disse numa conversa de
+      semanas atrás (não no título). No histórico, busque por ela sem os acentos: a conversa
+      aparece, com o trecho e a palavra marcada.
+- [ ] **Abrir na mensagem:** clique no resultado: a conversa abre no painel, com a busca na conversa
+      aberta, a palavra marcada e a mensagem à vista (mesmo se a conversa for longa).
+- [ ] **Já aberta:** busque outra palavra da mesma conversa e abra de novo: a aba dela aparece, na
+      mensagem nova.
+- [ ] **Várias palavras:** duas palavras ditas em mensagens diferentes da mesma conversa a acham; uma
+      que não está em conversa nenhuma diz "Nada encontrado nas conversas."
+- [ ] **Filtros:** **Hoje**, **Esta semana** e **Antes** mudam a lista (com e sem busca). Com
+      conversas em pastas, o seletor de pasta mostra cada projeto e "Sem pasta" (as do Wisp).
+- [ ] **Apagar:** apague uma conversa achada pela busca: ela some dos resultados, e o
+      `~/.cache/wisp/busca.json` não tem mais o texto dela.
+- [ ] **Ctrl+F:** numa conversa, a busca acha "ação" por "ACAO".

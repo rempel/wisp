@@ -34,6 +34,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   troca atuada do [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase), para a
   gotinha e o fantasminha; o Claude mostra uma quando combina com a conversa (a ferramenta
   `express`, sem card), e a galeria fica nas configurações.
+- **O histórico que acha** (Fase 29): a busca acha o que foi dito nas conversas (as suas mensagens e
+  as respostas), sem ligar para acentos, com o trecho; abrir leva à mensagem. Filtros por período e
+  por pasta. A busca na conversa (Ctrl+F) também ignora os acentos.
 
 ### Mudou
 

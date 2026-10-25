@@ -290,6 +290,8 @@ export default function Chat(): JSX.Element {
         const finished: string[] = []
         for (const [id, item] of batch) {
           if (item.type === 'usage') setUsage(item.usage)
+          // Aberta pela busca do histórico (Fase 29): a busca na conversa abre na mensagem.
+          else if (item.type === 'jump') bus.emit(id, { type: 'find', target: item.target })
           else if (item.type === 'busy' && item.busy) running.add(id)
           else if (item.type === 'turn-end' && running.delete(id)) {
             if (!tabsRef.current.panes.includes(id)) finished.push(id)
@@ -303,7 +305,7 @@ export default function Chat(): JSX.Element {
       off()
       cancelAnimationFrame(frame)
     }
-  }, [])
+  }, [bus])
 
   const toggleSound = useCallback((current: SoundSettings): void => {
     const next = { ...current, enabled: !current.enabled }

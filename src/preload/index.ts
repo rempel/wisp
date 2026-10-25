@@ -192,7 +192,8 @@ const api: WispApi = {
   },
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),
-    open: (id) => ipcRenderer.invoke(IPC.historyOpen, id),
+    open: (id, at) => ipcRenderer.invoke(IPC.historyOpen, id, at),
+    search: (query) => ipcRenderer.invoke(IPC.historySearch, query),
     remove: (id) => ipcRenderer.invoke(IPC.historyDelete, id),
     pin: (id, pinned) => ipcRenderer.invoke(IPC.historyPin, id, pinned),
     exportMarkdown: (id) => ipcRenderer.invoke(IPC.historyExport, id)

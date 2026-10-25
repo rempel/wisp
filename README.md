@@ -141,8 +141,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
-  agendadas), 27 (emoções e danças do mascote) e 28 (manutenção e CI):** prontas, esperando a
-  validação com o uso.
+  agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI) e 29 (o histórico que
+  acha):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -463,9 +463,14 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
 - **Rascunho:** o que ficou escrito na caixa de texto de cada aba volta quando você fecha e abre o
   Wisp.
 - **Nova conversa:** Ctrl+K recomeça a conversa da aba (a de antes fica no histórico).
-- **Histórico:** o botão do relógio, no cabeçalho, lista as conversas por dia, com busca. Abrir uma
-  traz as mensagens de volta, e o Claude continua de onde parou. No topo, o resumo da semana. O
-  alfinete de cada conversa a fixa no topo, e a seta a exporta em Markdown.
+- **Histórico:** o botão do relógio, no cabeçalho, lista as conversas por dia. Abrir uma traz as
+  mensagens de volta, e o Claude continua de onde parou. No topo, o resumo da semana. O alfinete
+  de cada conversa a fixa no topo, e a seta a exporta em Markdown.
+- **Buscar no histórico:** a busca acha o que foi dito, não só o título: as suas mensagens e as
+  respostas do Claude, sem diferenciar maiúsculas nem acentos ("acao" acha "ação"); com mais de uma
+  palavra, a conversa precisa ter todas. Cada resultado mostra o trecho, e abrir leva à mensagem
+  dele, com a busca na conversa (Ctrl+F) marcando a palavra. Os filtros escolhem o período (hoje,
+  esta semana ou antes) e a pasta das conversas.
 - **Exportar:** Ctrl+Shift+E (ou a seta no histórico) salva a conversa em Markdown, onde você
   escolher: as mensagens, as respostas, cada ferramenta numa linha e os pedidos de permissão com o
   que foi respondido.
@@ -1203,6 +1208,10 @@ Code, que apaga as conversas antigas depois de um tempo (30 dias, por padrão, p
 `cleanupPeriodDays` dele). Apagar uma conversa no Wisp tira ela do histórico do Wisp; a cópia
 do Claude Code segue a regra dele.
 
+A busca do histórico usa um índice do que foi dito em cada conversa, em `~/.cache/wisp/busca.json`
+(só o seu usuário lê). Ele é refeito pelas conversas se sumir, só relê as que mudaram e perde na
+hora uma conversa apagada.
+
 ## Privacidade e segurança
 
 - **Sem telemetria.** O Wisp não manda nada para lugar nenhum por conta própria. A rede é só a do
@@ -1248,6 +1257,7 @@ Onde fica cada coisa:
 | `~/.local/share/wisp/openrouter-claude/`     | A configuração do Claude Code das conversas pela OpenRouter           |
 | `~/.local/share/wisp/bin/`                   | O comando `wisp` e o relay dos hooks (reescritos a cada abertura)     |
 | `~/.cache/wisp/anexos/`                      | As cópias dos anexos (apagadas depois de 7 dias)                      |
+| `~/.cache/wisp/busca.json`                   | O índice da busca do histórico (refeito pelas conversas, só seu)      |
 | `~/.local/state/wisp/wisp.log`               | O registro (até 1 MB, sem comandos, endereços, chaves ou tokens)      |
 | `$XDG_RUNTIME_DIR/wisp/`                     | O socket dos hooks e os arquivos de cada execução (só do seu usuário) |
 | Chaveiro do sistema                          | A chave da OpenRouter e os tópicos do celular (ntfy)                  |

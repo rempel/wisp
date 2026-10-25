@@ -888,7 +888,6 @@ export const EN: Record<string, string> = {
   'Não consegui guardar a conversa fixada.': "I couldn't save the pinned conversation.",
   'Exportada para {path}.': 'Exported to {path}.',
   Fixadas: 'Pinned',
-  'Buscar conversas…': 'Search conversations…',
   'Buscar conversas': 'Search conversations',
   'Nenhuma conversa guardada ainda. Elas aparecem aqui a partir da primeira mensagem.':
     'No conversations saved yet. They show up here from the first message.',
@@ -1878,5 +1877,13 @@ export const EN: Record<string, string> = {
   correr: 'run',
   'de leve': 'easy groove',
   'pisar forte': 'stomp',
-  requebrar: 'shimmy'
+  requebrar: 'shimmy',
+  Tudo: 'All',
+  'Buscar nas conversas…': 'Search conversations…',
+  Período: 'Period',
+  'Todas as pastas': 'All folders',
+  'Sem pasta': 'No folder',
+  'Nada encontrado nas conversas.': 'Nothing found in your conversations.',
+  'Nenhuma conversa nesse filtro.': 'No conversations match this filter.',
+  '(+{count} mensagens)': '(+{count} messages)'
 }

@@ -14,6 +14,8 @@ import type {
   ExportResult,
   FolderChoice,
   FolderResult,
+  HistoryHit,
+  HistoryTarget,
   OpenRouterModelInfo,
   OutgoingAttachment,
   PastedImage,
@@ -310,8 +312,13 @@ export const IPC = {
 
   /** chat → main (invoke): as conversas guardadas. Devolve ConversationSummary[]. */
   historyList: 'history:list',
-  /** chat → main (invoke): reabre uma conversa do histórico numa aba. Arg: id. Devolve boolean. */
+  /**
+   * chat → main (invoke): reabre uma conversa do histórico numa aba. Args: (id, HistoryTarget
+   * opcional: a mensagem onde abrir). Devolve boolean.
+   */
   historyOpen: 'history:open',
+  /** chat → main (invoke): busca no que foi dito (Fase 29). Arg: texto. Devolve HistoryHit[]. */
+  historySearch: 'history:search',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
   historyDelete: 'history:delete',
   /** chat → main (invoke): fixa ou solta uma conversa no topo. Args: (id, fixada). Devolve boolean. */
@@ -568,8 +575,13 @@ export interface WispApi {
   }
   history: {
     list(): Promise<ConversationSummary[]>
-    /** Reabre a conversa numa aba (ou mostra a aba onde ela já está aberta). */
-    open(id: string): Promise<boolean>
+    /**
+     * Reabre a conversa numa aba (ou mostra a aba onde ela já está aberta). Com `at`, a busca na
+     * conversa abre nessa mensagem.
+     */
+    open(id: string, at?: HistoryTarget): Promise<boolean>
+    /** As conversas com o texto no título ou no que foi dito, com o trecho (Fase 29). */
+    search(query: string): Promise<HistoryHit[]>
     remove(id: string): Promise<boolean>
     pin(id: string, pinned: boolean): Promise<boolean>
     exportMarkdown(id: string): Promise<ExportResult>

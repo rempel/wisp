@@ -98,12 +98,31 @@ export interface ConversationSummary {
   updatedAt: number
   /** Está aberta numa aba. */
   current: boolean
-  /** Projeto de uma sessão trazida do terminal. */
+  /** O nome da pasta da conversa (uma sessão trazida do terminal ou uma conversa numa pasta). */
   project?: string
+  /** A pasta inteira, para o filtro do histórico (Fase 29). */
+  folder?: string
   /** Foi pela OpenRouter. */
   provider?: 'openrouter'
   /** Fixada no topo do histórico. */
   pinned?: boolean
+}
+
+/**
+ * Uma mensagem de uma conversa guardada (Fase 29): a n-ésima sua (contando só as que ficaram,
+ * depois das edições) ou um bloco de texto do Claude, pelo id dele. `term` é o que marcar nela.
+ */
+export type HistoryTarget =
+  { kind: 'user'; n: number; term: string } | { kind: 'text'; id: string; term: string }
+
+/** Uma conversa achada pela busca do histórico, com o trecho que bate. */
+export interface HistoryHit extends ConversationSummary {
+  /** O trecho: o texto antes, o que bate e o depois; null quando só o título bate. */
+  snippet: { who: 'user' | 'claude'; before: string; match: string; after: string } | null
+  /** Quantas mensagens batem. */
+  matches: number
+  /** A mensagem do trecho, para abrir nela. */
+  at?: HistoryTarget
 }
 
 /** Exportar uma conversa: onde ficou, ou por que não (null: a pessoa desistiu). */
@@ -243,6 +262,8 @@ export type ChatEvent =
   | { type: 'terminal'; terminal: TerminalStatus }
   /** Fim da reabertura de uma conversa do histórico (vem depois das mensagens dela). */
   | { type: 'restored'; createdAt: number }
+  /** Abrir uma conversa pela busca do histórico: a busca na conversa abre nessa mensagem. */
+  | { type: 'jump'; target: HistoryTarget }
 
 /**
  * "allow-always" vale até a conversa recomeçar (Permitir sempre nesta conversa). No card do
