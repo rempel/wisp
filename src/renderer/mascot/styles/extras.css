@@ -1,0 +1,373 @@
+/* Os acessórios por data, a voz, menos movimento e a ilha. */
+
+/* ---- Acessórios por data --------------------------------------------- */
+
+/* O gorro fica no lugar da antena. */
+.acc-christmas .antenna-pose {
+  display: none;
+}
+
+.hat-shine {
+  fill: none;
+  stroke: #fecaca;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+  opacity: 0.6;
+}
+
+.hat-brim,
+.hat-pompom {
+  fill: #f8fafc;
+  stroke: #e2e8f0;
+  stroke-width: 0.6;
+}
+
+.hat-pompom {
+  filter: drop-shadow(0 0 2px rgb(var(--glow) / 0.6));
+}
+
+.shades-lens {
+  fill: url(#wisp-lens);
+  stroke: #0f172a;
+  stroke-width: 1.1;
+}
+
+.shades-bridge,
+.shades-arm {
+  fill: none;
+  stroke: #0f172a;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.shades-glint {
+  stroke: #fff;
+  stroke-opacity: 0.55;
+  stroke-width: 0.9;
+  stroke-linecap: round;
+}
+
+/* ---- Voz -------------------------------------------------------------- */
+
+/*
+ * Ouvindo: a lâmpada da antena fica vermelha, como a de um gravador, e ondas saem dela, maiores
+ * quanto mais alto se fala (--vl, de 0 a 1, vem da captura a cada 100 ms). Os olhos olham para
+ * cima, atentos. Transcrevendo, a lâmpada pisca âmbar e os bits correm, como quem pensa.
+ */
+.waves,
+.wave {
+  position: absolute;
+  inset: 0;
+}
+
+.waves {
+  opacity: 0;
+  transition: opacity 0.25s;
+}
+
+.wave {
+  transform-origin: 64px 15px;
+  transition:
+    transform 0.12s ease-out,
+    opacity 0.12s ease-out;
+}
+
+.wave path {
+  fill: none;
+  stroke: #f87171;
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 1.5px rgb(248 113 113 / 0.9));
+}
+
+.voice-listening .waves {
+  opacity: 1;
+}
+
+.voice-listening .w1 {
+  transform: scale(calc(0.85 + var(--vl, 0) * 0.3));
+  opacity: calc(0.45 + var(--vl, 0) * 0.55);
+}
+
+.voice-listening .w2 {
+  transform: scale(calc(0.75 + var(--vl, 0) * 0.45));
+  opacity: calc(0.15 + var(--vl, 0) * 0.85);
+}
+
+.voice-listening .antenna .led,
+.voice-transcribing .antenna .led {
+  fill: #ef4444;
+}
+
+.voice-listening .led-halo,
+.voice-transcribing .led-halo {
+  fill: #f87171;
+}
+
+/* Em pé e parada, como quem presta atenção (mesmo se estava cochilando). */
+.voice-listening .antenna-pose,
+.voice-transcribing .antenna-pose {
+  transform: none;
+}
+
+.voice-listening .antenna {
+  animation-duration: 7s;
+}
+
+.voice-listening .antenna-glow {
+  animation: none;
+  opacity: calc(0.55 + var(--vl, 0) * 0.45);
+}
+
+.voice-listening .eyes {
+  animation: none;
+  transform: translateY(-1.5px);
+}
+
+.voice-listening.voice-heard .eyes-react {
+  transform: scale(1.08);
+}
+
+.voice-transcribing .antenna .led {
+  fill: #f59e0b;
+}
+
+.voice-transcribing .led-halo {
+  fill: #fbbf24;
+}
+
+.voice-transcribing .antenna-glow {
+  animation-duration: 0.45s;
+}
+
+.voice-transcribing .eyes {
+  animation: scan 1.6s ease-in-out infinite;
+}
+
+.voice-transcribing .s1 {
+  --dur: 1.5s;
+}
+
+.voice-transcribing .s2 {
+  --dur: 1.9s;
+}
+
+.voice-transcribing .s3 {
+  --dur: 2.3s;
+}
+
+/* Falando uma resposta: como quando o texto chega. */
+.voice-speaking .glow {
+  animation-duration: 1.2s;
+}
+
+.voice-speaking[data-mouth='open'] .mouth-move {
+  animation: chatter 0.24s ease-in-out infinite alternate;
+}
+
+/* Acordado para ouvir: nada do cochilo fica parado ou apagado. */
+.voice-listening.state-sleeping .float,
+.voice-listening.state-sleeping .glow,
+.voice-listening.state-sleeping .antenna,
+.voice-transcribing.state-sleeping .float,
+.voice-transcribing.state-sleeping .antenna {
+  animation-play-state: running;
+}
+
+.voice-listening.state-sleeping .antenna .led,
+.voice-listening.state-sleeping .antenna-glow svg,
+.voice-transcribing.state-sleeping .antenna .led,
+.voice-transcribing.state-sleeping .antenna-glow svg {
+  opacity: 1;
+}
+
+/* ---- Menos movimento -------------------------------------------------- */
+
+:root.reduce-motion {
+  .float,
+  .glow,
+  .antenna,
+  .antenna-glow,
+  .eyes,
+  .eyes-blink,
+  .wisp.boop,
+  .stage .mood,
+  .stage .react,
+  .stage .ask,
+  .stage .antenna-pose,
+  .stage .eyes-react,
+  .stage .z,
+  .stage .heart,
+  .stage .star,
+  .stage .star > svg,
+  .stage .anger-mark,
+  .stage .bubble,
+  .stage .absorb,
+  .stage .spin,
+  .stage .bell-body,
+  .stage .groove,
+  .stage .note {
+    animation: none;
+  }
+
+  .sparks,
+  .burst,
+  .absorb {
+    display: none;
+  }
+
+  /* Sem a subida, o cochilo mostra o "z" parado logo de cara. */
+  .state-sleeping .z-deep {
+    opacity: 0.55;
+  }
+}
+
+/* ---- A ilha ------------------------------------------------------------- */
+
+/*
+ * O modo compacto: uma cápsula escura no centro do topo da tela, com o Wisp inteiro em miniatura e
+ * uma linha de estado. As medidas (recolhida 200×38, aberta 320×84) e a duração são as do
+ * island.ts, que recorta a janela do mesmo tamanho.
+ */
+.island {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 200px;
+  height: 38px;
+  padding: 0 14px 0 6px;
+  border-radius: 0 0 19px 19px;
+  background: #0b1418;
+  box-shadow: inset 0 -1px 0 rgb(103 232 249 / 0.18);
+  color: #e6fbff;
+  font:
+    13px/1.25 system-ui,
+    sans-serif;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition:
+    width 220ms cubic-bezier(0.3, 0.8, 0.3, 1),
+    height 220ms cubic-bezier(0.3, 0.8, 0.3, 1),
+    border-radius 220ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  overflow: hidden;
+}
+
+.island.expanded {
+  width: 320px;
+  height: 84px;
+  padding: 0 18px 0 10px;
+  border-radius: 0 0 26px 26px;
+}
+
+.island-mascot {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 34px;
+  transition:
+    width 220ms ease,
+    height 220ms ease;
+}
+
+.island.expanded .island-mascot {
+  width: 60px;
+  height: 72px;
+}
+
+/* O mascote de sempre, só que pequeno: só se mostra (o clique é da cápsula). */
+.island-scale {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 128px;
+  height: 128px;
+  transform: translate(-50%, -52%) scale(0.3);
+  transition: transform 220ms ease;
+}
+
+.island.expanded .island-scale {
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.island .stage {
+  pointer-events: none;
+}
+
+.island-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.island-text strong,
+.island-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.island-text span {
+  display: none;
+  color: #9ec9d3;
+  font-size: 12px;
+}
+
+.island.expanded .island-text strong {
+  font-size: 14.5px;
+}
+
+.island.expanded .island-text span {
+  display: block;
+}
+
+/* O tom da linha: ocupado (um brilho correndo), pedindo atenção (pulsa), feliz. */
+.island.tone-busy .island-text strong {
+  color: #a5f3fc;
+}
+
+.island.tone-happy .island-text strong {
+  color: #5eead4;
+}
+
+.island.tone-alert {
+  animation: island-pulse 1.6s ease-in-out infinite;
+}
+
+.island.tone-alert .island-text strong {
+  color: #fcd34d;
+}
+
+@keyframes island-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 -1px 0 rgb(252 211 77 / 0.35),
+      0 0 0 0 rgb(252 211 77 / 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 -1px 0 rgb(252 211 77 / 0.6),
+      0 2px 14px 0 rgb(252 211 77 / 0.35);
+  }
+}
+
+:root.reduce-motion {
+  .island,
+  .island-mascot,
+  .island-scale {
+    transition: none;
+  }
+
+  .island.tone-alert {
+    animation: none;
+  }
+}

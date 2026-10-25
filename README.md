@@ -141,7 +141,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
-  agendadas) e 27 (emoções e danças do mascote):** prontas, esperando a validação com o uso.
+  agendadas), 27 (emoções e danças do mascote) e 28 (manutenção e CI):** prontas, esperando a
+  validação com o uso.
 
 ## Requisitos
 
@@ -882,8 +883,9 @@ E reage a quem mexe com ele:
 | Lembrete      | Chegou a hora de um lembrete                  | LED âmbar, um sininho tocando ao lado e um chacoalhão de alarme  |
 | Dança         | Um player de música está tocando              | Dança no ritmo (a escolhida nas configurações), com notas        |
 
-As cores ficam em variáveis no topo de `mascot.css`, então cada estado só precisa trocá-las. O
-desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação do momento.
+As cores ficam em variáveis no topo de `src/renderer/mascot/styles/body.css`, então cada estado só
+precisa trocá-las. O desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação
+do momento.
 
 **Emoções e danças.** As ações do [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase)
 (o kit de animação do Clawd, de John Heibel, licença MIT) valem para os dois avatares. São **31
@@ -927,7 +929,7 @@ a ilha e o avatar do painel acompanham. A troca vale na hora e também fica em *
 Mascote e sons**.
 
 Para criar outro avatar: o corpo vai em `src/renderer/mascot/Bodies.tsx` (no mesmo espaço de
-128 × 128, com os olhos no lugar dos do robô), as cores de repouso em `avatars.css`, num
+128 × 128, com os olhos no lugar dos do robô), as cores de repouso em `styles/avatars.css`, num
 `:where(.avatar-nome)` (para os estados continuarem pintando por cima), e o nome em
 `src/shared/avatars.ts`.
 
@@ -1353,25 +1355,26 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
 
 ### Scripts
 
-| Comando                     | O que faz                                                            |
-| --------------------------- | -------------------------------------------------------------------- |
-| `npm run dev`               | Abre o app com recarga automática                                    |
-| `npm start`                 | Monta a versão de produção e abre                                    |
-| `npm run build`             | Confere os tipos e monta em `out/`                                   |
-| `npm run typecheck`         | Confere os tipos do main/preload e da página                         |
-| `npm run lint`              | ESLint                                                               |
-| `npm run format`            | Prettier                                                             |
-| `npm test`                  | Testes de unidade (`test/`, com `node --test`)                       |
-| `e2e/run.sh`                | Testes de ponta a ponta (`e2e/`), num X virtual e num D-Bus só deles |
-| `npm run dist`              | Pacotes .deb e AppImage em `dist/`                                   |
-| `npm run dist:deb`          | Só o .deb                                                            |
-| `npm run dist:appimage`     | Só o AppImage                                                        |
-| `npm run setup:apparmor`    | Libera o sandbox do Electron no Ubuntu 24.04+                        |
-| `npm run icons`             | Gera os ícones de `build/icons` a partir do `resources/icon.svg`     |
-| `scripts/smoke-packages.sh` | Confere os pacotes de `dist/` e abre o AppImage de verdade           |
-| `scripts/package-arm64.sh`  | Monta o .deb e o AppImage para ARM64 num x86-64                      |
-| `scripts/smoke-arm64.sh`    | Confere a arquitetura e o conteúdo dos pacotes ARM64                 |
-| `scripts/smoke-flatpak.sh`  | Confere o Flatpak instalado e o abre de verdade                      |
+| Comando                       | O que faz                                                            |
+| ----------------------------- | -------------------------------------------------------------------- |
+| `npm run dev`                 | Abre o app com recarga automática                                    |
+| `npm start`                   | Monta a versão de produção e abre                                    |
+| `npm run build`               | Confere os tipos e monta em `out/`                                   |
+| `npm run typecheck`           | Confere os tipos do main/preload e da página                         |
+| `npm run lint`                | ESLint                                                               |
+| `npm run format`              | Prettier                                                             |
+| `npm test`                    | Testes de unidade (`test/`, com `node --test`)                       |
+| `e2e/run.sh`                  | Testes de ponta a ponta (`e2e/`), num X virtual e num D-Bus só deles |
+| `npm run dist`                | Pacotes .deb e AppImage em `dist/`                                   |
+| `npm run dist:deb`            | Só o .deb                                                            |
+| `npm run dist:appimage`       | Só o AppImage                                                        |
+| `npm run setup:apparmor`      | Libera o sandbox do Electron no Ubuntu 24.04+                        |
+| `npm run icons`               | Gera os ícones de `build/icons` a partir do `resources/icon.svg`     |
+| `scripts/smoke-packages.sh`   | Confere os pacotes de `dist/` e abre o AppImage de verdade           |
+| `scripts/package-arm64.sh`    | Monta o .deb e o AppImage para ARM64 num x86-64                      |
+| `scripts/smoke-arm64.sh`      | Confere a arquitetura e o conteúdo dos pacotes ARM64                 |
+| `scripts/smoke-flatpak.sh`    | Confere o Flatpak instalado e o abre de verdade                      |
+| `node scripts/deps-check.mjs` | O que pede atualização: `npm audit`, o Electron e o Claude Code      |
 
 ### Testes
 
@@ -1388,7 +1391,13 @@ Argumentos depois de `--` em `npm run dev -- ...` vão direto para o Electron.
   [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **CI:** a cada push, o GitHub Actions confere tipos, lint e formatação, roda os testes de unidade e
   os de ponta a ponta e monta os pacotes no Ubuntu 22.04, conferindo o .deb e abrindo o AppImage;
-  monta os de ARM64 e confere a arquitetura; e monta, instala e abre o Flatpak.
+  monta os de ARM64 e confere a arquitetura; e monta, instala e abre o Flatpak. O job
+  **Dependências** avisa (sem derrubar o CI) quando o `npm audit`, o Electron ou o Claude Code
+  pedem atualização. Os pacotes do apt passam pelo `scripts/ci-apt.sh` (cache, tentativas e um
+  limite de tempo), e todo job tem o seu limite.
+- **Tamanho dos arquivos:** nenhum arquivo do `src/` passa de 1.000 linhas (menos o dicionário em
+  inglês); o `test/manutencao.test.ts` confere. Um arquivo que cresce demais vira módulos por
+  assunto, e o CSS, folhas em `styles/`, ligadas na ordem pelo `chat.css` e pelo `mascot.css`.
 
 ### Contribuindo
 

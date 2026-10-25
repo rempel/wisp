@@ -38,6 +38,13 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
+- Manutenção (Fase 28): o código ficou em módulos menores (nenhum arquivo do `src/` passa de 1.000
+  linhas, menos o dicionário em inglês), sem mudar o que o app faz; o CSS do painel e o do mascote
+  viraram folhas por assunto em `styles/`.
+- O CI ganhou o job **Dependências**, que avisa quando o `npm audit`, o Electron ou o Claude Code
+  pedem atualização (sem derrubar o CI).
+- Dependências atualizadas pelo `npm audit fix`: o Electron 44.9.3 (era o 44.7.0) e, no servidor
+  MCP e no build, body-parser, fast-uri, ip-address, qs, undici e zod.
 - O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks` e
   `dance` (a dança de quando toca música).
 - O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
@@ -50,6 +57,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   apareciam: agora vão direto pelo D-Bus.
 - O aviso de tela bloqueada não espera mais o barramento do sistema responder.
 - O CI monta e confere os pacotes ARM64 e o Flatpak.
+- O CI não cai mais por um espelho do apt lento: os pacotes ficam em cache, cada `apt-get` tem
+  tentativas e um limite de tempo, e todo job tem o seu limite.
 
 ## 0.1.0
 

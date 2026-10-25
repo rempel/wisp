@@ -1,31 +1,11 @@
 // O idioma antes de tudo: os textos guardados em constantes já saem nele (Fase 25).
 import './locale-init'
-import {
-  app,
-  ipcMain,
-  nativeTheme,
-  Notification,
-  powerMonitor,
-  screen,
-  session,
-  shell
-} from 'electron'
+import { app, ipcMain, nativeTheme, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
-import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { accessoryFor, msUntilMidnight } from './accessory'
-import {
-  ActivityLog,
-  describeWeek,
-  formatMinutes,
-  isEmpty,
-  nextWeek,
-  plural,
-  summarize,
-  weekStart
-} from './activity'
-import { Agenda, describeAgenda } from './agenda'
+import { setupAgenda } from './agenda-alerts'
 import { isAutostartEnabled, refreshAutostart, setAutostart } from './autostart'
 import { cleanOldAttachments } from './attachments'
 import { findBrowser, playwrightServer } from './browser'
@@ -39,10 +19,8 @@ import {
   onConfigChange,
   updateConfig
 } from './config'
-import { listApps, openApp, openInEditor } from './desktop'
-import { EdsCalendars } from './eds'
-import { describeAlert, describeSnapshot, GithubWatcher, MAX_ALERTS } from './github'
-import type { GithubAlert } from './github'
+import { openInEditor } from './desktop'
+import { setupGithub } from './github-alerts'
 import { deployRelay } from './hooks/install'
 import {
   APP_ID,
@@ -78,7 +56,6 @@ import {
   setMascotVoice,
   sendVoiceCommand,
   setCompact,
-  setIslandNote,
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
@@ -86,8 +63,10 @@ import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotion
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
 import { MascotMood } from './mood'
+import { setupNotifications } from './notify'
+import type { Signals } from './notify'
+import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
-import { findProgram } from './programs'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
@@ -95,9 +74,6 @@ import { ScreenLock } from './screenlock'
 import { AwayTracker } from './away'
 import { TaskScheduler } from './scheduler'
 import type { ScheduledTask } from '../shared/prompts'
-import { DBusConnection } from './dbus'
-import { DesktopApprovals, dbusNotifier, escape as escapeMarkup } from './desktop-approvals'
-import type { Notifier } from './desktop-approvals'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
 import { UpdateChecker } from './updates'
@@ -106,32 +82,21 @@ import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
 import { setupSessionsIpc } from './sessions-ipc'
 import { setupSettings } from './settings-ipc'
+import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
 import { Voice } from './voice'
-import { matchApp } from './voice-commands'
-import type { QuickCommand } from './voice-commands'
-import { stepSystemVolume } from './volume'
+import { voiceQuick } from './voice-quick'
+import { setupWeekly } from './weekly'
 import { transcribe, whisperSetup } from './whisper'
-import { checkKey, listModels, looksLikeKey, OPENROUTER_SECRET } from './openrouter'
-import { pickFolder } from './pick'
-import { deleteSecret, hasSecret, storeSecret } from './secrets'
-import { claudeConfigDir, inspectSkill, installSkill, listSkills, SKILL_NAME } from './skills'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type {
-  NoticeLevel,
-  OpenRouterKeyResult,
-  SkillInfo,
-  SkillResult,
-  TaskResult,
-  VoiceTestResult
-} from '../shared/ipc'
+import type { TaskResult, VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
-import { t, dateLocale } from '../shared/i18n'
+import { t } from '../shared/i18n'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -213,49 +178,24 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let media: Media | null = null
   let music = false
 
-  // O servidor de notificações pelo D-Bus (Fase 24): os cards, e as outras quando falta a libnotify.
-  let notifier: Notifier | null = null
-  /** O clique de cada notificação simples que foi pelo D-Bus. */
-  const notifyClicks = new Map<number, () => void>()
-  /** Uma notificação do sistema; `onClick`, quando o desktop repassa o clique. */
-  const notify = (title: string, body: string, onClick?: () => void): void => {
-    if (Notification.isSupported()) {
-      const notification = new Notification({ title, body, icon: appIcon })
-      if (onClick) notification.on('click', onClick)
-      notification.show()
-      return
-    }
-    // Sem a libnotify, o Electron não mostra nada: ela vai direto pelo D-Bus, como os cards.
-    notifier
-      ?.show({
-        summary: title,
-        body: escapeMarkup(body),
-        actions: onClick ? ['default', t('Abrir')] : [],
-        expires: -1
-      })
-      .then((id) => {
-        if (onClick) notifyClicks.set(id, onClick)
-      })
-      .catch((err: Error) => console.warn(`[wisp] notificação: ${err.message}`))
+  // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
+  // configuração do servidor; os pedidos só chegam depois que os dois existem.
+  let chat: Chat | null = null
+  let phone: Phone | null = null
+
+  // As notificações do sistema e os cards que viram notificação (notify.ts).
+  const { notify, approvals: desktopApprovals } = setupNotifications(() => chat)
+  /** Como os avisos chegam até você: o mascote e os sons vêm mais abaixo. */
+  const signals: Signals = {
+    notify,
+    activity: () => presence.activity(),
+    flash: (state) => mood.flashExternal(state),
+    sound: (name) => sounds.play(name)
   }
 
   // O registro da semana (só contagens e nomes, nada do conteúdo), para o resumo de segunda.
-  const activity = new ActivityLog(join(DATA_DIR, 'atividade.jsonl'), {
-    enabled: () => getConfig().weeklySummary
-  })
-  activity.prune()
-  const summaries = (): {
-    current: ReturnType<typeof summarize>
-    previous: ReturnType<typeof summarize>
-  } => {
-    const start = weekStart(Date.now())
-    const before = weekStart(start - 1)
-    const entries = activity.entries(before, nextWeek(start))
-    return {
-      current: summarize(entries, start, nextWeek(start)),
-      previous: summarize(entries, before, start)
-    }
-  }
+  const weekly = setupWeekly(notify, () => chat)
+  const { activity } = weekly
 
   // Os lembretes ficam num arquivo e avisam na hora, mesmo com o app reaberto no meio. A
   // notificação, o som e o sininho do mascote saem juntos; clicar na notificação abre o painel.
@@ -281,167 +221,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       )
   })
 
-  // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
-  // configuração do servidor; os pedidos só chegam depois que os dois existem.
-  let chat: Chat | null = null
-  let phone: Phone | null = null
-
-  // Responder pela notificação do sistema (Fase 24): o card que espera com o painel escondido
-  // vira uma notificação com Permitir e Negar, pela org.freedesktop.Notifications.
-  const desktopApprovals = new DesktopApprovals({
-    enabled: () => getConfig().notifyApprovals,
-    // Ninguém olhando o painel: escondido, ou aberto sem o foco (o card o faz aparecer assim).
-    hidden: () => !(chat?.attended() ?? false),
-    notifier: () => notifier,
-    answer: (id, decision) => chat?.answerRemote(id, decision, 'notification') ?? false,
-    open: () => chat?.open(),
-    log: (message) => console.warn(`[wisp] notificação: ${message}`)
-  })
-  void DBusConnection.session()
-    .then(async (bus) => {
-      if (!bus) return
-      notifier = await dbusNotifier(
-        bus,
-        (id, key) => {
-          const click = notifyClicks.get(id)
-          if (!click) return desktopApprovals.action(id, key)
-          if (key !== 'default') return
-          notifyClicks.delete(id)
-          click()
-        },
-        (id) => {
-          notifyClicks.delete(id)
-          desktopApprovals.closed(id)
-        }
-      )
-    })
-    .catch((err: Error) => console.warn(`[wisp] notificação: sem o D-Bus (${err.message})`))
-  onConfigChange((config) => {
-    if (!config.notifyApprovals) desktopApprovals.reset()
-  })
   // Enquanto você estava fora (Fase 24): o que aconteceu com a tela bloqueada, ao desbloquear.
   const away = new AwayTracker()
-
-  // Os alertas do GitHub (opcional), pelo gh já logado: CI e revisões dos seus PRs, e pedidos de
-  // revisão. O clique na notificação abre o PR no navegador.
-  const github = new GithubWatcher({
-    gh: () =>
-      findProgram('gh', ['gh'], ['/usr/local/bin', '/snap/bin', '/home/linuxbrew/.linuxbrew/bin']),
-    onAlerts: (alerts) => githubAlerts(alerts),
-    onProblem: (problem) => {
-      if (!problem) return chat?.notice('info', t('Os alertas do GitHub voltaram a funcionar.'))
-      chat?.notice(
-        'warning',
-        problem.kind === 'missing'
-          ? t(
-              'Para os alertas do GitHub, instale o **gh** (GitHub CLI) e rode `gh auth login` no '
-            ) + t('terminal. O Wisp pergunta de novo de tempos em tempos.')
-          : t('O **gh** não está logado no GitHub: rode `gh auth login` no terminal. O Wisp ') +
-              t('pergunta de novo de tempos em tempos.')
-      )
-    }
-  })
-  const githubAlerts = (alerts: GithubAlert[]): void => {
-    presence.activity()
-    const first = describeAlert(alerts[0])
-    islandMessage(first.title, first.body, 8000)
-    for (const alert of alerts.slice(0, MAX_ALERTS)) {
-      const { title, body, url } = describeAlert(alert)
-      notify(title, body, () => void shell.openExternal(url))
-    }
-    if (alerts.length > MAX_ALERTS) {
-      const more = alerts.length - MAX_ALERTS
-      notify(
-        'GitHub',
-        t('E mais {more} {v2} nos seus PRs.', {
-          more,
-          v2: more === 1 ? t('novidade') : t('novidades')
-        })
-      )
-    }
-    // O mascote reage ao mais importante: CI vermelho ou pedido de mudanças, aprovação ou CI
-    // verde, e o resto (pedido de revisão, comentário) com o sininho.
-    const bad = alerts.some(
-      (a) => a.kind === 'ci-failed' || (a.kind === 'review' && a.state === 'CHANGES_REQUESTED')
-    )
-    const good = alerts.some(
-      (a) => a.kind === 'ci-passed' || (a.kind === 'review' && a.state === 'APPROVED')
-    )
-    if (bad) {
-      mood.flashExternal('error')
-      sounds.play('erro')
-    } else if (good) {
-      mood.flashExternal('happy')
-      sounds.play('pronto')
-    } else {
-      reactMascot('remind')
-      sounds.play('lembrete')
-    }
-  }
-  const updateGithub = (): void => {
-    if (getConfig().github) github.start()
-    else github.stop()
-  }
-
-  // A agenda (opcional): as agendas do GNOME (EDS) e arquivos .ics. Avisa alguns minutos antes de
-  // cada compromisso, e o painel vazio mostra o próximo.
-  let eds: EdsCalendars | null = null
-  const agenda = new Agenda({
-    eds: async () => {
-      if (!eds?.alive) eds = await EdsCalendars.connect()
-      return eds
-    },
-    files: () => getConfig().calendarFiles,
-    alertMinutes: () => getConfig().calendarAlertMinutes,
-    onAlert: (event, minutes) => {
-      presence.activity()
-      reactMascot('remind')
-      sounds.play('lembrete')
-      const clock = (ms: number): string =>
-        new Date(ms).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
-      const span =
-        event.end > event.start ? `${clock(event.start)}–${clock(event.end)}` : clock(event.start)
-      islandMessage(t('Em {minutes} min', { minutes }), event.title, 8000)
-      notify(
-        t('Em {minutes} {v2}: {title}', {
-          minutes,
-          v2: minutes === 1 ? t('minuto') : t('minutos'),
-          title: event.title
-        }),
-        event.location ? `${span} · ${event.location}` : span,
-        () => chat?.open()
-      )
-    },
-    onNext: (next) => {
-      chat?.setAgenda(
-        next
-          ? { title: next.title, start: next.start, end: next.end, location: next.location }
-          : null
-      )
-      // Na ilha, o próximo compromisso fica na linha de baixo.
-      setIslandNote(
-        next
-          ? `${new Date(next.start).toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })} ${next.title}`
-          : ''
-      )
-    }
-  })
-  let agendaKey = ''
-  const updateAgenda = (): void => {
-    const { calendar, calendarFiles, calendarAlertMinutes } = getConfig()
-    const key = JSON.stringify([calendar, calendarFiles, calendarAlertMinutes])
-    if (key === agendaKey) return
-    agendaKey = key
-    if (!calendar) {
-      agenda.stop()
-      eds?.close()
-      eds = null
-    } else if (agenda.enabled) {
-      void agenda.refresh()
-    } else {
-      agenda.start()
-    }
-  }
+  // Os alertas do GitHub e a agenda (opcionais).
+  const github = setupGithub(signals, () => chat)
+  const calendar = setupAgenda(signals, () => chat)
 
   let desktop: DesktopServer | null = null
   try {
@@ -455,57 +239,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       editorCommand: () => getConfig().editorCommand,
       terminalCommand: () => getConfig().terminalCommand,
       reminders,
-      github: async () => {
-        if (!getConfig().github) {
-          return (
-            t('Os alertas do GitHub estão desligados. Dá para ligar em Configurações → ') +
-            t('Integrações (precisa do gh, o GitHub CLI, logado).')
-          )
-        }
-        // Uma leitura com mais de um minuto é refeita na hora.
-        const last = github.snapshot()
-        if (!last || Date.now() - last.at > 60_000) await github.poll()
-        const problem = github.currentProblem()
-        if (problem === 'missing') return t('O gh (GitHub CLI) não está instalado.')
-        if (problem === 'login') return t('O gh não está logado: falta rodar `gh auth login`.')
-        const snapshot = github.snapshot()
-        return snapshot ? describeSnapshot(snapshot) : t('Não consegui ler o GitHub agora.')
-      },
-      weekly: (which) => {
-        if (!getConfig().weeklySummary) {
-          return t('O resumo da semana está desligado (Configurações → Integrações).')
-        }
-        const { current, previous } = summaries()
-        if (which === 'anterior') {
-          const start = previous.from
-          const older = summarize(
-            activity.entries(weekStart(start - 1), start),
-            weekStart(start - 1),
-            start
-          )
-          return describeWeek(previous, older)
-        }
-        return `${describeWeek(current, previous)}\n(Semana em andamento; a anterior teve ${previous.conversations} conversas.)`
-      },
-      agenda: async (days, from) => {
-        if (!getConfig().calendar) {
-          return (
-            t('A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ') +
-            t('agendas do GNOME e arquivos .ics).')
-          )
-        }
-        const today = new Date()
-        let start = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime()
-        if (from) {
-          const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(from.trim())
-          if (!match) return t('Use a data no formato AAAA-MM-DD.')
-          start = new Date(+match[1], +match[2] - 1, +match[3]).getTime()
-        }
-        const end = new Date(start + days * 86_400_000 + 3_600_000).setHours(0, 0, 0, 0)
-        const list = await agenda.between(start, end)
-        const text = describeAgenda(list, start, end)
-        return agenda.problems.length ? `${text}\nAvisos: ${agenda.problems.join(' ')}` : text
-      },
+      github: github.describe,
+      weekly: weekly.describe,
+      agenda: calendar.describe,
       media: () => media,
       express: ({ emotion, dance, seconds }) => {
         presence.activity()
@@ -624,71 +360,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       language: config.voiceLanguage
     }
   }
-  /** Um aviso da voz: no painel e, com ele escondido, numa notificação (menos os informativos). */
-  const voiceNotice = (level: NoticeLevel, text: string): void => {
-    chat?.notice(level, text)
-    if (level !== 'info' && !chat?.visible()) notify('Wisp', text.replace(/\*\*|`/g, ''))
-  }
-  /** Um comando rápido de voz, feito aqui mesmo; false se é para o Claude. */
-  const runQuick = async (command: QuickCommand, text: string): Promise<boolean> => {
-    if (!chat) return false
-    try {
-      return await quick(command, text)
-    } catch (err) {
-      chat.utterance(text)
-      voiceNotice('warning', t('Não consegui: {message}.', { message: (err as Error).message }))
-      return true
-    }
-  }
-  const quick = async (command: QuickCommand, text: string): Promise<boolean> => {
-    if (!chat) return false
-    const done = (ok: boolean, message: string): true => {
-      chat?.utterance(text)
-      if (ok) {
-        chat?.notice('info', message)
-        mood.flashExternal('happy')
-      } else {
-        voiceNotice('warning', message)
-      }
-      return true
-    }
-    switch (command.kind) {
-      case 'media': {
-        if (!media || !(await media.players()).length) {
-          return done(false, t('Nenhum player de música aberto.'))
-        }
-        return done(true, (await media.control(command.action)) || t('Feito.'))
-      }
-      case 'volume': {
-        const level = await stepSystemVolume(command.direction)
-        if (level !== null) return done(true, t('Volume do sistema em {level}%.', { level }))
-        if (media && (await media.players()).length) {
-          return done(true, await media.volume(undefined, command.direction * 10))
-        }
-        return done(false, t('Não consegui mudar o volume: não achei o wpctl nem o pactl.'))
-      }
-      case 'open': {
-        // Um nome que não é de um app instalado vai para o Claude, que sabe procurar melhor.
-        const found = matchApp(command.name, listApps())
-        if (!found) return false
-        chat.utterance(text)
-        // O mesmo card do open_app do Claude: nada abre sem um clique (a não ser que o open_app
-        // esteja em extraAllowedTools, como para o Claude).
-        const allowed = getConfig().extraAllowedTools.includes('mcp__desktop__open_app')
-        const approval = allowed
-          ? { allow: true }
-          : await chat.requestApproval({
-              toolName: 'mcp__desktop__open_app',
-              input: { id: found.id }
-            })
-        if (!approval.allow) return true
-        const outcome = await openApp(found.id)
-        chat.notice(outcome.ok ? 'info' : 'warning', outcome.message)
-        if (outcome.ok) mood.flashExternal('happy')
-        return true
-      }
-    }
-  }
+  const quick = voiceQuick({
+    chat: () => chat,
+    media: () => media,
+    notify,
+    happy: () => mood.flashExternal('happy')
+  })
   voice = new Voice({
     command: sendVoiceCommand,
     status: (status) => {
@@ -712,7 +389,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     pendingApprovals: () => chat?.pendingApprovals() ?? 0,
     denyApprovals: () => chat?.denyApprovals(),
     quickCommands: () => getConfig().quickCommands,
-    runQuick,
+    runQuick: quick.run,
     deliver: (text, source) => {
       if (!chat) return null
       // Pelo botão do painel (ou com voiceReview), o texto fica na caixa para revisar.
@@ -722,7 +399,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       }
       return chat.ask(text, { voice: true })
     },
-    notice: voiceNotice,
+    notice: quick.notice,
     activity: () => presence.activity(),
     replies: () => getConfig().voiceReplies,
     synthesize: (text) =>
@@ -775,8 +452,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sounds.check()
     updateBrowser()
     setCompact(getConfig().compact)
-    updateGithub()
-    updateAgenda()
+    github.update()
+    calendar.update()
   })
 
   // O navegador do Claude (opcional): o servidor do Playwright entra no --mcp-config e vale a
@@ -875,12 +552,6 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       })
     }
   })
-  // A tela de configurações do painel (e a pílula do modo demonstração).
-  // A chave da OpenRouter fica no chaveiro do sistema; aqui, só se ela existe (sem destrancar).
-  // O chaveiro só é consultado quando a tela de configurações abre: quem não usa a OpenRouter
-  // não tem por que acordá-lo.
-  let openrouterKey: boolean | null = null
-  let openrouterKeyAsked = false
   // As tarefas agendadas (Fase 26): cada uma numa aba nova, no modo Pedir; o card dela espera você
   // (ou vai para o celular e para a notificação, como qualquer card).
   const runTask = (task: ScheduledTask, late: boolean): TaskResult => {
@@ -906,6 +577,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     file: join(DATA_DIR, 'tarefas.json')
   })
   onConfigChange(() => scheduler.refresh())
+  // A OpenRouter e as skills nas configurações.
+  const openrouter = setupOpenRouterIpc({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    keyChanged: () => chat?.openrouterKeyChanged(),
+    refresh: () => settings.notify()
+  })
+  setupSkillsIpc((sender) => chat?.isSender(sender) ?? false)
+  // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
     // No Flatpak, pelo comando de dentro dele (o zypak); no AppImage, pelo arquivo .AppImage.
@@ -922,13 +601,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       set: (enabled) => setAutostart(enabled, entryIcon)
     },
     onChange: () => menu?.refresh(),
-    openrouterKey: () => {
-      if (!openrouterKeyAsked) {
-        openrouterKeyAsked = true
-        void refreshOpenRouterKey()
-      }
-      return openrouterKey
-    },
+    openrouterKey: () => openrouter.hasKey(),
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
     runTask: async (id) => {
@@ -977,121 +650,6 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
   phone.approvals.setLocked(screenLock.locked)
-  const refreshOpenRouterKey = async (): Promise<void> => {
-    try {
-      openrouterKey = await hasSecret(OPENROUTER_SECRET)
-    } catch {
-      openrouterKey = null
-    }
-    settings.notify()
-  }
-  ipcMain.handle(IPC.openrouterModels, async (event) => {
-    if (!chat?.isSender(event.sender)) return { error: 'pedido inválido' }
-    try {
-      return (await listModels()).map(({ id, name, prompt, completion, context }) => ({
-        id,
-        name,
-        prompt,
-        completion,
-        context
-      }))
-    } catch (err) {
-      return { error: `Não consegui buscar os modelos da OpenRouter (${(err as Error).message}).` }
-    }
-  })
-  ipcMain.handle(
-    IPC.openrouterSetKey,
-    async (event, key: unknown): Promise<OpenRouterKeyResult> => {
-      if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
-      const value = typeof key === 'string' ? key.trim() : ''
-      if (!looksLikeKey(value)) {
-        return {
-          ok: false,
-          message: 'Isso não parece uma chave da OpenRouter (elas começam com sk-or-).'
-        }
-      }
-      const checked = await checkKey(value)
-      // Sem rede, a chave é guardada mesmo assim; recusada pela OpenRouter, não.
-      const offline = !checked.ok && checked.message.startsWith('Não consegui falar')
-      if (!checked.ok && !offline) return checked
-      try {
-        await storeSecret(OPENROUTER_SECRET, 'Wisp: chave da OpenRouter', value)
-      } catch (err) {
-        return { ok: false, message: (err as Error).message }
-      }
-      openrouterKey = true
-      chat?.openrouterKeyChanged()
-      settings.notify()
-      return checked.ok
-        ? { ok: true, label: checked.label }
-        : { ok: true, label: null, note: 'Guardada, mas não deu para conferir agora (sem rede).' }
-    }
-  )
-  // As skills (Fase 15): listar, instalar de uma pasta (escolhida no diálogo do sistema, com uma
-  // prévia antes de copiar) e mandar para a lixeira.
-  let pickedSkill: string | null = null
-  ipcMain.handle(IPC.skillsList, (event): SkillInfo[] =>
-    chat?.isSender(event.sender) ? listSkills() : []
-  )
-  ipcMain.handle(IPC.skillsPick, async (event) => {
-    if (!chat?.isSender(event.sender)) return null
-    pickedSkill = null
-    const dir = await pickFolder('Escolha a pasta da skill (a que tem o SKILL.md)', undefined, null)
-    if (!dir) return null
-    try {
-      const preview = inspectSkill(dir)
-      pickedSkill = dir
-      return preview
-    } catch (err) {
-      return { error: (err as Error).message }
-    }
-  })
-  ipcMain.handle(IPC.skillsInstall, (event): SkillResult => {
-    if (!chat?.isSender(event.sender) || !pickedSkill) {
-      return { ok: false, message: 'Escolha a pasta da skill antes.' }
-    }
-    const dir = pickedSkill
-    pickedSkill = null
-    try {
-      installSkill(dir)
-    } catch (err) {
-      return { ok: false, message: (err as Error).message }
-    }
-    return { ok: true, message: 'Instalada. Ela vale nas conversas novas (Ctrl+K).' }
-  })
-  ipcMain.handle(IPC.skillsRemove, async (event, name: unknown): Promise<SkillResult> => {
-    if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
-    // Só as pessoais, pelo nome: os plugins se removem pelo /plugin do Claude Code.
-    if (typeof name !== 'string' || !SKILL_NAME.test(name)) {
-      return { ok: false, message: 'Nome de skill inválido.' }
-    }
-    const skill = listSkills().find((item) => item.origin === 'personal' && item.name === name)
-    if (!skill) return { ok: false, message: 'Essa skill não está nas suas skills pessoais.' }
-    try {
-      await shell.trashItem(skill.path)
-    } catch (err) {
-      return { ok: false, message: `Não consegui mandar para a lixeira: ${(err as Error).message}` }
-    }
-    return { ok: true, message: `"${name}" foi para a lixeira.` }
-  })
-  ipcMain.on(IPC.skillsOpenFolder, (event) => {
-    if (!chat?.isSender(event.sender)) return
-    const dir = join(claudeConfigDir(), 'skills')
-    mkdirSync(dir, { recursive: true })
-    void shell.openPath(dir)
-  })
-  ipcMain.handle(IPC.openrouterClearKey, async (event): Promise<OpenRouterKeyResult> => {
-    if (!chat?.isSender(event.sender)) return { ok: false, message: 'pedido inválido' }
-    try {
-      await deleteSecret(OPENROUTER_SECRET)
-    } catch (err) {
-      return { ok: false, message: (err as Error).message }
-    }
-    openrouterKey = false
-    chat?.openrouterKeyChanged()
-    settings.notify()
-    return { ok: true, label: null }
-  })
 
   menu = setupTray({
     mascotVisible: isMascotVisible,
@@ -1177,53 +735,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   powerMonitor.on('resume', () => {
     reminders.resume()
     scheduler.resume()
-    github.refreshSoon()
-    if (agenda.enabled) void agenda.refresh()
+    github.watcher.refreshSoon()
+    if (calendar.agenda.enabled) void calendar.agenda.refresh()
   })
-  updateGithub()
-  updateAgenda()
-
-  // Na segunda (a partir das 9h, ou na primeira vez que o Wisp abre depois disso), o resumo da
-  // semana que passou, uma vez só. O clique abre o painel com ele.
-  const seenPath = join(DATA_DIR, 'resumo.json')
-  const checkWeekly = (): void => {
-    if (!getConfig().weeklySummary) return
-    const now = Date.now()
-    const start = weekStart(now)
-    if (now < start + 9 * 3_600_000) return
-    let seen = 0
-    try {
-      seen = (JSON.parse(readFileSync(seenPath, 'utf8')) as { semana?: number }).semana ?? 0
-    } catch {
-      // Nunca mostrou.
-    }
-    if (seen >= start) return
-    try {
-      writeFileSync(seenPath, JSON.stringify({ semana: start }), { mode: 0o600 })
-    } catch {
-      return
-    }
-    const { previous } = summaries()
-    if (isEmpty(previous)) return
-    notify(
-      t('O resumo da sua semana'),
-      t('{v1}, o Claude trabalhou ', {
-        v1: plural(previous.conversations, t('conversa'), t('conversas'))
-      }) +
-        `${formatMinutes(previous.claudeMinutes)}, ` +
-        t('+{added} −{removed} linhas editadas.', {
-          added: previous.added,
-          removed: previous.removed
-        }),
-      () => chat?.openSummary()
-    )
-  }
-  setTimeout(checkWeekly, 10_000)
-  setInterval(checkWeekly, 3_600_000).unref()
-  ipcMain.handle(IPC.summaryGet, (event) => {
-    if (!chat?.isSender(event.sender)) return null
-    return { enabled: getConfig().weeklySummary, ...summaries() }
-  })
+  github.update()
+  calendar.update()
 
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.

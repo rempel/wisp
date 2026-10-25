@@ -9,10 +9,19 @@ fase trouxe, no [ROADMAP](../ROADMAP.md).
 ```text
 src/
 ├─ main/
-│  ├─ index.ts       # ciclo de vida do app, instância única e os pedidos do comando `wisp`
+│  ├─ index.ts       # ciclo de vida do app, instância única, os pedidos do comando `wisp` e a
+│  │                 # ligação de cada recurso (o mascote, o chat, a voz, os atalhos...)
+│  ├─ notify.ts      # as notificações do sistema (Electron ou, sem a libnotify, o D-Bus)
+│  ├─ weekly.ts      # o resumo da semana: o registro, a ferramenta, o aviso de segunda
+│  ├─ github-alerts.ts # os alertas do GitHub: notificações, ilha, mascote e a ferramenta
+│  ├─ agenda-alerts.ts # a agenda: o aviso antes, o próximo compromisso e a ferramenta
+│  ├─ openrouter-ipc.ts # a OpenRouter nas configurações: os modelos e a chave no chaveiro
+│  ├─ skills-ipc.ts  # as skills nas configurações: listar, instalar, mandar para a lixeira
+│  ├─ voice-quick.ts # os comandos rápidos de voz (música, volume, abrir um app)
 │  ├─ launcher.ts    # o comando ~/.local/share/wisp/bin/wisp e a entrada no menu de apps
 │  ├─ autostart.ts   # Iniciar com o sistema (~/.config/autostart)
 │  ├─ dbus.ts        # cliente D-Bus em Node puro (chamadas, sinais, objetos exportados)
+│  ├─ dbus-wire.ts   # o formato das mensagens do D-Bus: tipos, assinaturas, leitura e escrita
 │  ├─ portal.ts      # pedidos aos portais do desktop (xdg-desktop-portal)
 │  ├─ shortcut.ts    # atalho global: Electron no X11, portal GlobalShortcuts no Wayland
 │  ├─ reminders.ts   # lembretes: arquivo, horários e o temporizador
@@ -38,11 +47,20 @@ src/
 │  ├─ sounds.ts      # quem decide os sons, e a pasta de sons do usuário
 │  ├─ accessory.ts   # acessório do dia (gorro, óculos)
 │  ├─ tray.ts        # menu da bandeja (o mesmo do botão direito no mascote)
-│  ├─ chat.ts        # janela do chat, abas e painéis, workspace e o IPC das conversas
+│  ├─ chat.ts        # janela do chat e o IPC das conversas
+│  ├─ chat-tabs.ts   # as abas e os painéis da grade: abrir, fechar, dividir, guardar e reabrir
+│  ├─ chat-window.ts # onde a janela aparece (ao lado do mascote ou onde você a deixou)
+│  ├─ chat-conversation.ts # o workspace e como nasce cada conversa (o processo dela)
+│  ├─ chat-library.ts # o histórico, exportar, abrir uma pasta e expandir um prompt salvo
+│  ├─ chat-types.ts  # o que o chat oferece ao resto do main
 │  ├─ conversation.ts # uma conversa (aba): processo, histórico, cards, "sempre" e modo
 │  ├─ permission-scope.ts # até onde vai o "Permitir sempre" e o que o Aceitar edições libera
-│  ├─ claude.ts      # processo `claude -p`, leitura do stream-json e pedidos de controle; como
-│  │                 # subir o Claude Code interativo do modo terminal
+│  ├─ claude.ts      # processo `claude -p`: mandar, parar, retomar e os pedidos de controle
+│  ├─ claude-stream.ts # a leitura do stream-json, evento por evento
+│  ├─ claude-state.ts # o estado de uma sessão: modo, modelo, contexto, custo e a fila
+│  ├─ claude-settings.ts # as ferramentas seguras, o hook do Bash e como subir o Claude Code
+│  │                 # interativo do modo terminal
+│  ├─ claude-cli.ts  # achar o `claude`, o ambiente dele (sem a chave da API) e o login
 │  ├─ tui.ts         # o modo terminal: o Claude Code de verdade num pseudo-terminal (node-pty)
 │  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
 │  ├─ hooks/
@@ -91,7 +109,11 @@ src/
 │  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
 ├─ preload/          # expõe window.wisp (só funções específicas)
 ├─ shared/
-│  ├─ ipc.ts         # canais de IPC, eventos da conversa e o tipo da API
+│  ├─ ipc.ts         # canais de IPC e o tipo da API do preload
+│  ├─ ipc-chat.ts    # a conversa: eventos, anexos, permissões, modelos, abas e a janela
+│  ├─ ipc-mascot.ts  # o mascote e a voz: estado, ilha, sons, captura do microfone
+│  ├─ ipc-sessions.ts # as sessões do terminal e os hooks
+│  ├─ ipc-settings.ts # as configurações, o diagnóstico, o celular, as skills e a agenda
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
@@ -103,18 +125,21 @@ src/
 │  ├─ i18n-en.ts     # o dicionário do inglês
 │  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
 └─ renderer/
-   ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
-   │                 # mascot.css (animações), avatars.css (as cores de cada avatar), face.ts
+   ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar), face.ts
    │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
-   │                 # (os sinais no ar), emotions.css (rostos, cores, corpo e danças), sounds.ts
-   │                 # (WebAudio), voice.ts e voice-worklet.ts (microfone e fala)
+   │                 # (os sinais no ar), sounds.ts (WebAudio), voice.ts e voice-worklet.ts
+   │                 # (microfone e fala); o mascot.css liga as folhas de styles/, na ordem:
+   │                 # body, states, reactions e extras (as animações), avatars (as cores de
+   │                 # cada avatar) e as emotions-* (rostos, sinais, corpo e danças)
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa,
    │                 # com a edição da última mensagem e o rascunho), FindBar.tsx (o Ctrl+F),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
    │                 # pílulas do provedor, do modelo, do modo, do contexto e do custo, o menu da
    │                 # barra, histórico, aba Sessões, configurações (com o QR code do
    │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos;
-   │                 # describe-request.tsx diz o que cada pedido quer (o card e o leitor de tela)
+   │                 # describe-request.tsx diz o que cada pedido quer (o card e o leitor de tela);
+   │                 # o chat.css liga as folhas de styles/ (base, mensagens, caixa de texto,
+   │                 # cards, telas, abas, configurações e o resto, nessa ordem)
    └─ common/        # miniaturas das imagens e appearance.ts (as classes reduce-motion e
                      # contrast no <html>), do painel e do mascote
 resources/
@@ -148,7 +173,7 @@ CONTRIBUTING.md        # o guia de contribuição
 - **Claude Code:** cada conversa é um processo `claude -p` de longa duração, com
   `--input-format stream-json --output-format stream-json --verbose --include-partial-messages`.
   As mensagens entram pelo stdin, uma linha JSON cada, e a resposta chega em eventos pelo
-  stdout. O `claude.ts` transforma esses eventos em poucos eventos de conversa (texto,
+  stdout. O `claude-stream.ts` transforma esses eventos em poucos eventos de conversa (texto,
   ferramenta, fim do turno, aviso), e o chat só conhece esses.
 - **Assinatura, não API:** o processo roda sem `ANTHROPIC_API_KEY` no ambiente. Antes de
   começar, o Wisp confere a instalação e o login com `claude auth status`. Se mesmo assim o
@@ -436,8 +461,8 @@ CONTRIBUTING.md        # o guia de contribuição
   comando ao Wisp já aberto (`--toggle`, `--show`, `--new`, `--ask`) e sai. O comando é um script
   em `~/.local/share/wisp/bin/wisp`, que chama o Electron do projeto com `--ozone-platform=x11`.
 - **D-Bus:** o `dbus.ts` fala o protocolo do D-Bus direto pelo socket do barramento de sessão
-  (autenticação EXTERNAL, serialização, sinais, objetos exportados), sem dependência nativa. É o
-  que conversa com os portais, os players de música e o KWin.
+  (autenticação EXTERNAL, sinais, objetos exportados; a serialização fica no `dbus-wire.ts`), sem
+  dependência nativa. É o que conversa com os portais, os players de música e o KWin.
 - **Atalho global:** no X11, o `globalShortcut` do Electron. No Wayland, ele só veria as teclas
   digitadas em janelas X11, então o Wisp usa o portal `GlobalShortcuts`:
   1. registra o próprio id (`io.github.rempel.Wisp`) no `org.freedesktop.host.portal.Registry`,
@@ -642,12 +667,12 @@ CONTRIBUTING.md        # o guia de contribuição
   conversa), e o stream fecha. Sem resposta em 2 minutos, o card é negado com um motivo para o
   Claude. Quando o card acaba, de qualquer jeito, sai uma mensagem de prioridade 2 com o
   desfecho, e o próximo da fila vai. O teste do pareamento é a mesma coisa, com um botão só.
-- **Editar a última mensagem:** o `claude.ts` guarda o `uuid` da última mensagem `assistant` de
-  cada turno e o manda no `turn-end` (`at`), que vai para o histórico. Para editar, o
-  `history.ts` acha o turno a desfazer (o último que começou com uma mensagem que não entrou no
-  meio de outro) e o `at` do turno anterior; o `ClaudeSession.rewind` encerra o processo e o
-  próximo sobe com `--resume <sessão> --resume-session-at <at> --fork-session`. O CLI responde
-  com o id da cópia, que o Wisp adota. O histórico ganha um evento `rewind`, e quem lê a conversa
+- **Editar a última mensagem:** o `claude-stream.ts` guarda o `uuid` da última mensagem
+  `assistant` de cada turno e o manda no `turn-end` (`at`), que vai para o histórico. Para
+  editar, o `history.ts` acha o turno a desfazer (o último que começou com uma mensagem que não
+  entrou no meio de outro) e o `at` do turno anterior; o `ClaudeSession.rewind` encerra o
+  processo e o próximo sobe com `--resume <sessão> --resume-session-at <at> --fork-session`. O
+  CLI responde com o id da cópia, que o Wisp adota. O histórico ganha um evento `rewind`, e quem lê a conversa
   (a página, a exportação) aplica as edições na ordem. O `--resume-session-at` não aparece no
   `--help` do CLI; é a opção que o SDK do Claude Code usa para o `resumeSessionAt`.
 - **Busca, rascunho e fixadas:** a busca (`FindBar.tsx`) marca os trechos com a API de destaques

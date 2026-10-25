@@ -74,6 +74,12 @@ npm run build && e2e/run.sh e2e/<o-que-voce-mexeu>.mjs
 
 A [arquitetura](docs/ARQUITETURA.md) descreve cada arquivo e cada parte.
 
+- **Arquivos de até 1.000 linhas** (o `test/manutencao.test.ts` confere; o dicionário em inglês é a
+  exceção). Um que cresce demais vira módulos por assunto, e o módulo antigo reexporta o que saiu
+  dele, para quem o importa não mudar.
+- **O CSS** de cada página fica em folhas por assunto, em `styles/`, ligadas pelo `chat.css` e pelo
+  `mascot.css` com `@import`, na ordem da cascata. Uma folha nova entra lá, no lugar certo.
+
 ## Textos e idiomas
 
 Todo texto que aparece para quem usa (na interface, num aviso, numa notificação ou num erro) passa
@@ -118,6 +124,7 @@ comentário no topo do manifesto); o CI monta, instala e abre.
 
 - Um pull request por assunto, com o que mudou e como conferir.
 - Commits com mensagens em português, dizendo o que mudou e por quê.
-- O CI precisa passar: tipos, lint, formatação, unidade, ponta a ponta e os pacotes.
+- O CI precisa passar: tipos, lint, formatação, unidade, ponta a ponta e os pacotes. O job
+  **Dependências** só avisa: o que ele aponta pode ir num pull request à parte.
 - Ao contribuir, você concorda que a sua contribuição sai sob a mesma licença do projeto, a
   [GPL-3.0 ou mais nova](LICENSE).

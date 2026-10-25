@@ -596,3 +596,21 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Menos movimento:** com **Menos movimento** ligado, uma emoção troca o rosto e a cor, mas o
       corpo e o sinal ficam parados.
 - [ ] **Parado:** depois de cochilar, a CPU do Wisp volta a quase zero (como na Fase 23).
+
+## Manutenção e CI (Fase 28)
+
+O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferenças.
+
+- [ ] **CI:** no GitHub, a aba **Actions** mostra os pushes da Fase 28 em diante todos verdes; o
+      aceite pede cinco seguidos. No job **Dependências**, o resumo traz a tabela (o Electron, o
+      Claude Code e as falhas conhecidas) e os avisos, que não deixam o job vermelho.
+- [ ] **Um uso de sempre:** abra o painel, converse, aprove um card, divida a tela, troque de aba,
+      abra as configurações (mexa no tamanho do painel, na OpenRouter e no celular, se usa),
+      exporte uma conversa e feche e abra o Wisp: tudo como antes, as abas e o lugar da janela
+      também.
+- [ ] **O mascote:** os estados, as reações (cutucar, carinho), a dança com música e a galeria das
+      emoções aparecem como antes, nos dois avatares.
+- [ ] **Avisos:** com o GitHub e a agenda ligados, os alertas e o aviso antes de um compromisso
+      chegam como notificação, com a reação do mascote; na segunda, o resumo da semana.
+- [ ] **Voz:** "pausa a música" e "abre a calculadora" (o card aparece antes de abrir) funcionam
+      sem o Claude.

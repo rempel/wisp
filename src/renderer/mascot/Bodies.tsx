@@ -5,7 +5,7 @@ import type { AvatarName } from '../../shared/avatars'
 /**
  * O corpo de cada avatar (Fase 19), no espaço de 128 × 128 do mascote. Os olhos, as bochechas,
  * a luz de cima e as reações são as mesmas camadas para todos (Mascot.tsx); as cores vêm do
- * mascot.css e do avatars.css.
+ * styles/body.css e do styles/avatars.css.
  */
 export function Body({ avatar }: { avatar: AvatarName }): JSX.Element {
   if (avatar === 'fantasma') {

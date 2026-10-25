@@ -1,0 +1,483 @@
+/* A conversa: as mensagens, o Markdown, os cards das ferramentas e os avisos. */
+
+/* ---- Mensagens -------------------------------------------------------- */
+
+.messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 14px;
+  overflow-y: auto;
+}
+
+.messages::-webkit-scrollbar {
+  width: 10px;
+}
+
+.messages::-webkit-scrollbar-thumb {
+  background: var(--scrollbar);
+  border: 3px solid var(--bg);
+  border-radius: 10px;
+}
+
+.empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.empty .hello {
+  margin-top: 12px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.empty p {
+  margin: 0;
+  max-width: 260px;
+  font-size: 13px;
+}
+
+.user-turn {
+  align-self: flex-end;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  max-width: 85%;
+}
+
+.user-turn .attachments {
+  justify-content: flex-end;
+}
+
+.msg.user {
+  padding: 8px 12px;
+  border-radius: 14px 14px 4px 14px;
+  background: var(--user-bg);
+  color: var(--user-text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.msg.user.queued {
+  opacity: 0.75;
+}
+
+/* Uma mensagem mandada com o Claude trabalhando: espera ele pegar, na próxima pausa. */
+.queue-badge {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px dashed var(--border);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.queue-badge.dropped {
+  border-style: solid;
+  border-color: var(--warning-text);
+  color: var(--warning-text);
+}
+
+.msg.assistant {
+  overflow-wrap: anywhere;
+}
+
+/* Cursor piscando no fim do texto enquanto a resposta chega. */
+.msg.assistant.streaming > :last-child::after {
+  content: '';
+  display: inline-block;
+  width: 7px;
+  height: 14px;
+  margin-left: 3px;
+  vertical-align: -2px;
+  border-radius: 1px;
+  background: var(--accent);
+  animation: caret 1s steps(1) infinite;
+}
+
+@keyframes caret {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* Conversa longa (Fase 23): o começo fica para um clique. */
+.load-earlier {
+  align-self: center;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.load-earlier:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.thinking {
+  display: flex;
+  gap: 5px;
+  padding: 6px 2px;
+}
+
+.thinking span {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: dot 1.2s ease-in-out infinite;
+}
+
+.thinking span:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.thinking span:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes dot {
+  0%,
+  60%,
+  100% {
+    opacity: 0.25;
+    transform: translateY(0);
+  }
+  30% {
+    opacity: 1;
+    transform: translateY(-3px);
+  }
+}
+
+/* ---- Markdown --------------------------------------------------------- */
+
+.msg.assistant p,
+.notice p {
+  margin: 0 0 8px;
+}
+
+.msg.assistant > :last-child,
+.notice > :last-child {
+  margin-bottom: 0;
+}
+
+.msg.assistant ul,
+.msg.assistant ol {
+  margin: 0 0 8px;
+  padding-left: 22px;
+}
+
+.msg.assistant li + li {
+  margin-top: 2px;
+}
+
+.msg.assistant h1,
+.msg.assistant h2,
+.msg.assistant h3,
+.msg.assistant h4 {
+  margin: 12px 0 6px;
+  font-size: 15px;
+  line-height: 1.3;
+}
+
+.msg.assistant blockquote {
+  margin: 0 0 8px;
+  padding-left: 10px;
+  border-left: 3px solid var(--border);
+  color: var(--muted);
+}
+
+.msg.assistant hr {
+  border: 0;
+  border-top: 1px solid var(--border);
+}
+
+.msg.assistant table {
+  display: block;
+  margin: 0 0 8px;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.msg.assistant th,
+.msg.assistant td {
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+}
+
+a {
+  color: var(--accent);
+}
+
+code {
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+:not(pre) > code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: var(--code-inline-bg);
+}
+
+.code-block {
+  margin: 4px 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--code-bg);
+}
+
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 4px 3px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.code-head button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.code-head button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.code-head svg {
+  width: 13px;
+  height: 13px;
+}
+
+.code-block pre {
+  margin: 0;
+  padding: 10px 12px;
+  overflow-x: auto;
+  line-height: 1.5;
+}
+
+/* ---- Ferramentas ------------------------------------------------------ */
+
+.tool {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.tool-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-icon {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--accent);
+}
+
+.tool-done .tool-icon {
+  color: var(--ok);
+}
+
+.tool-error .tool-icon,
+.tool-stopped .tool-icon {
+  color: var(--danger-solid);
+}
+
+.tool-name {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.tool-summary {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  color: var(--muted);
+  font-family: var(--mono);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-status {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.chevron {
+  flex: none;
+  color: var(--muted);
+  transition: transform 0.15s;
+}
+
+.chevron.open {
+  transform: rotate(90deg);
+}
+
+.tool-body {
+  padding: 6px 10px 8px;
+  border-top: 1px solid var(--border);
+}
+
+.tool-label {
+  margin: 4px 0;
+  color: var(--muted);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* O que um subagente está fazendo, passo a passo, dentro do card do Agente. */
+.subagent-steps {
+  margin: 0;
+  padding: 0 10px 8px 34px;
+  list-style: none;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.subagent-step {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 1px 0;
+}
+
+.subagent-step > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subagent-step .tool-icon {
+  width: 14px;
+  height: 14px;
+}
+
+.subagent-step.step-error {
+  color: var(--danger-text);
+}
+
+.subagent-more {
+  font-style: italic;
+}
+
+/* O que a ferramenta devolveu em imagem (um print da tela): miniaturas que abrem o card. */
+.tool-images {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 0 10px 8px;
+}
+
+.tool-body .tool-images {
+  padding: 2px 0 4px;
+}
+
+.tool-images img {
+  display: block;
+  max-width: 100%;
+  max-height: 160px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.tool-body pre {
+  max-height: 220px;
+  margin: 0 0 6px;
+  padding: 8px;
+  overflow: auto;
+  border-radius: 6px;
+  background: var(--code-bg);
+  font-family: var(--mono);
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.spinner {
+  width: 11px;
+  height: 11px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* ---- Avisos ----------------------------------------------------------- */
+
+.notice {
+  padding: 8px 12px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  font-size: 13px;
+}
+
+.notice-info {
+  padding: 2px 0;
+  color: var(--muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.notice-warning {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-text);
+}
+
+.notice-error {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.notice pre {
+  margin: 6px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

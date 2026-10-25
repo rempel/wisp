@@ -1,0 +1,572 @@
+/* As reações (cutucar, tontura, carinho, saudação, lembrete), a dança e o arquivo solto no
+   mascote. */
+
+/* ---- Reações ---------------------------------------------------------- */
+
+/* Segunda cutucada: os LEDs ficam bravos e vermelhos, ele bufa e aparece a veia de bravo. */
+.react-annoyed {
+  --led-0: #fff1f2;
+  --led-1: #fecdd3;
+  --led-2: #fb7185;
+  --led-halo: #fb7185;
+}
+
+.react-annoyed .react {
+  animation: huff 0.5s ease-out 2;
+}
+
+@keyframes huff {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.07, 0.93);
+  }
+  60% {
+    transform: translateY(-1px) scale(0.98, 1.03);
+  }
+}
+
+.anger-mark {
+  fill: none;
+  stroke: #fb7185;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+  opacity: 0;
+  transform: translate(87px, 40px);
+}
+
+.react-annoyed .anger-mark {
+  animation: anger 1.1s ease-out forwards;
+}
+
+@keyframes anger {
+  0% {
+    opacity: 0;
+    transform: translate(87px, 40px) scale(0.3);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(87px, 40px) scale(1.2);
+  }
+  30%,
+  60% {
+    transform: translate(87px, 40px) scale(0.95);
+  }
+  45% {
+    transform: translate(87px, 40px) scale(1.15);
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(87px, 40px) scale(1);
+  }
+}
+
+/* Três cutucadas: tonto. Balança, os olhos viram espirais e estrelinhas rodam na cabeça. */
+.react-dizzy .react {
+  animation: wobble 0.9s ease-in-out 3;
+}
+
+@keyframes wobble {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-2px) rotate(-7deg);
+  }
+  75% {
+    transform: translateX(2px) rotate(7deg);
+  }
+}
+
+.stage[data-eyes='swirl'] .eye-swirl .spin {
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.star {
+  position: absolute;
+  left: 64px;
+  top: 19px;
+  width: 0;
+  height: 0;
+  opacity: 0;
+}
+
+.star > svg {
+  position: absolute;
+  left: -4px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  overflow: visible;
+  fill: #fde68a;
+  filter: drop-shadow(0 0 2px rgb(253 224 71 / 0.8));
+}
+
+.react-dizzy .star {
+  opacity: 1;
+  transition: opacity 0.2s;
+  animation: star-x 0.7s var(--ease-sine) var(--d) infinite alternate;
+}
+
+.react-dizzy .star > svg {
+  animation: star-y 0.7s var(--ease-sine) calc(var(--d) - 0.35s) infinite alternate;
+}
+
+.t1 {
+  --d: 0s;
+}
+
+.t2 {
+  --d: -0.47s;
+}
+
+.t3 {
+  --d: -0.93s;
+}
+
+@keyframes star-x {
+  from {
+    transform: translateX(-17px);
+  }
+  to {
+    transform: translateX(17px);
+  }
+}
+
+@keyframes star-y {
+  from {
+    transform: translateY(-4px) scale(0.7);
+  }
+  to {
+    transform: translateY(4px) scale(1.1);
+  }
+}
+
+/* Carinho: os olhos sorriem, as bochechas acendem, ele se aconchega e solta coraçõezinhos. */
+.react-petting {
+  --led-halo: #fda4af;
+}
+
+.react-petting .react {
+  animation: nuzzle 1.6s ease-in-out infinite;
+}
+
+@keyframes nuzzle {
+  0%,
+  100% {
+    transform: rotate(-2.5deg);
+  }
+  50% {
+    transform: rotate(2.5deg) scale(1.02, 0.98);
+  }
+}
+
+.react-petting .blush {
+  opacity: 1;
+}
+
+.heart {
+  fill: #fb7185;
+  opacity: 0;
+}
+
+.h1 {
+  --hx: 55px;
+  --hdx: -7px;
+}
+
+.h2 {
+  --hx: 72px;
+  --hdx: 6px;
+}
+
+.h3 {
+  --hx: 63px;
+  --hdx: 1px;
+}
+
+.react-petting .heart {
+  animation: heart-rise 1.8s ease-out infinite;
+}
+
+.react-petting .h2 {
+  animation-delay: 0.6s;
+}
+
+.react-petting .h3 {
+  animation-delay: 1.2s;
+}
+
+@keyframes heart-rise {
+  0% {
+    opacity: 0;
+    transform: translate(var(--hx), 36px) scale(0.5);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--hx) + var(--hdx)), 6px) scale(1.1);
+  }
+}
+
+/* Saudação, quando o app abre: aparece num pulo, acena com a antena, sorri e diz oi. */
+.react-greet .react {
+  animation: greet-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes greet-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.react-greet .antenna-pose {
+  animation: wave 1s ease-in-out 0.6s;
+}
+
+@keyframes wave {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: rotate(-18deg);
+  }
+  45% {
+    transform: rotate(16deg);
+  }
+  70% {
+    transform: rotate(-10deg);
+  }
+  85% {
+    transform: rotate(5deg);
+  }
+}
+
+.react-greet .eye-leds {
+  animation: greet-leds 2.4s;
+}
+
+.react-greet .eye-happy {
+  animation: greet-smile 2.4s;
+}
+
+@keyframes greet-leds {
+  0%,
+  35%,
+  80%,
+  100% {
+    opacity: 1;
+  }
+  40%,
+  75% {
+    opacity: 0;
+  }
+}
+
+@keyframes greet-smile {
+  0%,
+  35%,
+  80%,
+  100% {
+    opacity: 0;
+  }
+  40%,
+  75% {
+    opacity: 1;
+  }
+}
+
+.bubble {
+  position: absolute;
+  left: 8px;
+  top: 17px;
+  padding: 3px 6px 4px;
+  border-radius: 9px;
+  background: #ecfeff;
+  color: #0e7490;
+  font:
+    800 11px/1 system-ui,
+    sans-serif;
+  box-shadow: 0 0 6px rgb(var(--glow) / 0.6);
+  opacity: 0;
+  transform-origin: 85% 100%;
+}
+
+/* O rabinho do balão, apontando para a gota. */
+.bubble::after {
+  content: '';
+  position: absolute;
+  right: 4px;
+  bottom: -4px;
+  border: 4px solid transparent;
+  border-top-color: #ecfeff;
+  border-bottom: 0;
+  transform: skewX(-25deg);
+}
+
+.react-greet .bubble {
+  animation: bubble 2s ease 0.4s both;
+}
+
+@keyframes bubble {
+  0% {
+    opacity: 0;
+    transform: scale(0.4);
+  }
+  12% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  20% {
+    transform: none;
+  }
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+/* Lembrete: toca como um despertador, com um sininho e o LED da antena piscando âmbar. */
+.react-remind {
+  --led-halo: #fbbf24;
+}
+
+.react-remind .react {
+  animation: alarm 0.1s linear 14;
+}
+
+@keyframes alarm {
+  0%,
+  100% {
+    transform: none;
+  }
+  25% {
+    transform: translateX(-1.5px) rotate(-2deg);
+  }
+  75% {
+    transform: translateX(1.5px) rotate(2deg);
+  }
+}
+
+.react-remind .antenna-glow {
+  animation-duration: 0.25s;
+}
+
+.react-remind .eyes-react {
+  transform: scale(1.15);
+}
+
+.bell {
+  fill: #fbbf24;
+  filter: drop-shadow(0 0 3px rgb(251 191 36 / 0.7));
+  opacity: 0;
+}
+
+.bell-clapper {
+  fill: #b45309;
+}
+
+.react-remind .bell {
+  animation: bell-show 3.6s ease both;
+}
+
+.react-remind .bell-body {
+  transform-origin: 28px 21px;
+  animation: bell-ring 0.22s ease-in-out 14 alternate;
+}
+
+@keyframes bell-show {
+  0% {
+    opacity: 0;
+  }
+  8%,
+  85% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@keyframes bell-ring {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+/* ---- Dança ------------------------------------------------------------ */
+
+/*
+ * Algum player está tocando (MPRIS), ou alguém pediu (o Claude, a galeria): ele dança no ritmo,
+ * uns 114 batidas por minuto, uma das danças do kit (emotions-dances.css). Notinhas sobem da
+ * cabeça. Cochilando, não dança.
+ */
+.notes {
+  position: absolute;
+  left: 82px;
+  top: 30px;
+}
+
+.note {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--led-1);
+  font:
+    700 11px/1 system-ui,
+    sans-serif;
+  text-shadow: 0 0 4px rgb(var(--glow) / 0.8);
+  opacity: 0;
+}
+
+.stage[data-dance] .note {
+  animation: note-rise 2.1s ease-out infinite;
+}
+
+.stage[data-dance] .n2 {
+  animation-delay: 1.05s;
+}
+
+@keyframes note-rise {
+  0% {
+    opacity: 0;
+    transform: translate(0, 8px) rotate(-10deg) scale(0.7);
+  }
+  20% {
+    opacity: 0.95;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(12px, -22px) rotate(12deg) scale(1.15);
+  }
+}
+
+/* ---- Arquivo solto no mascote ---------------------------------------- */
+
+/* Um arquivo passando por cima: os olhos arregalam, ele estica e a antena fica em pé. */
+.drop-over .react {
+  transform: scale(0.97, 1.04);
+}
+
+.drop-over .eyes-react {
+  transform: scale(1.22);
+}
+
+.drop-over .antenna-pose {
+  transform: scaleY(1.12);
+}
+
+.drop-over .glow {
+  animation-duration: 0.9s;
+}
+
+/* Soltou: o arquivo voa para dentro da gota, que engole com um gole e brilha. */
+.absorb {
+  position: absolute;
+  left: 57px;
+  top: 69px;
+  width: 14px;
+  height: 18px;
+  animation: absorb-fly 0.45s cubic-bezier(0.5, 0, 0.75, 0) forwards;
+}
+
+.absorb svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  filter: drop-shadow(0 0 3px rgb(var(--glow) / 0.7));
+}
+
+.absorb .doc {
+  fill: #f8fafc;
+  stroke: var(--metal);
+}
+
+.absorb .doc-fold {
+  fill: none;
+  stroke: var(--metal);
+}
+
+.absorb .doc-lines {
+  stroke: var(--shell-2);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+@keyframes absorb-fly {
+  0% {
+    opacity: 1;
+    transform: translate(var(--ax), var(--ay)) scale(1.3) rotate(-8deg);
+  }
+  100% {
+    opacity: 0.2;
+    transform: translate(0, 0) scale(0.1) rotate(10deg);
+  }
+}
+
+.react-absorb .react {
+  animation: gulp 0.45s ease-out 0.42s;
+}
+
+@keyframes gulp {
+  0% {
+    transform: none;
+  }
+  35% {
+    transform: scale(1.12, 0.88);
+  }
+  65% {
+    transform: translateY(-2px) scale(0.95, 1.07);
+  }
+  100% {
+    transform: none;
+  }
+}
+
+.react-absorb .pulse {
+  animation: absorb-flash 0.6s ease-out 0.45s;
+}
+
+@keyframes absorb-flash {
+  0% {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.14);
+  }
+}
