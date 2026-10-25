@@ -3,8 +3,9 @@
 // Lá cada emoção é um rosto (olhos e boca), uma cor, um sinal no ar (um "!", uma nuvem de chuva)
 // e um jeito de mexer o corpo; e a troca de uma para outra é atuada: os olhos apertam, o corpo
 // encolhe antes, o rosto troca, vem um susto do tamanho da emoção nova e o corpo assenta. Aqui
-// fica a tabela (a mesma para o robô e para o fantasminha); o desenho fica no Mascot.tsx e no
-// emotions.css, e o movimento, em CSS e em animações da página, só com transform e opacity.
+// fica a tabela (a mesma para o robô e para o fantasminha); o desenho fica no Mascot.tsx e nas
+// folhas emotions-*.css do mascote, e o movimento, em CSS e em animações da página, só com
+// transform e opacity.
 
 import { t } from './i18n'
 

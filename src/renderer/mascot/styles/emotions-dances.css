@@ -1,0 +1,380 @@
+/* As emoções (Fase 27): as danças e menos movimento. */
+
+/* ---- As danças ---------------------------------------------------------- */
+
+/*
+ * As danças do kit, na camada .groove (por fora das emoções). O fantasminha dança com os braços;
+ * o robô, com a antena. O "girar" é um giro desenhado: ele fica de lado (fino), de costas (o rosto
+ * some) e volta, uma vez por compasso.
+ */
+.stage[data-dance] .groove {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Dançando, os braços são da dança (a pose de braço da emoção sai). */
+.stage[data-dance] .arm-l,
+.stage[data-dance] .arm-r {
+  transform: none;
+}
+
+.stage[data-dance='bounce'] .groove {
+  --up: -7px;
+  --hit: 0.1;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='bounce'] .arm-move {
+  --flap: 30deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='bounce'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='hop'] .groove {
+  animation-name: dance-hop;
+  animation-duration: var(--beat);
+}
+
+@keyframes dance-hop {
+  0%,
+  100% {
+    transform: scale(1.15, 0.85);
+  }
+  20% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-9px) scale(0.96, 1.04);
+  }
+}
+
+.stage[data-dance='hop'] .arm-move {
+  animation: arm-up var(--beat) ease-in-out infinite;
+}
+
+@keyframes arm-up {
+  0%,
+  100% {
+    transform: rotate(calc(5deg * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(65deg * var(--dir)));
+  }
+}
+
+/* Mãos para o alto: quica com os braços lá em cima, socando o ar; a antena estica junto. */
+.stage[data-dance='roof'] .groove {
+  --up: -5px;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='roof'] .arm-move {
+  animation: arm-roof var(--beat) ease-in-out infinite;
+}
+
+@keyframes arm-roof {
+  0%,
+  100% {
+    transform: rotate(calc(74deg * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(42deg * var(--dir)));
+  }
+}
+
+.stage[data-dance='roof'] .antenna-pose {
+  animation: antenna-pump var(--beat) ease-in-out infinite;
+}
+
+@keyframes antenna-pump {
+  0%,
+  100% {
+    transform: scaleY(1.18);
+  }
+  50% {
+    transform: scaleY(0.96);
+  }
+}
+
+.stage[data-dance='sway'] .groove {
+  --dx: 6px;
+  --rot: 6deg;
+  animation-name: feel-sway;
+  animation-duration: calc(var(--beat) * 2);
+}
+
+.stage[data-dance='sway'] .arm-move {
+  --flap: 33deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='sway'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='spin'] .groove {
+  animation-name: dance-spin;
+  animation-duration: calc(var(--beat) * 4);
+  animation-timing-function: linear;
+}
+
+@keyframes dance-spin {
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    transform: scale(1, 1);
+  }
+  12.5%,
+  37.5%,
+  62.5% {
+    transform: translateY(-4px) scale(1, 1);
+  }
+  81% {
+    transform: translateY(-8px) scale(0.08, 1);
+  }
+  87.5% {
+    transform: translateY(-11px) scale(-1, 1);
+  }
+  94% {
+    transform: translateY(-8px) scale(0.08, 1);
+  }
+}
+
+/* De costas, o rosto some (os olhos, a boca e as bochechas). */
+.stage[data-dance='spin'] .look,
+.stage[data-dance='spin'] .mouth,
+.stage[data-dance='spin'] .blush {
+  animation: spin-face calc(var(--beat) * 4) linear infinite;
+}
+
+@keyframes spin-face {
+  0%,
+  81.5%,
+  93.5%,
+  100% {
+    opacity: 1;
+  }
+  82%,
+  93% {
+    opacity: 0;
+  }
+}
+
+.stage[data-dance='spin'] .arm-move {
+  animation: arm-up calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+/* Acenar: quica de leve, acenando com um braço (no robô, com a antena). */
+.stage[data-dance='wave'] .groove {
+  --up: -5px;
+  --hit: 0.06;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='wave'] .arm-l {
+  transform: rotate(60deg);
+}
+
+.stage[data-dance='wave'] .arm-l .arm-move {
+  --flap: 25deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-dance='wave'] .arm-r {
+  transform: rotate(11deg);
+}
+
+.stage[data-dance='wave'] .antenna-pose {
+  animation: antenna-wave calc(var(--beat) / 2) ease-in-out infinite alternate;
+}
+
+@keyframes antenna-wave {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+/* Andar e correr, sem pernas: o passo é o sobe e desce, o corpo indo e vindo e os braços. */
+.stage[data-dance='walk'] .groove {
+  animation-name: dance-walk;
+  animation-duration: calc(var(--beat) * 2);
+}
+
+@keyframes dance-walk {
+  0%,
+  100% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+  25%,
+  75% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateX(3px) rotate(2deg);
+  }
+}
+
+.stage[data-dance='walk'] .arm-move {
+  --flap: 16deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='walk'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='run'] .groove {
+  animation-name: dance-run;
+  animation-duration: calc(var(--beat) / 2);
+}
+
+@keyframes dance-run {
+  0%,
+  100% {
+    transform: rotate(-4.6deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(-4.6deg);
+  }
+}
+
+.stage[data-dance='run'] .arm-move {
+  --flap: 44deg;
+  animation: arm-flap calc(var(--beat) * 0.67) ease-in-out infinite;
+}
+
+.stage[data-dance='run'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -0.33);
+}
+
+.stage[data-dance='idle'] .groove {
+  --up: -2.5px;
+  --hit: 0.05;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+/* Pisar forte: sobe e cai com tudo, um lado e depois o outro, os braços pulando na queda. */
+.stage[data-dance='stomp'] .groove {
+  animation-name: dance-stomp;
+  animation-duration: calc(var(--beat) * 2);
+  animation-timing-function: linear;
+}
+
+@keyframes dance-stomp {
+  0%,
+  100% {
+    transform: rotate(-3.4deg) scale(1.2, 0.8);
+  }
+  10%,
+  60% {
+    transform: none;
+  }
+  25%,
+  75% {
+    transform: translateY(-7px);
+  }
+  50% {
+    transform: rotate(3.4deg) scale(1.2, 0.8);
+  }
+}
+
+.stage[data-dance='stomp'] .arm-move {
+  animation: arm-stomp var(--beat) linear infinite;
+}
+
+@keyframes arm-stomp {
+  0%,
+  100% {
+    transform: rotate(calc(34deg * var(--dir)));
+  }
+  25% {
+    transform: rotate(calc(-16deg * var(--dir)));
+  }
+}
+
+/* Requebrar: de um lado para o outro duas vezes por batida, os braços balançando. */
+.stage[data-dance='shimmy'] .groove {
+  animation-name: dance-shimmy;
+  animation-duration: var(--beat);
+}
+
+@keyframes dance-shimmy {
+  0%,
+  50%,
+  100% {
+    transform: translateX(-3px) rotate(-2.9deg);
+  }
+  25% {
+    transform: translateX(3px) translateY(-2.5px) rotate(2.9deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(2.9deg);
+  }
+}
+
+.stage[data-dance='shimmy'] .arm-move {
+  --flap: 22deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-dance='shimmy'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) / -4);
+}
+
+.stage[data-dance='shimmy'] .arm {
+  transform: rotate(38deg);
+}
+
+.stage[data-dance='shimmy'] .arm-r {
+  transform: rotate(-38deg);
+}
+
+/* ---- Menos movimento ---------------------------------------------------- */
+
+/* Com menos movimento, os rostos e as cores ficam; o corpo não dança nem treme. */
+:root.reduce-motion {
+  .stage .feel,
+  .stage .look-move,
+  .stage .arm-move,
+  .stage .mouth-move,
+  .stage .emote,
+  .stage .emote-pop,
+  .stage .part,
+  .stage[data-dance] .groove,
+  .stage[data-dance] .look,
+  .stage[data-dance] .mouth,
+  .stage[data-dance] .blush,
+  .stage[data-dance] .antenna-pose,
+  .stage[data-eyes] .eyes-blink,
+  .stage.emote-stars .star,
+  .stage.emote-stars .star > svg,
+  .stage.emote-zzz .z,
+  .stage.emote-hearts .heart,
+  .stage.emote-anger .anger-mark {
+    animation: none;
+  }
+
+  .pose,
+  .arm,
+  .look {
+    transition: none;
+  }
+
+  /* Parados, os "z" e os corações aparecem de uma vez, num lugar só. */
+  .emote-zzz .z1,
+  .emote-hearts .h1 {
+    opacity: 0.9;
+  }
+}

@@ -1,0 +1,465 @@
+/* As configurações. */
+
+/* ---- Configurações ---------------------------------------------------------------------- */
+
+.settings {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.settings-scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 14px 40px;
+}
+
+.settings-section {
+  padding: 10px 0 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.settings-section:last-child {
+  border-bottom: 0;
+}
+
+.settings-section h2 {
+  margin: 4px 0 8px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.settings-row {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.settings-label {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.settings-hint {
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.settings-error {
+  color: var(--danger-text);
+  font-size: 11.5px;
+}
+
+.settings-row :is(input[type='text'], select, textarea) {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.settings-row textarea {
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12px;
+}
+
+.settings-row :is(input[type='text'], select, textarea):focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.settings-row.invalid :is(input, select, textarea, .shortcut-input) {
+  border-color: var(--danger-solid);
+}
+
+.settings-row input[type='range'] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.settings-number {
+  max-width: 90px;
+}
+
+/* A galeria das emoções e das danças do mascote (Fase 27). */
+.gallery-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.gallery-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gallery-chip:hover {
+  border-color: var(--accent);
+}
+
+.gallery-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+/* Um botão das configurações (o "Testar voz"). */
+.settings-button {
+  padding: 5px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.settings-button:hover:not(:disabled) {
+  border-color: var(--accent);
+}
+
+.settings-button:disabled {
+  cursor: default;
+  opacity: 0.7;
+}
+
+/* O tamanho do painel (Fase 22): −, a porcentagem e +. */
+.zoom-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.zoom-control .settings-button {
+  min-width: 34px;
+  font-size: 15px;
+}
+
+.zoom-value {
+  min-width: 48px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.skills-list {
+  margin: 0 0 8px;
+  padding: 0;
+  list-style: none;
+}
+
+.skill {
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.skill-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.skill-head .link {
+  margin-left: auto;
+  font-size: 12px;
+}
+
+.skill-origin {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.skill-description,
+.skill-tools {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.skill-tools {
+  color: var(--warning-text, var(--danger-text));
+}
+
+.skill-preview {
+  margin: 8px 0;
+  padding: 8px 10px;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  font-size: 13px;
+}
+
+.skill-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 0;
+}
+
+.folder-menu {
+  position: relative;
+}
+
+.folder-list {
+  top: calc(100% + 6px);
+  right: 0;
+  bottom: auto;
+  left: auto;
+  width: min(320px, calc(100vw - 24px));
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.folder-list .model-check svg {
+  width: 13px;
+  height: 13px;
+  color: var(--muted);
+}
+
+.folder-error {
+  color: var(--danger-text);
+}
+
+.tab-folder {
+  display: inline-grid;
+  place-items: center;
+  margin-right: -2px;
+  color: var(--muted);
+}
+
+.tab-folder svg {
+  width: 12px;
+  height: 12px;
+}
+
+.empty-folder code {
+  font-size: 12px;
+}
+
+.permission-list {
+  margin: 4px 0 6px;
+  padding-left: 18px;
+}
+
+.permission-list li {
+  margin: 2px 0;
+  word-break: break-word;
+}
+
+.permission-list code {
+  font-size: 11.5px;
+}
+
+.openrouter-key {
+  display: flex;
+  gap: 6px;
+}
+
+.openrouter-key input {
+  flex: 1;
+  min-width: 0;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.openrouter-key input:focus-visible {
+  border-color: var(--accent);
+  outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.voice-test {
+  margin: 4px 0 8px;
+}
+
+.voice-test-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.voice-test-meter {
+  flex: 1;
+  height: 6px;
+  overflow: hidden;
+  border-radius: 3px;
+  background: var(--border);
+}
+
+.voice-test-meter span {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+  transition: width 100ms linear;
+}
+
+.voice-test-result {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.voice-test-result.failed {
+  border-color: var(--danger-solid);
+}
+
+.voice-test-result p {
+  margin: 0;
+}
+
+.voice-test-text {
+  font-size: 13px;
+}
+
+.voice-test-hint {
+  margin-top: 4px !important;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+/* Liga/desliga. */
+.switch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.switch-track {
+  position: relative;
+  flex: none;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+
+.switch-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s;
+}
+
+.switch.on .switch-track {
+  background: var(--accent);
+}
+
+.switch.on .switch-thumb {
+  transform: translateX(14px);
+}
+
+.switch:focus-visible .switch-track {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* O campo que grava um atalho. */
+.shortcut-input {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 12.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.shortcut-input.listening {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: shortcut-listen 1.2s ease-in-out infinite;
+}
+
+@keyframes shortcut-listen {
+  50% {
+    background: var(--hover);
+  }
+}
+
+.settings-problems {
+  margin: 8px 0 4px;
+  padding: 8px 10px;
+  border: 1px solid var(--warning-border);
+  border-radius: 10px;
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  font-size: 12px;
+}
+
+.settings-problems ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.settings-file {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.settings-file code {
+  font-family: var(--mono);
+  font-size: 11.5px;
+}
+
+.settings-saved {
+  position: absolute;
+  right: 14px;
+  bottom: 10px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: var(--ok);
+  color: #fff;
+  font-size: 12px;
+  opacity: 0;
+  transform: translateY(6px);
+  transition:
+    opacity 0.2s,
+    transform 0.2s;
+  pointer-events: none;
+}
+
+.settings-saved.show {
+  opacity: 1;
+  transform: none;
+}

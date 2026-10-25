@@ -1,0 +1,888 @@
+/* As emoções (Fase 27): o corpo de cada uma. */
+
+/* ---- O corpo de cada emoção --------------------------------------------- */
+
+/*
+ * Cada emoção tem uma pose (a camada .pose, que assenta com a molinha), um movimento no ritmo
+ * (a .feel), os bracinhos do fantasminha (de pé, eles levantam: 0 é como estão desenhados) e a
+ * antena do robô (a luz do fantasminha), que no robô faz as vezes dos braços do kit: cai na
+ * tristeza, fica em pé no susto, pende para o lado na dúvida.
+ */
+.arm-l,
+.arm-l .arm-move {
+  transform-origin: 40px 82.5px;
+}
+
+.arm-r,
+.arm-r .arm-move {
+  transform-origin: 88px 82.5px;
+}
+
+.arm {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.arm-l {
+  transform: rotate(var(--al, 0deg));
+}
+
+.arm-r {
+  transform: rotate(calc(var(--ar, 0deg) * -1));
+}
+
+/* Os movimentos dos braços: --flap é quanto, e o direito gira ao contrário (sobe junto). */
+.arm-move {
+  --flap: 20deg;
+  --dir: 1;
+}
+
+.arm-r .arm-move {
+  --dir: -1;
+}
+
+@keyframes arm-flap {
+  0%,
+  100% {
+    transform: rotate(calc(var(--flap) * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(var(--flap) * var(--dir) * -1));
+  }
+}
+
+/* Os dois sobem e descem juntos; com um atraso de meio ciclo no direito, um sobe enquanto o outro
+   desce. */
+/* Genéricos do corpo: quicar no ritmo, balançar, tremer, respirar. */
+@keyframes feel-bounce {
+  0%,
+  100% {
+    transform: scale(calc(1 + var(--hit, 0.08)), calc(1 - var(--hit, 0.08)));
+  }
+  18% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(var(--up, -5px));
+  }
+}
+
+@keyframes feel-sway {
+  0%,
+  100% {
+    transform: translateX(calc(var(--dx, 0px) * -1)) rotate(calc(var(--rot, 3deg) * -1));
+  }
+  50% {
+    transform: translateX(var(--dx, 0px)) rotate(var(--rot, 3deg));
+  }
+}
+
+@keyframes feel-shake {
+  0%,
+  100% {
+    transform: translateX(calc(var(--dx, 0.6px) * -1));
+  }
+  50% {
+    transform: translateX(var(--dx, 0.6px));
+  }
+}
+
+@keyframes feel-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(calc(1 + var(--sq, 0.06)), calc(1 - var(--sq, 0.06)));
+  }
+}
+
+/* Feliz: quica a cada batida, e os braços balançam. */
+.stage[data-feel='happy'] {
+  --al: 11deg;
+  --ar: 11deg;
+}
+
+.stage[data-feel='happy'] .feel {
+  --up: -5px;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='happy'] .arm-move {
+  --flap: 22deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='happy'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-feel='happy'] .antenna {
+  animation-duration: 1.05s;
+}
+
+/* Animado: pulos curtos duas vezes por batida, braços para cima batendo. */
+.stage[data-feel='excited'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='excited'] .feel {
+  --up: -7px;
+  --hit: 0.1;
+  animation: feel-bounce calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='excited'] .pose {
+  transform: scale(0.96, 1.05);
+}
+
+.stage[data-feel='excited'] .arm-move {
+  --flap: 26deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='excited'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) / -4);
+}
+
+.stage[data-feel='excited'] .antenna-pose {
+  transform: scaleY(1.12);
+}
+
+.stage[data-feel='excited'] .antenna {
+  animation-duration: 0.5s;
+}
+
+/* Rindo: sacode rápido, inclinado, segurando a barriga. */
+.stage[data-feel='laugh'] {
+  --al: -30deg;
+  --ar: -30deg;
+}
+
+.stage[data-feel='laugh'] .pose {
+  transform: rotate(-4deg);
+}
+
+.stage[data-feel='laugh'] .feel {
+  animation: laugh 0.2s ease-in-out infinite;
+}
+
+@keyframes laugh {
+  0%,
+  100% {
+    transform: scale(0.96, 1.04);
+  }
+  50% {
+    transform: translateY(-2.2px) rotate(1.7deg) scale(1.04, 0.96);
+  }
+}
+
+.stage[data-feel='laugh'] .antenna {
+  animation-duration: 0.2s;
+}
+
+/* Apaixonado: balança devagar de um lado para o outro, quicando de leve. */
+.stage[data-feel='love'] {
+  --al: -16deg;
+  --ar: -16deg;
+  --led-halo: #fda4af;
+}
+
+.stage[data-feel='love'] .feel {
+  animation: love calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+@keyframes love {
+  0%,
+  100% {
+    transform: translateX(-2.5px) rotate(-4.6deg);
+  }
+  12.5%,
+  62.5% {
+    transform: translateY(-3px);
+  }
+  25%,
+  75% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(2.5px) rotate(4.6deg);
+  }
+}
+
+.stage[data-feel='love'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+/* Tímido: encolhido, inclinado, olhando para baixo, mexendo os bracinhos. */
+.stage[data-feel='shy'] {
+  --al: -41deg;
+  --ar: -44deg;
+}
+
+.stage[data-feel='shy'] .pose {
+  transform: rotate(-3deg) scale(1.06, 0.94);
+}
+
+.stage[data-feel='shy'] .feel {
+  --dx: 0.8px;
+  --rot: 1.2deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+.stage[data-feel='shy'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.67s ease-in-out infinite;
+}
+
+.stage[data-feel='shy'] .antenna-pose {
+  transform: rotate(-14deg);
+}
+
+/* Orgulhoso: esticado, peito para fora, mãos na cintura. */
+.stage[data-feel='proud'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='proud'] .pose {
+  transform: scale(0.9, 1.1);
+}
+
+.stage[data-feel='proud'] .feel {
+  --dx: 0px;
+  --rot: 1.1deg;
+  animation: feel-sway calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+/* Convencido: inclinado, de canto de olho, uma mão para cima. */
+.stage[data-feel='smug'] {
+  --al: -38deg;
+  --ar: 16deg;
+}
+
+.stage[data-feel='smug'] .pose {
+  transform: rotate(-3.4deg);
+}
+
+.stage[data-feel='smug'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+.stage[data-feel='smug'] .antenna-pose {
+  transform: rotate(-10deg);
+}
+
+/* Aliviado: solta o ar devagar, com os braços caídos. */
+.stage[data-feel='relieved'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='relieved'] .pose {
+  transform: scale(1.05, 0.95);
+}
+
+.stage[data-feel='relieved'] .feel {
+  --sq: 0.05;
+  animation: feel-breathe 2.86s ease-in-out infinite;
+}
+
+.stage[data-feel='relieved'] .antenna-pose {
+  transform: rotate(12deg);
+}
+
+/* Triste: amassado, pendendo devagar, a antena caída, debaixo da nuvem de chuva. */
+.stage[data-feel='sad'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='sad'] .pose {
+  transform: translateY(1px) scale(1.08, 0.92);
+}
+
+.stage[data-feel='sad'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 8) ease-in-out infinite;
+}
+
+.stage[data-feel='sad'] .antenna-pose {
+  transform: rotate(28deg);
+}
+
+/* Chorando: soluça a cada batida, com os braços no rosto. */
+.stage[data-feel='cry'] {
+  --al: 38deg;
+  --ar: 38deg;
+}
+
+.stage[data-feel='cry'] .feel {
+  animation: sob var(--beat) ease-out infinite;
+}
+
+@keyframes sob {
+  0%,
+  100% {
+    transform: scale(0.98, 1.02);
+  }
+  20% {
+    transform: translateY(-3px) scale(1.1, 0.9);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.02, 0.98);
+  }
+}
+
+.stage[data-feel='cry'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.17s ease-in-out infinite;
+}
+
+.stage[data-feel='cry'] .antenna-pose {
+  transform: rotate(18deg);
+}
+
+.stage[data-feel='cry'] .antenna {
+  animation-duration: 0.25s;
+}
+
+/* Bravo: tremendo, de punhos para baixo, a luz vermelha. */
+.stage[data-feel='angry'],
+.stage[data-feel='furious'] {
+  --led-halo: #f87171;
+}
+
+.stage[data-feel='angry'] {
+  --al: -27deg;
+  --ar: -27deg;
+}
+
+.stage[data-feel='angry'] .feel {
+  --dx: 0.6px;
+  animation: feel-shake 0.055s linear infinite;
+}
+
+.stage[data-feel='angry'] .pose {
+  transform: scale(1.04, 0.96);
+}
+
+.stage[data-feel='angry'] .antenna {
+  animation-duration: 0.3s;
+}
+
+/* Furioso: tremendo forte, pulando no lugar, os braços para cima, soltando vapor. */
+.stage[data-feel='furious'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='furious'] .pose {
+  transform: scale(1.06, 0.94);
+}
+
+.stage[data-feel='furious'] .feel {
+  animation: furious 0.11s linear infinite;
+}
+
+@keyframes furious {
+  0%,
+  100% {
+    transform: translateX(-1.1px) rotate(-1.4deg);
+  }
+  50% {
+    transform: translateX(1.1px) translateY(-1px) rotate(1.4deg);
+  }
+}
+
+.stage[data-feel='furious'] .arm-move {
+  --flap: 11deg;
+  animation: arm-flap 0.11s linear infinite;
+}
+
+.stage[data-feel='furious'] .antenna-pose {
+  transform: scaleY(1.1);
+}
+
+.stage[data-feel='furious'] .antenna {
+  animation-duration: 0.12s;
+}
+
+/* Com medo: esticado e tremendo, as mãos para cima, os olhos indo de um lado a outro. */
+.stage[data-feel='scared'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='scared'] .pose {
+  transform: scale(0.94, 1.06);
+}
+
+.stage[data-feel='scared'] .feel {
+  --dx: 0.5px;
+  animation: feel-shake 0.045s linear infinite;
+}
+
+.stage[data-feel='scared'] .look-move {
+  animation: look-dart 2.7s steps(1) infinite;
+}
+
+@keyframes look-dart {
+  0% {
+    transform: translateX(2px);
+  }
+  50% {
+    transform: translateX(-2px);
+  }
+}
+
+.stage[data-feel='scared'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Surpreso: esticado de uma vez, mãos para cima, um "!". */
+.stage[data-feel='surprised'] {
+  --al: 50deg;
+  --ar: 50deg;
+}
+
+.stage[data-feel='surprised'] .pose {
+  transform: translateY(-1.5px) scale(0.88, 1.12);
+}
+
+.stage[data-feel='surprised'] .feel {
+  --up: -0.8px;
+  --hit: 0;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='surprised'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Confuso: a cabeça pende de um lado para o outro, uma mão coçando a cabeça. */
+.stage[data-feel='confused'] {
+  --al: -5deg;
+  --ar: 71deg;
+}
+
+.stage[data-feel='confused'] .feel {
+  --dx: 0px;
+  --rot: 5.7deg;
+  animation: feel-sway calc(var(--beat) * 8) ease-in-out infinite;
+}
+
+.stage[data-feel='confused'] .arm-r .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.33s ease-in-out infinite;
+}
+
+.stage[data-feel='confused'] .antenna-pose {
+  transform: rotate(-24deg);
+}
+
+/* Pensando: inclinado, olhando para cima, a mão no queixo e a outra batucando. */
+.stage[data-feel='thinking'] {
+  --al: -27deg;
+  --ar: 38deg;
+}
+
+.stage[data-feel='thinking'] .pose {
+  transform: rotate(2.9deg);
+}
+
+.stage[data-feel='thinking'] .arm-l .arm-move {
+  --flap: 7deg;
+  animation: arm-flap var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='thinking'] .antenna-pose {
+  transform: rotate(10deg);
+}
+
+/* Tive uma ideia: quica, com o dedo para cima e a lâmpada acesa. */
+.stage[data-feel='idea'] {
+  --al: 0deg;
+  --ar: 74deg;
+}
+
+.stage[data-feel='idea'] .feel {
+  --up: -5px;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='idea'] .pose {
+  transform: scale(0.95, 1.05);
+}
+
+/* Decidido: inclinado para a frente, marchando com os punhos. */
+.stage[data-feel='determined'] {
+  --al: 19deg;
+  --ar: 19deg;
+}
+
+.stage[data-feel='determined'] .pose {
+  transform: rotate(3.4deg) scale(0.96, 1.04);
+}
+
+.stage[data-feel='determined'] .feel {
+  --up: -1.5px;
+  --hit: 0.06;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='determined'] .arm-move {
+  --flap: 19deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='determined'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-feel='determined'] .antenna-pose {
+  transform: scaleY(1.06);
+}
+
+/* Com sono: respira devagar e pende, os braços caídos, a antena tombando. */
+.stage[data-feel='sleepy'] {
+  --al: -44deg;
+  --ar: -44deg;
+}
+
+.stage[data-feel='sleepy'] .feel {
+  animation: sleepy 7.8s ease-in-out infinite;
+}
+
+@keyframes sleepy {
+  0%,
+  100% {
+    transform: rotate(-3.4deg) scale(1.05, 0.95);
+  }
+  25%,
+  75% {
+    transform: scale(1.1, 0.9);
+  }
+  50% {
+    transform: rotate(3.4deg) scale(1.05, 0.95);
+  }
+}
+
+.stage[data-feel='sleepy'] .antenna-pose {
+  transform: rotate(24deg);
+}
+
+/* Entediado: suspira a cada compasso (incha e desincha), olhando para o chão. */
+.stage[data-feel='bored'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='bored'] .pose {
+  transform: rotate(-2.3deg);
+}
+
+.stage[data-feel='bored'] .feel {
+  animation: sigh calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+@keyframes sigh {
+  0%,
+  100% {
+    transform: scale(1.08, 0.92);
+  }
+  30% {
+    transform: scale(0.94, 1.06);
+  }
+}
+
+.stage[data-feel='bored'] .antenna-pose {
+  transform: rotate(-30deg);
+}
+
+/* Nervoso: olha para um lado e para o outro a cada batida, mexendo os dedos. */
+.stage[data-feel='nervous'] {
+  --al: -16deg;
+  --ar: -16deg;
+}
+
+.stage[data-feel='nervous'] .feel {
+  --dx: 1.5px;
+  --rot: 0deg;
+  animation: feel-sway calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='nervous'] .look-move {
+  animation: look-flip calc(var(--beat) * 2) steps(1) infinite;
+}
+
+@keyframes look-flip {
+  0% {
+    transform: translateX(2.7px);
+  }
+  50% {
+    transform: translateX(-2.7px);
+  }
+}
+
+.stage[data-feel='nervous'] .arm-move {
+  --flap: 11deg;
+  animation: arm-flap 0.2s ease-in-out infinite;
+}
+
+.stage[data-feel='nervous'] .antenna {
+  animation-duration: 0.3s;
+}
+
+/* Desconfiado: olha devagar de um lado para o outro, o corpo indo junto. */
+.stage[data-feel='suspicious'] {
+  --al: -33deg;
+  --ar: -33deg;
+}
+
+.stage[data-feel='suspicious'] .pose {
+  transform: scale(1.04, 0.96);
+}
+
+.stage[data-feel='suspicious'] .feel {
+  animation: suspicious 4s ease-in-out infinite;
+}
+
+@keyframes suspicious {
+  0%,
+  100% {
+    transform: translateX(-2px) rotate(4.6deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(-4.6deg);
+  }
+}
+
+.stage[data-feel='suspicious'] .look-move {
+  animation: look-sweep 4s ease-in-out infinite;
+}
+
+@keyframes look-sweep {
+  0%,
+  100% {
+    transform: translateX(-3.4px);
+  }
+  50% {
+    transform: translateX(3.4px);
+  }
+}
+
+/* Com nojo: inclinado para trás, com um arrepio a cada dois tempos, as mãos na frente. */
+.stage[data-feel='disgusted'] {
+  --al: 27deg;
+  --ar: 27deg;
+}
+
+.stage[data-feel='disgusted'] .pose {
+  transform: translateX(-1.5px) rotate(-5.7deg) scale(1.05, 0.95);
+}
+
+.stage[data-feel='disgusted'] .feel {
+  animation: shudder calc(var(--beat) * 2) linear infinite;
+}
+
+@keyframes shudder {
+  0%,
+  30%,
+  100% {
+    transform: none;
+  }
+  4% {
+    transform: translateX(-0.8px);
+  }
+  8% {
+    transform: translateX(0.7px);
+  }
+  12% {
+    transform: translateX(-0.5px);
+  }
+  16% {
+    transform: translateX(0.3px);
+  }
+}
+
+.stage[data-feel='disgusted'] .antenna-pose {
+  transform: rotate(-20deg);
+}
+
+/* Tonto: anda em círculos, balançando, os braços soltos. */
+.stage[data-feel='dizzy'] {
+  --al: 5deg;
+  --ar: 5deg;
+}
+
+.stage[data-feel='dizzy'] .feel {
+  animation: dizzy 1.25s ease-in-out infinite;
+}
+
+@keyframes dizzy {
+  0%,
+  100% {
+    transform: translateX(0) translateY(-1.5px) rotate(0);
+  }
+  25% {
+    transform: translateX(3.5px) rotate(6.9deg);
+  }
+  50% {
+    transform: translateX(0) translateY(-1.5px) rotate(0);
+  }
+  75% {
+    transform: translateX(-3.5px) rotate(-6.9deg);
+  }
+}
+
+.stage[data-feel='dizzy'] .arm-move {
+  --flap: 33deg;
+  animation: arm-flap 1.3s ease-in-out infinite;
+}
+
+.stage[data-feel='dizzy'] .antenna {
+  animation-duration: 1.25s;
+}
+
+/* Descolado: de óculos escuros, balança a cabeça na batida, uma mão para cima. */
+.stage[data-feel='cool'] {
+  --al: -33deg;
+  --ar: 27deg;
+}
+
+.stage[data-feel='cool'] .feel {
+  animation: nod var(--beat) ease-out infinite;
+}
+
+@keyframes nod {
+  0% {
+    transform: translateY(-1.7px) rotate(2.3deg) scale(1.06, 0.94);
+  }
+  35%,
+  100% {
+    transform: none;
+  }
+}
+
+.stage[data-feel='cool'] .antenna-pose {
+  transform: rotate(-12deg);
+}
+
+/* Deslumbrado: pula sem parar, os braços para cima. */
+.stage[data-feel='starstruck'] {
+  --al: 50deg;
+  --ar: 50deg;
+}
+
+.stage[data-feel='starstruck'] .feel {
+  --up: -6px;
+  --hit: 0.1;
+  animation: feel-bounce calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='starstruck'] .arm-move {
+  --flap: 19deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='starstruck'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Nocauteado: caído e achatado, torto, os braços largados (e estrelinhas na cabeça). */
+.stage[data-feel='ko'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='ko'] .pose {
+  transform: rotate(6.9deg) scale(1.22, 0.78);
+}
+
+.stage[data-feel='ko'] .feel {
+  --sq: 0.02;
+  animation: feel-breathe 2.1s ease-in-out infinite;
+}
+
+.stage[data-feel='ko'] .antenna-pose {
+  transform: rotate(50deg);
+}
+
+/* Brincalhão: pula de um lado para o outro, piscando e de língua para fora. */
+.stage[data-feel='playful'] {
+  --al: 25deg;
+  --ar: 25deg;
+}
+
+.stage[data-feel='playful'] .feel {
+  animation: playful calc(var(--beat) * 2) ease-out infinite;
+}
+
+@keyframes playful {
+  0%,
+  100% {
+    transform: translateX(-4px) rotate(-5.7deg) scale(1.08, 0.92);
+  }
+  25% {
+    transform: translateX(-4px) translateY(-7px) rotate(-5.7deg);
+  }
+  50% {
+    transform: translateX(4px) rotate(5.7deg) scale(1.08, 0.92);
+  }
+  75% {
+    transform: translateX(4px) translateY(-7px) rotate(5.7deg);
+  }
+}
+
+.stage[data-feel='playful'] .arm-move {
+  --flap: 30deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='playful'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+/* Aprontando: esfregando as mãos, de canto de olho, com uma sombra na testa. */
+.stage[data-feel='mischief'] {
+  --al: -14deg;
+  --ar: -14deg;
+}
+
+.stage[data-feel='mischief'] .pose {
+  transform: rotate(2.3deg) scale(1.07, 0.93);
+}
+
+.stage[data-feel='mischief'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.25s ease-in-out infinite;
+}
+
+.stage[data-feel='mischief'] .arm-r .arm-move {
+  animation-delay: -0.125s;
+}
+
+.stage[data-feel='mischief'] .antenna-pose {
+  transform: rotate(8deg);
+}
+
+/* Esperançoso: esticado, olhando para cima, as mãos juntas. */
+.stage[data-feel='hopeful'] {
+  --al: 16deg;
+  --ar: 16deg;
+}
+
+.stage[data-feel='hopeful'] .pose {
+  transform: scale(0.94, 1.06);
+}
+
+.stage[data-feel='hopeful'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}

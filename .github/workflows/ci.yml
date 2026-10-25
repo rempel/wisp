@@ -1,7 +1,7 @@
 # CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; em
-# jobs à parte, os testes de ponta a ponta (Xvfb e DevTools) e os pacotes: .deb e AppImage para
-# x86-64 (o AppImage é aberto de verdade) e ARM64, e o Flatpak (instalado e aberto). Numa tag v*,
-# os pacotes vão para um release.
+# jobs à parte, os testes de ponta a ponta (Xvfb e DevTools), os pacotes (.deb e AppImage para
+# x86-64, com o AppImage aberto de verdade, e ARM64, e o Flatpak, instalado e aberto) e o aviso das
+# dependências. Numa tag v*, os pacotes vão para um release.
 name: CI
 
 on:
@@ -36,20 +36,41 @@ jobs:
       - run: npx electron-vite build
       - run: npm test
 
-  e2e:
-    name: Ponta a ponta (Xvfb e DevTools)
+  # O que pede atualização (Fase 28): falhas de segurança conhecidas nas dependências do app, o
+  # Electron e o Claude Code. Só avisa (anotações e uma tabela no resumo do job): não derruba o CI.
+  deps:
+    name: Dependências
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
         with:
           node-version: 22
           cache: npm
+      - run: npm ci --ignore-scripts
+      - run: node scripts/deps-check.mjs
+
+  e2e:
+    name: Ponta a ponta (Xvfb e DevTools)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      # Os .deb do apt ficam em cache entre os pushes (scripts/ci-apt.sh).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/apt
+          key: apt-e2e-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: apt-e2e-${{ runner.os }}-
       - name: X virtual, D-Bus, as bibliotecas do Electron e o EDS (agenda)
+        timeout-minutes: 25
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb xauth dbus dbus-x11 xdotool openbox evolution-data-server \
+          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool openbox evolution-data-server \
             libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
       - run: npm ci
       - run: npx install-electron
@@ -71,7 +92,7 @@ jobs:
     name: Pacotes .deb e AppImage
     # A versão mais antiga do Ubuntu com runner: o que for montado aqui roda nas mais novas.
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: check
     steps:
       - uses: actions/checkout@v6
@@ -83,10 +104,16 @@ jobs:
       - run: npx install-electron
       - run: npm run build
       - run: npx electron-builder --linux deb AppImage --publish never
+      # Os .deb do apt ficam em cache entre os pushes (scripts/ci-apt.sh).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/apt
+          key: apt-package-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: apt-package-${{ runner.os }}-
       - name: X virtual e D-Bus, para abrir o AppImage
+        timeout-minutes: 25
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends xvfb xauth dbus \
+          scripts/ci-apt.sh xvfb xauth dbus \
             libgtk-3-0 libnss3 libasound2 libgbm1 libxss1 libxtst6
       # O conteúdo do .deb, e o AppImage aberto de verdade num HOME vazio.
       - run: scripts/smoke-packages.sh
@@ -109,7 +136,7 @@ jobs:
   package-arm64:
     name: Pacotes ARM64
     runs-on: ubuntu-22.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     needs: check
     steps:
       - uses: actions/checkout@v6
@@ -117,10 +144,17 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Os .deb do apt ficam em cache entre os pushes (scripts/ci-apt.sh).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/apt
+          key: apt-arm64-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: apt-arm64-${{ runner.os }}-
+      # Um push teve o job cancelado aos 30 minutos só neste passo (o espelho do apt lento): agora
+      # ele tem tempo limite e novas tentativas, e o que já foi baixado vem do cache.
       - name: O compilador cruzado
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends g++-aarch64-linux-gnu file
+        timeout-minutes: 25
+        run: scripts/ci-apt.sh g++-aarch64-linux-gnu file
       - run: npm ci
       - run: npx install-electron
       - run: npm run build
@@ -141,7 +175,7 @@ jobs:
   flatpak:
     name: Flatpak
     runs-on: ubuntu-24.04
-    timeout-minutes: 40
+    timeout-minutes: 55
     needs: check
     steps:
       - uses: actions/checkout@v6
@@ -149,10 +183,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      # Os .deb do apt ficam em cache entre os pushes (scripts/ci-apt.sh).
+      - uses: actions/cache@v6
+        with:
+          path: ~/.cache/apt
+          key: apt-flatpak-${{ runner.os }}-${{ hashFiles('.github/workflows/ci.yml') }}
+          restore-keys: apt-flatpak-${{ runner.os }}-
       - name: O flatpak-builder e a base do Electron
+        timeout-minutes: 30
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends flatpak flatpak-builder xvfb xauth dbus dbus-x11 curl
+          scripts/ci-apt.sh flatpak flatpak-builder xvfb xauth dbus dbus-x11 curl
           # O bubblewrap do Flatpak precisa de user namespaces, que o AppArmor do Ubuntu 24.04 trava.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
           flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
@@ -181,6 +221,7 @@ jobs:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     needs: [package, package-arm64, flatpak, e2e]
     permissions:
       contents: write

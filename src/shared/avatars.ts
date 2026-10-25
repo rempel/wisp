@@ -1,7 +1,7 @@
 // Os avatares do Wisp (Fase 19): o mascote, a ilha e o avatar do cabeçalho do painel desenham o
 // escolhido. O corpo de cada um fica aqui (o mesmo espaço de 128 × 128, com os olhos no mesmo
 // lugar, para os olhares, as reações e os acessórios servirem a todos); as cores, no
-// avatars.css do mascote. Um avatar novo é uma entrada aqui, um corpo e um bloco de cores.
+// styles/avatars.css do mascote. Um avatar novo é uma entrada aqui, um corpo e um bloco de cores.
 
 import { t } from './i18n'
 

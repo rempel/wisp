@@ -1,0 +1,336 @@
+/* As cores e os temas (claro, escuro e alto contraste), o foco, o tom do humor, o cabeçalho e o
+   avatar dele. */
+
+:root {
+  color-scheme: light dark;
+  --font: system-ui, 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
+  --mono: ui-monospace, 'Ubuntu Mono', 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
+
+  --bg: #f5fafb;
+  --surface: #ffffff;
+  --hover: #e6f1f4;
+  --border: #d6e7eb;
+  --text: #0c2a33;
+  --muted: #58747d;
+  --accent: #0891b2;
+  --on-accent: #ffffff;
+  --ok: #0d9488;
+  --user-bg: #0e7490;
+  --user-text: #ffffff;
+  --code-bg: #f0f6f8;
+  --code-inline-bg: #e3eff2;
+  --warning-bg: #fffbeb;
+  --warning-border: #fcd34d;
+  --warning-text: #92400e;
+  --danger-bg: #fef2f2;
+  --danger-border: #fca5a5;
+  --danger-text: #b91c1c;
+  --danger-solid: #ef4444;
+  --scrollbar: #c5dbe1;
+  --amber: #f59e0b;
+  --shadow: 0 10px 30px rgb(12 42 51 / 0.16), 0 2px 6px rgb(12 42 51 / 0.08);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0b1418;
+    --surface: #111d22;
+    --hover: #182a31;
+    --border: #1d3139;
+    --text: #e2f1f4;
+    --muted: #86a2aa;
+    --accent: #22d3ee;
+    --on-accent: #052e36;
+    --ok: #5eead4;
+    --user-bg: #0e4552;
+    --user-text: #ecfeff;
+    --code-bg: #071015;
+    --code-inline-bg: #15262d;
+    --warning-bg: rgb(251 191 36 / 0.1);
+    --warning-border: rgb(251 191 36 / 0.35);
+    --warning-text: #fcd779;
+    --danger-bg: rgb(248 113 113 / 0.1);
+    --danger-border: rgb(248 113 113 / 0.35);
+    --danger-text: #fca5a5;
+    --danger-solid: #f87171;
+    --scrollbar: #24404a;
+    --amber: #fbbf24;
+    --shadow: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+  }
+}
+
+/* Alto contraste (Fase 22): o do sistema (prefers-contrast) ou o das configurações. Bordas e
+   textos secundários na cor do texto, e um anel de foco grosso. */
+:root.contrast {
+  --bg: #ffffff;
+  --surface: #ffffff;
+  --hover: #d7eaef;
+  --border: #0c2a33;
+  --text: #000000;
+  --muted: #10303a;
+  --accent: #075e70;
+  --user-bg: #075e70;
+  --code-bg: #eef5f7;
+  --ok: #005a50;
+  --warning-border: #92400e;
+  --warning-text: #6b2e00;
+  --danger-border: #b91c1c;
+  --danger-text: #8f1010;
+  --scrollbar: #0c2a33;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root.contrast {
+    --bg: #000000;
+    --surface: #000000;
+    --hover: #1f3a43;
+    --border: #e2f1f4;
+    --text: #ffffff;
+    --muted: #d5e6ea;
+    --accent: #67e8f9;
+    --user-bg: #0e4552;
+    --code-bg: #0b1418;
+    --ok: #99f6e4;
+    --warning-border: #fbbf24;
+    --warning-text: #fde68a;
+    --danger-border: #f87171;
+    --danger-text: #fecaca;
+    --scrollbar: #e2f1f4;
+  }
+}
+
+:root.contrast :focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* O foco do teclado sempre à vista (Fase 22), nos botões e nos campos. */
+:where(button, a, summary, [role='switch'], [tabindex]):focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Só para o leitor de tela: fora da vista, mas lido (os anúncios da conversa). */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* A cor do humor do Wisp, que tinge o alto do painel (registrada para poder animar). */
+@property --mood {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: transparent;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+}
+
+::selection {
+  background: rgb(34 211 238 / 0.3);
+}
+
+button {
+  font: inherit;
+}
+
+.chat {
+  --mood: transparent;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: radial-gradient(
+    140% 55% at 50% -12%,
+    color-mix(in srgb, var(--mood) 16%, transparent),
+    transparent 72%
+  );
+  transition: --mood 0.8s ease;
+}
+
+.chat.mood-working,
+.chat.mood-talking {
+  --mood: var(--accent);
+}
+
+.chat.mood-permission {
+  --mood: var(--amber);
+}
+
+.chat.mood-happy {
+  --mood: var(--ok);
+}
+
+.chat.mood-error {
+  --mood: var(--danger-solid);
+}
+
+/* ---- Cabeçalho (arrasta a janela) ------------------------------------- */
+
+.header {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 50px;
+  padding: 0 8px 0 14px;
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.title {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.title strong {
+  font-size: 14px;
+}
+
+.status {
+  font-size: 11.5px;
+  color: var(--muted);
+}
+
+.title strong,
+.status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.title {
+  min-width: 0;
+}
+
+/* Enquanto trabalha, o status ganha um brilho que passa pelo texto. */
+.status.busy {
+  color: var(--accent);
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0%,
+    var(--accent) 35%,
+    var(--text) 50%,
+    var(--accent) 65%,
+    var(--accent) 100%
+  );
+  background-size: 300% 100%;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: shimmer 2s linear infinite;
+}
+
+@keyframes shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: 0 0;
+  }
+}
+
+.icon-button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+  -webkit-app-region: no-drag;
+}
+
+.icon-button:hover,
+.icon-button.active {
+  background: var(--hover);
+  color: var(--text);
+}
+
+/* ---- Avatar no cabeçalho, acompanhando o humor do mascote ------------- */
+
+.avatar {
+  flex: none;
+  overflow: visible;
+}
+
+.avatar-tip {
+  transform-box: fill-box;
+  transform-origin: center;
+  transition: fill 0.3s;
+}
+
+.avatar-working .avatar-eyes {
+  animation: avatar-scan 1.8s ease-in-out infinite;
+}
+
+.avatar-working .avatar-tip,
+.avatar-talking .avatar-tip {
+  animation: avatar-glow 0.9s ease-in-out infinite;
+}
+
+.avatar-permission .avatar-tip {
+  fill: var(--amber);
+  animation: avatar-glow 0.6s ease-in-out infinite;
+}
+
+.avatar-sleeping .avatar-tip {
+  opacity: 0.35;
+}
+
+.avatar-error .avatar-tip {
+  fill: #fb7185;
+}
+
+.avatar-happy {
+  animation: avatar-hop 0.6s ease-out 2;
+}
+
+@keyframes avatar-scan {
+  0%,
+  100% {
+    transform: translateX(-2.5px);
+  }
+  50% {
+    transform: translateX(2.5px);
+  }
+}
+
+@keyframes avatar-glow {
+  50% {
+    transform: scale(1.35);
+    opacity: 0.7;
+  }
+}
+
+@keyframes avatar-hop {
+  40% {
+    transform: translateY(-3px);
+  }
+}

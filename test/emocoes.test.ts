@@ -5,7 +5,7 @@
 // que o Claude usa sem pedir permissão.
 import { HOME } from './helpers/home'
 import assert from 'node:assert/strict'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { CONFIG_PATH, checkSettings, loadConfig } from '../src/main/config'
@@ -40,10 +40,14 @@ import { emotionFace, faceFor, faceKey, takeOf } from '../src/renderer/mascot/fa
 
 const ROOT = join(__dirname, '../..')
 const read = (path: string): string => readFileSync(join(ROOT, path), 'utf8')
-const CSS =
-  read('src/renderer/mascot/mascot.css') +
-  read('src/renderer/mascot/emotions.css') +
-  read('src/renderer/mascot/avatars.css')
+/** As folhas do mascote (styles/), na ordem do nome; `prefix` escolhe só umas (as emotions-*). */
+const styles = (prefix = ''): string =>
+  readdirSync(join(ROOT, 'src/renderer/mascot/styles'))
+    .filter((name) => name.endsWith('.css') && name.startsWith(prefix))
+    .sort()
+    .map((name) => read(`src/renderer/mascot/styles/${name}`))
+    .join('\n')
+const CSS = styles()
 
 test('tabela: as 31 emoções do kit, cada uma com peças que existem', () => {
   assert.equal(EMOTIONS.length, 31)
@@ -118,7 +122,7 @@ test('desenho: todo olho, boca, cor, sinal, emoção e dança tem CSS (e arte)',
 })
 
 test('desenho: parado, nada da Fase 27 anima no cochilo nem com menos movimento', () => {
-  const emotions = read('src/renderer/mascot/emotions.css')
+  const emotions = styles('emotions-')
   // Os movimentos dependem do data-feel, do data-dance e dos sinais, que o cochilo não tem.
   assert.doesNotMatch(emotions, /state-sleeping/)
   assert.match(emotions, /:root\.reduce-motion \{[\s\S]*\.stage \.feel,[\s\S]*animation: none/)

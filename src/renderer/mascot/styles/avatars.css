@@ -1,6 +1,6 @@
 /*
- * As cores e os ajustes de cada avatar (Fase 19), por cima do mascot.css. O robô é o padrão de
- * lá; aqui ficam os outros. As cores de repouso vão num :where (sem peso), para as dos estados
+ * As cores e os ajustes de cada avatar (Fase 19), por cima do body.css e do states.css. O robô é
+ * o padrão de lá; aqui ficam os outros. As cores de repouso vão num :where (sem peso), para as dos estados
  * (pedindo permissão, erro…) continuarem valendo por cima delas.
  */
 

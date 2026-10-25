@@ -1025,7 +1025,11 @@ Notas da entrega:
 movimento dela, depois de uma troca atuada; o Claude mostra uma emoção sem card; e o Wisp parado
 continua sem gastar CPU.
 
-### Fase 28: manutenção e CI
+### Fase 28: manutenção e CI ✅
+
+**Status:** pronta, esperando validação. Testes de unidade: `test/manutencao.test.ts` (o aviso
+das dependências, o tamanho dos arquivos, as folhas de estilo e o CI). Os de ponta a ponta são os
+de sempre, sem mudar nenhum.
 
 - **CI que não cai sozinho (P):** o job do ARM64 foi cancelado por passar de 30 minutos só no
   `apt-get install` do compilador cruzado (nos outros pushes, de 20 s a 13 min). O passo ganha um
@@ -1036,8 +1040,36 @@ continua sem gastar CPU.
 - **Dependências em dia (P):** um aviso no CI quando o Electron, o Claude Code mínimo ou uma
   dependência com falha de segurança conhecida (`npm audit`) pedem atualização.
 
+Notas da entrega:
+
+- todo `apt-get` do CI passa pelo `scripts/ci-apt.sh`: três tentativas com espera entre elas, um
+  limite para cada uma (2 min para o `update`, 5 para o `install`), o `Acquire::Retries` do apt e
+  os `.deb` num cache (`actions/cache`) entre os pushes. O passo tem 25 minutos (30 no Flatpak), e
+  todo job tem o seu limite, o do release também (o teste confere);
+- o job novo **Dependências** só avisa, em anotações e numa tabela no resumo do job, e nunca
+  derruba o CI: falha alta ou crítica no `npm audit --omit=dev` é aviso, moderada é nota; o
+  Electron uma ou duas versões maiores atrás é nota, três (fora das que recebem correções) é aviso;
+  um Claude Code de versão maior nova pede conferir o Wisp e subir o `MIN_CLAUDE`. Na entrega, ele
+  apontou o Electron 45 (o Wisp usa o 44) e nenhuma falha conhecida;
+- o `npm audit fix` subiu, dentro das faixas do `package.json`, o Electron (44.7.0 → 44.9.3) e
+  dependências do servidor MCP e do build (body-parser, fast-uri, ip-address, qs, undici e zod);
+- os módulos novos, por assunto: no main, `claude-cli.ts`, `claude-settings.ts`, `claude-state.ts`
+  e `claude-stream.ts`; `chat-tabs.ts`, `chat-window.ts`, `chat-conversation.ts`,
+  `chat-library.ts` e `chat-types.ts`; `notify.ts`, `weekly.ts`, `github-alerts.ts`,
+  `agenda-alerts.ts`, `openrouter-ipc.ts`, `skills-ipc.ts` e `voice-quick.ts` (saídos do
+  `index.ts`); e `dbus-wire.ts` (o formato das mensagens). No `shared/`, o `ipc.ts` fica com os
+  canais e a API do preload, e os tipos vão para `ipc-chat.ts`, `ipc-mascot.ts`,
+  `ipc-sessions.ts` e `ipc-settings.ts`. No painel, `Message.tsx`, `NextEvent.tsx`, `TaskBar.tsx`,
+  `ViewToggle.tsx`, `SettingsFields.tsx`, `OpenRouterKey.tsx` e `PhoneSection.tsx`. Os módulos
+  antigos reexportam o que saiu deles: quem importava de lá continua igual;
+- o CSS do painel e o do mascote viram folhas por assunto em `styles/`, ligadas por `@import` no
+  `chat.css` e no `mascot.css`, na ordem de antes: o CSS montado saiu idêntico (fora os
+  comentários);
+- a exceção é o dicionário em inglês (`i18n-en.ts`, ≈1.900 linhas): uma lista de frases, que
+  cresce com cada texto novo e o `npm run i18n` confere.
+
 **Aceite:** cinco pushes seguidos com o CI todo verde; nenhum arquivo do `src/` com mais de
-1.000 linhas; os testes de unidade e de ponta a ponta passam sem mudar.
+1.000 linhas (menos o dicionário); os testes de unidade e de ponta a ponta passam sem mudar.
 
 ### Fase 29: o histórico que acha
 

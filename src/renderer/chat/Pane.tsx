@@ -6,24 +6,11 @@ import type {
   ClipboardOffer,
   MascotState,
   SoundSettings,
-  TaskInfo,
   VoiceStatus
 } from '../../shared/ipc'
 import { AttachmentList } from './AttachmentList'
 import { ClipboardChip } from './ClipboardChip'
-import {
-  Avatar,
-  CalendarIcon,
-  ChatIcon,
-  CloseIcon,
-  MicIcon,
-  SendIcon,
-  SoundOffIcon,
-  SoundOnIcon,
-  StopIcon,
-  TerminalIcon
-} from './icons'
-import { Markdown } from './Markdown'
+import { Avatar, CloseIcon, MicIcon, SendIcon, SoundOffIcon, SoundOnIcon, StopIcon } from './icons'
 import { ComposerMenu } from './ComposerMenu'
 import { ContextPill } from './ContextPill'
 import { ModelPill } from './ModelPill'
@@ -33,8 +20,6 @@ import { ModePill } from './ModePill'
 import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
 import { requestTitle } from './describe-request'
-import { PermissionCard } from './PermissionCard'
-import { QuestionCard } from './QuestionCard'
 import { matchCommands, slashQuery } from './slash'
 import type { SlashCommand } from './slash'
 import type { SavedPrompt } from '../../shared/prompts'
@@ -42,10 +27,13 @@ import { SlashMenu } from './SlashMenu'
 import { FindBar } from './FindBar'
 import { awaitingPermission, lastTurnStart } from './state'
 import type { ChatState, Item } from './state'
+import { Message } from './Message'
+import { NextEvent } from './NextEvent'
+import { TaskBar } from './TaskBar'
 import { TerminalView } from './TerminalView'
-import { ToolCard } from './ToolCard'
+import { ViewToggle } from './ViewToggle'
 import { useAttachments } from './useAttachments'
-import { t, dateLocale } from '../../shared/i18n'
+import { t } from '../../shared/i18n'
 
 /** Distância do fim (px) em que a lista ainda acompanha o texto que chega. */
 const STICK_DISTANCE = 48
@@ -82,95 +70,6 @@ function replyAnnouncement(items: Item[]): string {
       return t('Resposta pronta: {v1}', { v1: plainStart(item.text) })
   }
   return t('O Claude terminou.')
-}
-
-function Message({
-  item,
-  streaming,
-  onEdit
-}: {
-  item: Item
-  streaming: boolean
-  /** A última mensagem dá para editar (com o Claude parado). */
-  onEdit?: () => void
-}): JSX.Element {
-  switch (item.kind) {
-    case 'user':
-      return (
-        <div className={`user-turn${onEdit ? ' editable' : ''}`}>
-          {onEdit && (
-            <button
-              type="button"
-              className="edit-last"
-              onClick={onEdit}
-              title={t('Editar e mandar de novo (↑ na caixa vazia)')}
-              aria-label={t('Editar a última mensagem')}
-            >
-              {t('Editar')}
-            </button>
-          )}
-          <span className="sr-only">{t('Você:')}</span>
-          {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}
-          {item.text && (
-            <div
-              className={`msg user${item.voice ? ' spoken' : ''}${item.queued ? ' queued' : ''}`}
-            >
-              {item.voice && (
-                <span className="voice-badge" title={t('Falado')}>
-                  <MicIcon />
-                </span>
-              )}
-              {item.text}
-            </div>
-          )}
-          {item.queued && (
-            <span
-              className="queue-badge"
-              title={t('O Claude recebe na próxima pausa, sem parar o que está fazendo')}
-            >
-              {t('na fila')}
-            </span>
-          )}
-          {item.dropped && (
-            <span
-              className="queue-badge dropped"
-              title={t('A resposta parou antes de o Claude pegar esta mensagem')}
-            >
-              {t('não chegou ao Claude')}
-            </span>
-          )}
-        </div>
-      )
-    case 'text':
-      return (
-        <>
-          <span className="sr-only">{t('Claude:')}</span>
-          <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
-            <Markdown text={item.text} />
-          </div>
-        </>
-      )
-    case 'tool':
-      return <ToolCard tool={item} />
-    case 'notice':
-      return (
-        <div className={`notice notice-${item.level}`}>
-          <Markdown text={item.text} />
-        </div>
-      )
-    case 'permission':
-      return item.toolName === 'AskUserQuestion' ? (
-        <QuestionCard
-          request={item}
-          onAnswer={(answers) => window.wisp.chat.answerQuestion(item.id, answers)}
-        />
-      ) : (
-        <PermissionCard
-          request={item}
-          onAnswer={(decision) => window.wisp.chat.answerPermission(item.id, decision)}
-        />
-      )
-  }
 }
 
 export interface PaneProps {
@@ -968,112 +867,5 @@ export function Pane({
         </div>
       </form>
     </section>
-  )
-}
-
-/** Chat ou terminal (o Claude Code de verdade): a mesma conversa, dos dois jeitos. */
-function ViewToggle({
-  view,
-  busy,
-  onPick
-}: {
-  view: 'chat' | 'terminal'
-  busy: boolean
-  onPick: (view: 'chat' | 'terminal') => void
-}): JSX.Element {
-  const hint = busy ? t(' (espere a resposta terminar)') : ''
-  return (
-    <div className="view-toggle" role="group" aria-label={t('Chat ou terminal')}>
-      <button
-        type="button"
-        className={view === 'chat' ? 'active' : ''}
-        aria-pressed={view === 'chat'}
-        disabled={busy && view !== 'chat'}
-        onClick={() => onPick('chat')}
-        title={t('Chat: a conversa nas bolhas do Wisp{hint}', { hint })}
-      >
-        <ChatIcon />
-        <span>{t('Chat')}</span>
-      </button>
-      <button
-        type="button"
-        className={view === 'terminal' ? 'active' : ''}
-        aria-pressed={view === 'terminal'}
-        disabled={busy && view !== 'terminal'}
-        onClick={() => onPick('terminal')}
-        title={t('Terminal: o Claude Code de verdade, na mesma conversa{hint}', { hint })}
-      >
-        <TerminalIcon />
-        <span>{t('Terminal')}</span>
-      </button>
-    </div>
-  )
-}
-
-/** As tarefas em segundo plano (um servidor rodando, um subagente): a primeira e quantas mais. */
-function TaskBar({ tasks }: { tasks: TaskInfo[] }): JSX.Element {
-  const [first, ...rest] = tasks
-  return (
-    <div
-      className="task-bar"
-      role="status"
-      title={tasks.map((task) => task.description).join('\n')}
-    >
-      <span className="spinner" />
-      <span>
-        {t('Em segundo plano:')} {first.description || t('uma tarefa')}
-        {rest.length > 0 ? ` (+${rest.length})` : ''}
-      </span>
-    </div>
-  )
-}
-
-const CLOCK = new Intl.DateTimeFormat(dateLocale(), { hour: '2-digit', minute: '2-digit' })
-
-/** "hoje às 14:00", "amanhã às 09:30". */
-function whenLabel(start: number, now: number): string {
-  const day = (ms: number): number => new Date(ms).setHours(0, 0, 0, 0)
-  const days = Math.round((day(start) - day(now)) / 86_400_000)
-  const prefix =
-    days === 0
-      ? t('hoje')
-      : days === 1
-        ? t('amanhã')
-        : new Date(start).toLocaleDateString(dateLocale(), { weekday: 'long' })
-  return t('{prefix} às {v2}', { prefix, v2: CLOCK.format(start) })
-}
-
-/** "em 25 min", "em 2 h", "agora", "termina em 10 min". */
-function relativeLabel(event: AgendaItem, now: number): string {
-  if (event.start > now) {
-    const minutes = Math.ceil((event.start - now) / 60_000)
-    if (minutes < 60) return t('em {minutes} min', { minutes })
-    const hours = Math.floor(minutes / 60)
-    const rest = minutes % 60
-    return rest ? t('em {hours} h {rest} min', { hours, rest }) : t('em {hours} h', { hours })
-  }
-  if (event.end > now) return t('agora, até {v1}', { v1: CLOCK.format(event.end) })
-  return t('agora')
-}
-
-/** O próximo compromisso da agenda, no painel vazio (a hora relativa anda sozinha). */
-function NextEvent({ event }: { event: AgendaItem }): JSX.Element {
-  const [now, setNow] = useState(() => Date.now())
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
-    return () => window.clearInterval(timer)
-  }, [])
-  return (
-    <div className="next-event" aria-label={t('Próximo compromisso')}>
-      <CalendarIcon />
-      <div>
-        <strong>{event.title}</strong>
-        <span>
-          {event.start > now ? whenLabel(event.start, now) : t('acontecendo')} ·{' '}
-          {relativeLabel(event, now)}
-          {event.location ? ` · ${event.location}` : ''}
-        </span>
-      </div>
-    </div>
   )
 }

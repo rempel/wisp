@@ -5,11 +5,12 @@ import { HEART } from './FaceArt'
 
 /*
  * Os sinais no ar do kit (Fase 27): pintados, com contorno escuro para aparecerem em qualquer
- * papel de parede. Cada um é desenhado em volta de (0, 0) e posto pelo CSS (emotions.css): os de
- * cima da cabeça (a nuvem, a lâmpada, o vapor) no alto, os outros no canto de cima, do lado oposto
- * ao painel. Entram num pulo (passam do tamanho e voltam), e as partes que mexem (a chuva, as
- * gotas, as reticências) são camadas HTML, animadas só com transform e opacity. As estrelinhas,
- * os "z", os corações e a veia de bravo já existiam para as reações: o palco só os liga.
+ * papel de parede. Cada um é desenhado em volta de (0, 0) e posto pelo CSS (emotions-signs.css):
+ * os de cima da cabeça (a nuvem, a lâmpada, o vapor) no alto, os outros no canto de cima, do lado
+ * oposto ao painel. Entram num pulo (passam do tamanho e voltam), e as partes que mexem (a chuva,
+ * as gotas, as reticências) são camadas HTML, animadas só com transform e opacity. As
+ * estrelinhas, os "z", os corações e a veia de bravo já existiam para as reações: o palco só os
+ * liga.
  */
 
 const BANG = 'M -1.9 -8 L 1.9 -8 L 0.8 1.2 L -0.8 1.2 Z'

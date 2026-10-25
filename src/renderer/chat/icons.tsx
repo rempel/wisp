@@ -352,7 +352,7 @@ function Eyes({ mood, color = '#a5f3fc' }: { mood: MascotState; color?: string }
 
 /**
  * O Wisp em miniatura: o mesmo avatar do mascote (a gotinha robô ou o fantasminha). Com `mood`,
- * acompanha o humor do mascote: olhos, a luz de cima e um pouco de movimento (chat.css).
+ * acompanha o humor do mascote: olhos, a luz de cima e um pouco de movimento (styles/base.css).
  */
 export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotState }): JSX.Element {
   // Os ids do useId têm caracteres que atrapalham o url(#...) do SVG.

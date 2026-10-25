@@ -1,0 +1,847 @@
+/* O modo terminal, a caixa de texto, as pílulas, o microfone, os anexos e o que você copiou. */
+
+/* ---- Modo terminal (o Claude Code de verdade) ----------------------------- */
+
+/* No modo terminal, a lista do chat e a caixa de texto saem de cena (continuam montadas). */
+.messages[hidden],
+.composer-row textarea[hidden] {
+  display: none;
+}
+
+.terminal-wrap {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  background: #0b1418;
+}
+
+.terminal-view {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  padding: 6px 4px 4px 8px;
+}
+
+.terminal-view .xterm {
+  height: 100%;
+}
+
+.terminal-view .xterm-viewport {
+  scrollbar-width: thin;
+  scrollbar-color: #24404a transparent;
+}
+
+/* Os cards de permissão aparecem por cima do terminal (o diálogo dele continua valendo). */
+.terminal-cards {
+  position: absolute;
+  right: 10px;
+  bottom: 10px;
+  left: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 70%;
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: var(--shadow);
+}
+
+.terminal-cards > * {
+  margin: 0;
+  background: var(--surface);
+}
+
+.terminal-hint {
+  flex: 1;
+  align-self: center;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Chat ou terminal: a mesma conversa, dos dois jeitos. */
+.view-toggle {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.view-toggle button {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.view-toggle button svg {
+  width: 13px;
+  height: 13px;
+}
+
+.view-toggle button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.view-toggle button:disabled {
+  cursor: default;
+  opacity: 0.55;
+}
+
+/* ---- Caixa de texto --------------------------------------------------- */
+
+.composer {
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 12px 12px;
+  border-top: 1px solid var(--border);
+}
+
+.composer-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+/* As tarefas em segundo plano (um servidor rodando, um subagente). */
+.task-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.task-bar > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* O menu dos comandos com barra, acima da caixa de texto. */
+.slash-menu {
+  display: flex;
+  flex-direction: column;
+  max-height: 240px;
+  overflow-y: auto;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.slash-option {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  padding: 6px 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.slash-option span {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.slash-option.selected,
+.slash-option:hover {
+  background: var(--hover);
+}
+
+/* Um prompt salvo (Fase 26): a etiqueta antes da prévia do texto. */
+.slash-saved {
+  flex: none;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--hover);
+  color: var(--accent);
+  font-size: 11px;
+  font-style: normal;
+}
+
+/* A linha das pílulas rola de lado quando o painel fica estreito. Os menus delas se ancoram no
+   invólucro (fora da rolagem), para não serem cortados. */
+.composer-meta-wrap {
+  position: relative;
+  margin-bottom: -2px;
+}
+
+.composer-meta {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding-bottom: 2px;
+  scrollbar-width: thin;
+  white-space: nowrap;
+}
+
+.composer-meta > * {
+  flex-shrink: 0;
+}
+
+.composer-meta .model {
+  position: static;
+}
+
+.composer-meta .model-menu {
+  max-width: calc(100% - 8px);
+  /* A linha das pílulas não quebra; os menus dela, sim. */
+  white-space: normal;
+}
+
+.context-ring {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+}
+
+.context-ring svg {
+  width: 14px;
+  height: 14px;
+  transform: rotate(-90deg);
+}
+
+.context-track,
+.context-fill {
+  fill: none;
+  stroke-width: 2.4;
+}
+
+.context-track {
+  stroke: var(--border);
+}
+
+.context-fill {
+  stroke: var(--ok);
+  stroke-linecap: round;
+}
+
+.context-mid .context-fill {
+  stroke: var(--warning-text);
+}
+
+.context-high .context-fill {
+  stroke: var(--danger-text);
+}
+
+.context-pill.context-high {
+  border-color: var(--danger-solid);
+  color: var(--danger-text);
+}
+
+.context-pill.compacting .context-ring {
+  animation: spin 1.2s linear infinite;
+}
+
+.context-card {
+  width: min(320px, calc(100% - 8px));
+  padding: 10px 12px;
+}
+
+.context-bar {
+  margin: 6px 0 4px;
+}
+
+.context-numbers {
+  margin: 0 0 6px;
+  font-size: 12.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.context-card .model-menu-note {
+  margin: 0 0 8px;
+}
+
+.context-instructions,
+.context-compact {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.context-compact {
+  margin-top: 6px;
+}
+
+.composer-menu {
+  position: relative;
+}
+
+.composer-plus-menu {
+  bottom: calc(100% + 6px);
+  left: 0;
+  min-width: 240px;
+}
+
+.composer-plus-menu .model-check svg {
+  width: 14px;
+  height: 14px;
+  color: var(--muted);
+}
+
+.composer-plus-menu .model-option:disabled {
+  cursor: default;
+  opacity: 0.6;
+}
+
+/* ---- Pílula do modelo ------------------------------------------------- */
+
+.experimental {
+  margin-left: 4px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--accent);
+  font-size: 10px;
+  font-style: normal;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.model-pill span {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.model-pill.missing {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.model-menu-note {
+  margin: 4px 8px 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+/* O menu dos modelos é largo: fica preso à linha das pílulas, e não à pílula do modelo, para
+   não passar da borda do painel. */
+.model.openrouter-model {
+  position: static;
+}
+
+.openrouter-menu {
+  right: 0;
+  max-width: 400px;
+}
+
+.openrouter-search {
+  box-sizing: border-box;
+  width: 100%;
+  margin-bottom: 4px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg, var(--surface));
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.openrouter-search:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.openrouter-list {
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.openrouter-list .model-text small {
+  word-break: break-all;
+}
+
+.cost-rows {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 4px 12px;
+  margin: 6px 0 8px;
+  font-size: 12.5px;
+}
+
+.cost-rows dt {
+  color: var(--muted);
+}
+
+.cost-rows dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.model {
+  position: relative;
+}
+
+.model-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 8px 0 7px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.model-pill:hover,
+.model-pill[aria-expanded='true'] {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.model-pill svg {
+  width: 13px;
+  height: 13px;
+}
+
+.model-pill .chevron-down {
+  width: 11px;
+  height: 11px;
+}
+
+.model-menu {
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 0;
+  z-index: 20;
+  min-width: 260px;
+  padding: 4px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.model-option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 6px 10px 6px 6px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.model-option:hover {
+  background: var(--hover);
+}
+
+.model-check {
+  display: grid;
+  place-items: center;
+  width: 16px;
+  color: var(--accent);
+}
+
+.model-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.3;
+}
+
+.model-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.model-text small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.composer textarea {
+  flex: 1;
+  min-height: 40px;
+  max-height: 160px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  line-height: 1.4;
+  outline: none;
+  resize: none;
+  box-sizing: border-box;
+  /* A caixa cresce com o texto, até o max-height. */
+  field-sizing: content;
+}
+
+.composer textarea:focus {
+  border-color: var(--accent);
+}
+
+.composer .icon-button {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.composer .icon-button:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+  filter: brightness(1.08);
+}
+
+.composer .icon-button:disabled {
+  opacity: 0.4;
+  cursor: default;
+  filter: none;
+}
+
+.composer .icon-button.stop {
+  background: var(--danger-solid);
+  color: #fff;
+}
+
+.composer .icon-button.attach {
+  width: 32px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.composer .icon-button.attach:hover {
+  background: var(--hover);
+  color: var(--text);
+  filter: none;
+}
+
+/* Os dois botões pequenos à esquerda da caixa (anexar e print) ficam juntinhos. */
+.composer .icon-button.attach + .icon-button.attach {
+  margin-left: -6px;
+}
+
+.composer .icon-button.attach .spinner {
+  color: var(--accent);
+}
+
+/* O microfone: vermelho enquanto ouve, com um anel que cresce com a voz (--lvl, de 0 a 1). */
+.composer .icon-button.mic {
+  position: relative;
+}
+
+.composer .icon-button.mic.listening,
+.composer .icon-button.mic.listening:hover {
+  background: var(--danger-solid);
+  color: #fff;
+}
+
+.composer .icon-button.mic.listening::before {
+  content: '';
+  position: absolute;
+  inset: 3px -1px;
+  border: 2px solid var(--danger-solid);
+  border-radius: 12px;
+  opacity: calc(0.25 + var(--lvl, 0) * 0.75);
+  transform: scale(calc(1.05 + var(--lvl, 0) * 0.3));
+  transition:
+    transform 0.1s ease-out,
+    opacity 0.1s ease-out;
+  pointer-events: none;
+}
+
+.composer .icon-button.mic.transcribing .spinner {
+  color: var(--accent);
+}
+
+.voice-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.voice-hint.listening {
+  color: var(--danger-text);
+}
+
+/* Mensagem falada: um microfone pequeno antes do texto. */
+.msg.user .voice-badge {
+  display: inline-flex;
+  margin-right: 6px;
+  vertical-align: -2px;
+  opacity: 0.7;
+}
+
+.msg.user .voice-badge svg {
+  width: 13px;
+  height: 13px;
+}
+
+/* Botão de mudo, no canto da linha do modelo. */
+.composer .icon-button.sound-toggle {
+  width: 26px;
+  height: 26px;
+  margin-left: auto;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.composer .icon-button.sound-toggle:hover {
+  background: var(--hover);
+  color: var(--text);
+  filter: none;
+}
+
+.composer .icon-button.sound-toggle.off {
+  opacity: 0.6;
+}
+
+/* ---- Anexos ----------------------------------------------------------- */
+
+.attachments {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.attachment {
+  position: relative;
+  box-sizing: border-box;
+  border: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.attachment.thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.attachment.thumb img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.attachment.chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  font-size: 12.5px;
+}
+
+.attachment.chip > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.attachment-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.attachment-size {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.composer .attachment.thumb {
+  width: 52px;
+  height: 52px;
+}
+
+.attachment-remove {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: rgb(0 0 0 / 0.55);
+  color: #fff;
+  cursor: pointer;
+}
+
+.attachment-remove svg {
+  width: 11px;
+  height: 11px;
+}
+
+.attachment.thumb .attachment-remove {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+}
+
+.attachment.chip .attachment-remove {
+  flex: none;
+  margin-right: -4px;
+  background: transparent;
+  color: var(--muted);
+}
+
+.attachment.chip .attachment-remove:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.attach-error {
+  font-size: 12.5px;
+  color: var(--danger-text);
+}
+
+/* ---- "Usar o que você copiou" ----------------------------------------- */
+
+.clip-chip {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+  max-width: 100%;
+  border: 1px dashed color-mix(in srgb, var(--accent) 55%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--surface));
+  animation: clip-in 0.25s ease-out;
+}
+
+.clip-take {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 28px;
+  padding: 0 4px 0 10px;
+  border: 0;
+  border-radius: 999px 0 0 999px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  cursor: pointer;
+}
+
+.clip-take > svg {
+  flex: none;
+  color: var(--accent);
+}
+
+.clip-take:hover .clip-label {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.clip-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.clip-meta {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.clip-dismiss {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  margin-right: 2px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.clip-dismiss:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.clip-dismiss svg {
+  width: 11px;
+  height: 11px;
+}
+
+@keyframes clip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+/* Aparece enquanto arquivos são arrastados por cima do painel. */
+.drop-overlay {
+  position: absolute;
+  inset: 8px;
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 2px dashed var(--accent);
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--accent) 7%, var(--bg));
+  color: var(--accent);
+  pointer-events: none;
+}
+
+.drop-overlay svg {
+  width: 28px;
+  height: 28px;
+}
+
+.drop-overlay strong {
+  font-size: 15px;
+}
+
+.drop-overlay span {
+  color: var(--muted);
+  font-size: 12.5px;
+}
