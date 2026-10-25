@@ -4,6 +4,7 @@ import type {
   AgendaItem,
   AttachmentPreview,
   ClipboardOffer,
+  HistoryTarget,
   MascotState,
   SoundSettings,
   VoiceStatus
@@ -141,6 +142,8 @@ export function Pane({
   // Editando a última mensagem (Fase 21): o que estava na caixa antes, para voltar se desistir.
   const [editing, setEditing] = useState<{ before: string; attachments: number } | null>(null)
   const [finding, setFinding] = useState(false)
+  // Aberta pela busca do histórico (Fase 29): a mensagem onde a busca na conversa começa.
+  const [findAt, setFindAt] = useState<{ target: HistoryTarget; seq: number } | null>(null)
   // O aviso para o leitor de tela (Fase 22): a resposta que terminou, o pedido que chegou.
   const [announcement, setAnnouncement] = useState('')
   const [seenBusy, setSeenBusy] = useState(state.busy)
@@ -226,7 +229,11 @@ export function Pane({
           addDropped(message.data)
           input.current?.focus()
         } else if (message.type === 'find') {
-          if (viewRef.current !== 'terminal') setFinding(true)
+          if (viewRef.current !== 'terminal') {
+            setFinding(true)
+            const target = message.target
+            if (target) setFindAt((current) => ({ target, seq: (current?.seq ?? 0) + 1 }))
+          }
         } else if (message.type === 'focus-card') {
           // Alt+P (Fase 22): o primeiro botão do card que espera resposta.
           const target = root.current?.querySelector<HTMLElement>(
@@ -584,9 +591,12 @@ export function Pane({
       )}
       {finding && !terminalView && (
         <FindBar
+          key={findAt?.seq ?? 0}
           root={list}
+          target={findAt?.target}
           onClose={() => {
             setFinding(false)
+            setFindAt(null)
             input.current?.focus()
           }}
         />

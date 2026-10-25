@@ -1071,12 +1071,33 @@ Notas da entrega:
 **Aceite:** cinco pushes seguidos com o CI todo verde; nenhum arquivo do `src/` com mais de
 1.000 linhas (menos o dicionário); os testes de unidade e de ponta a ponta passam sem mudar.
 
-### Fase 29: o histórico que acha
+### Fase 29: o histórico que acha ✅
+
+**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/historico.mjs` (uma
+conversa de 40 dias atrás, com 200 turnos, achada por uma palavra sem o acento e aberta na
+mensagem dela).
 
 - **Busca pelo conteúdo (M):** a busca do histórico procura no que foi dito (as suas mensagens e
   as respostas), não só no título, num índice local. O resultado mostra o trecho, e abrir leva à
   mensagem.
 - **Filtros (P):** por pasta ou projeto, e por período (hoje, esta semana, antes).
+
+Notas da entrega:
+
+- a busca não diferencia maiúsculas nem acentos; com várias palavras, a conversa precisa ter todas
+  (em qualquer mensagem), e o trecho vem da mensagem que tem a frase inteira ou, senão, mais
+  palavras. O resultado diz de quem é o trecho e quantas mensagens mais batem;
+- o índice (`~/.cache/wisp/busca.json`, só do usuário) guarda o texto das mensagens de cada
+  conversa, com as edições já aplicadas. Cada busca confere a data e o tamanho dos arquivos e só
+  relê os que mudaram; ele fica na memória enquanto o histórico é usado e sai dela 5 minutos
+  depois. Apagar uma conversa a tira do índice na hora; um cache estragado é refeito;
+- abrir pelo resultado abre a conversa (ou mostra a aba onde ela já está) com a busca na conversa
+  aberta no trecho, a palavra marcada e a mensagem à vista, mesmo numa conversa longa em que ela
+  ficaria escondida no "mostrar mais". A busca na conversa (Ctrl+F) também passou a ignorar os
+  acentos;
+- ferramentas, comandos e o que elas devolveram ficam fora do índice: ele é o que foi dito;
+- uma frase separada por um hífen ou por um negrito no meio não aparece inteira: a busca acha
+  pelas palavras, e a marca vai na primeira.
 
 **Aceite:** uma palavra dita numa conversa de um mês atrás acha a conversa, e abrir mostra a
 mensagem dela no painel.

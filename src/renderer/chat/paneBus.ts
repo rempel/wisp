@@ -1,4 +1,4 @@
-import type { DroppedFiles } from '../../shared/ipc'
+import type { DroppedFiles, HistoryTarget } from '../../shared/ipc'
 
 /** O que a casca do painel manda para o painel de uma conversa. */
 export type PaneMessage =
@@ -10,15 +10,15 @@ export type PaneMessage =
   | { type: 'drop'; data: DataTransfer }
   /** Volta o foco para a caixa de texto. */
   | { type: 'focus' }
-  /** Abre a busca na conversa (Ctrl+F). */
-  | { type: 'find' }
+  /** Abre a busca na conversa (Ctrl+F); com `target`, nessa mensagem (a busca do histórico). */
+  | { type: 'find'; target?: HistoryTarget }
   /** Leva o foco para o card que espera resposta (Alt+P). */
   | { type: 'focus-card' }
 
 /**
- * Entrega mensagens ao painel de uma conversa. O ditado e os anexos esperam, se o painel ainda
- * não estiver na tela (a aba acabou de aparecer); o arraste não espera, porque o DataTransfer só
- * vale durante o evento.
+ * Entrega mensagens ao painel de uma conversa. O ditado, os anexos e a mensagem achada no
+ * histórico esperam, se o painel ainda não estiver na tela (a aba acabou de aparecer); o arraste
+ * não espera, porque o DataTransfer só vale durante o evento.
  */
 export class PaneBus {
   private readonly handlers = new Map<string, (message: PaneMessage) => void>()
@@ -36,7 +36,11 @@ export class PaneBus {
   emit(conversation: string, message: PaneMessage): void {
     const handler = this.handlers.get(conversation)
     if (handler) return handler(message)
-    if (message.type !== 'compose' && message.type !== 'attach') return
+    const waits =
+      message.type === 'compose' ||
+      message.type === 'attach' ||
+      (message.type === 'find' && !!message.target)
+    if (!waits) return
     this.waiting.set(conversation, [...(this.waiting.get(conversation) ?? []), message])
   }
 }

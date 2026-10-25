@@ -293,6 +293,9 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       return { ...state, view: event.view }
     case 'terminal':
       return { ...state, terminal: event.terminal }
+    case 'jump':
+      // Vai para a busca na conversa (Chat.tsx), não para o estado.
+      return state
     case 'restored': {
       // O que ficou pela metade quando a conversa foi guardada não vai terminar.
       const items = state.items.map((item): Item => {

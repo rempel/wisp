@@ -63,6 +63,7 @@ src/
 │  ├─ claude-cli.ts  # achar o `claude`, o ambiente dele (sem a chave da API) e o login
 │  ├─ tui.ts         # o modo terminal: o Claude Code de verdade num pseudo-terminal (node-pty)
 │  ├─ history.ts     # histórico das conversas em ~/.local/share/wisp/conversas
+│  ├─ history-search.ts # a busca do histórico: o índice no cache, o trecho e onde abrir
 │  ├─ hooks/
 │  │  ├─ protocol.ts # contrato relay ↔ app: socket, eventos, respostas
 │  │  ├─ relay.ts    # o wisp-hook que o Claude Code roda a cada hook (Electron em modo Node)
@@ -115,6 +116,7 @@ src/
 │  ├─ ipc-sessions.ts # as sessões do terminal e os hooks
 │  ├─ ipc-settings.ts # as configurações, o diagnóstico, o celular, as skills e a agenda
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
+│  ├─ fold.ts        # buscar sem acentos nem maiúsculas (e onde cada letra estava)
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
@@ -679,6 +681,17 @@ CONTRIBUTING.md        # o guia de contribuição
   do CSS (`CSS.highlights`), sem mexer no HTML das mensagens. O rascunho de cada aba fica num mapa
   na página (para a aba que sai e volta) e vai para o `abas.json` depois de parar de digitar. As
   fixadas ficam num arquivo à parte (`fixadas.json`), porque o histórico é só de acréscimos.
+- **Busca do histórico:** o `history-search.ts` guarda, por conversa, a data e o tamanho do
+  arquivo e o texto das mensagens (as suas, pela ordem, e cada bloco de texto do Claude, pelo id),
+  depois do `applyRewinds`. A cada busca, ele confere a pasta e só relê o que mudou; o índice vai
+  para `~/.cache/wisp/busca.json` (0600) uns segundos depois, sai da memória 5 minutos depois da
+  última busca e perde uma conversa apagada na hora. A busca dobra o texto e as palavras (sem
+  acentos, em minúsculas, pelo `fold.ts`), e o trecho volta para o texto original pelo mapa de
+  posições do `foldMap`. Abrir pelo resultado manda à página um evento `jump` depois das
+  mensagens; o `Chat.tsx` o entrega ao painel da conversa pelo `PaneBus` (que guarda o pedido se o
+  painel ainda não está na tela), e a `FindBar` abre com o termo e começa no trecho de dentro da
+  mensagem: a n-ésima `.user-turn` ou o `[data-item]` do bloco. Buscando, o painel mostra todas as
+  mensagens, então a achada está lá mesmo numa conversa longa.
 - **Diagnóstico e primeiros passos:** o `diagnostics-ipc.ts` junta os fatos: o `claude
 --version` e o `claude auth status --json` (com o mesmo ambiente das conversas), o
   `NameHasOwner` e o `ListActivatableNames` do D-Bus para o chaveiro (`org.freedesktop.secrets`)

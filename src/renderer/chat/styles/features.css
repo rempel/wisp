@@ -663,3 +663,81 @@
   flex: 1;
   min-width: 140px;
 }
+
+/* A busca do histórico (Fase 29): os filtros e o trecho que bate. */
+.history-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  margin: 0 4px;
+}
+
+.history-period {
+  display: inline-flex;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+}
+
+.history-period button {
+  padding: 2px 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.history-period button.active {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.history-folder {
+  min-width: 0;
+  max-width: 50%;
+  height: 26px;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+}
+
+.history-open.with-snippet {
+  flex-wrap: wrap;
+  row-gap: 2px;
+}
+
+.history-snippet {
+  display: -webkit-box;
+  flex-basis: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.history-snippet mark {
+  padding: 0 1px;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  color: var(--text);
+}
+
+.history-who {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.history-matches {
+  font-size: 11px;
+}

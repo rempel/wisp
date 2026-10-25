@@ -282,7 +282,7 @@ export class History {
         createdAt: header.createdAt,
         updatedAt,
         current: open.has(id) || id === this.current?.id,
-        ...(header.cwd ? { project: basename(header.cwd) } : {}),
+        ...(header.cwd ? { project: basename(header.cwd), folder: header.cwd } : {}),
         ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
         ...(pins.has(id) ? { pinned: true } : {})
       })

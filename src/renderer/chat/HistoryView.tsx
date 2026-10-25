@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
 import type { JSX } from 'react'
+import { fold } from '../../shared/fold'
 import { formatWhen } from '../../shared/format'
-import type { ConversationSummary } from '../../shared/ipc'
+import type { ConversationSummary, HistoryHit } from '../../shared/ipc'
 import { DownloadIcon, PinIcon, SearchIcon, TrashIcon } from './icons'
 import { WeekCard } from './WeekCard'
 import { t } from '../../shared/i18n'
@@ -9,6 +10,27 @@ import { t } from '../../shared/i18n'
 const DAY = 86_400_000
 /** Quantas conversas a lista mostra de cada vez (Fase 23); o resto vem no "Mostrar mais". */
 const PAGE = 50
+/** Quanto esperar o fim da digitação para buscar no que foi dito (ms). */
+const SEARCH_MS = 200
+
+/** O filtro de período (Fase 29), pela última atividade da conversa. */
+type Period = 'all' | 'today' | 'week' | 'older'
+const PERIODS: [Period, string][] = [
+  ['all', t('Tudo')],
+  ['today', t('Hoje')],
+  ['week', t('Esta semana')],
+  ['older', t('Antes')]
+]
+/** O filtro de pasta: todas, só as do Wisp (sem pasta) ou uma pasta. */
+const ALL_FOLDERS = '*'
+const NO_FOLDER = ''
+
+function inPeriod(updatedAt: number, period: Period, today: number): boolean {
+  if (period === 'today') return updatedAt >= today
+  if (period === 'week') return updatedAt >= today - 6 * DAY
+  if (period === 'older') return updatedAt < today - 6 * DAY
+  return true
+}
 
 /** Em que grupo da lista a conversa entra, pela última atividade. */
 function groupOf(updatedAt: number, today: number): string {
@@ -18,20 +40,18 @@ function groupOf(updatedAt: number, today: number): string {
   return t('Antes')
 }
 
-/** Busca sem diferenciar maiúsculas nem acentos. */
-const fold = (text: string): string =>
-  text
-    .normalize('NFD')
-    .replace(/\p{Diacritic}/gu, '')
-    .toLowerCase()
-
 /**
- * As conversas guardadas: a mais recente primeiro, agrupadas por dia, com busca pelo título.
- * Abrir uma traz a conversa de volta para o painel; o Claude continua de onde parou.
+ * As conversas guardadas: a mais recente primeiro, agrupadas por dia, com a busca no título e no
+ * que foi dito (Fase 29) e os filtros por pasta e período. Abrir uma traz a conversa de volta para
+ * o painel (achada pela busca, na mensagem do trecho); o Claude continua de onde parou.
  */
 export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
   const [items, setItems] = useState<ConversationSummary[] | null>(null)
   const [query, setQuery] = useState('')
+  // A última busca no que foi dito, e para que texto ela foi.
+  const [result, setResult] = useState<{ query: string; hits: HistoryHit[] } | null>(null)
+  const [folder, setFolder] = useState(ALL_FOLDERS)
+  const [period, setPeriod] = useState<Period>('all')
   const [limit, setLimit] = useState(PAGE)
   const [confirming, setConfirming] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -54,9 +74,27 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
     }
   }, [show])
 
-  async function open(item: ConversationSummary): Promise<void> {
-    // Aberta numa aba (talvez fora da vista): o main só mostra a aba dela.
-    if (await window.wisp.history.open(item.id)) return onClose()
+  // A busca no que foi dito sai quando a digitação para (e de novo se a lista mudou).
+  const typed = query.trim()
+  useEffect(() => {
+    if (!typed) return
+    let alive = true
+    const timer = window.setTimeout(() => {
+      void window.wisp.history.search(typed).then((hits) => {
+        if (alive) setResult({ query: typed, hits })
+      })
+    }, SEARCH_MS)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+    }
+  }, [typed, items])
+
+  async function open(item: ConversationSummary | HistoryHit): Promise<void> {
+    // Aberta numa aba (talvez fora da vista): o main só mostra a aba dela. Achada pela busca, a
+    // conversa abre na mensagem do trecho.
+    const at = 'at' in item ? item.at : undefined
+    if (await window.wisp.history.open(item.id, at)) return onClose()
     setError(t('Não consegui abrir esta conversa: o arquivo dela sumiu ou está estragado.'))
     load()
   }
@@ -83,8 +121,27 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
     else setError(result.message)
   }
 
-  const found = items?.filter((item) => fold(item.title).includes(fold(query.trim()))) ?? []
+  // Buscando: os resultados do main; até chegarem, as conversas com o texto no título (que
+  // também estão nos resultados).
+  const titled = items?.filter((item) => fold(item.title).includes(fold(typed))) ?? []
+  const source: (ConversationSummary | HistoryHit)[] = !typed
+    ? (items ?? [])
+    : result?.query === typed
+      ? result.hits
+      : titled
+  const found = source.filter(
+    (item) =>
+      inPeriod(item.updatedAt, period, today) &&
+      (folder === ALL_FOLDERS || (item.folder ?? NO_FOLDER) === folder)
+  )
   const shown = found.slice(0, limit)
+  // As pastas das conversas, para o filtro (só aparece se alguma tem pasta).
+  const folders = [
+    ...new Map(
+      (items ?? []).flatMap((item) => (item.folder ? [[item.folder, item.project ?? '']] : []))
+    )
+  ].sort((a, b) => a[1].localeCompare(b[1]))
+  const filtered = folder !== ALL_FOLDERS || period !== 'all'
   // O título do grupo vai antes da primeira conversa de cada grupo.
   const groups = shown.map((item) => (item.pinned ? t('Fixadas') : groupOf(item.updatedAt, today)))
 
@@ -95,7 +152,7 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
         <SearchIcon />
         <input
           value={query}
-          placeholder={t('Buscar conversas…')}
+          placeholder={t('Buscar nas conversas…')}
           aria-label={t('Buscar conversas')}
           autoFocus
           onChange={(event) => {
@@ -104,6 +161,43 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
           }}
         />
       </label>
+      <div className="history-filters">
+        <div className="history-period" role="group" aria-label={t('Período')}>
+          {PERIODS.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              className={period === value ? 'active' : ''}
+              aria-pressed={period === value}
+              onClick={() => {
+                setPeriod(value)
+                setLimit(PAGE)
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {folders.length > 0 && (
+          <select
+            className="history-folder"
+            value={folder}
+            aria-label={t('Pasta')}
+            onChange={(event) => {
+              setFolder(event.target.value)
+              setLimit(PAGE)
+            }}
+          >
+            <option value={ALL_FOLDERS}>{t('Todas as pastas')}</option>
+            <option value={NO_FOLDER}>{t('Sem pasta')}</option>
+            {folders.map(([path, name]) => (
+              <option key={path} value={path} title={path}>
+                {name || path}
+              </option>
+            ))}
+          </select>
+        )}
+      </div>
       {error && (
         <div className="attach-error" role="alert">
           {error}
@@ -121,7 +215,11 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
               ? t(
                   'Nenhuma conversa guardada ainda. Elas aparecem aqui a partir da primeira mensagem.'
                 )
-              : t('Nenhuma conversa com esse título.')}
+              : typed
+                ? t('Nada encontrado nas conversas.')
+                : filtered
+                  ? t('Nenhuma conversa nesse filtro.')
+                  : t('Nenhuma conversa com esse título.')}
           </p>
         ) : (
           shown.map((item, index) => {
@@ -146,9 +244,9 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                   <div className={`history-item${item.current ? ' current' : ''}`}>
                     <button
                       type="button"
-                      className="history-open"
+                      className={`history-open${'snippet' in item && item.snippet ? ' with-snippet' : ''}`}
                       onClick={() => void open(item)}
-                      title={item.title}
+                      title={item.folder ?? item.title}
                     >
                       {item.project && <span className="history-project">{item.project}</span>}
                       <span className="history-title">{item.title}</span>
@@ -156,6 +254,22 @@ export function HistoryView({ onClose }: { onClose: () => void }): JSX.Element {
                         <span className="history-badge">{t('aberta')}</span>
                       ) : (
                         <span className="history-when">{formatWhen(item.updatedAt)}</span>
+                      )}
+                      {'snippet' in item && item.snippet && (
+                        <span className="history-snippet">
+                          <span className="history-who">
+                            {item.snippet.who === 'user' ? t('Você:') : t('Claude:')}
+                          </span>{' '}
+                          {item.snippet.before}
+                          <mark>{item.snippet.match}</mark>
+                          {item.snippet.after}
+                          {item.matches > 1 && (
+                            <span className="history-matches">
+                              {' '}
+                              {t('(+{count} mensagens)', { count: item.matches - 1 })}
+                            </span>
+                          )}
+                        </span>
                       )}
                     </button>
                     <button

@@ -72,7 +72,7 @@ export function Message({
       return (
         <>
           <span className="sr-only">{t('Claude:')}</span>
-          <div className={`msg assistant${streaming ? ' streaming' : ''}`}>
+          <div className={`msg assistant${streaming ? ' streaming' : ''}`} data-item={item.id}>
             <Markdown text={item.text} />
           </div>
         </>

@@ -14,6 +14,7 @@ import { listProjects } from './desktop'
 import { exportFileName, exportMarkdown } from './export'
 import { setPinned } from './history'
 import type { History, SavedConversation } from './history'
+import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
 import { pickFolder, pickSaveFile } from './pick'
 import { IPC } from '../shared/ipc'
@@ -60,10 +61,14 @@ export function promptValues(folder: string | null, copied = ''): PromptValues {
   }
 }
 
-export function registerLibrary(ctx: LibraryContext): void {
+/** Devolve o índice da busca, para o app fechar com ele gravado. */
+export function registerLibrary(ctx: LibraryContext): SearchIndex {
   const { fromChat, store, tabs, toPage } = ctx
   const conversations = (): Conversation[] => tabs.conversations()
   const win = (): BrowserWindow | null => ctx.window()
+  const index = new SearchIndex(store)
+  const openIds = (): Set<string> =>
+    new Set(conversations().flatMap((c) => (c.historyId ? [c.historyId] : [])))
 
   /** Exporta uma conversa guardada: o diálogo do sistema escolhe onde. */
   const exportConversation = async (saved: SavedConversation | null): Promise<ExportResult> => {
@@ -101,17 +106,19 @@ export function registerLibrary(ctx: LibraryContext): void {
     if (!fromChat(event) || typeof id !== 'string' || typeof pinned !== 'boolean') return false
     return setPinned(id, pinned)
   })
-  ipcMain.handle(IPC.historyList, (event) => {
-    if (!fromChat(event)) return []
-    const open = new Set(conversations().flatMap((c) => (c.historyId ? [c.historyId] : [])))
-    return store.list(open)
+  ipcMain.handle(IPC.historyList, (event) => (fromChat(event) ? store.list(openIds()) : []))
+  ipcMain.handle(IPC.historySearch, (event, query: unknown) => {
+    if (!fromChat(event) || typeof query !== 'string') return []
+    return index.search(query.slice(0, 200), store.list(openIds()))
   })
-  ipcMain.handle(IPC.historyOpen, (event, id: unknown) => {
+  ipcMain.handle(IPC.historyOpen, (event, id: unknown, at: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return false
-    // Já aberta numa aba: só mostra.
+    const target = checkTarget(at)
+    // Já aberta numa aba: só mostra (e, pela busca, vai à mensagem).
     const open = conversations().find((conversation) => conversation.historyId === id)
     if (open) {
       tabs.show(open.id)
+      if (target) toPage(open.id, { type: 'jump', target })
       return true
     }
     const saved = store.load(id)
@@ -121,6 +128,7 @@ export function registerLibrary(ctx: LibraryContext): void {
     // A conversa da aba recomeça (o 'reset' passa pelo histórico e pelos cards) e a guardada
     // volta: primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
     for (const replayed of conversation.restore(saved)) toPage(conversation.id, replayed)
+    if (target) toPage(conversation.id, { type: 'jump', target })
     tabs.show(conversation.id)
     return true
   })
@@ -128,6 +136,8 @@ export function registerLibrary(ctx: LibraryContext): void {
     if (!fromChat(event) || typeof id !== 'string') return false
     const open = conversations().find((conversation) => conversation.historyId === id)
     const removed = open ? open.history.remove(id) : store.remove(id)
+    // O que foi dito nela sai também do índice da busca, na hora.
+    if (removed) index.forget(id)
     // Apagar a conversa aberta numa aba é recomeçar a aba.
     open?.reset()
     return removed
@@ -173,4 +183,5 @@ export function registerLibrary(ctx: LibraryContext): void {
       return expandPrompt(prompt.text, promptValues(conversation?.folder ?? null, copied))
     }
   )
+  return index
 }
