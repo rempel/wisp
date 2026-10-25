@@ -46,6 +46,10 @@ export interface Facts {
   needsKeyring: boolean
   /** A versão nova, se o aviso está ligado e há uma. */
   update: { version: string; url: string } | null
+  /** O Wisp se atualiza sozinho com um clique (o AppImage, com a chave de assinatura; Fase 31). */
+  selfUpdate?: boolean
+  /** A versão já baixada e trocada, que entra quando o Wisp abrir de novo. */
+  installed?: string | null
 }
 
 /** Compara versões "1.2.3" (sem pré-lançamentos); negativo se a é mais velha. */
@@ -394,7 +398,43 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
   )
 
   // A versão nova.
-  if (facts.update) {
+  if (facts.update && facts.installed === facts.update.version) {
+    checks.push(
+      check(
+        'update',
+        t('Versão nova'),
+        'warn',
+        t('{version} instalada, falta reiniciar', { version: facts.update.version }),
+        t(
+          'O AppImage do Wisp {version} já está no lugar do antigo: ele entra quando o Wisp abrir de novo.',
+          {
+            version: facts.update.version
+          }
+        ),
+        { action: 'restart', optional: true }
+      )
+    )
+  } else if (facts.update && facts.selfUpdate) {
+    checks.push(
+      check(
+        'update',
+        t('Versão nova'),
+        'warn',
+        t('{version} disponível', { version: facts.update.version }),
+        t('O Wisp {version} saiu (você tem o {version2}).', {
+          version: facts.update.version,
+          version2: facts.app.version
+        }),
+        {
+          fix: t(
+            'Em **Atualizar**, o Wisp baixa o AppImage novo, confere a assinatura dele e troca o arquivo. As configurações e as conversas continuam.'
+          ),
+          action: 'update',
+          optional: true
+        }
+      )
+    )
+  } else if (facts.update) {
     checks.push(
       check(
         'update',

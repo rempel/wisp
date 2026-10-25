@@ -91,6 +91,7 @@ check(
       'OpenRouter (experimental)',
       'Integrações',
       'Celular',
+      'Levar o Wisp junto',
       'Avançado'
     ]),
   JSON.stringify(sections)

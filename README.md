@@ -142,7 +142,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
-  acha) e 30 (servidores MCP pelo Wisp):** prontas, esperando a validação com o uso.
+  acha), 30 (servidores MCP pelo Wisp) e 31 (levar o Wisp junto):** prontas, esperando a validação
+  com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
 
@@ -209,6 +211,11 @@ chmod +x Wisp-0.1.0-x86_64.AppImage
 - Na primeira vez, ele escreve o comando `wisp` e a entrada no menu de apps, que chamam o arquivo
   `.AppImage`, e copia o ícone para `~/.local/share/wisp`. Se você mover o arquivo, abra uma vez do
   lugar novo.
+- **Atualizar:** com o aviso de versão ligado (`updateCheck`), o diagnóstico mostra **Atualizar**
+  quando sai uma versão nova: o Wisp baixa o AppImage novo do release, confere a assinatura dele e
+  troca o arquivo no lugar; **Reiniciar o Wisp** abre a versão nova. Sem a assinatura certa, nada
+  é trocado. (Só nas versões com a chave de assinatura; antes dela, baixe o AppImage novo e troque
+  o arquivo à mão.)
 - No Ubuntu 23.10 ou mais novo, o AppArmor bloqueia o sandbox do Chromium de um AppImage, e ele
   fecha com `No usable sandbox!`. O AppImage roda montado numa pasta que muda a cada vez, então o
   perfil vale para o executável `wisp` de qualquer AppImage montado (pede sudo, uma vez só):
@@ -652,6 +659,20 @@ Notion, um calendário...). Em **Configurações → Servidores MCP** aparecem o
   conectou, precisa de login); marcar uma a libera sem card (ela vai para o
   `extraAllowedTools`), a partir da próxima vez que o Wisp abrir. Tirar um servidor desliga ele e
   esquece as ferramentas dele que estavam liberadas.
+
+### Levar o Wisp junto
+
+Em **Configurações → Levar o Wisp junto**, **Exportar…** grava um arquivo com as configurações, os
+prompts salvos e as tarefas agendadas e, marcando "Incluir o histórico das conversas", as conversas
+e as fixadas. O arquivo é só seu (permissão 0600) e não leva nenhuma chave: a da OpenRouter e o
+pareamento do celular ficam no chaveiro do sistema (na máquina nova, é guardar de novo).
+
+**Importar…**, na outra máquina, mostra antes o que muda: cada campo (de → para), com os que mudam
+o que o Wisp roda ou lê marcados (as pastas, os comandos do editor e do terminal, as ferramentas
+liberadas, os servidores MCP, o navegador e as agendas), e quantos prompts, tarefas e conversas
+entram. Nada é apagado: um prompt com o mesmo nome (ou uma tarefa com o mesmo id) é trocado, o resto
+se junta, e uma conversa que já está aqui fica como está. Antes de gravar, o `config.json` vai para
+um backup ao lado dele. Importe só um arquivo seu.
 
 ### Sessões do Claude Code no terminal
 
@@ -1168,7 +1189,8 @@ nunca fica no arquivo: ela vai para o chaveiro do sistema pela tela de configura
 
 `updateCheck` liga o aviso de versão nova: uma vez por dia, o Wisp pergunta ao GitHub qual é a
 última versão publicada e, se for mais nova, avisa numa notificação (uma vez por versão), com o
-link da página dela. Nada é baixado nem instalado sozinho. Desligado, o Wisp não faz essa
+link da página dela. No AppImage, o diagnóstico ganha **Atualizar** (baixa, confere a assinatura e
+troca o arquivo). Nada é baixado nem instalado sem o seu clique. Desligado, o Wisp não faz essa
 consulta.
 
 `phoneApprovals` é a aprovação pelo celular (veja [Aprovar pelo celular](#aprovar-pelo-celular)).
@@ -1265,6 +1287,11 @@ hora uma conversa apagada.
   processo, sem gravar nada.
 - **Servidores MCP:** nas conversas do Wisp entram só os seus que você ligou; os dos projetos
   nunca. Cada ferramenta deles pede permissão pelo card até você liberá-la.
+- **Atualizar só com o clique e com a assinatura:** o AppImage novo é baixado só quando você clica
+  em **Atualizar**, e só troca o arquivo se a assinatura ed25519 conferir com a chave que veio no
+  Wisp (a assinatura cobre o nome, com a versão, e o sha256 do arquivo).
+- **Exportar:** o arquivo exportado é só seu e não tem chaves; importar mostra o que muda antes,
+  marca o que muda o que roda na sua máquina e faz o backup do `config.json`.
 - **Pastas de projetos:** um projeto que roda comandos sozinho (hooks, permissões, skills com
   `allowed-tools`) só é aberto depois de você confiar nele, e a confiança vale até esses arquivos
   mudarem.
@@ -1452,7 +1479,19 @@ o que vale para toda mudança. O que mudou em cada versão está nas [notas de v
 2. Faça o commit e crie a tag: `git tag v<versão>` e `git push origin v<versão>`.
 3. Mova o "Não lançado" do [CHANGELOG](CHANGELOG.md) para a versão nova.
 4. O CI monta os pacotes, confere e cria o release da tag, com o .deb e o AppImage (x86-64 e ARM64),
-   o Flatpak e as notas geradas dos commits.
+   o Flatpak e as notas geradas dos commits. Com o segredo `WISP_RELEASE_KEY`, cada AppImage sai
+   com um `.sig` ao lado, que o **Atualizar** do Wisp confere.
+
+A chave de assinatura dos AppImage se gera uma vez, na sua máquina:
+
+```sh
+node scripts/release-key.mjs                           # a pública vai para src/main/release-key.ts
+gh secret set WISP_RELEASE_KEY < wisp-release-key.pem  # a privada, para o segredo do CI
+```
+
+Guarde uma cópia do `wisp-release-key.pem` fora do repositório (ele está no `.gitignore`) e faça o
+commit do `src/main/release-key.ts`. Trocar a chave depois faz os AppImage já instalados pararem de
+se atualizar sozinhos; o script não troca uma que já existe.
 
 ## Como funciona
 

@@ -1965,5 +1965,69 @@ export const EN: Record<string, string> = {
   'Servidores MCP': 'MCP servers',
   'Usar a ferramenta {tool} do servidor {server}': 'Use the tool {tool} from the {server} server',
   'Ferramentas: marque as que rodam sem perguntar (vale quando o Wisp abrir de novo)':
-    'Tools: check the ones that run without asking (applies when Wisp opens again)'
+    'Tools: check the ones that run without asking (applies when Wisp opens again)',
+  'Pronto: o Wisp {version} já está no lugar. Reinicie para usar.':
+    'Done: Wisp {version} is in place. Restart to use it.',
+  'Não há versão nova instalada.': 'No new version is installed.',
+  '{version} instalada, falta reiniciar': '{version} installed, restart needed',
+  'O AppImage do Wisp {version} já está no lugar do antigo: ele entra quando o Wisp abrir de novo.':
+    'The Wisp {version} AppImage has replaced the old one: it takes over the next time Wisp starts.',
+  'Em **Atualizar**, o Wisp baixa o AppImage novo, confere a assinatura dele e troca o arquivo. As configurações e as conversas continuam.':
+    'With **Update**, Wisp downloads the new AppImage, checks its signature and replaces the file. Your settings and conversations stay.',
+  'Clique para atualizar: o Wisp baixa, confere a assinatura e troca o AppImage.':
+    'Click to update: Wisp downloads it, checks the signature and replaces the AppImage.',
+  'O arquivo é grande demais para ser do Wisp.': 'The file is too large to be a Wisp file.',
+  'Exportar o Wisp': 'Export Wisp',
+  'Exportado para {path}.': 'Exported to {path}.',
+  ' Ele tem as suas conversas: guarde com cuidado.':
+    ' It contains your conversations: keep it safe.',
+  'Importar para o Wisp': 'Import into Wisp',
+  'Escolha o arquivo antes.': 'Choose the file first.',
+  'O arquivo mudou desde a prévia: escolha de novo.':
+    'The file changed since the preview: choose it again.',
+  ' O config.json anterior ficou em {backup}.': ' The previous config.json is at {backup}.',
+  'Este arquivo não é um JSON.': 'This file is not JSON.',
+  'Este arquivo não foi exportado pelo Wisp.': 'This file was not exported by Wisp.',
+  'Este arquivo é de uma versão do Wisp que esta não sabe ler.':
+    "This file comes from a Wisp version this one can't read.",
+  'O arquivo não tem as configurações.': 'The file has no settings.',
+  'O campo {field} do arquivo não vale: {message}':
+    "The file's {field} field is invalid: {message}",
+  'O histórico do arquivo está estragado.': "The file's history is damaged.",
+  ligado: 'on',
+  desligado: 'off',
+  '{file} não é um arquivo.': '{file} is not a file.',
+  'Não tenho como gravar na pasta de {file}: baixe pela página da versão.':
+    "I can't write to the folder of {file}: download it from the release page.",
+  'O download falhou ({status}).': 'The download failed ({status}).',
+  'A assinatura veio grande demais.': 'The signature is too large.',
+  'A versão {version} não tem o AppImage assinado: baixe pela página da versão.':
+    'Version {version} has no signed AppImage: download it from the release page.',
+  'O arquivo veio maior que o esperado.': 'The file is larger than expected.',
+  'O download veio pela metade.': 'The download is incomplete.',
+  'A assinatura não confere: o arquivo baixado foi descartado.':
+    "The signature doesn't match: the downloaded file was discarded.",
+  Atualizar: 'Update',
+  'Reiniciar o Wisp': 'Restart Wisp',
+  'Baixando e conferindo a assinatura…': 'Downloading and checking the signature…',
+  'Incluir o histórico das conversas': 'Include the conversation history',
+  Importar: 'Import',
+  'Importar {file}': 'Import {file}',
+  'Exportado pelo Wisp {versao} em {em}.': 'Exported by Wisp {versao} on {em}.',
+  'Os campos marcados mudam o que o Wisp roda ou lê na sua máquina (comandos, pastas, ferramentas liberadas): importe só um arquivo seu.':
+    'The highlighted fields change what Wisp runs or reads on your machine (commands, folders, allowed tools): only import a file of your own.',
+  'Ficam de fora (de uma versão mais nova): {fields}.':
+    'Left out (from a newer version): {fields}.',
+  'Nada a mudar: já está tudo aqui.': 'Nothing to change: everything is already here.',
+  'Antes, o config.json atual é copiado para um backup ao lado dele. Nada é apagado.':
+    'First, the current config.json is copied to a backup next to it. Nothing is deleted.',
+  'Exportar…': 'Export…',
+  'Importar…': 'Import…',
+  'O arquivo leva as configurações, os prompts salvos, as tarefas e, se marcado, as conversas. Nunca as chaves: a da OpenRouter e o pareamento do celular ficam no chaveiro do sistema (na máquina nova, é guardar de novo).':
+    'The file carries your settings, saved prompts, tasks and, if checked, your conversations. Never the keys: the OpenRouter key and the phone pairing stay in the system keyring (on the new machine, save them again).',
+  'Levar o Wisp junto': 'Take Wisp with you',
+  'Prompts novos: {pa}; trocados: {pr}. Tarefas novas: {ta}; trocadas: {tr}. Conversas novas: {ca}; as {cp} que já estão aqui ficam como estão.':
+    'New prompts: {pa}; replaced: {pr}. New tasks: {ta}; replaced: {tr}. New conversations: {ca}; the {cp} already here stay as they are.',
+  'Importado: as configurações, os prompts e as tarefas. Conversas novas: {conversations}.':
+    'Imported: the settings, prompts and tasks. New conversations: {conversations}.'
 }

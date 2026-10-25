@@ -29,7 +29,7 @@ export const HISTORY_DIR = join(DATA_DIR, 'conversas')
 /** As conversas fixadas no topo do histórico (Fase 21): só os ids. */
 export const PINS_FILE = join(DATA_DIR, 'fixadas.json')
 
-const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+export const CONVERSATION_ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 const TITLE_MAX = 80
 /** O bastante para a primeira linha, que só tem o título e as datas. */
 const HEAD_BYTES = 4096
@@ -265,7 +265,7 @@ export class History {
     const pins = readPins()
     for (const name of names) {
       const id = name.slice(0, -'.jsonl'.length)
-      if (!name.endsWith('.jsonl') || !ID.test(id)) continue
+      if (!name.endsWith('.jsonl') || !CONVERSATION_ID.test(id)) continue
       const file = join(this.dir, name)
       const header = readHeader(file)
       if (!header || header.id !== id) continue
@@ -295,7 +295,7 @@ export class History {
 
   /** Lê uma conversa guardada; null se ela não existir ou não der para ler. */
   load(id: string): SavedConversation | null {
-    if (!ID.test(id)) return null
+    if (!CONVERSATION_ID.test(id)) return null
     this.flush()
     let lines: string[]
     try {
@@ -341,7 +341,7 @@ export class History {
 
   /** Apaga uma conversa. Se for a aberta, ela para de ser gravada. */
   remove(id: string): boolean {
-    if (!ID.test(id)) return false
+    if (!CONVERSATION_ID.test(id)) return false
     if (this.current?.id === id) {
       this.text = null
       this.current = null
@@ -447,7 +447,9 @@ export function rewindPoint(
 export function readPins(file = PINS_FILE): Set<string> {
   try {
     const ids = JSON.parse(readFileSync(file, 'utf8')) as unknown
-    return new Set(Array.isArray(ids) ? ids.filter((id) => isString(id) && ID.test(id)) : [])
+    return new Set(
+      Array.isArray(ids) ? ids.filter((id) => isString(id) && CONVERSATION_ID.test(id)) : []
+    )
   } catch {
     return new Set()
   }
@@ -455,7 +457,7 @@ export function readPins(file = PINS_FILE): Set<string> {
 
 /** Fixa ou solta uma conversa. */
 export function setPinned(id: string, pinned: boolean, file = PINS_FILE): boolean {
-  if (!ID.test(id)) return false
+  if (!CONVERSATION_ID.test(id)) return false
   const pins = readPins(file)
   if (pins.has(id) === pinned) return true
   if (pinned) pins.add(id)

@@ -22,12 +22,38 @@ const FIRST_CHECK_MS = Number(process.env.WISP_TEST_UPDATE_FIRST_MS) || 60_000
 export interface Release {
   version: string
   url: string
+  /** Os arquivos da versão (Fase 31: o AppImage e a assinatura dele, para atualizar). */
+  assets?: ReleaseAsset[]
+}
+
+export interface ReleaseAsset {
+  name: string
+  url: string
+  size: number
+}
+
+/** Só os arquivos de um release do GitHub (o download, por https). */
+const ASSET_URL = /^https:\/\/github\.com\/[\w.-]+\/[\w.-]+\/releases\/download\//
+
+function parseAssets(value: unknown): ReleaseAsset[] {
+  if (!Array.isArray(value)) return []
+  return value.flatMap((asset) => {
+    const { name, browser_download_url: url, size } = (asset ?? {}) as Record<string, unknown>
+    if (typeof name !== 'string' || typeof url !== 'string' || !ASSET_URL.test(url)) return []
+    return [{ name, url, size: typeof size === 'number' ? size : 0 }]
+  })
 }
 
 /** A versão de uma resposta do GitHub (/releases/latest); null se não serve. */
 export function parseRelease(body: unknown): Release | null {
   if (!body || typeof body !== 'object') return null
-  const { tag_name: tag, html_url: url, draft, prerelease } = body as Record<string, unknown>
+  const {
+    tag_name: tag,
+    html_url: url,
+    draft,
+    prerelease,
+    assets
+  } = body as Record<string, unknown>
   if (draft || prerelease) return null
   if (typeof tag !== 'string' || !/^v?\d+\.\d+\.\d+$/.test(tag)) return null
   // Só a página da versão no GitHub: o aviso abre esse endereço no navegador.
@@ -37,7 +63,8 @@ export function parseRelease(body: unknown): Release | null {
   ) {
     return null
   }
-  return { version: tag.replace(/^v/, ''), url }
+  const files = parseAssets(assets)
+  return { version: tag.replace(/^v/, ''), url, ...(files.length ? { assets: files } : {}) }
 }
 
 /** Pede a última versão; null sem rede ou sem uma versão que sirva. */
@@ -130,7 +157,15 @@ export class UpdateChecker {
       return {
         checkedAt: typeof data.checkedAt === 'number' ? data.checkedAt : 0,
         latest: data.latest
-          ? parseRelease({ tag_name: data.latest.version, html_url: data.latest.url })
+          ? parseRelease({
+              tag_name: data.latest.version,
+              html_url: data.latest.url,
+              assets: data.latest.assets?.map(({ name, url, size }) => ({
+                name,
+                browser_download_url: url,
+                size
+              }))
+            })
           : null,
         notified: typeof data.notified === 'string' ? data.notified : null
       }

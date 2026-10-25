@@ -649,3 +649,24 @@ O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferen�
       conversas novas do Wisp.
 - [ ] **Projeto:** um projeto com `.mcp.json` aparece na lista, mas uma conversa aberta nele não
       carrega esses servidores.
+
+## Levar o Wisp junto (Fase 31)
+
+- [ ] **Exportar:** em **Configurações → Levar o Wisp junto**, marque "Incluir o histórico das
+      conversas" e **Exportar…**: o arquivo salvo é só seu (`ls -l` mostra `-rw-------`) e não tem a
+      chave da OpenRouter (`grep sk-or` não acha nada).
+- [ ] **Importar noutra máquina** (ou noutro usuário): **Importar…** mostra o que muda, com os
+      comandos e as pastas marcados, e quantos prompts, tarefas e conversas entram. **Importar**
+      traz os prompts no menu da barra, as tarefas na lista e as conversas no histórico; o
+      `config.json.backup-wisp-…` fica ao lado do `config.json`.
+- [ ] **Nada some:** um prompt seu que não está no arquivo continua lá depois de importar.
+- [ ] **A chave de assinatura (uma vez):** `node scripts/release-key.mjs`, o
+      `gh secret set WISP_RELEASE_KEY < wisp-release-key.pem`, uma cópia da chave fora do
+      repositório e o commit do `src/main/release-key.ts`. Numa tag nova, o release tem um
+      `.AppImage.sig` ao lado de cada AppImage.
+- [ ] **Atualizar** (num AppImage que já tem a chave, com o aviso de versão ligado, quando sair uma
+      versão nova): a notificação abre o diagnóstico; **Atualizar** baixa e diz "Pronto";
+      **Reiniciar o Wisp** abre a versão nova (o diagnóstico mostra o número novo).
+- [ ] **Sem o clique, nada:** com o aviso ligado e uma versão nova, nenhum download acontece antes
+      do clique (a pasta do AppImage não ganha um `.wisp-new`).
+- [ ] **.deb:** no pacote, o diagnóstico continua com **Ver a versão nova** (abre a página).

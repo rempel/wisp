@@ -791,3 +791,22 @@
 .mcp-kind {
   margin: 4px 0 8px;
 }
+
+/* Levar o Wisp junto (Fase 31): exportar e importar. */
+.portable-history {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 13px;
+}
+
+.portable-changes {
+  margin: 6px 0;
+  padding-left: 18px;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+
+.portable-changes li.sensitive {
+  color: var(--warning-text, var(--danger-text));
+}

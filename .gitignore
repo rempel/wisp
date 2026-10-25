@@ -7,3 +7,4 @@ out
 .cache
 .flatpak-build
 .flatpak-builder
+wisp-release-key.pem
