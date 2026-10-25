@@ -25,6 +25,10 @@ export interface TrayActions {
   openSettings(): void
   /** Abre o diagnóstico no painel (Fase 20). */
   openDiagnostics(): void
+  /** Abre a paleta de comandos no painel (Fase 32). */
+  openPalette(): void
+  /** O "não perturbe" do desktop deixa o Wisp quieto agora (Fase 32). */
+  quiet(): boolean
   /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
   shortcutLabel(): string | null
   /** O atalho de voz ("Ctrl+Alt+Space"); null sem atalho. */
@@ -62,6 +66,7 @@ export function menuTemplate(
       click: (item) => actions.setCompactEnabled(item.checked)
     },
     { label: t('Nova conversa'), click: () => actions.newConversation() },
+    { label: t('Paleta de comandos…'), click: () => actions.openPalette() },
     {
       label: t('Sons'),
       type: 'checkbox',
@@ -95,6 +100,9 @@ export function menuTemplate(
     },
     ...(actions.voiceShortcutLabel()
       ? [{ label: t('Falar: {v1} (segure)', { v1: actions.voiceShortcutLabel() }), enabled: false }]
+      : []),
+    ...(actions.quiet()
+      ? [{ label: t('Não perturbe: sem notificações nem sons'), enabled: false }]
       : []),
     { type: 'separator' },
     { label: t('Sair'), click: () => actions.quit() }

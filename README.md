@@ -142,8 +142,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
-  acha), 30 (servidores MCP pelo Wisp) e 31 (levar o Wisp junto):** prontas, esperando a validação
-  com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto) e 32 (paleta de comandos e não
+  perturbe):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -802,6 +802,11 @@ então o login da assinatura nunca é tocado.
 - **Enquanto você estava fora:** ao desbloquear a tela, uma notificação resume o que aconteceu:
   as respostas que ficaram prontas e as que deram erro (pelos títulos das abas), os pedidos que o
   celular deixou expirar e os que ainda esperam você.
+- **Não perturbe:** com o "não perturbe" do desktop ligado (o do KDE Plasma ou o do GNOME), o Wisp
+  não manda notificações nem toca sons; os cards esperam no painel e, com a aprovação pelo celular
+  ligada, vão para o celular como sempre. O Wisp fica sabendo na hora em que você liga ou desliga
+  (sem ficar conferindo), e o menu da bandeja mostra quando ele está quieto. Dá para desligar em
+  **Configurações → Atalhos e sistema → Ficar quieto no "não perturbe"**.
 
 ### Aprovar pelo celular
 
@@ -859,6 +864,19 @@ mascote flutuante por uma cápsula no centro do topo da tela, com o Wisp em mini
 estado. Ela abre com o cursor, sozinha (pulsando) quando o Claude precisa de você, e por alguns
 segundos numa resposta pronta, num lembrete ou num alerta. O clique abre o painel logo abaixo.
 
+### Paleta de comandos
+
+**Ctrl+P** no painel (no modo terminal, **Ctrl+Shift+P**) ou **Ctrl+Alt+P** de qualquer lugar abre
+uma busca só para tudo: as abas, as ações do Wisp (nova conversa, abrir uma pasta, buscar ou
+exportar a conversa, compactar, o modo e o modelo da conversa, dividir o painel, as telas, os sons
+e o idioma), os prompts salvos, as tarefas agendadas, as sessões do terminal, os projetos e as
+conversas do histórico. A busca não liga para acentos e quer todas as palavras ("modo plan",
+"tubaroes"); com 3 letras ou mais, ela também olha o que foi dito nas conversas e mostra o trecho.
+As setas escolhem, o **Enter** faz e o **Esc** fecha só a paleta. Um prompt salvo vai preenchido
+para a caixa, para revisar e mandar com mais um Enter; uma tarefa roda na hora, numa aba nova. O
+atalho global troca em **Configurações → Atalhos e sistema → Paleta de comandos**, e o
+`wisp --palette` faz o mesmo (para ligar a um atalho do sistema).
+
 ### O comando `wisp`
 
 O comando `wisp` abre o Wisp ou fala com o que já está aberto. O .deb o põe em `/usr/bin`; em todo
@@ -869,6 +887,7 @@ início com o sistema usam):
 wisp --toggle                      # abre ou fecha o painel
 wisp --show                        # mostra o painel
 wisp --new                         # começa uma conversa nova
+wisp --palette                     # abre o painel na paleta de comandos
 wisp --ask "que horas são em Tóquio?"   # manda uma pergunta
 ```
 
@@ -877,28 +896,30 @@ na bandeja e no botão direito do mascote.
 
 ## Atalhos
 
-| Onde           | Atalho                      | O que faz                                                     |
-| -------------- | --------------------------- | ------------------------------------------------------------- |
-| Qualquer lugar | Ctrl+Alt+W                  | Abre e fecha o painel (`shortcut` no `config.json`)           |
-| Qualquer lugar | Ctrl+Alt+Espaço             | Segure e fale; um toque ouve até você parar (`voiceShortcut`) |
-| Caixa de texto | Enter / Shift+Enter         | Envia / quebra a linha                                        |
-| Caixa de texto | Shift+Tab                   | Passa para o próximo modo de permissão                        |
-| Caixa de texto | `/`                         | Os comandos com barra (setas escolhem, Tab completa)          |
-| Caixa de texto | Ctrl+V                      | Cola texto, ou uma imagem como anexo                          |
-| Caixa de texto | ↑ (com a caixa vazia)       | Edita a última mensagem (Esc desiste)                         |
-| Painel         | Esc                         | Fecha o painel (ou volta do histórico, ou desiste da voz)     |
-| Painel         | Ctrl+K                      | Conversa nova na aba                                          |
-| Painel         | Ctrl+F                      | Busca na conversa (Enter: o próximo; Esc: fecha)              |
-| Painel         | Ctrl+Shift+E                | Exporta a conversa em Markdown                                |
-| Painel         | Alt+P                       | Vai para o card que espera resposta                           |
-| Painel         | Ctrl+mais / Ctrl+menos / 0  | Aumenta / diminui / volta ao normal o tamanho do painel       |
-| Painel         | Ctrl+T / Ctrl+W             | Abre / fecha uma aba                                          |
-| Painel         | Ctrl+Tab, Ctrl+1…9          | Troca de aba                                                  |
-| Painel         | Ctrl+\\ / Ctrl+Shift+\\     | Divide o painel em foco ao lado / embaixo                     |
-| Painel         | Alt+Shift+setas             | Vai para o painel vizinho                                     |
-| Painel         | Ctrl+M                      | Liga e desliga os sons                                        |
-| Modo terminal  | Esc, Ctrl+C                 | Interrompe o Claude Code (as teclas são dele)                 |
-| Modo terminal  | Ctrl+Shift+C / Ctrl+Shift+V | Copia a seleção / cola                                        |
+| Onde           | Atalho                          | O que faz                                                     |
+| -------------- | ------------------------------- | ------------------------------------------------------------- |
+| Qualquer lugar | Ctrl+Alt+W                      | Abre e fecha o painel (`shortcut` no `config.json`)           |
+| Qualquer lugar | Ctrl+Alt+Espaço                 | Segure e fale; um toque ouve até você parar (`voiceShortcut`) |
+| Qualquer lugar | Ctrl+Alt+P                      | Abre a paleta de comandos (`paletteShortcut`)                 |
+| Caixa de texto | Enter / Shift+Enter             | Envia / quebra a linha                                        |
+| Caixa de texto | Shift+Tab                       | Passa para o próximo modo de permissão                        |
+| Caixa de texto | `/`                             | Os comandos com barra (setas escolhem, Tab completa)          |
+| Caixa de texto | Ctrl+V                          | Cola texto, ou uma imagem como anexo                          |
+| Caixa de texto | ↑ (com a caixa vazia)           | Edita a última mensagem (Esc desiste)                         |
+| Painel         | Ctrl+P (terminal: Ctrl+Shift+P) | Abre a paleta de comandos                                     |
+| Painel         | Esc                             | Fecha o painel (ou volta do histórico, ou desiste da voz)     |
+| Painel         | Ctrl+K                          | Conversa nova na aba                                          |
+| Painel         | Ctrl+F                          | Busca na conversa (Enter: o próximo; Esc: fecha)              |
+| Painel         | Ctrl+Shift+E                    | Exporta a conversa em Markdown                                |
+| Painel         | Alt+P                           | Vai para o card que espera resposta                           |
+| Painel         | Ctrl+mais / Ctrl+menos / 0      | Aumenta / diminui / volta ao normal o tamanho do painel       |
+| Painel         | Ctrl+T / Ctrl+W                 | Abre / fecha uma aba                                          |
+| Painel         | Ctrl+Tab, Ctrl+1…9              | Troca de aba                                                  |
+| Painel         | Ctrl+\\ / Ctrl+Shift+\\         | Divide o painel em foco ao lado / embaixo                     |
+| Painel         | Alt+Shift+setas                 | Vai para o painel vizinho                                     |
+| Painel         | Ctrl+M                          | Liga e desliga os sons                                        |
+| Modo terminal  | Esc, Ctrl+C                     | Interrompe o Claude Code (as teclas são dele)                 |
+| Modo terminal  | Ctrl+Shift+C / Ctrl+Shift+V     | Copia a seleção / cola                                        |
 
 ## O mascote
 
@@ -1002,6 +1023,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "avatar": "robo",
   "dance": "mix",
   "shortcut": "Ctrl+Alt+W",
+  "paletteShortcut": "Ctrl+Alt+P",
   "clipboardChip": true,
   "terminalCommand": null,
   "browserAutomation": false,
@@ -1034,6 +1056,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "panelZoom": 1,
   "tabSleepMinutes": 20,
   "notifyApprovals": true,
+  "quietWithDnd": true,
   "language": "auto",
   "prompts": [{ "name": "diff", "text": "Revise as mudanças ainda não commitadas em {pasta}…" }],
   "scheduledTasks": []
@@ -1144,7 +1167,13 @@ O Wisp acompanha a pasta, então vale na hora. Apagar o arquivo traz o som do Wi
 outra tecla. O KDE lembra da resposta; o GNOME, por enquanto, pergunta de novo a cada abertura do
 Wisp. Se isso incomodar, ponha `"shortcut": null` e ligue um atalho do sistema
 (**Configurações → Teclado → Atalhos personalizados** no GNOME) ao comando
-`~/.local/share/wisp/bin/wisp --toggle`.
+`~/.local/share/wisp/bin/wisp --toggle`. `paletteShortcut` é o atalho global da paleta de comandos,
+do mesmo jeito (o comando do sistema, nesse caso, é o `wisp --palette`).
+
+`quietWithDnd` (ligado por padrão) deixa o Wisp quieto com o "não perturbe" do desktop: nada de
+notificações nem de sons. O estado vem do KDE (a propriedade `Inhibited` do servidor de
+notificações) ou do GNOME (a chave `show-banners` de `org.gnome.desktop.notifications`, pelo portal
+de configurações), e as mudanças chegam por sinal do D-Bus.
 
 `clipboardChip` liga o chip "usar o que você copiou" do painel. O Wisp só olha a área de
 transferência quando o painel ganha o foco, e nada sai do computador até você clicar no chip e
@@ -1170,7 +1199,7 @@ falar a resposta do que foi pedido por voz, com o Piper de `piperPath` e a voz d
 
 O comando `~/.local/share/wisp/bin/wisp` abre o Wisp ou fala com o que já está aberto:
 `--toggle` abre e fecha o painel, `--show` mostra, `--new` começa uma conversa nova (numa aba
-nova, se a da frente já tiver uma) e `--ask "texto"` manda uma pergunta. Ele é reescrito a cada abertura do app, assim como o
+nova, se a da frente já tiver uma), `--palette` abre a paleta de comandos e `--ask "texto"` manda uma pergunta. Ele é reescrito a cada abertura do app, assim como o
 `~/.local/share/applications/io.github.rempel.Wisp.desktop` (a entrada no menu de apps). O
 **Iniciar com o sistema** grava `~/.config/autostart/io.github.rempel.Wisp.desktop`. O Wisp nunca
 sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).

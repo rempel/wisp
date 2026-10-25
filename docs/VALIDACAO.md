@@ -670,3 +670,22 @@ O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferen�
 - [ ] **Sem o clique, nada:** com o aviso ligado e uma versão nova, nenhum download acontece antes
       do clique (a pasta do AppImage não ganha um `.wisp-new`).
 - [ ] **.deb:** no pacote, o diagnóstico continua com **Ver a versão nova** (abre a página).
+
+## Tudo a um atalho (Fase 32)
+
+- [ ] **Só pelo teclado:** no painel, Ctrl+P, digite parte do título de uma conversa antiga (sem
+      acento) e Enter: ela abre numa aba. Ctrl+P, o nome de um prompt salvo e Enter: o texto vai
+      para a caixa; Enter manda. Ctrl+P, "modo plan" e Enter: a pílula vira Planejar.
+- [ ] **Busca no que foi dito:** Ctrl+P e uma frase que você disse numa conversa (não no título):
+      ela aparece com o trecho, e o Enter abre nela.
+- [ ] **Esc:** com a paleta aberta, o Esc fecha só ela; o painel continua.
+- [ ] **De fora:** com o painel escondido, Ctrl+Alt+P (no Wayland, o desktop pergunta antes) abre o
+      painel já na paleta. `wisp --palette` num terminal faz o mesmo.
+- [ ] **No modo terminal:** Ctrl+P continua sendo do Claude Code; Ctrl+Shift+P abre a paleta.
+- [ ] **Não perturbe (KDE):** ligue o "Não perturbe" na bandeja do Plasma; em **Configurações →
+      Atalhos e sistema**, a dica diz "Agora: ligado.", e o menu da bandeja do Wisp diz que ele está
+      quieto. Esconda o painel e peça algo que precise de permissão: nenhuma notificação, nenhum
+      som; o card espera no painel. Desligue: o próximo card vira notificação de novo.
+- [ ] **Não perturbe (GNOME):** o mesmo, com o "Não perturbe" do menu de notificações do GNOME.
+- [ ] **Celular:** com a aprovação pelo celular ligada e o "não perturbe" ligado, o card ainda
+      chega ao celular.

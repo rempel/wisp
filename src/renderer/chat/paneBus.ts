@@ -14,6 +14,8 @@ export type PaneMessage =
   | { type: 'find'; target?: HistoryTarget }
   /** Leva o foco para o card que espera resposta (Alt+P). */
   | { type: 'focus-card' }
+  /** Um prompt salvo, preenchido, na caixa (a paleta de comandos, Fase 32). */
+  | { type: 'prompt'; name: string }
 
 /**
  * Entrega mensagens ao painel de uma conversa. O ditado, os anexos e a mensagem achada no
@@ -39,6 +41,7 @@ export class PaneBus {
     const waits =
       message.type === 'compose' ||
       message.type === 'attach' ||
+      message.type === 'prompt' ||
       (message.type === 'find' && !!message.target)
     if (!waits) return
     this.waiting.set(conversation, [...(this.waiting.get(conversation) ?? []), message])

@@ -1,0 +1,126 @@
+/* A paleta de comandos (Fase 32): uma caixa de busca sobre o painel, com a lista embaixo. */
+
+.palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 56px 12px 12px;
+  background: rgb(12 42 51 / 0.22);
+}
+
+.palette {
+  display: flex;
+  flex-direction: column;
+  width: min(560px, 100%);
+  max-height: min(480px, 100%);
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.palette-input {
+  flex: none;
+  height: 44px;
+  padding: 0 14px;
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.05em;
+  outline: none;
+}
+
+.palette-list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 4px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.palette-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.palette-item.selected {
+  background: var(--hover);
+  box-shadow: inset 3px 0 0 var(--accent);
+}
+
+.palette-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.palette-title,
+.palette-detail {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.palette-detail {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
+.palette-current {
+  margin-left: 8px;
+  padding: 0 6px;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.75em;
+  vertical-align: 1px;
+}
+
+.palette-meta {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 0.8em;
+}
+
+.palette-meta kbd {
+  padding: 1px 5px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--code-bg);
+  font: inherit;
+  font-family: var(--mono);
+}
+
+.palette-empty {
+  padding: 14px 10px;
+  color: var(--muted);
+}
+
+.palette-help {
+  flex: none;
+  padding: 6px 12px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.78em;
+}
+
+@media (prefers-color-scheme: dark) {
+  .palette-backdrop {
+    background: rgb(0 0 0 / 0.4);
+  }
+}

@@ -37,6 +37,8 @@ export function soundForEvent(event: ChatEvent): SoundName | null {
 export interface SoundOutput {
   /** Toca um som no mascote. */
   play(name: SoundName, volume: number): void
+  /** Agora, nenhum som (o "não perturbe" do desktop, Fase 32). */
+  muted?(): boolean
   /** Um som da pasta chegou, mudou (bytes) ou saiu (null). */
   custom(name: SoundName, data: Buffer | null): void
   /** Os sons foram ligados ou desligados (o botão de mudo acompanha). */
@@ -78,7 +80,7 @@ export class Sounds {
   /** Toca um som, se os sons estiverem ligados. */
   play(name: SoundName): void {
     const settings = this.check()
-    if (!settings.enabled || settings.volume <= 0) return
+    if (!settings.enabled || settings.volume <= 0 || this.output.muted?.()) return
     const now = Date.now()
     if (now - (this.lastPlayed.get(name) ?? 0) < REPEAT_MS) return
     this.lastPlayed.set(name, now)

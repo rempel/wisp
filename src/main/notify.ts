@@ -1,6 +1,6 @@
 // As notificações do sistema: pelo Electron (a libnotify) ou, sem ela, direto pelo servidor de
 // notificações do D-Bus; e os cards que esperam com o painel escondido viram notificações com
-// Permitir e Negar (Fase 24).
+// Permitir e Negar (Fase 24). Com o "não perturbe" do desktop ligado (Fase 32), nenhuma sai.
 
 import { Notification } from 'electron'
 import appIcon from '../../resources/icon.png?asset'
@@ -9,6 +9,7 @@ import { getConfig, onConfigChange } from './config'
 import { DBusConnection } from './dbus'
 import { DesktopApprovals, dbusNotifier, escape as escapeMarkup } from './desktop-approvals'
 import type { Notifier } from './desktop-approvals'
+import { DoNotDisturb } from './dnd'
 import type { SoundName } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
@@ -28,12 +29,18 @@ export interface Signals {
 export function setupNotifications(chat: () => Chat | null): {
   notify: Notify
   approvals: DesktopApprovals
+  dnd: DoNotDisturb
+  /** O Wisp está quieto: o "não perturbe" do desktop ligado (e respeitado nas configurações). */
+  quiet(): boolean
 } {
   // O servidor de notificações pelo D-Bus (Fase 24): os cards, e as outras quando falta a libnotify.
   let notifier: Notifier | null = null
+  const dnd = new DoNotDisturb()
+  const quiet = (): boolean => getConfig().quietWithDnd && dnd.active()
   /** O clique de cada notificação simples que foi pelo D-Bus. */
   const clicks = new Map<number, () => void>()
   const notify: Notify = (title, body, onClick) => {
+    if (quiet()) return
     if (Notification.isSupported()) {
       const notification = new Notification({ title, body, icon: appIcon })
       if (onClick) notification.on('click', onClick)
@@ -57,7 +64,7 @@ export function setupNotifications(chat: () => Chat | null): {
   // Responder pela notificação do sistema (Fase 24): o card que espera com o painel escondido
   // vira uma notificação com Permitir e Negar, pela org.freedesktop.Notifications.
   const approvals = new DesktopApprovals({
-    enabled: () => getConfig().notifyApprovals,
+    enabled: () => getConfig().notifyApprovals && !quiet(),
     // Ninguém olhando o painel: escondido, ou aberto sem o foco (o card o faz aparecer assim).
     hidden: () => !(chat()?.attended() ?? false),
     notifier: () => notifier,
@@ -68,6 +75,8 @@ export function setupNotifications(chat: () => Chat | null): {
   void DBusConnection.session()
     .then(async (bus) => {
       if (!bus) return
+      const source = await dnd.start(bus).catch(() => null)
+      if (source) console.log(`[wisp] não perturbe: pelo ${source === 'kde' ? 'KDE' : 'GNOME'}.`)
       notifier = await dbusNotifier(
         bus,
         (id, key) => {
@@ -87,5 +96,5 @@ export function setupNotifications(chat: () => Chat | null): {
   onConfigChange((config) => {
     if (!config.notifyApprovals) approvals.reset()
   })
-  return { notify, approvals }
+  return { notify, approvals, dnd, quiet }
 }

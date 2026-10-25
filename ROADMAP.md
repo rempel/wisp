@@ -1188,7 +1188,13 @@ Notas da entrega:
   como antes. Os AppImage feitos antes da chave ainda não sabem conferir: a primeira versão com
   ela se instala pela página.
 
-### Fase 32: tudo a um atalho
+### Fase 32: tudo a um atalho ✅
+
+**Status:** pronta, esperando validação. Testes: `test/paleta.test.ts` (a busca da paleta, o
+`--palette`, os sons e o "não perturbe" do KDE e do GNOME num D-Bus de teste), `e2e/paleta.mjs`
+(só pelo teclado: abrir uma conversa antiga, rodar um prompt salvo, trocar o modo; o atalho
+global de verdade, pelo xdotool) e `e2e/notificacoes.mjs` (com o "não perturbe", o card não vira
+notificação).
 
 - **Paleta de comandos (M):** um atalho (no painel e global) abre uma busca única: conversas,
   prompts salvos, tarefas, sessões do terminal e as ações do Wisp (nova conversa, abrir pasta,
@@ -1198,6 +1204,26 @@ Notas da entrega:
 
 **Aceite:** do teclado, sem o mouse, dá para abrir uma conversa antiga, rodar um prompt salvo e
 trocar o modo; com o "não perturbe" ligado, um card não vira notificação.
+
+Notas da entrega:
+
+- a paleta abre com **Ctrl+P** no painel (no modo terminal, onde o Ctrl+P é do Claude Code,
+  **Ctrl+Shift+P**), com o atalho global novo `paletteShortcut` (**Ctrl+Alt+P**), com o
+  `wisp --palette` e pelo menu da bandeja. Ela busca, sem acentos e com todas as palavras, as abas,
+  as ações (nova conversa, nova aba, abrir uma pasta, buscar, exportar e compactar a conversa, ver
+  no chat ou no terminal, o modo e o modelo, dividir, as telas, os sons e o idioma), os prompts
+  salvos, as tarefas agendadas, as sessões do terminal, os projetos e as conversas; com 3 letras
+  ou mais, também o que foi dito nas conversas (a busca da Fase 29), com o trecho. O que começa com
+  a busca vem primeiro; o modo e o idioma de agora aparecem marcados;
+- um prompt salvo vai preenchido para a caixa, como no menu da barra (o Enter seguinte manda);
+  uma tarefa roda na hora, numa aba nova, como o "Rodar agora";
+- o "não perturbe" vem do KDE Plasma (a propriedade `Inhibited` do servidor de notificações, com o
+  `PropertiesChanged`) ou do GNOME (`show-banners` de `org.gnome.desktop.notifications`, pelo
+  portal de configurações, com o `SettingChanged`): por sinal, sem conferir de tempos em tempos, e
+  só os sinais de quem tem o nome no D-Bus. Ligado (e com `quietWithDnd`, ligado por padrão), o
+  Wisp não manda nenhuma notificação, nem a dos cards, e não toca sons; o celular segue como
+  configurado. A tela de configurações diz o estado de agora, e o menu da bandeja mostra quando o
+  Wisp está quieto. Num desktop que não diz nada, o Wisp nunca fica quieto por conta disso.
 
 ## Ideias avaliadas e deixadas de fora
 

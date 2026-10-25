@@ -234,6 +234,21 @@ export function Pane({
             const target = message.target
             if (target) setFindAt((current) => ({ target, seq: (current?.seq ?? 0) + 1 }))
           }
+        } else if (message.type === 'prompt') {
+          if (viewRef.current === 'terminal') {
+            // No terminal, o texto vai colado na caixa do Claude Code, para revisar e mandar.
+            void window.wisp.prompts.expand(conversation, message.name).then((text) => {
+              if (text !== null) window.wisp.tui.input(conversation, `\x1b[200~${text}\x1b[201~`)
+            })
+          } else {
+            // Como escolher o prompt no menu da barra: o texto preenchido, para revisar.
+            setSlashIndex(0)
+            void window.wisp.prompts.expand(conversation, message.name).then((text) => {
+              if (text === null) return
+              setDraft(text)
+              input.current?.focus()
+            })
+          }
         } else if (message.type === 'focus-card') {
           // Alt+P (Fase 22): o primeiro botão do card que espera resposta.
           const target = root.current?.querySelector<HTMLElement>(
