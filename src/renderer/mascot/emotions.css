@@ -1,0 +1,2312 @@
+/*
+ * As emoções, os sinais e as danças dos avatares (Fase 27), do ClaudeAnimationBase (o kit de
+ * animação do Clawd, de John Heibel, licença MIT). A tabela fica em src/shared/emotions.ts; aqui,
+ * o desenho e o movimento de cada coisa, para o robô e para o fantasminha.
+ *
+ * O palco diz o que mostrar: data-eyes, data-mouth, data-tint, data-feel (a emoção do corpo),
+ * data-emote (o sinal no ar) e data-dance; e as forças vêm em variáveis (--tk, a cor; --blush;
+ * --gloom; --lx e --ly, o olhar). Como no resto do mascote, tudo o que se mexe sem parar usa só
+ * transform e opacity, em camadas HTML; e nada disso roda no cochilo.
+ *
+ * As unidades do kit viraram pixels assim: 1 unidade de altura ≈ 5 px; os ângulos em radianos
+ * viraram graus; o "sq" (amassar) virou scale(1 + sq, 1 - sq). As danças batem a 114 por minuto.
+ */
+
+.stage {
+  --beat: 0.526s;
+  /* Quanto da cor da emoção entra no casco: o tintK do kit (--tk, de 0 a 1) vezes um reforço. */
+  --tk-mix: min(100%, calc(var(--tk, 0) * var(--tk-boost, 1) * 100%));
+}
+
+/*
+ * O kit pinta um personagem laranja; no robô, ciano, o dourado misturado de leve vira verde e o
+ * vermelho vira marrom. Ali as cores quentes entram mais forte, para chegarem ao que querem dizer.
+ */
+.avatar-robo[data-tint='gold'] {
+  --tk-boost: 2.5;
+}
+
+.avatar-robo[data-tint='flush'],
+.avatar-robo[data-tint='rosy'] {
+  --tk-boost: 1.5;
+}
+
+.pose,
+.feel,
+.act,
+.look,
+.look-move,
+.mouth,
+.mouth-move,
+.gloom,
+.arm,
+.arm-move {
+  position: absolute;
+  inset: 0;
+}
+
+/* O corpo amassa, estica, pula e pende a partir da base, como nos estados. */
+.pose,
+.feel,
+.act {
+  transform-origin: 64px 104px;
+}
+
+/* A pose de cada emoção assenta com uma molinha, a "settle" do kit (passa um pouco e volta). */
+.pose {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---- Os olhos do kit -------------------------------------------------- */
+
+/*
+ * O olhar da emoção (tímido olha para baixo, pensando olha para cima). No robô, com uma boca no
+ * visor, os olhos sobem um pouco para caber os dois.
+ */
+.look {
+  --face-up: 0px;
+  transform: translate(calc(var(--lx, 0) * 3.4px), calc(var(--ly, 0) * 2px + var(--face-up)));
+  transition: transform 0.3s ease-out;
+}
+
+.avatar-robo[data-mouth] .look {
+  --face-up: -2.4px;
+}
+
+.eye-glyph-set {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.stage[data-eyes='wide'] .eye-wide,
+.stage[data-eyes='sleepy'] .eye-sleepy,
+.stage[data-eyes='narrow'] .eye-narrow,
+.stage[data-eyes='determined'] .eye-determined,
+.stage[data-eyes='sad'] .eye-sad,
+.stage[data-eyes='teary'] .eye-teary,
+.stage[data-eyes='cry'] .eye-cry,
+.stage[data-eyes='shine'] .eye-shine,
+.stage[data-eyes='scared'] .eye-scared,
+.stage[data-eyes='blank'] .eye-blank,
+.stage[data-eyes='spark'] .eye-spark,
+.stage[data-eyes='red'] .eye-red,
+.stage[data-eyes='heart'] .eye-heart,
+.stage[data-eyes='dot'] .eye-dot,
+.stage[data-eyes='shades'] .eye-shades,
+.stage[data-eyes='wink'] .eye-wink,
+.stage[data-eyes='narrow-wide'] .eye-narrow-wide {
+  opacity: 1;
+}
+
+.avatar-robo .eye-glyph-set {
+  filter: url(#wisp-led-glow);
+}
+
+.eye-glyph-set .line,
+.eye-glyph-set .lid {
+  fill: none;
+  stroke: var(--led-1);
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.eye-glyph-set .lid {
+  stroke-width: 1.4;
+}
+
+.tear {
+  fill: #93c5fd;
+  fill-opacity: 0.85;
+}
+
+.tear.stream {
+  fill-opacity: 0.5;
+}
+
+.tear-glint {
+  fill: #fff;
+  opacity: 0.9;
+}
+
+/* Brilhando: no robô, o LED vira um anel aceso com dois brilhos; no fantasminha, o olho escuro. */
+.shine-ball {
+  fill: rgb(var(--glow) / 0.3);
+  stroke: var(--led-1);
+  stroke-width: 1.3;
+}
+
+.glint {
+  fill: var(--led-0);
+}
+
+.sclera {
+  fill: rgb(var(--glow) / 0.12);
+  stroke: var(--led-1);
+  stroke-width: 1.3;
+}
+
+.star-eye {
+  fill: #fde68a;
+  stroke: #f59e0b;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.red-halo {
+  fill: #ef4444;
+  opacity: 0.55;
+  filter: url(#wisp-blur);
+}
+
+.red-led {
+  fill: #ff2f4a;
+}
+
+.heart-eye {
+  fill: #fb7185;
+}
+
+.shades-glass {
+  fill: #1e1b2e;
+  stroke: #94a3b8;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.shades-rim {
+  fill: none;
+  stroke: #94a3b8;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.shades-glint {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 0.8;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+/* No fantasminha, os olhos são escuros no corpo claro: sem o brilho dos LEDs. */
+.avatar-fantasma .eye-glyph-set {
+  filter: none;
+}
+
+.avatar-fantasma .eyes .led {
+  fill: var(--ghost-eye);
+}
+
+.avatar-fantasma .eye-glyph-set .line,
+.avatar-fantasma .eye-glyph-set .lid {
+  stroke: var(--ghost-eye);
+}
+
+.avatar-fantasma .shine-ball {
+  fill: var(--ghost-eye);
+  stroke: none;
+}
+
+.avatar-fantasma .glint {
+  fill: #fff;
+}
+
+.avatar-fantasma .sclera {
+  fill: #fff;
+  stroke: var(--ghost-eye);
+  stroke-width: 1.2;
+}
+
+.avatar-fantasma .heart-eye {
+  fill: #e2476e;
+}
+
+.avatar-fantasma .shades-glass,
+.avatar-fantasma .shades-rim {
+  stroke: #0f172a;
+}
+
+/* Olhos de estrela piscam; olhos de coração batem (a mesma especificidade do "não pisca" do
+   mascot.css, que vem antes). */
+.stage[data-eyes='spark'] .eyes-blink {
+  animation: twinkle 0.4s ease-in-out infinite alternate;
+}
+
+.stage[data-eyes='heart'] .eyes-blink {
+  animation: beat 0.52s ease-out infinite;
+}
+
+/* ---- A boca ------------------------------------------------------------ */
+
+.mouth-glyph {
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.stage[data-mouth='o'] .m-o,
+.stage[data-mouth='O'] .m-O,
+.stage[data-mouth='smile'] .m-smile,
+.stage[data-mouth='grin'] .m-grin,
+.stage[data-mouth='flat'] .m-flat,
+.stage[data-mouth='wobble'] .m-wobble,
+.stage[data-mouth='cat'] .m-cat,
+.stage[data-mouth='frown'] .m-frown,
+.stage[data-mouth='smirk'] .m-smirk,
+.stage[data-mouth='laugh'] .m-laugh,
+.stage[data-mouth='open'] .m-open,
+.stage[data-mouth='wail'] .m-wail,
+.stage[data-mouth='teeth'] .m-teeth,
+.stage[data-mouth='tongue'] .m-tongue,
+.stage[data-mouth='pout'] .m-pout,
+.stage[data-mouth='yawn'] .m-yawn {
+  opacity: 1;
+}
+
+.mouth-move {
+  transform-origin: 64px 86.8px;
+}
+
+.avatar-robo .mouth svg {
+  filter: url(#wisp-led-glow);
+}
+
+.mouth .line {
+  fill: none;
+  stroke: var(--led-1);
+  stroke-width: 1.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mouth .line.thin {
+  stroke-width: 1.1;
+}
+
+.mouth .fill {
+  fill: var(--visor-1);
+  stroke: var(--led-1);
+  stroke-width: 1.3;
+  stroke-linejoin: round;
+}
+
+.mouth .tongue {
+  fill: #fb7185;
+}
+
+.mouth .teeth {
+  fill: rgb(var(--glow) / 0.28);
+  stroke: var(--led-1);
+  stroke-width: 1.1;
+}
+
+.mouth .teeth-line {
+  fill: none;
+  stroke: var(--led-1);
+  stroke-width: 0.6;
+}
+
+/* No fantasminha a boca fica no corpo, um pouco mais abaixo, escura como os olhos. */
+.avatar-fantasma .mouth {
+  transform: translateY(3.4px);
+}
+
+.avatar-fantasma .mouth .line,
+.avatar-fantasma .mouth .fill,
+.avatar-fantasma .mouth .teeth {
+  stroke: var(--ghost-eye);
+}
+
+.avatar-fantasma .mouth .fill {
+  fill: #4a1f2a;
+}
+
+.avatar-fantasma .mouth .teeth {
+  fill: #fff;
+}
+
+.avatar-fantasma .mouth .teeth-line {
+  stroke: var(--ghost-eye);
+}
+
+.avatar-fantasma .mouth .tongue {
+  fill: #f472b6;
+}
+
+/* O choro: a boca treme. */
+.stage[data-mouth='wail'] .mouth-move {
+  animation: wail 0.12s linear infinite alternate;
+}
+
+@keyframes wail {
+  from {
+    transform: scale(1, 1);
+  }
+  to {
+    transform: scale(1.06, 0.92);
+  }
+}
+
+/* ---- A cor, as bochechas e a sombra ------------------------------------- */
+
+/* As cores do kit, do núcleo para a borda; o casco mistura com elas pelo --tk (mascot.css). */
+.stage[data-tint='pale'] {
+  --tint-0: #fffaf3;
+  --tint-1: #f6e6d2;
+  --tint-2: #e9d3b8;
+  --tint-3: #c9ad8c;
+}
+
+.stage[data-tint='flush'] {
+  --tint-0: #fecaca;
+  --tint-1: #f87171;
+  --tint-2: #e23e36;
+  --tint-3: #b91c1c;
+}
+
+.stage[data-tint='blue'] {
+  --tint-0: #dbe4f7;
+  --tint-1: #9db1e0;
+  --tint-2: #6d86be;
+  --tint-3: #4a5f94;
+}
+
+.stage[data-tint='rosy'] {
+  --tint-0: #ffe4ec;
+  --tint-1: #f7b3c6;
+  --tint-2: #ef8ea8;
+  --tint-3: #c75f7e;
+}
+
+.stage[data-tint='green'] {
+  --tint-0: #eef5dc;
+  --tint-1: #c3d695;
+  --tint-2: #98b25e;
+  --tint-3: #6b8238;
+}
+
+.stage[data-tint='gold'] {
+  --tint-0: #fff3cf;
+  --tint-1: #f7d77f;
+  --tint-2: #f0be46;
+  --tint-3: #c48c17;
+}
+
+.stage .blush {
+  opacity: var(--blush, 0);
+  transition: opacity 0.3s;
+}
+
+.gloom {
+  opacity: var(--gloom, 0);
+  transition: opacity 0.3s;
+}
+
+.gloom-shade {
+  fill: url(#wisp-gloom);
+}
+
+.gloom-lines {
+  fill: none;
+  stroke: #1e1b4b;
+  stroke-opacity: 0.45;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+/* ---- Os sinais no ar ----------------------------------------------------- */
+
+/*
+ * Do lado oposto ao painel, no canto de cima da cabeça; os de cima (a nuvem, o rabisco), no
+ * alto. A lâmpada acende no lugar da luz de cima; o vapor sai dos dois lados da cabeça.
+ */
+.stage {
+  --emote-x: 90px;
+  --emote-y: 36px;
+  --emote-top: 9px;
+  --bulb-y: 12px;
+  --steam-y: 34px;
+}
+
+.avatar-fantasma {
+  --emote-x: 92px;
+  --emote-y: 44px;
+  --emote-top: 12px;
+  --bulb-y: 25px;
+  --steam-y: 45px;
+}
+
+.emote {
+  position: absolute;
+  left: var(--emote-x);
+  top: var(--emote-y);
+  width: 0;
+  height: 0;
+  transform: scale(1.35);
+}
+
+.look-right .emote.side {
+  left: calc(128px - var(--emote-x));
+}
+
+.emote.top {
+  left: 64px;
+  top: var(--emote-top);
+}
+
+.emote[data-emote='bulb'] {
+  top: var(--bulb-y);
+}
+
+.emote[data-emote='steam'] {
+  top: var(--steam-y);
+}
+
+/* Entra num pulo: cresce do nada, passa um pouco do tamanho e volta (o backOut do kit). */
+.emote-pop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  animation: emote-pop 0.26s cubic-bezier(0.34, 1.56, 0.64, 1) 0.06s both;
+}
+
+@keyframes emote-pop {
+  from {
+    opacity: 0;
+    transform: scale(0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Os de uma vez só (o "!" do susto) somem entre 1,4 e 1,8 s. */
+.emote.fade {
+  animation: emote-fade 0.4s ease-in 1.4s forwards;
+}
+
+@keyframes emote-fade {
+  to {
+    opacity: 0;
+  }
+}
+
+.part {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 0;
+  height: 0;
+}
+
+.part svg {
+  position: absolute;
+  overflow: visible;
+}
+
+.emote .bang {
+  fill: #f5b83d;
+  stroke: #1f2937;
+  stroke-width: 0.9;
+  stroke-linejoin: round;
+}
+
+.quest-ink,
+.quest {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.quest-ink {
+  stroke: #1f2937;
+  stroke-width: 4.2;
+}
+
+.quest {
+  stroke: #7dd3fc;
+  stroke-width: 2.4;
+}
+
+.quest-dot {
+  fill: #7dd3fc;
+  stroke: #1f2937;
+  stroke-width: 0.9;
+}
+
+.sweat {
+  fill: #7dd3fc;
+  stroke: #1f2937;
+  stroke-width: 0.8;
+}
+
+.sweat-glint,
+.bulb-shine,
+.cloud-shine {
+  fill: none;
+  stroke-linecap: round;
+}
+
+.sweat-glint {
+  stroke: #fff;
+  stroke-width: 0.8;
+  opacity: 0.9;
+}
+
+.spark-big,
+.spark-small {
+  fill: #fde68a;
+  stroke: #b45309;
+  stroke-width: 0.7;
+  stroke-linejoin: round;
+}
+
+.heart-emote {
+  fill: #e2476e;
+  stroke: #1f2937;
+  stroke-width: 0.5;
+}
+
+.puff-art {
+  fill: #f1f5f9;
+  stroke: #475569;
+  stroke-width: 0.7;
+}
+
+.bulb-halo {
+  fill: #fde68a;
+  opacity: 0.55;
+  filter: url(#wisp-blur);
+}
+
+.ray {
+  fill: none;
+  stroke: #f0be46;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.bulb-glass {
+  fill: #ffe68a;
+  stroke: #1f2937;
+  stroke-width: 0.8;
+}
+
+.bulb-shine {
+  stroke: #fff;
+  stroke-width: 0.9;
+}
+
+.bulb-base {
+  fill: #9a93a8;
+  stroke: #1f2937;
+  stroke-width: 0.7;
+}
+
+.bulb-screw {
+  stroke: #1f2937;
+  stroke-width: 0.5;
+}
+
+.dot {
+  fill: #f8fafc;
+  stroke: #1f2937;
+  stroke-width: 0.8;
+}
+
+.scribble-under,
+.scribble {
+  fill: none;
+  stroke-linejoin: round;
+}
+
+.scribble-under {
+  stroke: #f8fafc;
+  stroke-width: 2.6;
+  opacity: 0.8;
+}
+
+.scribble {
+  stroke: #334155;
+  stroke-width: 1.1;
+}
+
+.note-head {
+  fill: #c4b5fd;
+  stroke: #1f2937;
+  stroke-width: 0.7;
+}
+
+.note-stem,
+.note-stem-ink {
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.note-stem-ink {
+  stroke: #1f2937;
+  stroke-width: 2.4;
+}
+
+.note-stem {
+  stroke: #ede9fe;
+  stroke-width: 1.1;
+}
+
+.swirl-art {
+  fill: none;
+  stroke: #8b5cf6;
+  stroke-width: 1.3;
+  stroke-linecap: round;
+}
+
+.cloud-art {
+  fill: #a3a8c4;
+  stroke: #1f2937;
+  stroke-width: 0.8;
+  stroke-linejoin: round;
+}
+
+.cloud-shine {
+  stroke: #e2e8f0;
+  stroke-width: 0.9;
+}
+
+.raindrop {
+  stroke: #60a5fa;
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+/* O que mexe em cada sinal. */
+.wiggle {
+  animation: wiggle 1s ease-out both;
+}
+
+@keyframes wiggle {
+  0% {
+    transform: rotate(16deg);
+  }
+  15% {
+    transform: rotate(-6deg);
+  }
+  30% {
+    transform: rotate(11deg);
+  }
+  45% {
+    transform: rotate(2deg);
+  }
+  65% {
+    transform: rotate(8deg);
+  }
+  100% {
+    transform: rotate(5deg);
+  }
+}
+
+.drip {
+  animation: drip 1.5s ease-in infinite;
+}
+
+.drip.d2 {
+  animation-delay: -0.6s;
+}
+
+@keyframes drip {
+  0% {
+    opacity: 1;
+    transform: none;
+  }
+  70% {
+    opacity: 1;
+    transform: translateY(3px);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+}
+
+.twinkle {
+  animation: twinkle 0.5s ease-in-out infinite alternate;
+}
+
+.twinkle.t2 {
+  animation-delay: -0.25s;
+}
+
+@keyframes twinkle {
+  from {
+    transform: scale(0.86);
+  }
+  to {
+    transform: scale(1.12);
+  }
+}
+
+.beat {
+  animation: beat 0.52s ease-out infinite;
+}
+
+@keyframes beat {
+  0%,
+  100% {
+    transform: none;
+  }
+  15% {
+    transform: scale(1.16);
+  }
+  30% {
+    transform: scale(0.98);
+  }
+  45% {
+    transform: scale(1.07);
+  }
+}
+
+/* O vapor do furioso: nuvenzinhas que sobem dos dois lados da cabeça, crescendo e sumindo. */
+.puff {
+  --px: -15px;
+  animation: puff 0.7s ease-out infinite;
+}
+
+.puff.p2 {
+  animation-delay: -0.35s;
+}
+
+.puff.p3,
+.puff.p4 {
+  --px: 15px;
+  animation-delay: -0.17s;
+}
+
+.puff.p4 {
+  animation-delay: -0.52s;
+}
+
+.avatar-fantasma .puff {
+  --px: -21px;
+}
+
+.avatar-fantasma .puff.p3,
+.avatar-fantasma .puff.p4 {
+  --px: 21px;
+}
+
+@keyframes puff {
+  0% {
+    opacity: 0.95;
+    transform: translate(var(--px), 0) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(var(--px) * 1.4), -10px) scale(1.5);
+  }
+}
+
+.bulb-glow,
+.bulb-rays {
+  animation: bulb 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes bulb {
+  from {
+    opacity: 0.55;
+    transform: scale(0.92);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.08);
+  }
+}
+
+/* A lâmpada da ideia acende no lugar da luz de cima, com a antena parada e reta. */
+.stage[data-emote='bulb'] .antenna .led {
+  opacity: 0;
+}
+
+.stage[data-emote='bulb'] .antenna-glow {
+  visibility: hidden;
+}
+
+.stage[data-emote='bulb'] .antenna {
+  animation: none;
+}
+
+/* As reticências de quem pensa: os pontos aparecem um a um e somem juntos. */
+.dot-pop {
+  animation: dot-pop 1.8s ease-out infinite both;
+}
+
+.dot-pop.k2 {
+  animation-name: dot-pop-2;
+}
+
+.dot-pop.k3 {
+  animation-name: dot-pop-3;
+}
+
+@keyframes dot-pop {
+  0% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  8% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  14%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes dot-pop-2 {
+  0%,
+  22% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  30% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  36%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+@keyframes dot-pop-3 {
+  0%,
+  44% {
+    opacity: 0;
+    transform: scale(0);
+  }
+  52% {
+    opacity: 1;
+    transform: scale(1.25);
+  }
+  58%,
+  85% {
+    opacity: 1;
+    transform: none;
+  }
+  100% {
+    opacity: 0;
+    transform: none;
+  }
+}
+
+/* O rabisco treme como traço feito à mão (o "boil" do kit, em três quadros). */
+.scrawl {
+  animation: scrawl 0.25s steps(1) infinite;
+}
+
+@keyframes scrawl {
+  0% {
+    transform: none;
+  }
+  33% {
+    transform: rotate(7deg) scale(1.04);
+  }
+  66% {
+    transform: rotate(-5deg) scale(0.97);
+  }
+}
+
+.bob {
+  animation: bob 0.6s ease-in-out infinite alternate;
+}
+
+.bob.b2 {
+  animation-delay: -0.3s;
+}
+
+@keyframes bob {
+  from {
+    transform: translateY(-1.5px) rotate(-6deg);
+  }
+  to {
+    transform: translateY(1.5px) rotate(6deg);
+  }
+}
+
+.twirl {
+  animation: spin 1.2s linear infinite;
+}
+
+.cloud-bob {
+  animation: cloud-bob 3s ease-in-out infinite alternate;
+}
+
+@keyframes cloud-bob {
+  from {
+    transform: translateY(-0.8px);
+  }
+  to {
+    transform: translateY(0.8px);
+  }
+}
+
+.rain {
+  animation: rain 0.55s linear infinite;
+}
+
+.rain.r2 {
+  animation-delay: -0.2s;
+}
+
+.rain.r3 {
+  animation-delay: -0.4s;
+}
+
+.rain.r4 {
+  animation-delay: -0.1s;
+}
+
+.rain.r5 {
+  animation-delay: -0.3s;
+}
+
+@keyframes rain {
+  0% {
+    opacity: 0;
+    transform: none;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(7px);
+  }
+}
+
+/* Os sinais que as reações já tinham, ligados pela emoção. */
+.emote-stars .star {
+  opacity: 1;
+  transition: opacity 0.2s;
+  animation: star-x 0.7s var(--ease-sine) var(--d) infinite alternate;
+}
+
+.emote-stars .star > svg {
+  animation: star-y 0.7s var(--ease-sine) calc(var(--d) - 0.35s) infinite alternate;
+}
+
+.emote-zzz .z1 {
+  animation: z-rise 3.3s ease-out 0.3s infinite;
+}
+
+.emote-zzz .z2 {
+  animation: z-rise 3.3s ease-out 1.4s infinite;
+}
+
+.emote-zzz .z3 {
+  animation: z-rise 3.3s ease-out 2.5s infinite;
+}
+
+.emote-hearts .heart {
+  animation: heart-rise 1.8s ease-out infinite;
+}
+
+.emote-hearts .h2 {
+  animation-delay: 0.6s;
+}
+
+.emote-hearts .h3 {
+  animation-delay: 1.2s;
+}
+
+.emote-anger .anger-mark {
+  opacity: 1;
+  animation: anger-beat 0.5s ease-in-out infinite;
+}
+
+@keyframes anger-beat {
+  0%,
+  100% {
+    transform: translate(87px, 40px) scale(0.95);
+  }
+  40% {
+    transform: translate(87px, 40px) scale(1.18);
+  }
+}
+
+/* ---- O corpo de cada emoção --------------------------------------------- */
+
+/*
+ * Cada emoção tem uma pose (a camada .pose, que assenta com a molinha), um movimento no ritmo
+ * (a .feel), os bracinhos do fantasminha (de pé, eles levantam: 0 é como estão desenhados) e a
+ * antena do robô (a luz do fantasminha), que no robô faz as vezes dos braços do kit: cai na
+ * tristeza, fica em pé no susto, pende para o lado na dúvida.
+ */
+.arm-l,
+.arm-l .arm-move {
+  transform-origin: 40px 82.5px;
+}
+
+.arm-r,
+.arm-r .arm-move {
+  transform-origin: 88px 82.5px;
+}
+
+.arm {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.arm-l {
+  transform: rotate(var(--al, 0deg));
+}
+
+.arm-r {
+  transform: rotate(calc(var(--ar, 0deg) * -1));
+}
+
+/* Os movimentos dos braços: --flap é quanto, e o direito gira ao contrário (sobe junto). */
+.arm-move {
+  --flap: 20deg;
+  --dir: 1;
+}
+
+.arm-r .arm-move {
+  --dir: -1;
+}
+
+@keyframes arm-flap {
+  0%,
+  100% {
+    transform: rotate(calc(var(--flap) * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(var(--flap) * var(--dir) * -1));
+  }
+}
+
+/* Os dois sobem e descem juntos; com um atraso de meio ciclo no direito, um sobe enquanto o outro
+   desce. */
+/* Genéricos do corpo: quicar no ritmo, balançar, tremer, respirar. */
+@keyframes feel-bounce {
+  0%,
+  100% {
+    transform: scale(calc(1 + var(--hit, 0.08)), calc(1 - var(--hit, 0.08)));
+  }
+  18% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(var(--up, -5px));
+  }
+}
+
+@keyframes feel-sway {
+  0%,
+  100% {
+    transform: translateX(calc(var(--dx, 0px) * -1)) rotate(calc(var(--rot, 3deg) * -1));
+  }
+  50% {
+    transform: translateX(var(--dx, 0px)) rotate(var(--rot, 3deg));
+  }
+}
+
+@keyframes feel-shake {
+  0%,
+  100% {
+    transform: translateX(calc(var(--dx, 0.6px) * -1));
+  }
+  50% {
+    transform: translateX(var(--dx, 0.6px));
+  }
+}
+
+@keyframes feel-breathe {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(calc(1 + var(--sq, 0.06)), calc(1 - var(--sq, 0.06)));
+  }
+}
+
+/* Feliz: quica a cada batida, e os braços balançam. */
+.stage[data-feel='happy'] {
+  --al: 11deg;
+  --ar: 11deg;
+}
+
+.stage[data-feel='happy'] .feel {
+  --up: -5px;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='happy'] .arm-move {
+  --flap: 22deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='happy'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-feel='happy'] .antenna {
+  animation-duration: 1.05s;
+}
+
+/* Animado: pulos curtos duas vezes por batida, braços para cima batendo. */
+.stage[data-feel='excited'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='excited'] .feel {
+  --up: -7px;
+  --hit: 0.1;
+  animation: feel-bounce calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='excited'] .pose {
+  transform: scale(0.96, 1.05);
+}
+
+.stage[data-feel='excited'] .arm-move {
+  --flap: 26deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='excited'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) / -4);
+}
+
+.stage[data-feel='excited'] .antenna-pose {
+  transform: scaleY(1.12);
+}
+
+.stage[data-feel='excited'] .antenna {
+  animation-duration: 0.5s;
+}
+
+/* Rindo: sacode rápido, inclinado, segurando a barriga. */
+.stage[data-feel='laugh'] {
+  --al: -30deg;
+  --ar: -30deg;
+}
+
+.stage[data-feel='laugh'] .pose {
+  transform: rotate(-4deg);
+}
+
+.stage[data-feel='laugh'] .feel {
+  animation: laugh 0.2s ease-in-out infinite;
+}
+
+@keyframes laugh {
+  0%,
+  100% {
+    transform: scale(0.96, 1.04);
+  }
+  50% {
+    transform: translateY(-2.2px) rotate(1.7deg) scale(1.04, 0.96);
+  }
+}
+
+.stage[data-feel='laugh'] .antenna {
+  animation-duration: 0.2s;
+}
+
+/* Apaixonado: balança devagar de um lado para o outro, quicando de leve. */
+.stage[data-feel='love'] {
+  --al: -16deg;
+  --ar: -16deg;
+  --led-halo: #fda4af;
+}
+
+.stage[data-feel='love'] .feel {
+  animation: love calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+@keyframes love {
+  0%,
+  100% {
+    transform: translateX(-2.5px) rotate(-4.6deg);
+  }
+  12.5%,
+  62.5% {
+    transform: translateY(-3px);
+  }
+  25%,
+  75% {
+    transform: none;
+  }
+  50% {
+    transform: translateX(2.5px) rotate(4.6deg);
+  }
+}
+
+.stage[data-feel='love'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+/* Tímido: encolhido, inclinado, olhando para baixo, mexendo os bracinhos. */
+.stage[data-feel='shy'] {
+  --al: -41deg;
+  --ar: -44deg;
+}
+
+.stage[data-feel='shy'] .pose {
+  transform: rotate(-3deg) scale(1.06, 0.94);
+}
+
+.stage[data-feel='shy'] .feel {
+  --dx: 0.8px;
+  --rot: 1.2deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+.stage[data-feel='shy'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.67s ease-in-out infinite;
+}
+
+.stage[data-feel='shy'] .antenna-pose {
+  transform: rotate(-14deg);
+}
+
+/* Orgulhoso: esticado, peito para fora, mãos na cintura. */
+.stage[data-feel='proud'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='proud'] .pose {
+  transform: scale(0.9, 1.1);
+}
+
+.stage[data-feel='proud'] .feel {
+  --dx: 0px;
+  --rot: 1.1deg;
+  animation: feel-sway calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+/* Convencido: inclinado, de canto de olho, uma mão para cima. */
+.stage[data-feel='smug'] {
+  --al: -38deg;
+  --ar: 16deg;
+}
+
+.stage[data-feel='smug'] .pose {
+  transform: rotate(-3.4deg);
+}
+
+.stage[data-feel='smug'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+.stage[data-feel='smug'] .antenna-pose {
+  transform: rotate(-10deg);
+}
+
+/* Aliviado: solta o ar devagar, com os braços caídos. */
+.stage[data-feel='relieved'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='relieved'] .pose {
+  transform: scale(1.05, 0.95);
+}
+
+.stage[data-feel='relieved'] .feel {
+  --sq: 0.05;
+  animation: feel-breathe 2.86s ease-in-out infinite;
+}
+
+.stage[data-feel='relieved'] .antenna-pose {
+  transform: rotate(12deg);
+}
+
+/* Triste: amassado, pendendo devagar, a antena caída, debaixo da nuvem de chuva. */
+.stage[data-feel='sad'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='sad'] .pose {
+  transform: translateY(1px) scale(1.08, 0.92);
+}
+
+.stage[data-feel='sad'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 8) ease-in-out infinite;
+}
+
+.stage[data-feel='sad'] .antenna-pose {
+  transform: rotate(28deg);
+}
+
+/* Chorando: soluça a cada batida, com os braços no rosto. */
+.stage[data-feel='cry'] {
+  --al: 38deg;
+  --ar: 38deg;
+}
+
+.stage[data-feel='cry'] .feel {
+  animation: sob var(--beat) ease-out infinite;
+}
+
+@keyframes sob {
+  0%,
+  100% {
+    transform: scale(0.98, 1.02);
+  }
+  20% {
+    transform: translateY(-3px) scale(1.1, 0.9);
+  }
+  45% {
+    transform: translateY(-1px) scale(1.02, 0.98);
+  }
+}
+
+.stage[data-feel='cry'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.17s ease-in-out infinite;
+}
+
+.stage[data-feel='cry'] .antenna-pose {
+  transform: rotate(18deg);
+}
+
+.stage[data-feel='cry'] .antenna {
+  animation-duration: 0.25s;
+}
+
+/* Bravo: tremendo, de punhos para baixo, a luz vermelha. */
+.stage[data-feel='angry'],
+.stage[data-feel='furious'] {
+  --led-halo: #f87171;
+}
+
+.stage[data-feel='angry'] {
+  --al: -27deg;
+  --ar: -27deg;
+}
+
+.stage[data-feel='angry'] .feel {
+  --dx: 0.6px;
+  animation: feel-shake 0.055s linear infinite;
+}
+
+.stage[data-feel='angry'] .pose {
+  transform: scale(1.04, 0.96);
+}
+
+.stage[data-feel='angry'] .antenna {
+  animation-duration: 0.3s;
+}
+
+/* Furioso: tremendo forte, pulando no lugar, os braços para cima, soltando vapor. */
+.stage[data-feel='furious'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='furious'] .pose {
+  transform: scale(1.06, 0.94);
+}
+
+.stage[data-feel='furious'] .feel {
+  animation: furious 0.11s linear infinite;
+}
+
+@keyframes furious {
+  0%,
+  100% {
+    transform: translateX(-1.1px) rotate(-1.4deg);
+  }
+  50% {
+    transform: translateX(1.1px) translateY(-1px) rotate(1.4deg);
+  }
+}
+
+.stage[data-feel='furious'] .arm-move {
+  --flap: 11deg;
+  animation: arm-flap 0.11s linear infinite;
+}
+
+.stage[data-feel='furious'] .antenna-pose {
+  transform: scaleY(1.1);
+}
+
+.stage[data-feel='furious'] .antenna {
+  animation-duration: 0.12s;
+}
+
+/* Com medo: esticado e tremendo, as mãos para cima, os olhos indo de um lado a outro. */
+.stage[data-feel='scared'] {
+  --al: 44deg;
+  --ar: 44deg;
+}
+
+.stage[data-feel='scared'] .pose {
+  transform: scale(0.94, 1.06);
+}
+
+.stage[data-feel='scared'] .feel {
+  --dx: 0.5px;
+  animation: feel-shake 0.045s linear infinite;
+}
+
+.stage[data-feel='scared'] .look-move {
+  animation: look-dart 2.7s steps(1) infinite;
+}
+
+@keyframes look-dart {
+  0% {
+    transform: translateX(2px);
+  }
+  50% {
+    transform: translateX(-2px);
+  }
+}
+
+.stage[data-feel='scared'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Surpreso: esticado de uma vez, mãos para cima, um "!". */
+.stage[data-feel='surprised'] {
+  --al: 50deg;
+  --ar: 50deg;
+}
+
+.stage[data-feel='surprised'] .pose {
+  transform: translateY(-1.5px) scale(0.88, 1.12);
+}
+
+.stage[data-feel='surprised'] .feel {
+  --up: -0.8px;
+  --hit: 0;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='surprised'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Confuso: a cabeça pende de um lado para o outro, uma mão coçando a cabeça. */
+.stage[data-feel='confused'] {
+  --al: -5deg;
+  --ar: 71deg;
+}
+
+.stage[data-feel='confused'] .feel {
+  --dx: 0px;
+  --rot: 5.7deg;
+  animation: feel-sway calc(var(--beat) * 8) ease-in-out infinite;
+}
+
+.stage[data-feel='confused'] .arm-r .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.33s ease-in-out infinite;
+}
+
+.stage[data-feel='confused'] .antenna-pose {
+  transform: rotate(-24deg);
+}
+
+/* Pensando: inclinado, olhando para cima, a mão no queixo e a outra batucando. */
+.stage[data-feel='thinking'] {
+  --al: -27deg;
+  --ar: 38deg;
+}
+
+.stage[data-feel='thinking'] .pose {
+  transform: rotate(2.9deg);
+}
+
+.stage[data-feel='thinking'] .arm-l .arm-move {
+  --flap: 7deg;
+  animation: arm-flap var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='thinking'] .antenna-pose {
+  transform: rotate(10deg);
+}
+
+/* Tive uma ideia: quica, com o dedo para cima e a lâmpada acesa. */
+.stage[data-feel='idea'] {
+  --al: 0deg;
+  --ar: 74deg;
+}
+
+.stage[data-feel='idea'] .feel {
+  --up: -5px;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='idea'] .pose {
+  transform: scale(0.95, 1.05);
+}
+
+/* Decidido: inclinado para a frente, marchando com os punhos. */
+.stage[data-feel='determined'] {
+  --al: 19deg;
+  --ar: 19deg;
+}
+
+.stage[data-feel='determined'] .pose {
+  transform: rotate(3.4deg) scale(0.96, 1.04);
+}
+
+.stage[data-feel='determined'] .feel {
+  --up: -1.5px;
+  --hit: 0.06;
+  animation: feel-bounce var(--beat) ease-in-out infinite;
+}
+
+.stage[data-feel='determined'] .arm-move {
+  --flap: 19deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='determined'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-feel='determined'] .antenna-pose {
+  transform: scaleY(1.06);
+}
+
+/* Com sono: respira devagar e pende, os braços caídos, a antena tombando. */
+.stage[data-feel='sleepy'] {
+  --al: -44deg;
+  --ar: -44deg;
+}
+
+.stage[data-feel='sleepy'] .feel {
+  animation: sleepy 7.8s ease-in-out infinite;
+}
+
+@keyframes sleepy {
+  0%,
+  100% {
+    transform: rotate(-3.4deg) scale(1.05, 0.95);
+  }
+  25%,
+  75% {
+    transform: scale(1.1, 0.9);
+  }
+  50% {
+    transform: rotate(3.4deg) scale(1.05, 0.95);
+  }
+}
+
+.stage[data-feel='sleepy'] .antenna-pose {
+  transform: rotate(24deg);
+}
+
+/* Entediado: suspira a cada compasso (incha e desincha), olhando para o chão. */
+.stage[data-feel='bored'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='bored'] .pose {
+  transform: rotate(-2.3deg);
+}
+
+.stage[data-feel='bored'] .feel {
+  animation: sigh calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+@keyframes sigh {
+  0%,
+  100% {
+    transform: scale(1.08, 0.92);
+  }
+  30% {
+    transform: scale(0.94, 1.06);
+  }
+}
+
+.stage[data-feel='bored'] .antenna-pose {
+  transform: rotate(-30deg);
+}
+
+/* Nervoso: olha para um lado e para o outro a cada batida, mexendo os dedos. */
+.stage[data-feel='nervous'] {
+  --al: -16deg;
+  --ar: -16deg;
+}
+
+.stage[data-feel='nervous'] .feel {
+  --dx: 1.5px;
+  --rot: 0deg;
+  animation: feel-sway calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='nervous'] .look-move {
+  animation: look-flip calc(var(--beat) * 2) steps(1) infinite;
+}
+
+@keyframes look-flip {
+  0% {
+    transform: translateX(2.7px);
+  }
+  50% {
+    transform: translateX(-2.7px);
+  }
+}
+
+.stage[data-feel='nervous'] .arm-move {
+  --flap: 11deg;
+  animation: arm-flap 0.2s ease-in-out infinite;
+}
+
+.stage[data-feel='nervous'] .antenna {
+  animation-duration: 0.3s;
+}
+
+/* Desconfiado: olha devagar de um lado para o outro, o corpo indo junto. */
+.stage[data-feel='suspicious'] {
+  --al: -33deg;
+  --ar: -33deg;
+}
+
+.stage[data-feel='suspicious'] .pose {
+  transform: scale(1.04, 0.96);
+}
+
+.stage[data-feel='suspicious'] .feel {
+  animation: suspicious 4s ease-in-out infinite;
+}
+
+@keyframes suspicious {
+  0%,
+  100% {
+    transform: translateX(-2px) rotate(4.6deg);
+  }
+  50% {
+    transform: translateX(2px) rotate(-4.6deg);
+  }
+}
+
+.stage[data-feel='suspicious'] .look-move {
+  animation: look-sweep 4s ease-in-out infinite;
+}
+
+@keyframes look-sweep {
+  0%,
+  100% {
+    transform: translateX(-3.4px);
+  }
+  50% {
+    transform: translateX(3.4px);
+  }
+}
+
+/* Com nojo: inclinado para trás, com um arrepio a cada dois tempos, as mãos na frente. */
+.stage[data-feel='disgusted'] {
+  --al: 27deg;
+  --ar: 27deg;
+}
+
+.stage[data-feel='disgusted'] .pose {
+  transform: translateX(-1.5px) rotate(-5.7deg) scale(1.05, 0.95);
+}
+
+.stage[data-feel='disgusted'] .feel {
+  animation: shudder calc(var(--beat) * 2) linear infinite;
+}
+
+@keyframes shudder {
+  0%,
+  30%,
+  100% {
+    transform: none;
+  }
+  4% {
+    transform: translateX(-0.8px);
+  }
+  8% {
+    transform: translateX(0.7px);
+  }
+  12% {
+    transform: translateX(-0.5px);
+  }
+  16% {
+    transform: translateX(0.3px);
+  }
+}
+
+.stage[data-feel='disgusted'] .antenna-pose {
+  transform: rotate(-20deg);
+}
+
+/* Tonto: anda em círculos, balançando, os braços soltos. */
+.stage[data-feel='dizzy'] {
+  --al: 5deg;
+  --ar: 5deg;
+}
+
+.stage[data-feel='dizzy'] .feel {
+  animation: dizzy 1.25s ease-in-out infinite;
+}
+
+@keyframes dizzy {
+  0%,
+  100% {
+    transform: translateX(0) translateY(-1.5px) rotate(0);
+  }
+  25% {
+    transform: translateX(3.5px) rotate(6.9deg);
+  }
+  50% {
+    transform: translateX(0) translateY(-1.5px) rotate(0);
+  }
+  75% {
+    transform: translateX(-3.5px) rotate(-6.9deg);
+  }
+}
+
+.stage[data-feel='dizzy'] .arm-move {
+  --flap: 33deg;
+  animation: arm-flap 1.3s ease-in-out infinite;
+}
+
+.stage[data-feel='dizzy'] .antenna {
+  animation-duration: 1.25s;
+}
+
+/* Descolado: de óculos escuros, balança a cabeça na batida, uma mão para cima. */
+.stage[data-feel='cool'] {
+  --al: -33deg;
+  --ar: 27deg;
+}
+
+.stage[data-feel='cool'] .feel {
+  animation: nod var(--beat) ease-out infinite;
+}
+
+@keyframes nod {
+  0% {
+    transform: translateY(-1.7px) rotate(2.3deg) scale(1.06, 0.94);
+  }
+  35%,
+  100% {
+    transform: none;
+  }
+}
+
+.stage[data-feel='cool'] .antenna-pose {
+  transform: rotate(-12deg);
+}
+
+/* Deslumbrado: pula sem parar, os braços para cima. */
+.stage[data-feel='starstruck'] {
+  --al: 50deg;
+  --ar: 50deg;
+}
+
+.stage[data-feel='starstruck'] .feel {
+  --up: -6px;
+  --hit: 0.1;
+  animation: feel-bounce calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='starstruck'] .arm-move {
+  --flap: 19deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-feel='starstruck'] .antenna-pose {
+  transform: scaleY(1.14);
+}
+
+/* Nocauteado: caído e achatado, torto, os braços largados (e estrelinhas na cabeça). */
+.stage[data-feel='ko'] {
+  --al: -45deg;
+  --ar: -45deg;
+}
+
+.stage[data-feel='ko'] .pose {
+  transform: rotate(6.9deg) scale(1.22, 0.78);
+}
+
+.stage[data-feel='ko'] .feel {
+  --sq: 0.02;
+  animation: feel-breathe 2.1s ease-in-out infinite;
+}
+
+.stage[data-feel='ko'] .antenna-pose {
+  transform: rotate(50deg);
+}
+
+/* Brincalhão: pula de um lado para o outro, piscando e de língua para fora. */
+.stage[data-feel='playful'] {
+  --al: 25deg;
+  --ar: 25deg;
+}
+
+.stage[data-feel='playful'] .feel {
+  animation: playful calc(var(--beat) * 2) ease-out infinite;
+}
+
+@keyframes playful {
+  0%,
+  100% {
+    transform: translateX(-4px) rotate(-5.7deg) scale(1.08, 0.92);
+  }
+  25% {
+    transform: translateX(-4px) translateY(-7px) rotate(-5.7deg);
+  }
+  50% {
+    transform: translateX(4px) rotate(5.7deg) scale(1.08, 0.92);
+  }
+  75% {
+    transform: translateX(4px) translateY(-7px) rotate(5.7deg);
+  }
+}
+
+.stage[data-feel='playful'] .arm-move {
+  --flap: 30deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-feel='playful'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+/* Aprontando: esfregando as mãos, de canto de olho, com uma sombra na testa. */
+.stage[data-feel='mischief'] {
+  --al: -14deg;
+  --ar: -14deg;
+}
+
+.stage[data-feel='mischief'] .pose {
+  transform: rotate(2.3deg) scale(1.07, 0.93);
+}
+
+.stage[data-feel='mischief'] .arm-move {
+  --flap: 8deg;
+  animation: arm-flap 0.25s ease-in-out infinite;
+}
+
+.stage[data-feel='mischief'] .arm-r .arm-move {
+  animation-delay: -0.125s;
+}
+
+.stage[data-feel='mischief'] .antenna-pose {
+  transform: rotate(8deg);
+}
+
+/* Esperançoso: esticado, olhando para cima, as mãos juntas. */
+.stage[data-feel='hopeful'] {
+  --al: 16deg;
+  --ar: 16deg;
+}
+
+.stage[data-feel='hopeful'] .pose {
+  transform: scale(0.94, 1.06);
+}
+
+.stage[data-feel='hopeful'] .feel {
+  --dx: 0px;
+  --rot: 1.7deg;
+  animation: feel-sway calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+/* ---- As danças ---------------------------------------------------------- */
+
+/*
+ * As danças do kit, na camada .groove (por fora das emoções). O fantasminha dança com os braços;
+ * o robô, com a antena. O "girar" é um giro desenhado: ele fica de lado (fino), de costas (o rosto
+ * some) e volta, uma vez por compasso.
+ */
+.stage[data-dance] .groove {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Dançando, os braços são da dança (a pose de braço da emoção sai). */
+.stage[data-dance] .arm-l,
+.stage[data-dance] .arm-r {
+  transform: none;
+}
+
+.stage[data-dance='bounce'] .groove {
+  --up: -7px;
+  --hit: 0.1;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='bounce'] .arm-move {
+  --flap: 30deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='bounce'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='hop'] .groove {
+  animation-name: dance-hop;
+  animation-duration: var(--beat);
+}
+
+@keyframes dance-hop {
+  0%,
+  100% {
+    transform: scale(1.15, 0.85);
+  }
+  20% {
+    transform: none;
+  }
+  50% {
+    transform: translateY(-9px) scale(0.96, 1.04);
+  }
+}
+
+.stage[data-dance='hop'] .arm-move {
+  animation: arm-up var(--beat) ease-in-out infinite;
+}
+
+@keyframes arm-up {
+  0%,
+  100% {
+    transform: rotate(calc(5deg * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(65deg * var(--dir)));
+  }
+}
+
+/* Mãos para o alto: quica com os braços lá em cima, socando o ar; a antena estica junto. */
+.stage[data-dance='roof'] .groove {
+  --up: -5px;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='roof'] .arm-move {
+  animation: arm-roof var(--beat) ease-in-out infinite;
+}
+
+@keyframes arm-roof {
+  0%,
+  100% {
+    transform: rotate(calc(74deg * var(--dir)));
+  }
+  50% {
+    transform: rotate(calc(42deg * var(--dir)));
+  }
+}
+
+.stage[data-dance='roof'] .antenna-pose {
+  animation: antenna-pump var(--beat) ease-in-out infinite;
+}
+
+@keyframes antenna-pump {
+  0%,
+  100% {
+    transform: scaleY(1.18);
+  }
+  50% {
+    transform: scaleY(0.96);
+  }
+}
+
+.stage[data-dance='sway'] .groove {
+  --dx: 6px;
+  --rot: 6deg;
+  animation-name: feel-sway;
+  animation-duration: calc(var(--beat) * 2);
+}
+
+.stage[data-dance='sway'] .arm-move {
+  --flap: 33deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='sway'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='spin'] .groove {
+  animation-name: dance-spin;
+  animation-duration: calc(var(--beat) * 4);
+  animation-timing-function: linear;
+}
+
+@keyframes dance-spin {
+  0%,
+  25%,
+  50%,
+  75%,
+  100% {
+    transform: scale(1, 1);
+  }
+  12.5%,
+  37.5%,
+  62.5% {
+    transform: translateY(-4px) scale(1, 1);
+  }
+  81% {
+    transform: translateY(-8px) scale(0.08, 1);
+  }
+  87.5% {
+    transform: translateY(-11px) scale(-1, 1);
+  }
+  94% {
+    transform: translateY(-8px) scale(0.08, 1);
+  }
+}
+
+/* De costas, o rosto some (os olhos, a boca e as bochechas). */
+.stage[data-dance='spin'] .look,
+.stage[data-dance='spin'] .mouth,
+.stage[data-dance='spin'] .blush {
+  animation: spin-face calc(var(--beat) * 4) linear infinite;
+}
+
+@keyframes spin-face {
+  0%,
+  81.5%,
+  93.5%,
+  100% {
+    opacity: 1;
+  }
+  82%,
+  93% {
+    opacity: 0;
+  }
+}
+
+.stage[data-dance='spin'] .arm-move {
+  animation: arm-up calc(var(--beat) * 4) ease-in-out infinite;
+}
+
+/* Acenar: quica de leve, acenando com um braço (no robô, com a antena). */
+.stage[data-dance='wave'] .groove {
+  --up: -5px;
+  --hit: 0.06;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+.stage[data-dance='wave'] .arm-l {
+  transform: rotate(60deg);
+}
+
+.stage[data-dance='wave'] .arm-l .arm-move {
+  --flap: 25deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-dance='wave'] .arm-r {
+  transform: rotate(11deg);
+}
+
+.stage[data-dance='wave'] .antenna-pose {
+  animation: antenna-wave calc(var(--beat) / 2) ease-in-out infinite alternate;
+}
+
+@keyframes antenna-wave {
+  from {
+    transform: rotate(-18deg);
+  }
+  to {
+    transform: rotate(18deg);
+  }
+}
+
+/* Andar e correr, sem pernas: o passo é o sobe e desce, o corpo indo e vindo e os braços. */
+.stage[data-dance='walk'] .groove {
+  animation-name: dance-walk;
+  animation-duration: calc(var(--beat) * 2);
+}
+
+@keyframes dance-walk {
+  0%,
+  100% {
+    transform: translateX(-3px) rotate(-2deg);
+  }
+  25%,
+  75% {
+    transform: translateY(-3px);
+  }
+  50% {
+    transform: translateX(3px) rotate(2deg);
+  }
+}
+
+.stage[data-dance='walk'] .arm-move {
+  --flap: 16deg;
+  animation: arm-flap calc(var(--beat) * 2) ease-in-out infinite;
+}
+
+.stage[data-dance='walk'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -1);
+}
+
+.stage[data-dance='run'] .groove {
+  animation-name: dance-run;
+  animation-duration: calc(var(--beat) / 2);
+}
+
+@keyframes dance-run {
+  0%,
+  100% {
+    transform: rotate(-4.6deg);
+  }
+  50% {
+    transform: translateY(-5px) rotate(-4.6deg);
+  }
+}
+
+.stage[data-dance='run'] .arm-move {
+  --flap: 44deg;
+  animation: arm-flap calc(var(--beat) * 0.67) ease-in-out infinite;
+}
+
+.stage[data-dance='run'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) * -0.33);
+}
+
+.stage[data-dance='idle'] .groove {
+  --up: -2.5px;
+  --hit: 0.05;
+  animation-name: feel-bounce;
+  animation-duration: var(--beat);
+}
+
+/* Pisar forte: sobe e cai com tudo, um lado e depois o outro, os braços pulando na queda. */
+.stage[data-dance='stomp'] .groove {
+  animation-name: dance-stomp;
+  animation-duration: calc(var(--beat) * 2);
+  animation-timing-function: linear;
+}
+
+@keyframes dance-stomp {
+  0%,
+  100% {
+    transform: rotate(-3.4deg) scale(1.2, 0.8);
+  }
+  10%,
+  60% {
+    transform: none;
+  }
+  25%,
+  75% {
+    transform: translateY(-7px);
+  }
+  50% {
+    transform: rotate(3.4deg) scale(1.2, 0.8);
+  }
+}
+
+.stage[data-dance='stomp'] .arm-move {
+  animation: arm-stomp var(--beat) linear infinite;
+}
+
+@keyframes arm-stomp {
+  0%,
+  100% {
+    transform: rotate(calc(34deg * var(--dir)));
+  }
+  25% {
+    transform: rotate(calc(-16deg * var(--dir)));
+  }
+}
+
+/* Requebrar: de um lado para o outro duas vezes por batida, os braços balançando. */
+.stage[data-dance='shimmy'] .groove {
+  animation-name: dance-shimmy;
+  animation-duration: var(--beat);
+}
+
+@keyframes dance-shimmy {
+  0%,
+  50%,
+  100% {
+    transform: translateX(-3px) rotate(-2.9deg);
+  }
+  25% {
+    transform: translateX(3px) translateY(-2.5px) rotate(2.9deg);
+  }
+  75% {
+    transform: translateX(3px) rotate(2.9deg);
+  }
+}
+
+.stage[data-dance='shimmy'] .arm-move {
+  --flap: 22deg;
+  animation: arm-flap calc(var(--beat) / 2) ease-in-out infinite;
+}
+
+.stage[data-dance='shimmy'] .arm-r .arm-move {
+  animation-delay: calc(var(--beat) / -4);
+}
+
+.stage[data-dance='shimmy'] .arm {
+  transform: rotate(38deg);
+}
+
+.stage[data-dance='shimmy'] .arm-r {
+  transform: rotate(-38deg);
+}
+
+/* ---- Menos movimento ---------------------------------------------------- */
+
+/* Com menos movimento, os rostos e as cores ficam; o corpo não dança nem treme. */
+:root.reduce-motion {
+  .stage .feel,
+  .stage .look-move,
+  .stage .arm-move,
+  .stage .mouth-move,
+  .stage .emote,
+  .stage .emote-pop,
+  .stage .part,
+  .stage[data-dance] .groove,
+  .stage[data-dance] .look,
+  .stage[data-dance] .mouth,
+  .stage[data-dance] .blush,
+  .stage[data-dance] .antenna-pose,
+  .stage[data-eyes] .eyes-blink,
+  .stage.emote-stars .star,
+  .stage.emote-stars .star > svg,
+  .stage.emote-zzz .z,
+  .stage.emote-hearts .heart,
+  .stage.emote-anger .anger-mark {
+    animation: none;
+  }
+
+  .pose,
+  .arm,
+  .look {
+    transition: none;
+  }
+
+  /* Parados, os "z" e os corações aparecem de uma vez, num lugar só. */
+  .emote-zzz .z1,
+  .emote-hearts .h1 {
+    opacity: 0.9;
+  }
+}

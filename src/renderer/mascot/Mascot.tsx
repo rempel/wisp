@@ -4,7 +4,6 @@ import type {
   Accessory,
   DroppedFile,
   MascotIsland,
-  MascotState,
   MascotView,
   SoundName,
   VoiceStatus
@@ -13,9 +12,22 @@ import { reducedMotion, setAppearance } from '../common/appearance'
 import { makeThumbnail } from '../common/thumbnail'
 import type { AvatarName } from '../../shared/avatars'
 import { AccessoryArt } from './Accessory'
-import { Body } from './Bodies'
+import { Body, Gloom } from './Bodies'
+import { EmoteArt } from './Emotes'
+import { HEART, KitEyes, Mouths } from './FaceArt'
+import { BLINKING_EYES, faceFor, faceKey, takeOf } from './face'
+import type { Face, Reaction } from './face'
 import { SoundPlayer } from './sounds'
 import { VoiceCapture, VoiceSpeaker } from './voice'
+import {
+  ANTICIPATION_MS,
+  MIX,
+  MIX_MS,
+  REUSED_EMOTES,
+  TAKE_MS,
+  takeFrames
+} from '../../shared/emotions'
+import type { Dance, Emotion, MascotAct } from '../../shared/emotions'
 import { t } from '../../shared/i18n'
 
 /** Movimento (px) a partir do qual o gesto deixa de ser clique e vira arraste. */
@@ -34,13 +46,6 @@ const PULSE_KEYFRAMES: Keyframe[] = [
   { opacity: 0, transform: 'scale(1.12)' }
 ]
 
-/**
- * Reações a quem mexe com ele: o clique (cutucada), a segunda cutucada (irritado), a terceira
- * (tonto), o cursor parado em cima (carinho), a saudação ao abrir, o gole de um arquivo solto e
- * o susto ao acordar.
- */
-type Reaction = 'poke' | 'annoyed' | 'dizzy' | 'petting' | 'greet' | 'absorb' | 'wake' | 'remind'
-
 /** Quanto dura cada reação (ms). O carinho dura enquanto o cursor estiver em cima. */
 const REACTION_MS: Record<Exclude<Reaction, 'petting'>, number> = {
   poke: 450,
@@ -52,30 +57,13 @@ const REACTION_MS: Record<Exclude<Reaction, 'petting'>, number> = {
   remind: 3600
 }
 
-/** O desenho dos olhos: LEDs, ^ ^, x x, fechados, > <, bravos ou espirais. */
-type EyeShape = 'leds' | 'happy' | 'x' | 'closed' | 'squint' | 'angry' | 'spiral'
-
-function eyesFor(state: MascotState, reaction: Reaction | null): EyeShape {
-  switch (reaction) {
-    case 'poke':
-      return 'squint'
-    case 'annoyed':
-      return 'angry'
-    case 'dizzy':
-      return 'spiral'
-    case 'petting':
-      return 'happy'
-    case 'greet':
-    case 'absorb':
-    case 'wake':
-    case 'remind':
-      return 'leds'
-  }
-  if (state === 'happy') return 'happy'
-  if (state === 'error') return 'x'
-  if (state === 'sleeping') return 'closed'
-  return 'leds'
-}
+/** Antes da troca atuada, os olhos apertam até fechar; reabrem logo depois do rosto novo. */
+const SQUINT_FRAMES: Keyframe[] = [
+  { transform: 'scaleY(1)' },
+  { transform: 'scaleY(0.08)', offset: 0.4 },
+  { transform: 'scaleY(0.08)', offset: 0.55 },
+  { transform: 'scaleY(1)' }
+]
 
 interface Press {
   pointerId: number
@@ -126,11 +114,6 @@ const BURST = [
   { x: -20, y: -40, delay: 0.08 },
   { x: 22, y: -42, delay: 0.12 }
 ]
-
-/** Coraçãozinho do carinho, centrado em (0, 0). */
-const HEART =
-  'M 0 2.6 C -3.4 0 -4.2 -2.4 -2.4 -3.6 C -1.2 -4.4 0 -3.4 0 -2.2 ' +
-  'C 0 -3.4 1.2 -4.4 2.4 -3.6 C 4.2 -2.4 3.4 0 0 2.6 Z'
 
 /** Estrelinha de quatro pontas, das que rodam na cabeça de quem está tonto. */
 const STAR = 'M 0 -3.2 L 0.9 -0.9 L 3.2 0 L 0.9 0.9 L 0 3.2 L -0.9 0.9 L -3.2 0 L -0.9 -0.9 Z'
@@ -195,6 +178,19 @@ export default function Mascot(): JSX.Element {
   const [avatar, setAvatar] = useState<AvatarName>('robo')
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
   const [island, setIsland] = useState<MascotIsland>(null)
+  // As emoções e as danças (Fase 27): a pedida (pelo Claude, na galeria), a dança da música e o
+  // passo do "mix".
+  const [expressed, setExpressed] = useState<Emotion | null>(null)
+  const [requestedDance, setRequestedDance] = useState<Dance | null>(null)
+  const [danceStyle, setDanceStyle] = useState<Dance>('mix')
+  const [mixStep, setMixStep] = useState(0)
+  const [shown, setShown] = useState<Face>(() => faceFor('idle', null, null))
+  const act = useRef<HTMLDivElement>(null)
+  const blink = useRef<HTMLDivElement>(null)
+  const shownRef = useRef(shown)
+  const swapTimer = useRef(0)
+  const feelTimer = useRef(0)
+  const danceTimer = useRef(0)
 
   // Para os timers e eventos, que não esperam o render.
   const viewRef = useRef(view)
@@ -245,6 +241,19 @@ export default function Mascot(): JSX.Element {
       } else if (name === 'remind') {
         // O som do lembrete vem do main, junto com a notificação.
         react('remind')
+      }
+    })
+    const offAct = window.wisp.mascot.onAct((next: MascotAct) => {
+      if (next.kind === 'style') {
+        setDanceStyle(next.dance)
+      } else if (next.kind === 'feel') {
+        window.clearTimeout(feelTimer.current)
+        setExpressed(next.emotion)
+        feelTimer.current = window.setTimeout(() => setExpressed(null), next.ms)
+      } else {
+        window.clearTimeout(danceTimer.current)
+        setRequestedDance(next.dance)
+        danceTimer.current = window.setTimeout(() => setRequestedDance(null), next.ms)
       }
     })
     const offAccessory = window.wisp.mascot.onAccessory(setAccessory)
@@ -301,6 +310,7 @@ export default function Mascot(): JSX.Element {
       offPulse()
       offGaze()
       offReact()
+      offAct()
       offAccessory()
       offIsland()
       offAvatar()
@@ -313,8 +323,62 @@ export default function Mascot(): JSX.Element {
       speaker.hush()
       window.clearTimeout(reactTimer.current)
       window.clearTimeout(petTimer.current)
+      window.clearTimeout(feelTimer.current)
+      window.clearTimeout(danceTimer.current)
+      window.clearTimeout(swapTimer.current)
     }
   }, [react])
+
+  // ---- O rosto, com a troca atuada (Fase 27) --------------------------------
+
+  /*
+   * Quando o rosto muda para uma emoção, a troca é atuada, como no kit: os olhos apertam e o
+   * corpo encolhe um instante antes (a antecipação), o rosto troca com os olhos fechados, e vem um
+   * susto do tamanho da emoção nova, que balança e assenta. A cor, as bochechas e a sombra mudam
+   * aos poucos (CSS). As reações trocam na hora, para o clique responder no ato.
+   */
+  useEffect(() => {
+    // Lendo a resposta em voz alta (com a conversa já parada), a boca fala do mesmo jeito.
+    const state = voice.state === 'speaking' && view.state === 'idle' ? 'talking' : view.state
+    const target = faceFor(state, reaction, expressed)
+    const previous = shownRef.current
+    if (faceKey(previous) === faceKey(target)) {
+      window.clearTimeout(swapTimer.current)
+      return
+    }
+    window.clearTimeout(swapTimer.current)
+    const swap = (): void => {
+      shownRef.current = target
+      setShown(target)
+    }
+    const amount = reaction ? 0 : takeOf(previous, target)
+    if (amount <= 0 || reducedMotion()) {
+      swap()
+      return
+    }
+    act.current?.animate(takeFrames(amount), {
+      duration: ANTICIPATION_MS + TAKE_MS,
+      easing: 'linear'
+    })
+    blink.current?.animate(SQUINT_FRAMES, { duration: 260, easing: 'ease-in-out' })
+    swapTimer.current = window.setTimeout(swap, ANTICIPATION_MS)
+  }, [view.state, voice.state, reaction, expressed])
+
+  // A dança: a pedida, ou a da música (ocioso e acordado). O "mix" troca a cada dois compassos.
+  const dancing: Dance | null =
+    view.state === 'sleeping' || view.state === 'permission' || view.state === 'error'
+      ? null
+      : (requestedDance ?? (view.state === 'idle' && view.music ? danceStyle : null))
+  useEffect(() => {
+    if (dancing !== 'mix') return
+    const timer = window.setInterval(() => setMixStep((step) => step + 1), MIX_MS)
+    return () => {
+      window.clearInterval(timer)
+      // A próxima vez começa do começo (quicar).
+      setMixStep(0)
+    }
+  }, [dancing])
+  const dance = dancing === 'mix' ? MIX[mixStep % MIX.length] : dancing
 
   // ---- Cliques e arraste ----------------------------------------------------
 
@@ -452,7 +516,8 @@ export default function Mascot(): JSX.Element {
     })
   }
 
-  const eyes = eyesFor(view.state, reaction)
+  const face = shown
+  const reused = face.emote && REUSED_EMOTES.includes(face.emote) ? face.emote : null
   const classes = [
     'stage',
     `avatar-${avatar}`,
@@ -466,14 +531,30 @@ export default function Mascot(): JSX.Element {
     view.music && 'music',
     voice.state !== 'idle' && `voice-${voice.state}`,
     voice.heard && 'voice-heard',
-    island && 'in-island'
+    island && 'in-island',
+    reused && `emote-${reused}`
   ]
+  // A força da cor, das bochechas, da sombra e o olhar da emoção, para o CSS.
+  const faceStyle = {
+    '--tk': face.tintK,
+    '--blush': face.blush,
+    '--gloom': face.gloom,
+    '--lx': face.look[0],
+    '--ly': face.look[1]
+  } as CSSProperties
 
   const stageElement = (
     <div
       ref={stage}
       className={classes.filter(Boolean).join(' ')}
-      data-eyes={eyes}
+      style={faceStyle}
+      data-eyes={face.eyes}
+      data-blink={BLINKING_EYES.includes(face.eyes) ? '' : undefined}
+      data-mouth={face.mouth ?? undefined}
+      data-tint={face.tint ?? undefined}
+      data-feel={face.feel ?? undefined}
+      data-emote={face.emote ?? undefined}
+      data-dance={dance ?? undefined}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={(e) => endPress(e, true)}
@@ -526,6 +607,11 @@ export default function Mascot(): JSX.Element {
               <feMergeNode in="SourceGraphic" />
             </feMerge>
           </filter>
+          {/* A sombra na testa das emoções tristes: escura em cima, some no meio do corpo. */}
+          <linearGradient id="wisp-gloom" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#1e1b4b" stopOpacity="0.75" />
+            <stop offset="0.55" stopColor="#1e1b4b" stopOpacity="0" />
+          </linearGradient>
         </defs>
       </svg>
 
@@ -533,208 +619,254 @@ export default function Mascot(): JSX.Element {
         {/* Pulos e tremidas dos estados ficam no .mood; os das reações, no .react; o amassado
           do clique, no .wisp. */}
         <div className="mood">
-          {/* A dança, quando algum player está tocando: por fora das reações, que se somam. */}
+          {/* A dança (Fase 27: as do kit), quando algum player está tocando ou quando pedem: por
+            fora das emoções e das reações, que se somam. */}
           <div className="groove">
-            <div className="react">
-              <div
-                className={`wisp${booping ? ' boop' : ''}`}
-                onAnimationEnd={(e) => {
-                  if (e.animationName === 'boop') setBooping(false)
-                }}
-              >
-                <div className="glow-pose">
-                  <div className="glow" />
-                </div>
-                <div className="pulse" ref={pulse} />
-                <Sparks layer="back" />
+            {/* A emoção: a pose (que assenta com uma molinha), o movimento dela e o susto da
+              troca atuada (animado pelo Mascot.tsx). */}
+            <div className="pose">
+              <div className="feel">
+                <div className="act" ref={act}>
+                  <div className="react">
+                    <div
+                      className={`wisp${booping ? ' boop' : ''}`}
+                      onAnimationEnd={(e) => {
+                        if (e.animationName === 'boop') setBooping(false)
+                      }}
+                    >
+                      <div className="glow-pose">
+                        <div className="glow" />
+                      </div>
+                      <div className="pulse" ref={pulse} />
+                      <Sparks layer="back" />
 
-                {/* Antena: balança a partir da base, escondida atrás do encaixe na ponta. A pose
+                      {/* Antena: balança a partir da base, escondida atrás do encaixe na ponta. A pose
                 (caída no cochilo, em pé no susto) fica por fora do balanço. */}
-                <div className="antenna-pose" aria-hidden>
-                  <div className="antenna">
-                    <svg className="layer" viewBox="0 0 128 128">
-                      {/* No fantasminha, a luz flutua sozinha, sem a haste. */}
-                      {avatar === 'robo' && (
-                        <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
-                      )}
-                      <circle className="led" cx="64" cy="15" r="3.3" />
-                    </svg>
-                    <div className="antenna-glow">
-                      <svg className="layer" viewBox="0 0 128 128">
-                        <circle className="led-halo" cx="64" cy="15" r="5.5" />
-                      </svg>
-                    </div>
-                    {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
-                    <div className="waves">
-                      <div className="wave w1">
-                        <svg className="layer" viewBox="0 0 128 128">
-                          <path d="M 57.5 10 Q 55 15 57.5 20 M 70.5 10 Q 73 15 70.5 20" />
-                        </svg>
+                      <div className="antenna-pose" aria-hidden>
+                        <div className="antenna">
+                          <svg className="layer" viewBox="0 0 128 128">
+                            {/* No fantasminha, a luz flutua sozinha, sem a haste. */}
+                            {avatar === 'robo' && (
+                              <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
+                            )}
+                            <circle className="led" cx="64" cy="15" r="3.3" />
+                          </svg>
+                          <div className="antenna-glow">
+                            <svg className="layer" viewBox="0 0 128 128">
+                              <circle className="led-halo" cx="64" cy="15" r="5.5" />
+                            </svg>
+                          </div>
+                          {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
+                          <div className="waves">
+                            <div className="wave w1">
+                              <svg className="layer" viewBox="0 0 128 128">
+                                <path d="M 57.5 10 Q 55 15 57.5 20 M 70.5 10 Q 73 15 70.5 20" />
+                              </svg>
+                            </div>
+                            <div className="wave w2">
+                              <svg className="layer" viewBox="0 0 128 128">
+                                <path d="M 53 6.5 Q 49 15 53 23.5 M 75 6.5 Q 79 15 75 23.5" />
+                              </svg>
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div className="wave w2">
-                        <svg className="layer" viewBox="0 0 128 128">
-                          <path d="M 53 6.5 Q 49 15 53 23.5 M 75 6.5 Q 79 15 75 23.5" />
-                        </svg>
-                      </div>
-                    </div>
-                  </div>
-                </div>
 
-                {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
+                      {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
                 desenhado uma vez só. */}
-                <div className="body" aria-hidden>
-                  <Body avatar={avatar} />
-                </div>
+                      <div className="body" aria-hidden>
+                        <Body avatar={avatar} />
+                      </div>
 
-                {/* Bochechas de LED, no carinho. */}
-                <div className="blush" aria-hidden>
-                  <svg className="layer" viewBox="0 0 128 128">
-                    <ellipse cx="51.5" cy="87" rx="2.8" ry="1.4" />
-                    <ellipse cx="76.5" cy="87" rx="2.8" ry="1.4" />
-                  </svg>
-                </div>
+                      {/* A sombra na testa das emoções tristes. */}
+                      <div className="gloom" aria-hidden>
+                        <Gloom avatar={avatar} />
+                      </div>
 
-                {/* Olhos de LED. De fora para dentro: o olhar do estado (de lado, varrendo), o que
-                segue o cursor, o das reações (arregalado) e a piscada. */}
-                <div className="eyes" aria-hidden>
-                  <div className="gaze">
-                    <div className="eyes-react">
-                      <div className="eyes-blink">
+                      {/* Bochechas de LED, no carinho. */}
+                      <div className="blush" aria-hidden>
                         <svg className="layer" viewBox="0 0 128 128">
-                          <g className="eye-leds">
-                            <rect className="led" x="52.5" y="75" width="6" height="10" rx="3" />
-                            <rect className="led" x="69.5" y="75" width="6" height="10" rx="3" />
-                          </g>
-                          <g className="eye-glyph eye-happy">
-                            <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
-                            <path d="M 69 82.5 L 72.5 77.5 L 76 82.5" />
-                          </g>
-                          <g className="eye-glyph eye-x">
-                            <path d="M 52.5 76.5 L 58.5 83.5 M 58.5 76.5 L 52.5 83.5" />
-                            <path d="M 69.5 76.5 L 75.5 83.5 M 75.5 76.5 L 69.5 83.5" />
-                          </g>
-                          <g className="eye-glyph eye-closed">
-                            <path d="M 52 80 Q 55.5 83.6 59 80" />
-                            <path d="M 69 80 Q 72.5 83.6 76 80" />
-                          </g>
-                          <g className="eye-glyph eye-squint">
-                            <path d="M 52.5 76.5 L 58 80 L 52.5 83.5" />
-                            <path d="M 75.5 76.5 L 70 80 L 75.5 83.5" />
-                          </g>
-                          <g className="eye-angry">
-                            <path
-                              className="led"
-                              d="M 52.5 75.8 L 58.5 80.4 L 58.5 83 Q 58.5 85 56.5 85 L 54.5 85 Q 52.5 85 52.5 83 Z"
-                            />
-                            <path
-                              className="led"
-                              d="M 75.5 75.8 L 69.5 80.4 L 69.5 83 Q 69.5 85 71.5 85 L 73.5 85 Q 75.5 85 75.5 83 Z"
-                            />
-                          </g>
-                          <g className="eye-glyph eye-spiral">
-                            <path className="spin" d={spiral(55.5, 80)} />
-                            <path className="spin" d={spiral(72.5, 80)} />
-                          </g>
+                          <ellipse cx="51.5" cy="87" rx="2.8" ry="1.4" />
+                          <ellipse cx="76.5" cy="87" rx="2.8" ry="1.4" />
                         </svg>
                       </div>
+
+                      {/* Olhos de LED. De fora para dentro: o olhar do estado (de lado, varrendo), o que
+                segue o cursor, o da emoção (parado e o que mexe), o das reações (arregalado) e a
+                piscada. */}
+                      <div className="eyes" aria-hidden>
+                        <div className="gaze">
+                          <div className="look">
+                            <div className="look-move">
+                              <div className="eyes-react">
+                                <div className="eyes-blink" ref={blink}>
+                                  <svg className="layer" viewBox="0 0 128 128">
+                                    <g className="eye-leds">
+                                      <rect
+                                        className="led"
+                                        x="52.5"
+                                        y="75"
+                                        width="6"
+                                        height="10"
+                                        rx="3"
+                                      />
+                                      <rect
+                                        className="led"
+                                        x="69.5"
+                                        y="75"
+                                        width="6"
+                                        height="10"
+                                        rx="3"
+                                      />
+                                    </g>
+                                    <g className="eye-glyph eye-happy">
+                                      <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
+                                      <path d="M 69 82.5 L 72.5 77.5 L 76 82.5" />
+                                    </g>
+                                    <g className="eye-glyph eye-x">
+                                      <path d="M 52.5 76.5 L 58.5 83.5 M 58.5 76.5 L 52.5 83.5" />
+                                      <path d="M 69.5 76.5 L 75.5 83.5 M 75.5 76.5 L 69.5 83.5" />
+                                    </g>
+                                    <g className="eye-glyph eye-closed">
+                                      <path d="M 52 80 Q 55.5 83.6 59 80" />
+                                      <path d="M 69 80 Q 72.5 83.6 76 80" />
+                                    </g>
+                                    <g className="eye-glyph eye-squeeze">
+                                      <path d="M 52.5 76.5 L 58 80 L 52.5 83.5" />
+                                      <path d="M 75.5 76.5 L 70 80 L 75.5 83.5" />
+                                    </g>
+                                    <g className="eye-angry">
+                                      <path
+                                        className="led"
+                                        d="M 52.5 75.8 L 58.5 80.4 L 58.5 83 Q 58.5 85 56.5 85 L 54.5 85 Q 52.5 85 52.5 83 Z"
+                                      />
+                                      <path
+                                        className="led"
+                                        d="M 75.5 75.8 L 69.5 80.4 L 69.5 83 Q 69.5 85 71.5 85 L 73.5 85 Q 75.5 85 75.5 83 Z"
+                                      />
+                                    </g>
+                                    <g className="eye-glyph eye-swirl">
+                                      <path className="spin" d={spiral(55.5, 80)} />
+                                      <path className="spin" d={spiral(72.5, 80)} />
+                                    </g>
+                                    <KitEyes />
+                                  </svg>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* A boca (Fase 27): no visor, logo abaixo dos olhos; sem emoção, nenhuma. */}
+                      <div className="mouth" aria-hidden>
+                        <div className="mouth-move">
+                          <Mouths />
+                        </div>
+                      </div>
+
+                      {accessory && <AccessoryArt kind={accessory} />}
+
+                      <Sparks layer="front" />
+
+                      <div className="burst" aria-hidden>
+                        {BURST.map((bit, index) => (
+                          <i
+                            key={index}
+                            style={
+                              {
+                                '--bx': `${bit.x}px`,
+                                '--by': `${bit.y}px`,
+                                '--bd': `${bit.delay}s`
+                              } as CSSProperties
+                            }
+                          />
+                        ))}
+                      </div>
                     </div>
+
+                    {/* Corações do carinho. */}
+                    <svg className="layer hearts" viewBox="0 0 128 128" aria-hidden>
+                      <path className="heart h1" d={HEART} />
+                      <path className="heart h2" d={HEART} />
+                      <path className="heart h3" d={HEART} />
+                    </svg>
+
+                    {/* A veia de bravo, das cutucadas. */}
+                    <svg className="layer anger" viewBox="0 0 128 128" aria-hidden>
+                      <g className="anger-mark">
+                        <path d="M -4 -1.3 Q -1.3 -1.3 -1.3 -4 M 1.3 -4 Q 1.3 -1.3 4 -1.3 M 4 1.3 Q 1.3 1.3 1.3 4 M -1.3 4 Q -1.3 1.3 -4 1.3" />
+                      </g>
+                    </svg>
+
+                    {/* Estrelinhas rodando na cabeça, quando ele fica tonto. */}
+                    <div className="stars" aria-hidden>
+                      {[1, 2, 3].map((n) => (
+                        <span key={n} className={`star t${n}`}>
+                          <svg viewBox="-4 -4 8 8">
+                            <path d={STAR} />
+                          </svg>
+                        </span>
+                      ))}
+                    </div>
+
+                    {/* Os "z" do cochilo: sobem um tempo e depois fica um só, parado. */}
+                    <div className="zzz" aria-hidden>
+                      <span className="z z1">z</span>
+                      <span className="z z2">z</span>
+                      <span className="z z3">z</span>
+                      <span className="z z-deep">z</span>
+                    </div>
+
+                    {/* O sininho de um lembrete. */}
+                    <svg className="layer bell" viewBox="0 0 128 128" aria-hidden>
+                      <g className="bell-body">
+                        <circle cx="28" cy="20.2" r="1.5" />
+                        <path d="M 28 21 C 23 21 21 25 21 30 L 21 34 L 19 37 L 37 37 L 35 34 L 35 30 C 35 25 33 21 28 21 Z" />
+                        <circle className="bell-clapper" cx="28" cy="39" r="1.9" />
+                      </g>
+                    </svg>
+
+                    {/* "oi!" da saudação. */}
+                    <div className="bubble" aria-hidden>
+                      {t('oi!')}
+                    </div>
+
+                    {/* O arquivo solto voando para dentro da gota. */}
+                    {absorbing && (
+                      <div
+                        key={absorbing.key}
+                        className="absorb"
+                        style={
+                          {
+                            '--ax': `${absorbing.x - 64}px`,
+                            '--ay': `${absorbing.y - 78}px`
+                          } as CSSProperties
+                        }
+                        onAnimationEnd={() => setAbsorbing(null)}
+                        aria-hidden
+                      >
+                        <svg viewBox="0 0 14 18">
+                          <path
+                            className="doc"
+                            d="M 2 0.5 H 9 L 13.5 5 V 16 Q 13.5 17.5 12 17.5 H 2 Q 0.5 17.5 0.5 16 V 2 Q 0.5 0.5 2 0.5 Z"
+                          />
+                          <path className="doc-fold" d="M 9 0.5 V 5 H 13.5" />
+                          <path
+                            className="doc-lines"
+                            d="M 3.5 8.5 H 10.5 M 3.5 11 H 10.5 M 3.5 13.5 H 8"
+                          />
+                        </svg>
+                      </div>
+                    )}
+
+                    {/* O sinal no ar da emoção (os que as reações já tinham são ligados pela classe). */}
+                    {face.emote && (
+                      <EmoteArt key={face.emote} emote={face.emote} fade={face.fade} />
+                    )}
                   </div>
                 </div>
-
-                {accessory && <AccessoryArt kind={accessory} />}
-
-                <Sparks layer="front" />
-
-                <div className="burst" aria-hidden>
-                  {BURST.map((bit, index) => (
-                    <i
-                      key={index}
-                      style={
-                        {
-                          '--bx': `${bit.x}px`,
-                          '--by': `${bit.y}px`,
-                          '--bd': `${bit.delay}s`
-                        } as CSSProperties
-                      }
-                    />
-                  ))}
-                </div>
               </div>
-
-              {/* Corações do carinho. */}
-              <svg className="layer hearts" viewBox="0 0 128 128" aria-hidden>
-                <path className="heart h1" d={HEART} />
-                <path className="heart h2" d={HEART} />
-                <path className="heart h3" d={HEART} />
-              </svg>
-
-              {/* A veia de bravo, das cutucadas. */}
-              <svg className="layer anger" viewBox="0 0 128 128" aria-hidden>
-                <g className="anger-mark">
-                  <path d="M -4 -1.3 Q -1.3 -1.3 -1.3 -4 M 1.3 -4 Q 1.3 -1.3 4 -1.3 M 4 1.3 Q 1.3 1.3 1.3 4 M -1.3 4 Q -1.3 1.3 -4 1.3" />
-                </g>
-              </svg>
-
-              {/* Estrelinhas rodando na cabeça, quando ele fica tonto. */}
-              <div className="stars" aria-hidden>
-                {[1, 2, 3].map((n) => (
-                  <span key={n} className={`star t${n}`}>
-                    <svg viewBox="-4 -4 8 8">
-                      <path d={STAR} />
-                    </svg>
-                  </span>
-                ))}
-              </div>
-
-              {/* Os "z" do cochilo: sobem um tempo e depois fica um só, parado. */}
-              <div className="zzz" aria-hidden>
-                <span className="z z1">z</span>
-                <span className="z z2">z</span>
-                <span className="z z3">z</span>
-                <span className="z z-deep">z</span>
-              </div>
-
-              {/* O sininho de um lembrete. */}
-              <svg className="layer bell" viewBox="0 0 128 128" aria-hidden>
-                <g className="bell-body">
-                  <circle cx="28" cy="20.2" r="1.5" />
-                  <path d="M 28 21 C 23 21 21 25 21 30 L 21 34 L 19 37 L 37 37 L 35 34 L 35 30 C 35 25 33 21 28 21 Z" />
-                  <circle className="bell-clapper" cx="28" cy="39" r="1.9" />
-                </g>
-              </svg>
-
-              {/* "oi!" da saudação. */}
-              <div className="bubble" aria-hidden>
-                {t('oi!')}
-              </div>
-
-              {/* O arquivo solto voando para dentro da gota. */}
-              {absorbing && (
-                <div
-                  key={absorbing.key}
-                  className="absorb"
-                  style={
-                    {
-                      '--ax': `${absorbing.x - 64}px`,
-                      '--ay': `${absorbing.y - 78}px`
-                    } as CSSProperties
-                  }
-                  onAnimationEnd={() => setAbsorbing(null)}
-                  aria-hidden
-                >
-                  <svg viewBox="0 0 14 18">
-                    <path
-                      className="doc"
-                      d="M 2 0.5 H 9 L 13.5 5 V 16 Q 13.5 17.5 12 17.5 H 2 Q 0.5 17.5 0.5 16 V 2 Q 0.5 0.5 2 0.5 Z"
-                    />
-                    <path className="doc-fold" d="M 9 0.5 V 5 H 13.5" />
-                    <path
-                      className="doc-lines"
-                      d="M 3.5 8.5 H 10.5 M 3.5 11 H 10.5 M 3.5 13.5 H 8"
-                    />
-                  </svg>
-                </div>
-              )}
             </div>
 
             {/* Notinhas da dança. */}

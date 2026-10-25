@@ -1,6 +1,7 @@
 // Contrato de IPC entre main, preload e renderer.
 
 import type { AvatarName } from './avatars'
+import type { Dance, MascotAct, MascotPreview } from './emotions'
 import type { DropZone, Layout } from './layout'
 import type { SavedPrompt, ScheduledTask } from './prompts'
 
@@ -29,6 +30,13 @@ export const IPC = {
   mascotMenu: 'mascot:menu',
   /** main → mascote: uma reação que vem de fora da página. Arg: MascotReaction. */
   mascotReact: 'mascot:react',
+  /**
+   * main → mascote: uma emoção ou dança pedida (pelo Claude, na galeria das configurações), ou a
+   * dança de quando toca música (Fase 27). Arg: MascotAct.
+   */
+  mascotAct: 'mascot:act',
+  /** chat → main: mostrar uma emoção ou dança da galeria das configurações. Arg: MascotPreview. */
+  mascotPreview: 'mascot:preview',
   /** main → mascote: o acessório do dia. Arg: Accessory | null. */
   mascotAccessory: 'mascot:accessory',
   /** main → mascote: o avatar escolhido (Fase 19). Arg: AvatarName. */
@@ -817,6 +825,7 @@ export interface Settings {
   sleepAfterMinutes: number
   accessory: 'auto' | 'none' | 'christmas' | 'summer'
   avatar: AvatarName
+  dance: Dance
   theme: 'system' | 'light' | 'dark'
   highContrast: boolean
   reduceMotion: boolean
@@ -859,6 +868,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'sleepAfterMinutes',
   'accessory',
   'avatar',
+  'dance',
   'theme',
   'highContrast',
   'reduceMotion',
@@ -1094,6 +1104,8 @@ export interface WispApi {
     onPulse(listener: () => void): () => void
     onGaze(listener: (gaze: Gaze | null) => void): () => void
     onReact(listener: (reaction: MascotReaction) => void): () => void
+    /** Uma emoção ou dança pedida, ou a dança da música (Fase 27). */
+    onAct(listener: (act: MascotAct) => void): () => void
     onAccessory(listener: (accessory: Accessory | null) => void): () => void
     /** O avatar escolhido (o robô, o fantasminha). */
     onAvatar(listener: (avatar: AvatarName) => void): () => void
@@ -1293,6 +1305,8 @@ export interface WispApi {
     relaunch(): void
     /** Roda uma tarefa agendada agora, numa aba nova. */
     runTask(id: string): Promise<TaskResult>
+    /** Mostra no mascote uma emoção ou uma dança da galeria (Fase 27). */
+    previewMascot(preview: MascotPreview): void
     /** O menu do mascote pediu a tela de configurações. */
     onShow(listener: () => void): () => void
   }

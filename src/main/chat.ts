@@ -127,7 +127,11 @@ const APPEND_SYSTEM_PROMPT =
   t(
     'anexa arquivos, a mensagem termina com um bloco <anexos> com os caminhos deles: leia-os com a '
   ) +
-  t('ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles.')
+  t('ferramenta Read (ela também lê imagens e PDFs) antes de responder sobre eles. ') +
+  t(
+    'O mascote do Wisp tem emoções: de vez em quando, se combinar com o momento, mostre uma com a '
+  ) +
+  t('ferramenta express (sem anunciar).')
 
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 function outgoing(value: unknown): OutgoingAttachment[] {

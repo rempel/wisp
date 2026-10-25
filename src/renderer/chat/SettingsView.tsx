@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { JSX, KeyboardEvent, ReactNode } from 'react'
 import { AVATAR_LABELS, AVATARS } from '../../shared/avatars'
 import type { AvatarName } from '../../shared/avatars'
+import { DANCES, danceLabel } from '../../shared/emotions'
+import type { Dance } from '../../shared/emotions'
 import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type {
   OpenRouterKeyResult,
@@ -13,6 +15,7 @@ import type {
 } from '../../shared/ipc'
 import { acceleratorOf } from './accelerator'
 import { PromptsSection, TasksSection } from './AutomationSection'
+import { MascotGallery } from './MascotGallery'
 import { MODE_TEXT } from './modes'
 import { QrCode } from './QrCode'
 import { SkillsSection } from './SkillsSection'
@@ -239,6 +242,24 @@ export function SettingsView({
               ))}
             </select>
           </Row>
+          <Row
+            label={t('Dança com música')}
+            hint={t(
+              'Quando algum player está tocando, ele dança no ritmo (as danças da galeria abaixo).'
+            )}
+          >
+            <select
+              value={values.dance}
+              onChange={(event) => void save({ dance: event.target.value as Dance })}
+            >
+              {DANCES.map((dance) => (
+                <option key={dance} value={dance}>
+                  {danceLabel(dance)}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <MascotGallery />
           <Toggle
             label={t('Ilha no topo')}
             hint={t(

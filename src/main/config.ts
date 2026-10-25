@@ -13,6 +13,8 @@ import { CONFIG_DIR } from './paths'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
 import { AVATARS } from '../shared/avatars'
+import { DANCES } from '../shared/emotions'
+import type { Dance } from '../shared/emotions'
 import type { AvatarName } from '../shared/avatars'
 import { t } from '../shared/i18n'
 import { LANGUAGE_SETTINGS } from '../shared/i18n'
@@ -63,6 +65,8 @@ export interface WispConfig {
   accessory: AccessorySetting
   /** O avatar do Wisp: "robo" (a gotinha) ou "fantasma" (o fantasminha). */
   avatar: AvatarName
+  /** A dança de quando toca música (Fase 27): uma das do kit, ou "mix" (de tudo um pouco). */
+  dance: Dance
   /** O tema do painel: o do sistema, ou sempre claro ou escuro (Fase 22). */
   theme: ThemeSetting
   /** Cores de alto contraste no painel (além do que o sistema pedir). */
@@ -179,6 +183,7 @@ function defaults(): WispConfig {
     sleepAfterMinutes: 3,
     accessory: 'auto',
     avatar: 'robo',
+    dance: 'mix',
     theme: 'system',
     highContrast: false,
     reduceMotion: false,
@@ -286,6 +291,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   sleepAfterMinutes: z.number().min(0),
   accessory: z.enum(ACCESSORY_SETTINGS),
   avatar: z.enum(AVATARS),
+  dance: z.enum(DANCES),
   theme: z.enum(THEME_SETTINGS),
   highContrast: z.boolean(),
   reduceMotion: z.boolean(),

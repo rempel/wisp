@@ -187,19 +187,23 @@ body {
 /* ---- Cores do SVG ----------------------------------------------------- */
 
 .shell-0 {
-  stop-color: var(--shell-0);
+  stop-color: color-mix(in oklab, var(--shell-0), var(--tint-0, #fff) var(--tk-mix));
+  transition: stop-color 0.3s;
 }
 
 .shell-1 {
-  stop-color: var(--shell-1);
+  stop-color: color-mix(in oklab, var(--shell-1), var(--tint-1, #fff) var(--tk-mix));
+  transition: stop-color 0.3s;
 }
 
 .shell-2 {
-  stop-color: var(--shell-2);
+  stop-color: color-mix(in oklab, var(--shell-2), var(--tint-2, #fff) var(--tk-mix));
+  transition: stop-color 0.3s;
 }
 
 .shell-3 {
-  stop-color: var(--shell-3);
+  stop-color: color-mix(in oklab, var(--shell-3), var(--tint-3, #fff) var(--tk-mix));
+  transition: stop-color 0.3s;
 }
 
 .visor-0 {
@@ -234,7 +238,9 @@ body {
 
 .shell {
   fill: url(#wisp-shell);
-  stroke: var(--metal);
+  /* A cor das emoções (Fase 27) entra no casco e no contorno, misturada pelo --tk-mix. */
+  stroke: color-mix(in oklab, var(--metal), var(--tint-3, #000) var(--tk-mix));
+  transition: stroke 0.3s;
   stroke-opacity: 0.55;
   stroke-width: 1;
 }
@@ -578,30 +584,31 @@ body {
   stroke-opacity: 0.6;
 }
 
-.eye-spiral {
+.eye-swirl {
   stroke-width: 1.15;
 }
 
-.eye-spiral .spin {
+.eye-swirl .spin {
   transform-box: fill-box;
   transform-origin: center;
 }
 
-.stage:not([data-eyes='leds']) .eye-leds {
+.stage:not([data-eyes='normal']):not([data-eyes='look']) .eye-leds {
   opacity: 0;
 }
 
 .stage[data-eyes='happy'] .eye-happy,
 .stage[data-eyes='x'] .eye-x,
 .stage[data-eyes='closed'] .eye-closed,
-.stage[data-eyes='squint'] .eye-squint,
+.stage[data-eyes='squeeze'] .eye-squeeze,
 .stage[data-eyes='angry'] .eye-angry,
-.stage[data-eyes='spiral'] .eye-spiral {
+.stage[data-eyes='swirl'] .eye-swirl {
   opacity: 1;
 }
 
-.stage:not([data-eyes='leds']) .eyes,
-.stage:not([data-eyes='leds']) .eyes-blink {
+/* Só os LEDs abertos olham para os lados; piscam também os arregalados (data-blink). */
+.stage:not([data-eyes='normal']) .eyes,
+.stage:not([data-blink]) .eyes-blink {
   animation: none;
 }
 
@@ -674,12 +681,12 @@ body {
 
 /* ---- Estados (seção 5.3) ---------------------------------------------- */
 
-/* Falando: o brilho pulsa no ritmo do texto e os LEDs dos olhos se animam. */
+/* Falando: o brilho pulsa no ritmo do texto e a boca abre e fecha (Fase 27). */
 .state-talking .glow {
   animation-duration: 1.2s;
 }
 
-.state-talking .eyes-blink {
+.state-talking[data-mouth='open'] .mouth-move {
   animation: chatter 0.32s ease-in-out infinite alternate;
 }
 
@@ -688,7 +695,7 @@ body {
     transform: scaleY(1);
   }
   to {
-    transform: scaleY(0.7);
+    transform: scaleY(0.3);
   }
 }
 
@@ -1108,7 +1115,7 @@ body {
   }
 }
 
-.react-dizzy .eye-spiral .spin {
+.stage[data-eyes='swirl'] .eye-swirl .spin {
   animation: spin 0.8s linear infinite;
 }
 
@@ -1449,30 +1456,10 @@ body {
 /* ---- Dança ------------------------------------------------------------ */
 
 /*
- * Algum player está tocando (MPRIS): ocioso e acordado, ele balança no ritmo, uns 114 batidas
- * por minuto. A cada batida desce e sobe; a cada duas, pende para um lado. Notinhas sobem da
- * cabeça. Cochilando, não dança.
+ * Algum player está tocando (MPRIS), ou alguém pediu (o Claude, a galeria): ele dança no ritmo,
+ * uns 114 batidas por minuto, uma das danças do kit (emotions.css). Notinhas sobem da cabeça.
+ * Cochilando, não dança.
  */
-.stage.state-idle.music .groove {
-  animation: groove 1.05s ease-in-out infinite;
-}
-
-@keyframes groove {
-  0%,
-  100% {
-    transform: translateY(1px) rotate(-4deg) scale(1.03, 0.97);
-  }
-  25% {
-    transform: translateY(-3px) scale(0.98, 1.02);
-  }
-  50% {
-    transform: translateY(1px) rotate(4deg) scale(1.03, 0.97);
-  }
-  75% {
-    transform: translateY(-3px) scale(0.98, 1.02);
-  }
-}
-
 .notes {
   position: absolute;
   left: 82px;
@@ -1491,11 +1478,11 @@ body {
   opacity: 0;
 }
 
-.stage.state-idle.music .note {
+.stage[data-dance] .note {
   animation: note-rise 2.1s ease-out infinite;
 }
 
-.stage.state-idle.music .n2 {
+.stage[data-dance] .n2 {
   animation-delay: 1.05s;
 }
 
@@ -1776,7 +1763,7 @@ body {
   animation-duration: 1.2s;
 }
 
-.voice-speaking .eyes-blink {
+.voice-speaking[data-mouth='open'] .mouth-move {
   animation: chatter 0.24s ease-in-out infinite alternate;
 }
 

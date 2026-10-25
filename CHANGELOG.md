@@ -30,11 +30,18 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Prompts salvos e tarefas agendadas** (Fase 26): pedidos prontos no menu da barra, com a pasta, o
   que foi copiado, a data e a hora; e prompts que rodam sozinhos num horário, numa aba nova, sempre
   no modo Pedir.
+- **Emoções e danças do mascote** (Fase 27): as 31 emoções, os 18 sinais no ar, as 12 danças e a
+  troca atuada do [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase), para a
+  gotinha e o fantasminha; o Claude mostra uma quando combina com a conversa (a ferramenta
+  `express`, sem card), e a galeria fica nas configurações.
 
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
-- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts` e `scheduledTasks`.
+- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks` e
+  `dance` (a dança de quando toca música).
+- O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
+  permissão, os olhos brilham.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
 
 ### Consertado

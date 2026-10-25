@@ -3131,6 +3131,33 @@ button.link {
   max-width: 90px;
 }
 
+/* A galeria das emoções e das danças do mascote (Fase 27). */
+.gallery-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.gallery-chip {
+  padding: 3px 9px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.gallery-chip:hover {
+  border-color: var(--accent);
+}
+
+.gallery-chip:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
 /* Um botão das configurações (o "Testar voz"). */
 .settings-button {
   padding: 5px 12px;

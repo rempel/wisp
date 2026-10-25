@@ -11,6 +11,8 @@ import { listApps, listProjects, openApp, openProject, openTerminalIn, openUrl }
 import type { Outcome } from './desktop'
 import { runtimeDir } from './paths'
 import { describeTrack } from './media'
+import { DANCES, EMOTIONS } from '../shared/emotions'
+import type { Dance, Emotion } from '../shared/emotions'
 import type { Media, MediaAction } from './media'
 import { describeIn, describeWhen, parseWhen } from './reminders'
 import type { Reminder } from './reminders'
@@ -75,6 +77,8 @@ export interface DesktopServerOptions {
   agenda?: (days: number, from?: string) => Promise<string>
   /** O resumo da semana em texto: a atual (até agora) ou a anterior. */
   weekly?: (which: 'atual' | 'anterior') => string
+  /** Mostra uma emoção ou uma dança no mascote, por `seconds` segundos (Fase 27). */
+  express?: (act: { emotion?: Emotion; dance?: Dance; seconds?: number }) => void
 }
 
 export interface DesktopServer {
@@ -551,6 +555,39 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
         } catch (err) {
           return { ...text(`O player não respondeu: ${(err as Error).message}`), isError: true }
         }
+      }
+    )
+  }
+
+  // As emoções do mascote (Fase 27): só mexem no desenho dele, como a notificação.
+  if (options.express) {
+    const express = options.express
+    server.registerTool(
+      'express',
+      {
+        title: 'Mostrar uma emoção',
+        description:
+          'Mostra uma emoção no mascote do Wisp (o rosto, a cor e um sinal no ar, por uns ' +
+          'segundos) ou faz ele dançar. Não muda nada na máquina e não precisa ser anunciado. ' +
+          'Use de vez em quando, quando combinar com o momento: um agradecimento (love, shy), ' +
+          'um teste que passou ou um trabalho pronto (proud, happy, relieved), uma ideia (idea), ' +
+          'um problema difícil (thinking, confused, determined), uma notícia ruim (sad), um ' +
+          'susto (surprised); ou quando pedirem para ele dançar (danca). Sem exagero: uma por ' +
+          'resposta, no máximo.',
+        inputSchema: {
+          emocao: z.enum(EMOTIONS).optional(),
+          danca: z.enum(DANCES).optional(),
+          segundos: z.number().min(1).max(15).optional()
+        },
+        annotations: { readOnlyHint: true },
+        _meta: ALWAYS_LOAD
+      },
+      async ({ emocao, danca, segundos }) => {
+        if (!emocao && !danca) {
+          return { ...text('Diga a emoção (emocao) ou a dança (danca).'), isError: true }
+        }
+        express({ emotion: emocao, dance: danca, seconds: segundos })
+        return text('ok')
       }
     )
   }

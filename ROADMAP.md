@@ -980,7 +980,52 @@ Notas da entrega:
 **Aceite:** uma tarefa das 9h roda com o painel fechado, e o card dela espera você (ou vai para
 o celular, se ligado).
 
-### Fase 27: manutenção e CI
+### Fase 27: emoções e ações dos avatares ✅
+
+**Status:** pronta, esperando validação. Veio do pedido de trazer as animações do
+[ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase) (o kit de animação do
+Clawd, de John Heibel, licença MIT) para os nossos avatares. Testes de ponta a ponta:
+`e2e/emocoes.mjs`.
+
+O kit faz vídeos curtos pintados a pincel (p5.js e p5.brush, com o traço tremendo 12 vezes por
+segundo). Esse desenho, quadro a quadro na CPU, não serve para um mascote que fica aberto o dia todo
+("parado, o Wisp não gasta CPU perceptível"); o que vale trazer é o repertório de ações, e ele
+coube no SVG e no CSS de sempre.
+
+- **As emoções (G):** as 31 do kit, com o mesmo rosto (24 olhos e 16 bocas), a mesma cor (6 tons
+  misturados ao casco, na força de cada uma), as bochechas, a sombra na testa, o sinal no ar e o
+  jeito de mexer o corpo, para a gotinha e para o fantasminha.
+- **Os sinais no ar (M):** os 18 do kit, pintados, entrando num pulo; os de uma vez só (o "!" do
+  susto) somem sozinhos.
+- **A troca atuada (M):** os olhos apertam e o corpo encolhe antes, o rosto troca com os olhos
+  fechados, vem um susto do tamanho da emoção nova e o corpo assenta com uma molinha.
+- **As danças (M):** as 12 do kit, na dança de quando toca música (escolhida nas configurações) e
+  quando pedem.
+- **Quem pede (P):** o Claude, pela ferramenta `express` (sem card: só mexe no desenho), e a
+  galeria em **Configurações → Mascote e sons**. Os estados e as reações ganharam rosto também.
+
+Notas da entrega:
+
+- o robô não tem braços: a antena faz as vezes deles (cai na tristeza, fica em pé no susto, pende
+  na dúvida, bombeia no "mãos para o alto"). O fantasminha usa os bracinhos, agora em camadas
+  próprias;
+- a boca fica no visor do robô, logo abaixo dos olhos (que sobem um pouco para caber), em LED; no
+  fantasminha, no corpo, escura como os olhos;
+- o kit pinta um personagem laranja; no robô, ciano, as cores quentes entram mais forte (o dourado
+  misturado de leve viraria verde);
+- as vistas de lado e de costas e os giros do kit são desenhos de um personagem com corpo e
+  pernas; nos nossos, redondos, o "girar" é um giro desenhado (fino de lado, de costas sem o rosto).
+  Os chapéus do kit ficaram para depois, como acessórios;
+- a reação a um clique ganha da emoção; um pedido de permissão, um erro e o cochilo também (são
+  avisos), e a emoção pedida espera;
+- tudo o que se mexe sem parar usa só `transform` e `opacity`; no cochilo não há emoção nem dança,
+  e com **Menos movimento** o rosto e a cor mudam, mas o corpo e os sinais ficam parados.
+
+**Aceite:** na galeria, cada emoção aparece nos dois avatares com o rosto, a cor, o sinal e o
+movimento dela, depois de uma troca atuada; o Claude mostra uma emoção sem card; e o Wisp parado
+continua sem gastar CPU.
+
+### Fase 28: manutenção e CI
 
 - **CI que não cai sozinho (P):** o job do ARM64 foi cancelado por passar de 30 minutos só no
   `apt-get install` do compilador cruzado (nos outros pushes, de 20 s a 13 min). O passo ganha um
@@ -994,7 +1039,7 @@ o celular, se ligado).
 **Aceite:** cinco pushes seguidos com o CI todo verde; nenhum arquivo do `src/` com mais de
 1.000 linhas; os testes de unidade e de ponta a ponta passam sem mudar.
 
-### Fase 28: o histórico que acha
+### Fase 29: o histórico que acha
 
 - **Busca pelo conteúdo (M):** a busca do histórico procura no que foi dito (as suas mensagens e
   as respostas), não só no título, num índice local. O resultado mostra o trecho, e abrir leva à
@@ -1004,7 +1049,7 @@ o celular, se ligado).
 **Aceite:** uma palavra dita numa conversa de um mês atrás acha a conversa, e abrir mostra a
 mensagem dela no painel.
 
-### Fase 29: servidores MCP pelo Wisp
+### Fase 30: servidores MCP pelo Wisp
 
 - **Listar e adicionar (M):** os servidores MCP do Claude Code (os do usuário e os do projeto),
   com o que cada um oferece. Adicionar um (por comando ou endereço) e tirar mostram a mudança no
@@ -1018,7 +1063,7 @@ um servidor MCP de terceiros, à vista e com o seu clique.
 **Aceite:** um servidor MCP adicionado pelas configurações aparece numa conversa nova, e a
 ferramenta dele pede permissão pelo card.
 
-### Fase 30: levar o Wisp junto
+### Fase 31: levar o Wisp junto
 
 - **Exportar e importar (M):** um arquivo com as configurações, os prompts salvos, as tarefas e
   (se você quiser) o histórico, sem segredos (as chaves ficam no chaveiro). Importar mostra o que
@@ -1030,7 +1075,7 @@ ferramenta dele pede permissão pelo card.
 **Aceite:** numa máquina nova, importar o arquivo traz os prompts, as tarefas e as conversas; o
 AppImage se atualiza pelo botão e abre na versão nova.
 
-### Fase 31: tudo a um atalho
+### Fase 32: tudo a um atalho
 
 - **Paleta de comandos (M):** um atalho (no painel e global) abre uma busca única: conversas,
   prompts salvos, tarefas, sessões do terminal e as ações do Wisp (nova conversa, abrir pasta,

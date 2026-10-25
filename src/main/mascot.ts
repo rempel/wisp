@@ -9,6 +9,7 @@ import { ISLAND_ANIMATION_MS, islandBounds, islandRect, islandShape } from './is
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
+import type { Dance, MascotAct } from '../shared/emotions'
 import type {
   Accessory,
   DroppedFile,
@@ -40,6 +41,8 @@ let view: MascotView = { state: 'idle', look: 'left' }
 /** O acessório do dia, reenviado quando a página (re)carrega. */
 let accessory: Accessory | null = null
 let avatar: AvatarName = 'robo'
+/** A dança de quando toca música (Fase 27), reenviada quando a página (re)carrega. */
+let danceStyle: Dance = 'mix'
 let reduceMotion = false
 /** O usuário escondeu o mascote pelo menu da bandeja (só nesta execução). */
 let hiddenByUser = false
@@ -86,6 +89,7 @@ export function setupMascot(options: MascotHandlers): void {
     event.sender.send(IPC.mascotState, view)
     event.sender.send(IPC.mascotAccessory, accessory)
     event.sender.send(IPC.mascotAvatar, avatar)
+    event.sender.send(IPC.mascotAct, { kind: 'style', dance: danceStyle } satisfies MascotAct)
     event.sender.send(IPC.mascotMotion, reduceMotion)
     event.sender.send(IPC.mascotIsland, islandView())
     options.ready()
@@ -165,6 +169,22 @@ export function setMascotGaze(gaze: Gaze | null): void {
 export function reactMascot(reaction: MascotReaction): void {
   if (reaction === 'greet') openFor(MOMENT_MS.greet)
   mascotWin?.webContents.send(IPC.mascotReact, reaction)
+}
+
+/**
+ * Uma emoção ou dança no mascote (Fase 27): pedida pelo Claude (a ferramenta express) ou na
+ * galeria das configurações. Não abre a ilha nem acorda nada sozinha: quem pede já conta como
+ * atividade.
+ */
+export function actMascot(act: Exclude<MascotAct, { kind: 'style' }>): void {
+  mascotWin?.webContents.send(IPC.mascotAct, act)
+}
+
+/** A dança de quando toca música (as configurações). */
+export function setMascotDanceStyle(next: Dance): void {
+  if (next === danceStyle) return
+  danceStyle = next
+  mascotWin?.webContents.send(IPC.mascotAct, { kind: 'style', dance: next } satisfies MascotAct)
 }
 
 /** O acessório do dia (null: nenhum). */
