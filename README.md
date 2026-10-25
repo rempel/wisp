@@ -141,8 +141,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
-  agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI) e 29 (o histórico que
-  acha):** prontas, esperando a validação com o uso.
+  agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
+  acha) e 30 (servidores MCP pelo Wisp):** prontas, esperando a validação com o uso.
 
 ## Requisitos
 
@@ -631,6 +631,28 @@ libera) antes de copiar para `~/.claude/skills/<nome>`, sem nunca substituir out
 no terminal. Uma skill nova vale na próxima conversa (Ctrl+K). Pela OpenRouter, as skills
 pessoais também valem (por um link na pasta de configuração de lá); os plugins, não.
 
+### Servidores MCP
+
+Os servidores MCP dão ao Claude ferramentas de outros programas e serviços (um banco de dados, o
+Notion, um calendário...). Em **Configurações → Servidores MCP** aparecem os do seu Claude Code
+(os do usuário, no `~/.claude.json`) e os dos projetos (o `.mcp.json` de cada pasta em
+`projectRoots`, só para ver). Das variáveis e dos cabeçalhos, só os nomes aparecem.
+
+- **Adicionar um servidor…** pede o nome e o comando (com os argumentos, um por linha, e as
+  variáveis, `NOME=valor`) ou o endereço HTTP (com os cabeçalhos, `Nome: valor`). **Ver a
+  mudança** mostra o que muda no `mcpServers` do `~/.claude.json` (com os valores secretos
+  escondidos) e onde fica o backup; **Gravar** faz o backup ao lado do arquivo e grava pelo
+  próprio `claude mcp`. **Tirar** mostra a mudança do mesmo jeito. Os servidores ficam no seu
+  Claude Code: valem também no terminal.
+- **Nas conversas do Wisp** entram só os servidores ligados aqui (os adicionados pelo Wisp já
+  entram ligados), a partir da próxima conversa (Ctrl+K). Os dos projetos nunca entram, e um
+  servidor seu com o nome de um do Wisp (`desktop`, `playwright`) fica de fora.
+- **Cada ferramenta pede permissão pelo card**, que diz de qual servidor ela é. Depois da primeira
+  conversa com um servidor, as ferramentas dele aparecem na lista, com o estado (conectado, não
+  conectou, precisa de login); marcar uma a libera sem card (ela vai para o
+  `extraAllowedTools`), a partir da próxima vez que o Wisp abrir. Tirar um servidor desliga ele e
+  esquece as ferramentas dele que estavam liberadas.
+
 ### Sessões do Claude Code no terminal
 
 Se você também usa o `claude` direto no terminal, o Wisp pode acompanhar essas sessões:
@@ -949,6 +971,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "projectRoots": ["~/projetos"],
   "mascotPosition": null,
   "extraAllowedTools": [],
+  "enabledMcpServers": [],
   "model": null,
   "permissionMode": "default",
   "sound": true,
@@ -1014,7 +1037,7 @@ Dá para editar o arquivo com o Wisp aberto:
   `avatar`, `dance`, `shortcut`, `clipboardChip`, `terminalCommand`, as opções de voz e as de
   aparência valem na hora;
 - `model`, na próxima mensagem;
-- `browserAutomation` e `browserExecutable`, na próxima conversa (Ctrl+K);
+- `browserAutomation`, `browserExecutable` e `enabledMcpServers`, na próxima conversa (Ctrl+K);
 - `claudePath` e `extraAllowedTools`, na próxima vez que o app abrir.
 
 `model` é o modelo do Claude: `null` usa o padrão do seu Claude Code, e a pílula acima da caixa
@@ -1056,6 +1079,10 @@ Ferramentas em `extraAllowedTools` passam a rodar sem o card, além das já libe
 exemplo, `"mcp__desktop__open_app"` para abrir apps sem perguntar (vale também para o "abre o X"
 falado). Comandos `Bash` são a exceção: pedem permissão mesmo listados aqui, menos no modo
 Automático, em que quem decide é o Claude Code.
+
+`enabledMcpServers` são os nomes dos servidores MCP do seu Claude Code (os do `~/.claude.json`)
+que entram nas conversas do Wisp; os outros ficam de fora (veja
+[Servidores MCP](#servidores-mcp)).
 
 `sound` liga e desliga os sons; o botão de mudo do painel, o Ctrl+M e o item **Sons** dos menus
 mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
@@ -1232,9 +1259,12 @@ hora uma conversa apagada.
 - **Pelo celular, só uma vez:** sem "sempre", sem trocar o modo, um pedido por vez, negado em 2
   minutos sem resposta, e só o resumo do pedido no canal (veja
   [Aprovar pelo celular](#aprovar-pelo-celular)).
-- **Os seus arquivos de configuração:** o `~/.claude/settings.json` só muda pela aba Sessões, com o
-  diff à vista e um backup. O modo terminal leva as configurações dele só no processo, sem gravar
-  nada.
+- **Os seus arquivos de configuração:** o `~/.claude/settings.json` só muda pela aba Sessões, e o
+  `mcpServers` do `~/.claude.json` só pelas configurações dos servidores MCP, sempre com o diff à
+  vista e um backup ao lado do arquivo. O modo terminal leva as configurações dele só no
+  processo, sem gravar nada.
+- **Servidores MCP:** nas conversas do Wisp entram só os seus que você ligou; os dos projetos
+  nunca. Cada ferramenta deles pede permissão pelo card até você liberá-la.
 - **Pastas de projetos:** um projeto que roda comandos sozinho (hooks, permissões, skills com
   `allowed-tools`) só é aberto depois de você confiar nele, e a confiança vale até esses arquivos
   mudarem.
@@ -1258,6 +1288,7 @@ Onde fica cada coisa:
 | `~/.local/share/wisp/bin/`                   | O comando `wisp` e o relay dos hooks (reescritos a cada abertura)     |
 | `~/.cache/wisp/anexos/`                      | As cópias dos anexos (apagadas depois de 7 dias)                      |
 | `~/.cache/wisp/busca.json`                   | O índice da busca do histórico (refeito pelas conversas, só seu)      |
+| `~/.local/share/wisp/mcp.json`               | As ferramentas que cada servidor MCP ofereceu (só os nomes)           |
 | `~/.local/state/wisp/wisp.log`               | O registro (até 1 MB, sem comandos, endereços, chaves ou tokens)      |
 | `$XDG_RUNTIME_DIR/wisp/`                     | O socket dos hooks e os arquivos de cada execução (só do seu usuário) |
 | Chaveiro do sistema                          | A chave da OpenRouter e os tópicos do celular (ntfy)                  |

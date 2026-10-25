@@ -37,6 +37,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **O histórico que acha** (Fase 29): a busca acha o que foi dito nas conversas (as suas mensagens e
   as respostas), sem ligar para acentos, com o trecho; abrir leva à mensagem. Filtros por período e
   por pasta. A busca na conversa (Ctrl+F) também ignora os acentos.
+- **Servidores MCP pelo Wisp** (Fase 30): em Configurações → Servidores MCP, os do seu Claude Code
+  e os dos projetos; pôr e tirar um mostram a mudança no `~/.claude.json` antes, com backup, e
+  gravam pelo `claude mcp`. Os ligados entram nas conversas do Wisp, e cada ferramenta deles pede
+  permissão pelo card até você liberá-la.
 
 ### Mudou
 
@@ -48,8 +52,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   pedem atualização (sem derrubar o CI).
 - Dependências atualizadas pelo `npm audit fix`: o Electron 44.9.3 (era o 44.7.0) e, no servidor
   MCP e no build, body-parser, fast-uri, ip-address, qs, undici e zod.
-- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks` e
-  `dance` (a dança de quando toca música).
+- O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks`,
+  `dance` (a dança de quando toca música) e `enabledMcpServers`.
 - O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
   permissão, os olhos brilham.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.

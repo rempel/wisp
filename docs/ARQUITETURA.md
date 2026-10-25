@@ -17,6 +17,9 @@ src/
 │  ├─ agenda-alerts.ts # a agenda: o aviso antes, o próximo compromisso e a ferramenta
 │  ├─ openrouter-ipc.ts # a OpenRouter nas configurações: os modelos e a chave no chaveiro
 │  ├─ skills-ipc.ts  # as skills nas configurações: listar, instalar, mandar para a lixeira
+│  ├─ mcp-servers.ts # os servidores MCP do Claude Code: ler, a prévia, gravar e o catálogo
+│  ├─ mcp-ipc.ts     # os servidores MCP nas configurações (a lista, a prévia e a gravação)
+│  ├─ backup.ts      # o backup datado de um arquivo de configuração, ao lado dele
 │  ├─ voice-quick.ts # os comandos rápidos de voz (música, volume, abrir um app)
 │  ├─ launcher.ts    # o comando ~/.local/share/wisp/bin/wisp e a entrada no menu de apps
 │  ├─ autostart.ts   # Iniciar com o sistema (~/.config/autostart)
@@ -681,6 +684,18 @@ CONTRIBUTING.md        # o guia de contribuição
   do CSS (`CSS.highlights`), sem mexer no HTML das mensagens. O rascunho de cada aba fica num mapa
   na página (para a aba que sai e volta) e vai para o `abas.json` depois de parar de digitar. As
   fixadas ficam num arquivo à parte (`fixadas.json`), porque o histórico é só de acréscimos.
+- **Servidores MCP do usuário:** o `mcp-servers.ts` lê o `mcpServers` do `~/.claude.json` (e o
+  `.mcp.json` dos projetos, só para a lista) sem nunca mandar à página o valor de uma variável ou
+  de um cabeçalho. A prévia é o diff do `mcpServers` com esses valores trocados por `•••`, e a
+  impressão do servidor da mudança (só ele: o resto do arquivo muda o tempo todo). Gravar confere
+  a impressão, copia o arquivo para `~/.claude.json.backup-wisp-<data>` e roda `claude mcp
+add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente das conversas,
+  sem a chave da API), e confere o resultado relendo o arquivo. O servidor do Wisp monta o
+  `--mcp-config` de cada processo do Claude Code com uma função, chamada a cada conversa nova: ela
+  junta os servidores ligados (`enabledMcpServers`, relidos do `~/.claude.json`, só os campos que
+  o Claude Code entende) e o do navegador, e o `desktop` vai por último, para nenhum outro tomar
+  o lugar dele. No `init` de cada conversa, o `claude-stream.ts` anota os servidores e as
+  ferramentas `mcp__<servidor>__<ferramenta>` em `~/.local/share/wisp/mcp.json`, que a lista usa.
 - **Busca do histórico:** o `history-search.ts` guarda, por conversa, a data e o tamanho do
   arquivo e o texto das mensagens (as suas, pela ordem, e cada bloco de texto do Claude, pelo id),
   depois do `applyRewinds`. A cada busca, ele confere a pasta e só relê o que mudou; o índice vai

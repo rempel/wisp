@@ -6,15 +6,20 @@
 // [modelo] responde o modelo, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
-// [plano] apresenta um plano (ExitPlanMode), [demorado] dois comandos com uma
-// pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de verdade), [agente]
+// [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
+// não estiver no --allowedTools), [plano] apresenta um plano (ExitPlanMode), [demorado] dois
+// comandos com uma pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de
+// verdade), [agente]
 // um subagente com os passos dele, [tarefa] um comando em segundo plano que acaba depois da
 // resposta. O resto: uma resposta curta. Com --replay-user-messages, cada mensagem volta quando
 // é pega.
 // As decisões vão para $HOME/.fake-claude/approvals.log.
 // Pedidos de controle: interrupt, set_model (um nome com "naoexiste" é recusado) e
 // set_permission_mode. `auth status` diz que há login (FAKE_CLAUDE_LOGGED_OUT=1: não há), e
-// `--version`, a versão (FAKE_CLAUDE_VERSION troca).
+// `--version`, a versão (FAKE_CLAUDE_VERSION troca). `mcp add-json --scope user NOME JSON` e
+// `mcp remove --scope user NOME` mexem no mcpServers do ~/.claude.json (e anotam em mcp.log). No
+// init, os servidores do --mcp-config aparecem conectados (FAKE_STATUS no env de um muda), com as
+// ferramentas do FAKE_TOOLS dele (por padrão, ping).
 // Cada processo anota em $HOME/.fake-claude/spawns.log os argumentos e se recebeu a
 // ANTHROPIC_API_KEY (e o idioma pedido no prompt do sistema), e em controls.log os pedidos de
 // controle.
@@ -32,6 +37,46 @@ if (args[0] === 'auth') {
   console.log(
     JSON.stringify({ loggedIn: !process.env.FAKE_CLAUDE_LOGGED_OUT, authMethod: 'claude.ai' })
   )
+  process.exit(0)
+}
+if (args[0] === 'mcp') {
+  const dir = process.env.CLAUDE_CONFIG_DIR || process.env.HOME
+  const file = path.join(dir, '.claude.json')
+  let json = {}
+  try {
+    json = JSON.parse(fs.readFileSync(file, 'utf8'))
+  } catch {
+    // Sem o arquivo: começa vazio.
+  }
+  const servers = json.mcpServers ?? {}
+  const [name, config] = args
+    .slice(2)
+    .filter((a, i, all) => a !== '--scope' && all[i - 1] !== '--scope')
+  fs.mkdirSync(path.join(process.env.HOME, '.fake-claude'), { recursive: true })
+  fs.appendFileSync(
+    path.join(process.env.HOME, '.fake-claude/mcp.log'),
+    JSON.stringify(args) + '\n'
+  )
+  if (args[1] === 'add-json') {
+    if (servers[name]) {
+      process.stderr.write(`MCP server ${name} already exists in user config\n`)
+      process.exit(1)
+    }
+    servers[name] = JSON.parse(config)
+    console.log(`Added ${servers[name].type ?? 'stdio'} MCP server ${name} to user config`)
+  } else if (args[1] === 'remove') {
+    if (!servers[name]) {
+      process.stderr.write(`No user-scoped MCP server found with name: ${name}\n`)
+      process.exit(1)
+    }
+    delete servers[name]
+    console.log(`Removed MCP server ${name} from user config`)
+  } else {
+    process.stderr.write(`mcp ${args[1]}: não sei fazer isso\n`)
+    process.exit(1)
+  }
+  json.mcpServers = servers
+  fs.writeFileSync(file, JSON.stringify(json, null, 2))
   process.exit(0)
 }
 // O e2e de consumo (Fase 23): FAKE_CLAUDE_HOLD_MB segura essa memória, como o Claude Code de
@@ -214,6 +259,10 @@ async function tool(name, input, result, toolUseResult) {
   })
 }
 
+// Os servidores do --mcp-config: [nome, configuração].
+const mcpServers = () =>
+  mcpConfig ? Object.entries(JSON.parse(fs.readFileSync(mcpConfig, 'utf8')).mcpServers ?? {}) : []
+
 // Chama uma ferramenta do servidor MCP do Wisp (as liberadas, que não pedem permissão).
 async function callDesktop(name, args) {
   const desktop = JSON.parse(fs.readFileSync(mcpConfig, 'utf8')).mcpServers.desktop
@@ -357,7 +406,15 @@ async function runTurn(text) {
     model,
     apiKeySource: 'none',
     permissionMode: mode,
-    mcp_servers: [],
+    mcp_servers: mcpServers().map(([name, config]) => ({
+      name,
+      status: config.env?.FAKE_STATUS ?? 'connected'
+    })),
+    tools: mcpServers().flatMap(([name, config]) =>
+      name === 'desktop'
+        ? []
+        : (config.env?.FAKE_TOOLS ?? 'ping').split(',').map((tool) => `mcp__${name}__${tool}`)
+    ),
     slash_commands: ['compact', 'revisa', 'review', 'init', 'deploy-rapido']
   })
   if (text.includes('[limite]')) {
@@ -500,6 +557,17 @@ async function runTurn(text) {
     const result = await callDesktop('express', input)
     await tool('mcp__desktop__express', input, result)
     answer = felt ? `Mostrei ${felt[1]}.` : `Dancei ${danced[1]}.`
+  }
+  const used = /\[mcp ([\w-]+) ([\w-]+)\]/.exec(text)
+  if (used) {
+    const name = `mcp__${used[1]}__${used[2]}`
+    if ((flag('--allowedTools') ?? '').split(',').includes(name)) {
+      await tool(name, {}, `ok de ${name}`)
+      answer = `Usei ${name} sem perguntar.`
+    } else {
+      const decision = await askTool(name, {}, `ok de ${name}`)
+      answer = decision.behavior === 'allow' ? `Usei ${name}.` : `Não usei ${name}.`
+    }
   }
   const asked = /\[pede ([^\]]+)\]/.exec(text)
   if (asked) {

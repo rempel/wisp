@@ -1,10 +1,10 @@
 // As configurações e o que mora nelas: as integrações (o resumo da semana e a agenda), o
-// diagnóstico, o celular, as skills e a chave da OpenRouter.
+// diagnóstico, o celular, as skills, a chave da OpenRouter e os servidores MCP.
 
 import type { AvatarName } from './avatars'
 import type { Dance } from './emotions'
 import type { SavedPrompt, ScheduledTask } from './prompts'
-import type { PermissionMode, Provider } from './ipc-chat'
+import type { DiffHunk, PermissionMode, Provider } from './ipc-chat'
 
 /** O resumo de uma semana (de segunda a segunda), só com contagens (Fase 13). */
 export interface WeekSummary {
@@ -51,6 +51,7 @@ export interface Settings {
   model: string | null
   permissionMode: PermissionMode
   extraAllowedTools: string[]
+  enabledMcpServers: string[]
   sound: boolean
   volume: number
   sleepAfterMinutes: number
@@ -94,6 +95,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'model',
   'permissionMode',
   'extraAllowedTools',
+  'enabledMcpServers',
   'sound',
   'volume',
   'sleepAfterMinutes',
@@ -234,3 +236,56 @@ export type OpenRouterKeyResult =
 
 /** A mudança deu certo, ou o campo que estava errado e o motivo. */
 export type SettingsResult = { ok: true } | { ok: false; field: string; message: string }
+
+/** Um servidor MCP do Claude Code, como as configurações mostram (Fase 30). */
+export interface McpServerInfo {
+  name: string
+  /** O seu (do ~/.claude.json) ou de um projeto (do .mcp.json dele, só para ver). */
+  scope: 'user' | 'project'
+  /** O projeto (o nome da pasta), para os de projeto. */
+  project?: string
+  /** Por comando, por endereço, ou num formato que o Wisp não conhece. */
+  kind: 'command' | 'url' | 'other'
+  /** O comando com os argumentos, ou o endereço. */
+  summary: string
+  /** Os nomes das variáveis (comando) ou dos cabeçalhos (endereço); os valores ficam escondidos. */
+  secrets: string[]
+  /** Entra nas conversas do Wisp (só os seus). */
+  enabled: boolean
+  /** O nome é de um servidor do próprio Wisp (desktop, playwright): ele não entra. */
+  reserved?: boolean
+  /** Da última conversa em que ele entrou: se conectou e as ferramentas (sem o mcp__nome__). */
+  status?: string
+  tools?: string[]
+}
+
+/** Os servidores MCP: os seus e os dos projetos, e o arquivo dos seus. */
+export interface McpSnapshot {
+  configPath: string
+  servers: McpServerInfo[]
+  /** Por que não deu para ler o arquivo. */
+  problem?: string
+}
+
+/** Um servidor novo, como o formulário das configurações o descreve. */
+export type McpServerInput =
+  | { kind: 'command'; name: string; command: string; args: string[]; env: Record<string, string> }
+  | { kind: 'url'; name: string; url: string; headers: Record<string, string> }
+
+/** Pôr ou tirar um servidor do seu Claude Code. */
+export type McpChange =
+  { action: 'add'; server: McpServerInput } | { action: 'remove'; name: string }
+
+/** A prévia da mudança no ~/.claude.json (com os valores secretos escondidos). */
+export interface McpPreview {
+  change: McpChange
+  configPath: string
+  /** Onde fica o backup; null se o arquivo ainda não existe. */
+  backupPath: string | null
+  diff: DiffHunk[]
+  /** O servidor como estava na prévia: só ele pode ser mudado com ela. */
+  fingerprint: string
+}
+
+export type McpApplyResult =
+  { ok: true; backupPath: string | null } | { ok: false; message: string }

@@ -91,10 +91,11 @@ export interface DesktopServer {
   /** A conversa fechou: o arquivo dela sai. */
   releaseConfig(conversation: string): void
   /**
-   * Outros servidores MCP nos arquivos (o navegador do Playwright). Vale para os próximos
-   * processos do Claude Code, ou seja, a partir da próxima conversa.
+   * Outros servidores MCP nos arquivos (o navegador do Playwright e os seus que entram no Wisp),
+   * pedidos a cada arquivo: valem para os próximos processos do Claude Code, ou seja, a partir da
+   * próxima conversa.
    */
-  setExtraServers(servers: Record<string, unknown>): void
+  setExtraServers(servers: () => Record<string, unknown>): void
   close(): void
 }
 
@@ -730,7 +731,7 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
   const dir = runtimeDir()
   mkdirSync(dir, { recursive: true, mode: 0o700 })
   removeStaleConfigs(dir)
-  let extra: Record<string, unknown> = {}
+  let extra = (): Record<string, unknown> => ({})
   const written = new Set<string>()
   const pathFor = (conversation: string): string =>
     join(dir, `mcp-${process.pid}-${conversation}.json`)
@@ -744,7 +745,7 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
         headers: { Authorization: `Bearer ${token}` }
       }
       const path = pathFor(conversation)
-      writeFileSync(path, JSON.stringify({ mcpServers: { ...extra, desktop } }), { mode: 0o600 })
+      writeFileSync(path, JSON.stringify({ mcpServers: { ...extra(), desktop } }), { mode: 0o600 })
       chmodSync(path, 0o600)
       written.add(conversation)
       return path

@@ -39,6 +39,8 @@ const PointSchema = z.object({ x: z.number().int(), y: z.number().int() })
  * OpenRouter ("provedor/modelo", às vezes com ":free" ou "@versão" no fim).
  */
 export const MODEL_NAME = /^[A-Za-z0-9~][\w.:/@[\]-]{0,99}$/
+/** O nome de um servidor MCP no Claude Code (o mcp__nome__ das ferramentas dele). */
+export const MCP_SERVER_NAME = /^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$/
 
 export type Point = z.infer<typeof PointSchema>
 
@@ -48,6 +50,11 @@ export interface WispConfig {
   projectRoots: string[]
   mascotPosition: Point | null
   extraAllowedTools: string[]
+  /**
+   * Os servidores MCP do seu Claude Code (os do usuário, no ~/.claude.json) que entram nas
+   * conversas do Wisp (Fase 30), pelo nome. Os outros ficam de fora.
+   */
+  enabledMcpServers: string[]
   /** Modelo do Claude (apelido como "sonnet" ou nome completo); null usa o padrão do Claude Code. */
   model: string | null
   /**
@@ -176,6 +183,7 @@ function defaults(): WispConfig {
     projectRoots: ['~/projetos'],
     mascotPosition: null,
     extraAllowedTools: [],
+    enabledMcpServers: [],
     model: null,
     permissionMode: 'default',
     sound: true,
@@ -283,6 +291,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   projectRoots: z.array(z.string()),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
+  enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),
   // Só letras, números e . _ - : [ ]: apelidos ("sonnet") e nomes completos ("claude-sonnet-5-5").
   model: z.string().regex(MODEL_NAME).nullable(),
   permissionMode: z.enum(PERMISSION_MODES),
@@ -461,6 +470,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   editorCommand: t('Diga o comando do editor (code, codium…).'),
   projectRoots: t('Uma pasta por linha.'),
   extraAllowedTools: t('Um nome de ferramenta por linha.'),
+  enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),
   openrouterModel: t('O id do modelo na OpenRouter, como aparece no site: provedor/modelo.'),
   volume: t('O volume vai de 0 a 1.'),

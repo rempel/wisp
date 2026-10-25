@@ -1102,7 +1102,10 @@ Notas da entrega:
 **Aceite:** uma palavra dita numa conversa de um mês atrás acha a conversa, e abrir mostra a
 mensagem dela no painel.
 
-### Fase 30: servidores MCP pelo Wisp
+### Fase 30: servidores MCP pelo Wisp ✅
+
+**Status:** pronta, esperando validação. Testes: `test/mcp.test.ts` e `e2e/mcp.mjs` (um servidor
+posto pelas configurações entra na conversa nova, e a ferramenta dele pede pelo card).
 
 - **Listar e adicionar (M):** os servidores MCP do Claude Code (os do usuário e os do projeto),
   com o que cada um oferece. Adicionar um (por comando ou endereço) e tirar mostram a mudança no
@@ -1112,6 +1115,29 @@ mensagem dela no painel.
 
 É o caminho que as "integrações de negócio" deixadas de fora apontam: em vez de código próprio,
 um servidor MCP de terceiros, à vista e com o seu clique.
+
+Notas da entrega:
+
+- os seus servidores ficam no `mcpServers` do `~/.claude.json` (ou do `CLAUDE_CONFIG_DIR`); os dos
+  projetos, no `.mcp.json` de cada pasta em `projectRoots`, aparecem só para ver. Das variáveis e
+  dos cabeçalhos, a lista e a prévia mostram só os nomes;
+- pôr e tirar gravam pelo próprio `claude mcp add-json --scope user` e `claude mcp remove --scope
+user`, que cuida do arquivo como o resto do Claude Code (o `~/.claude.json` muda o tempo todo).
+  Antes, o Wisp confere que o servidor continua como na prévia e copia o arquivo para
+  `~/.claude.json.backup-wisp-<data>`; depois, confere que a mudança está lá;
+- as conversas do Wisp continuam com `--strict-mcp-config`: entram o servidor do Wisp e só os seus
+  que você ligou (`enabledMcpServers`, lido do `~/.claude.json` a cada conversa nova). Pôr um pelo
+  Wisp já o liga; os dos projetos nunca entram, e um servidor seu com o nome de um do Wisp
+  (`desktop`, `playwright`) fica de fora;
+- o que cada um oferece vem do começo de cada conversa (o `init` do Claude Code diz os servidores,
+  se conectaram, e as ferramentas), guardado em `~/.local/share/wisp/mcp.json`: o Wisp não sobe um
+  servidor só para listar;
+- o card de uma ferramenta de servidor diz de qual servidor ela é. Liberar uma (marcar na lista)
+  a põe no `extraAllowedTools`, que vale quando o Wisp abre de novo, como sempre: uma conversa não
+  consegue se liberar sozinha mexendo no `config.json`. Tirar um servidor desliga ele e esquece as
+  ferramentas liberadas dele;
+- o Claude Code de mentira dos testes ganhou o `mcp add-json` e o `mcp remove`, os servidores do
+  `--mcp-config` no `init` (o do Wisp aparece conectado) e o `[mcp SERVIDOR FERRAMENTA]`.
 
 **Aceite:** um servidor MCP adicionado pelas configurações aparece numa conversa nova, e a
 ferramenta dele pede permissão pelo card.

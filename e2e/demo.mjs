@@ -87,6 +87,7 @@ check(
       'Atalhos e sistema',
       'Voz',
       'Skills',
+      'Servidores MCP',
       'OpenRouter (experimental)',
       'Integrações',
       'Celular',
