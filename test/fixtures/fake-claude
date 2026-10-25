@@ -5,7 +5,8 @@
 // parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
 // [modelo] responde o modelo, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
-// COMANDO no Bash, [plano] apresenta um plano (ExitPlanMode), [demorado] dois comandos com uma
+// COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
+// [plano] apresenta um plano (ExitPlanMode), [demorado] dois comandos com uma
 // pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de verdade), [agente]
 // um subagente com os passos dele, [tarefa] um comando em segundo plano que acaba depois da
 // resposta. O resto: uma resposta curta. Com --replay-user-messages, cada mensagem volta quando
@@ -211,6 +212,29 @@ async function tool(name, input, result, toolUseResult) {
     },
     tool_use_result: toolUseResult
   })
+}
+
+// Chama uma ferramenta do servidor MCP do Wisp (as liberadas, que não pedem permissão).
+async function callDesktop(name, args) {
+  const desktop = JSON.parse(fs.readFileSync(mcpConfig, 'utf8')).mcpServers.desktop
+  const res = await fetch(desktop.url, {
+    method: 'POST',
+    headers: {
+      ...desktop.headers,
+      'content-type': 'application/json',
+      accept: 'application/json, text/event-stream'
+    },
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id: 1,
+      method: 'tools/call',
+      params: { name, arguments: args }
+    })
+  })
+  const body = await res.text()
+  const line = body.split('\n').find((l) => l.startsWith('data:'))
+  const message = JSON.parse(line ? line.slice(5) : body)
+  return message.result.content[0].text
 }
 
 // Pede ao Wisp pelo servidor MCP dele, como o --permission-prompt-tool faz.
@@ -467,6 +491,15 @@ async function runTurn(text) {
     answer =
       'Esta resposta vem bem devagar, palavra por palavra, para dar tempo de parar no meio dela.'
     delay = 150
+  }
+  // As emoções do mascote (Fase 27): a ferramenta express, que não pede permissão.
+  const felt = /\[sente (\w+)\]/.exec(text)
+  const danced = /\[dança (\w+)\]/.exec(text)
+  if (felt || danced) {
+    const input = felt ? { emocao: felt[1] } : { danca: danced[1] }
+    const result = await callDesktop('express', input)
+    await tool('mcp__desktop__express', input, result)
+    answer = felt ? `Mostrei ${felt[1]}.` : `Dancei ${danced[1]}.`
   }
   const asked = /\[pede ([^\]]+)\]/.exec(text)
   if (asked) {

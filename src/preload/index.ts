@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
 import { IPC } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
+import type { MascotAct } from '../shared/emotions'
 import type {
   Accessory,
   AgendaItem,
@@ -45,6 +46,7 @@ const api: WispApi = {
     onPulse: (listener) => subscribe<[]>(IPC.mascotPulse, listener),
     onGaze: (listener) => subscribe<[Gaze | null]>(IPC.mascotGaze, listener),
     onReact: (listener) => subscribe<[MascotReaction]>(IPC.mascotReact, listener),
+    onAct: (listener) => subscribe<[MascotAct]>(IPC.mascotAct, listener),
     onAccessory: (listener) => subscribe<[Accessory | null]>(IPC.mascotAccessory, listener),
     onAvatar: (listener) => subscribe<[AvatarName]>(IPC.mascotAvatar, listener),
     onMotion: (listener) => subscribe<[boolean]>(IPC.mascotMotion, listener),
@@ -181,6 +183,7 @@ const api: WispApi = {
     openFile: (which) => ipcRenderer.send(IPC.settingsOpenFile, which),
     relaunch: () => ipcRenderer.send(IPC.settingsRelaunch),
     runTask: (id) => ipcRenderer.invoke(IPC.settingsRunTask, id),
+    previewMascot: (preview) => ipcRenderer.send(IPC.mascotPreview, preview),
     onShow: (listener) => subscribe<[]>(IPC.settingsShow, listener)
   },
   prompts: {

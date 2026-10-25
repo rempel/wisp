@@ -58,6 +58,7 @@ import { installLog } from './log'
 import { startHookServer } from './hooks/server'
 import type { HookServer } from './hooks/server'
 import {
+  actMascot,
   getMascotBounds,
   getMascotWindow,
   getVisibleMascotBounds,
@@ -69,6 +70,7 @@ import {
   sendMascotCustomSound,
   setMascotAccessory,
   setMascotAvatar,
+  setMascotDanceStyle,
   setMascotMotion,
   setMascotGaze,
   setMascotView,
@@ -80,6 +82,7 @@ import {
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
+import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
 import { MascotMood } from './mood'
@@ -504,6 +507,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         return agenda.problems.length ? `${text}\nAvisos: ${agenda.problems.join(' ')}` : text
       },
       media: () => media,
+      express: ({ emotion, dance, seconds }) => {
+        presence.activity()
+        if (emotion) actMascot({ kind: 'feel', emotion, ms: holdMs(seconds, FEEL_MS) })
+        if (dance) actMascot({ kind: 'dance', dance, ms: holdMs(seconds, DANCE_MS) })
+      },
       screenshot: async () => {
         if (!chat) throw new Error(t('o Wisp ainda está abrindo'))
         const shots = await chat.capture()
@@ -720,6 +728,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     synthesize: (text) =>
       synthesize(text, { binary: getConfig().piperPath, model: getConfig().piperModel })
   })
+  // A galeria das configurações (Fase 27): mostra uma emoção ou uma dança no mascote.
+  ipcMain.on(IPC.mascotPreview, (event, preview: unknown) => {
+    if (!chat?.isSender(event.sender)) return
+    const value = (preview ?? {}) as { emotion?: unknown; dance?: unknown }
+    presence.activity()
+    if (isEmotion(value.emotion)) {
+      actMascot({ kind: 'feel', emotion: value.emotion, ms: FEEL_MS })
+    } else if (isDance(value.dance)) {
+      actMascot({ kind: 'dance', dance: value.dance, ms: DANCE_MS })
+    }
+  })
   ipcMain.on(IPC.voiceToggle, (event) => {
     if (chat?.isSender(event.sender)) voice?.togglePanel()
   })
@@ -745,6 +764,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   const applyAppearance = (): void => {
     const config = getConfig()
     setMascotAvatar(config.avatar)
+    setMascotDanceStyle(config.dance)
     setMascotMotion(config.reduceMotion)
     nativeTheme.themeSource = config.theme
   }

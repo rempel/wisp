@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { JSX } from 'react'
 import { diffFromInput } from '../../shared/diff'
+import { danceLabel, emotionLabel, isDance, isEmotion } from '../../shared/emotions'
 import { DiffCount, DiffView } from './DiffView'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { stepLabel, toolLabel } from './state'
@@ -27,9 +28,14 @@ const SUMMARY_KEYS = [
 /** Anexos ficam em ~/.cache/wisp/anexos/<sessão>/; no resumo, basta o nome do arquivo. */
 const ATTACHMENT_PATH = /\/wisp\/anexos\/[\w-]+\/([^/]+)$/
 
-function summarize(input: unknown): string {
+function summarize(name: string, input: unknown): string {
   if (!input || typeof input !== 'object') return ''
   const fields = input as Record<string, unknown>
+  // As emoções do mascote (Fase 27): o nome dela (ou da dança) no idioma da interface.
+  if (name === 'mcp__desktop__express') {
+    if (isEmotion(fields.emocao)) return emotionLabel(fields.emocao)
+    if (isDance(fields.danca)) return danceLabel(fields.danca)
+  }
   const key = SUMMARY_KEYS.find((k) => typeof fields[k] === 'string' && fields[k])
   const value = key ? String(fields[key]) : ''
   return ATTACHMENT_PATH.exec(value)?.[1] ?? value
@@ -107,7 +113,7 @@ function SubagentSteps({ steps, all }: { steps: SubagentStep[]; all: boolean }):
 /** Uma chamada de ferramenta: uma linha com o resumo, que abre para mostrar entrada e saída. */
 export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
   const [open, setOpen] = useState(false)
-  const summary = summarize(tool.input)
+  const summary = summarize(tool.name, tool.input)
   // O diff real chega com o resultado; antes dele (e nas versões do CLI que não o mandam), vale o
   // que dá para tirar dos argumentos. Uma edição que falhou não mudou nada.
   const predicted = useMemo(() => diffFromInput(tool.name, tool.input), [tool.name, tool.input])

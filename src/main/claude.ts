@@ -64,7 +64,9 @@ export const SAFE_TOOLS = [
   // Fase 13: só leitura (os seus PRs, a agenda, o resumo da semana).
   'mcp__desktop__github_status',
   'mcp__desktop__list_events',
-  'mcp__desktop__weekly_summary'
+  'mcp__desktop__weekly_summary',
+  // Fase 27: as emoções e as danças do mascote só mexem no desenho dele.
+  'mcp__desktop__express'
 ]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */

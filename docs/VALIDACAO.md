@@ -572,3 +572,27 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Atrasada:** marque uma tarefa para daqui a 1 minuto, feche o Wisp (Sair) e abra de novo 3
       minutos depois: a tarefa roda ao abrir, com **(atrasada)** na notificação.
 - [ ] **Rodar agora:** o botão roda a tarefa na hora, numa aba nova.
+
+## Emoções e danças (Fase 27)
+
+- [ ] **Galeria:** em **Configurações → Mascote e sons**, clique em cada emoção: o mascote aperta os
+      olhos, encolhe, troca o rosto e dá um susto do tamanho da emoção (pequeno no "com sono",
+      grande no "surpreso"), com a cor, o sinal no ar e o jeito de mexer dela; uns 4 s depois, volta
+      ao rosto de sempre.
+- [ ] **Os dois avatares:** troque para o fantasminha e repita algumas (apaixonado, surpreso,
+      chorando, nocauteado): os bracinhos levantam e balançam, e a boca fica no corpo, escura.
+- [ ] **Danças:** cada botão de dança faz ele dançar uns 8 s; no "girar", ele fica fino de lado, de
+      costas (sem o rosto) e volta, uma vez por compasso.
+- [ ] **Com música:** escolha "requebrar" em **Dança com música** e toque uma música no Spotify (ou
+      no Firefox): ele requebra no ritmo, com as notinhas. Com "de tudo um pouco", a dança troca a
+      cada dois compassos.
+- [ ] **O Claude:** agradeça uma resposta ("valeu, ficou ótimo!"): de vez em quando o Claude mostra
+      uma emoção (no chat, um card **express** com o nome dela), sem card de permissão. Peça "dança
+      pra mim": ele dança.
+- [ ] **Falando:** durante uma resposta, a boca abre e fecha; pedindo permissão, os olhos brilham
+      com a boquinha de gato; no erro, a boca treme.
+- [ ] **Avisos primeiro:** com um card de permissão esperando, uma emoção pedida não aparece (o
+      âmbar e o "?" ficam).
+- [ ] **Menos movimento:** com **Menos movimento** ligado, uma emoção troca o rosto e a cor, mas o
+      corpo e o sinal ficam parados.
+- [ ] **Parado:** depois de cochilar, a CPU do Wisp volta a quase zero (como na Fase 23).

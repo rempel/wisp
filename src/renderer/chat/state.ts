@@ -549,6 +549,8 @@ export function toolActivity(name: string, input: unknown): string {
       return t('mexendo na música…')
     case 'mcp__desktop__media_volume':
       return t('mudando o volume…')
+    case 'mcp__desktop__express':
+      return t('mostrando uma emoção no mascote…')
     default:
       return name.startsWith('mcp__playwright__')
         ? t('usando o navegador…')
@@ -609,6 +611,8 @@ export function stepLabel(name: string, input: unknown): string {
     }
     case 'AskUserQuestion':
       return t('Perguntar')
+    case 'mcp__desktop__express':
+      return t('Mostrar uma emoção no mascote')
     default:
       return toolLabel(name)
   }

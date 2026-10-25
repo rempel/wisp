@@ -96,6 +96,7 @@ src/
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
 │  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
+│  ├─ emotions.ts    # as emoções, os sinais e as danças do kit (a tabela) e o susto da troca
 │  ├─ commands.ts    # o que um comando do terminal faz, em uma linha (o card e a notificação)
 │  ├─ prompts.ts     # prompts salvos e tarefas: as variáveis e os horários (os próximos e os passados)
 │  ├─ i18n.ts        # os idiomas: o t() (o português é a chave), o idioma de agora e o do sistema
@@ -103,7 +104,9 @@ src/
 │  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
 └─ renderer/
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar),
-   │                 # mascot.css (animações), avatars.css (as cores de cada avatar), sounds.ts
+   │                 # mascot.css (animações), avatars.css (as cores de cada avatar), face.ts
+   │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
+   │                 # (os sinais no ar), emotions.css (rostos, cores, corpo e danças), sounds.ts
    │                 # (WebAudio), voice.ts e voice-worklet.ts (microfone e fala)
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa,
    │                 # com a edição da última mensagem e o rascunho), FindBar.tsx (o Ctrl+F),
@@ -389,6 +392,23 @@ CONTRIBUTING.md        # o guia de contribuição
 - **Reações:** ficam na página do mascote. O primeiro clique de uma sequência abre ou fecha o
   painel; os seguintes (com menos de 600 ms entre eles) são cutucadas, que só avisam o main para
   contar como atividade. O carinho começa 2 s depois de o cursor entrar e acaba quando ele sai.
+- **Emoções (Fase 27):** a tabela do ClaudeAnimationBase fica em `shared/emotions.ts` (31
+  emoções, cada uma com olhos, boca, cor e quanto dela, bochechas, sombra, sinal no ar, olhar e o
+  tamanho do susto). O `face.ts` junta o estado, a reação e a emoção pedida num rosto (a reação
+  ganha, depois a emoção, depois o estado; pedindo permissão, no erro e no cochilo a emoção espera)
+  e o palco o mostra em atributos (`data-eyes`, `data-mouth`, `data-tint`, `data-feel`,
+  `data-emote`, `data-dance`) e variáveis (`--tk`, `--blush`, `--gloom`, `--lx`, `--ly`). Todos os
+  olhos e bocas ficam desenhados e apagados; trocar é só opacidade. A cor entra nos degradês do
+  casco por `color-mix()`, com transição de 0,3 s, sem tocar nas variáveis dos estados (o âmbar e o
+  coral continuam por baixo). O corpo ganhou três camadas entre a dança e as reações: `.pose` (a
+  pose, que assenta com uma molinha), `.feel` (o movimento no ritmo) e `.act` (o susto). A troca
+  atuada é uma animação da página: o `takeFrames()` amostra o `take()` do kit (o amassado de 100 ms
+  antes, o esticar que balança e assenta depois) e o rosto troca no fim da antecipação, com os
+  olhos fechados por outra animação. Os sinais são camadas HTML pequenas; os que as reações já
+  tinham (estrelinhas, "z", corações, a veia) são ligados por classe. O Claude pede pela
+  ferramenta `express` do servidor MCP (liberada, como a notificação), e a galeria das
+  configurações por IPC; o main manda `mascot:act` com quanto tempo a emoção ou dança fica. No
+  cochilo não há emoção nem dança, então nada disso pede quadros.
 - **Sons:** são sintetizados no WebAudio da página do mascote: notas de seno e triângulo com
   envelope, vibrato, tremolo e um sopro de ruído filtrado. Quem decide se tocam é o main, que
   confere `sound` e `volume` a cada som. As reações da página também pedem o som ao main. O mesmo
