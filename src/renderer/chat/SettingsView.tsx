@@ -8,6 +8,7 @@ import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type { Settings, SettingsResult, SettingsSnapshot } from '../../shared/ipc'
 import { PromptsSection, TasksSection } from './AutomationSection'
 import { MascotGallery } from './MascotGallery'
+import { McpSection } from './McpSection'
 import { MODE_TEXT } from './modes'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
@@ -452,6 +453,14 @@ export function SettingsView({
 
         <Section title={t('Skills')}>
           <SkillsSection />
+        </Section>
+
+        <Section title={t('Servidores MCP')}>
+          <McpSection
+            enabled={values.enabledMcpServers}
+            allowed={values.extraAllowedTools}
+            save={save}
+          />
         </Section>
 
         <Section title={t('OpenRouter (experimental)')}>

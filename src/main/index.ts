@@ -8,6 +8,7 @@ import { accessoryFor, msUntilMidnight } from './accessory'
 import { setupAgenda } from './agenda-alerts'
 import { isAutostartEnabled, refreshAutostart, setAutostart } from './autostart'
 import { cleanOldAttachments } from './attachments'
+import { runClaudeCli } from './claude-cli'
 import { findBrowser, playwrightServer } from './browser'
 import { setupChat } from './chat'
 import type { Chat } from './chat'
@@ -62,6 +63,8 @@ import { startDesktopServer } from './mcp-server'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
+import { setupMcpIpc } from './mcp-ipc'
+import { wispServers } from './mcp-servers'
 import { MascotMood } from './mood'
 import { setupNotifications } from './notify'
 import type { Signals } from './notify'
@@ -456,6 +459,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     calendar.update()
   })
 
+  // Os servidores MCP extras de cada conversa nova: os seus que você ligou (Fase 30), lidos do
+  // ~/.claude.json a cada conversa, e o navegador do Claude.
+  let browserServers: Record<string, unknown> = {}
+  desktop?.setExtraServers(() => ({
+    ...wispServers(getConfig().enabledMcpServers),
+    ...browserServers
+  }))
   // O navegador do Claude (opcional): o servidor do Playwright entra no --mcp-config e vale a
   // partir da próxima conversa. Um problema (nenhum Chrome achado) aparece uma vez no chat.
   let browserState = ''
@@ -466,9 +476,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     if (state === browserState) return
     const first = browserState === ''
     browserState = state
-    desktop?.setExtraServers(
-      found && 'path' in found ? { playwright: playwrightServer(found.path) } : {}
-    )
+    browserServers = found && 'path' in found ? { playwright: playwrightServer(found.path) } : {}
     if (found && 'error' in found) {
       chat?.notice(
         'warning',
@@ -584,6 +592,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     refresh: () => settings.notify()
   })
   setupSkillsIpc((sender) => chat?.isSender(sender) ?? false)
+  setupMcpIpc({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    run: (args) => runClaudeCli(getConfig().claudePath, args)
+  })
   // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,

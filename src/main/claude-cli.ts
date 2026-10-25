@@ -198,6 +198,36 @@ function runClaude(bin: string, args: string[]): Promise<string | null> {
   })
 }
 
+/**
+ * Roda um subcomando do CLI (o `claude mcp` dos servidores MCP, Fase 30), com o mesmo ambiente das
+ * conversas, na pasta pessoal: deu certo (saiu com 0), e o que ele disse.
+ */
+export function runClaudeCli(
+  command: string,
+  args: string[],
+  timeoutMs = 30_000
+): Promise<{ ok: boolean; output: string }> {
+  const bin = resolveCommand(command)
+  if (!bin) return Promise.resolve({ ok: false, output: INSTALL_HINT })
+  return new Promise((resolve) => {
+    const env = claudeEnv(bin)
+    const run = claudeCommand(bin, args, env, homedir())
+    const child = spawn(run.command, run.args, {
+      env,
+      cwd: homedir(),
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: timeoutMs
+    })
+    let output = ''
+    for (const stream of [child.stdout, child.stderr]) {
+      stream.setEncoding('utf8')
+      stream.on('data', (chunk: string) => (output = (output + chunk).slice(-4000)))
+    }
+    child.on('error', (err) => resolve({ ok: false, output: err.message }))
+    child.on('close', (code) => resolve({ ok: code === 0, output }))
+  })
+}
+
 /** O Claude Code instalado, a versão e o login, para o diagnóstico. */
 export async function claudeStatus(command: string): Promise<ClaudeStatus> {
   const bin = resolveCommand(command)

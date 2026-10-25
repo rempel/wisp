@@ -6,6 +6,7 @@ import { formatReset } from '../shared/format'
 import type { PermissionMode, PlanUsage, TaskInfo, UsageWindow } from '../shared/ipc'
 import { LOGIN_HINT } from './claude-cli'
 import { CONTEXT_WINDOWS, SessionState } from './claude-state'
+import { recordMcpInit } from './mcp-servers'
 import { openrouterError, turnTokens } from './openrouter'
 import type { TurnUsage } from './openrouter'
 import { t } from '../shared/i18n'
@@ -51,6 +52,8 @@ interface CliEvent {
   apiKeySource?: string
   permissionMode?: string
   mcp_servers?: { name: string; status: string }[]
+  /** As ferramentas da conversa (as dos servidores MCP vêm como mcp__servidor__ferramenta). */
+  tools?: unknown
   rate_limit_info?: {
     status?: string
     resetsAt?: number
@@ -317,6 +320,8 @@ export abstract class StreamReader extends SessionState {
       this.emit(this.modelEvent())
     }
     const desktop = event.mcp_servers?.find((server) => server.name === 'desktop')
+    // As ferramentas dos seus servidores MCP que entraram (Fase 30), para as configurações.
+    if (this.options.mcpConfig) recordMcpInit(event.mcp_servers, event.tools)
     if (this.options.mcpConfig && desktop?.status !== 'connected' && !this.warnedMcp) {
       this.warnedMcp = true
       this.notice(

@@ -741,3 +741,53 @@
 .history-matches {
   font-size: 11px;
 }
+
+/* Os servidores MCP nas configurações (Fase 30). */
+.mcp-summary code {
+  overflow-wrap: anywhere;
+}
+
+.mcp-status {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.mcp-status.mcp-connected {
+  color: var(--success-text, var(--accent));
+}
+
+.mcp-status.mcp-failed,
+.mcp-status.mcp-needs-auth {
+  color: var(--danger-text);
+}
+
+.mcp-server .settings-toggle {
+  margin: 4px 0 0;
+}
+
+.mcp-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 6px 0 2px;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+}
+
+.mcp-tools legend {
+  padding: 0 4px;
+  color: var(--muted);
+}
+
+.mcp-tools label {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--mono);
+}
+
+.mcp-kind {
+  margin: 4px 0 8px;
+}

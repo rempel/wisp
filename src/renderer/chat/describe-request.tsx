@@ -287,11 +287,20 @@ export function describe(
           </p>
         )
       }
-    default:
+    default: {
+      // A ferramenta de um servidor MCP seu (Fase 30): o card diz de qual.
+      const server = /^mcp__([A-Za-z0-9_-]+?)__/.exec(toolName)?.[1]
       return {
-        title: t('Usar a ferramenta {v1}', { v1: toolLabel(toolName) }),
+        title:
+          server && server !== 'desktop'
+            ? t('Usar a ferramenta {tool} do servidor {server}', {
+                tool: toolLabel(toolName),
+                server
+              })
+            : t('Usar a ferramenta {v1}', { v1: toolLabel(toolName) }),
         body: <pre>{clip(JSON.stringify(input, null, 2))}</pre>
       }
+    }
   }
 }
 

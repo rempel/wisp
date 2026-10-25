@@ -1,8 +1,6 @@
 import { createHash } from 'crypto'
 import {
   chmodSync,
-  constants,
-  copyFileSync,
   mkdirSync,
   readFileSync,
   realpathSync,
@@ -12,6 +10,7 @@ import {
 } from 'fs'
 import { homedir } from 'os'
 import { dirname, isAbsolute, join } from 'path'
+import { backupFile, stamp } from '../backup'
 import { compactHunks, lineDiff } from '../../shared/diff'
 import type { HookPreview, HooksAction, HooksStatus } from '../../shared/ipc'
 import { shellQuote } from '../launcher'
@@ -203,28 +202,6 @@ const fingerprintOf = (bytes: Buffer | null): string =>
 
 const serialize = (settings: Settings, indent: string): string =>
   JSON.stringify(settings, null, indent) + '\n'
-
-/** "2026-10-10-124501", para o nome do backup. */
-function stamp(date = new Date()): string {
-  const two = (n: number): string => String(n).padStart(2, '0')
-  return (
-    `${date.getFullYear()}-${two(date.getMonth() + 1)}-${two(date.getDate())}-` +
-    `${two(date.getHours())}${two(date.getMinutes())}${two(date.getSeconds())}`
-  )
-}
-
-/** Copia o arquivo para o backup sem sobrescrever outro: "…-124501", "…-124501-2"… */
-function backupFile(source: string, name: string): string {
-  for (let n = 1; ; n++) {
-    const target = n === 1 ? name : `${name}-${n}`
-    try {
-      copyFileSync(source, target, constants.COPYFILE_EXCL)
-      return target
-    } catch (err) {
-      if ((err as NodeJS.ErrnoException).code !== 'EEXIST' || n >= 100) throw err
-    }
-  }
-}
 
 /** Se os hooks do Wisp estão no settings.json, iguais aos de agora. */
 export function hooksStatus(): HooksStatus {

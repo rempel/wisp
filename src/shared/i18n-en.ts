@@ -1885,5 +1885,85 @@ export const EN: Record<string, string> = {
   'Sem pasta': 'No folder',
   'Nada encontrado nas conversas.': 'Nothing found in your conversations.',
   'Nenhuma conversa nesse filtro.': 'No conversations match this filter.',
-  '(+{count} mensagens)': '(+{count} messages)'
+  '(+{count} mensagens)': '(+{count} messages)',
+  'Os nomes dos servidores: letras, números, - e _.': 'Server names: letters, digits, - and _.',
+  '{file} não é um objeto JSON': '{file} is not a JSON object',
+  'O nome começa com uma letra ou um número e só tem letras, números, - e _.':
+    'The name starts with a letter or a digit and has only letters, digits, - and _.',
+  '"{name}" é o nome de um servidor do Wisp: escolha outro.':
+    '"{name}" is the name of a Wisp server: pick another one.',
+  'Diga o comando que sobe o servidor.': 'Enter the command that starts the server.',
+  'Argumentos demais ou longos demais.': 'Too many arguments, or arguments too long.',
+  'O nome de uma variável só tem letras, números e _ (e não começa com número).':
+    "A variable name has only letters, digits and _ (and doesn't start with a digit).",
+  'O endereço começa com https:// (ou http://).': 'The address starts with https:// (or http://).',
+  'O nome de um cabeçalho só tem letras, números e -.':
+    'A header name has only letters, digits and -.',
+  'Já existe um servidor "{name}" no seu Claude Code: tire esse antes ou use outro nome.':
+    'There is already a server "{name}" in your Claude Code: remove it first or use another name.',
+  'O servidor "{name}" não está mais no seu Claude Code.':
+    'The server "{name}" is no longer in your Claude Code.',
+  'O servidor "{name}" mudou desde a prévia: veja a mudança de novo.':
+    'The server "{name}" changed since the preview: review the change again.',
+  'O Claude Code não gravou a mudança: {said}': "Claude Code didn't save the change: {said}",
+  'O Claude Code não gravou a mudança.': "Claude Code didn't save the change.",
+  conectado: 'connected',
+  'não conectou': "didn't connect",
+  'precisa de login (/mcp no terminal)': 'needs login (/mcp in the terminal)',
+  conectando: 'connecting',
+  'Esta variável não tem "=": {line}': 'This variable has no "=": {line}',
+  'Este cabeçalho não tem ":": {line}': 'This header has no ":": {line}',
+  'Não gravei nada: {message}': 'Nothing was saved: {message}',
+  'Pronto: “{name}” está no seu Claude Code e entra nas conversas novas do Wisp (Ctrl+K). As ferramentas dele pedem permissão pelo card.{backup}':
+    'Done: “{name}” is in your Claude Code and joins new Wisp conversations (Ctrl+K). Its tools ask for permission with a card.{backup}',
+  'Pronto: “{name}” saiu do seu Claude Code.{backup}':
+    'Done: “{name}” was removed from your Claude Code.{backup}',
+  comando: 'command',
+  endereço: 'address',
+  'outro tipo': 'other kind',
+  'Tirar {name}': 'Remove {name}',
+  'Cabeçalhos:': 'Headers:',
+  'Variáveis:': 'Variables:',
+  '(os valores ficam escondidos)': '(values are hidden)',
+  'Tem o nome de um servidor do Wisp: ele não entra nas conversas do Wisp.':
+    "It has the name of a Wisp server: it doesn't join Wisp conversations.",
+  'Num formato que o Wisp não conhece: fica de fora.': "In a format Wisp doesn't know: left out.",
+  'Nas conversas do Wisp': 'In Wisp conversations',
+  'As ferramentas aparecem aqui depois da primeira conversa com ele (Ctrl+K).':
+    'Its tools show up here after the first conversation with it (Ctrl+K).',
+  'Não consigo ler {path}: {problem}': "Can't read {path}: {problem}",
+  'Nenhum servidor MCP no seu Claude Code ainda.': 'No MCP servers in your Claude Code yet.',
+  'Dos projetos (o .mcp.json de cada um): as conversas do Wisp não os carregam.':
+    "From projects (each one's .mcp.json): Wisp conversations don't load them.",
+  'A mudança': 'The change',
+  'Pôr “{name}” no seu Claude Code': 'Add “{name}” to your Claude Code',
+  'Tirar “{name}” do seu Claude Code': 'Remove “{name}” from your Claude Code',
+  'O mcpServers de': 'The mcpServers in',
+  'fica assim (pelo claude mcp; os valores secretos aparecem como •••):':
+    'becomes (through claude mcp; secret values show as •••):',
+  Gravar: 'Save',
+  'Servidor novo': 'New server',
+  Nome: 'Name',
+  'Letras, números, - e _. As ferramentas viram mcp__nome__…':
+    'Letters, digits, - and _. Its tools become mcp__name__…',
+  Tipo: 'Kind',
+  Comando: 'Command',
+  Endereço: 'Address',
+  'O programa que sobe o servidor (npx, uvx, um caminho…).':
+    'The program that starts the server (npx, uvx, a path…).',
+  Argumentos: 'Arguments',
+  'Um por linha, sem aspas.': 'One per line, without quotes.',
+  Variáveis: 'Variables',
+  'Uma por linha: NOME=valor.': 'One per line: NAME=value.',
+  'O endereço HTTP do servidor (https://…/mcp).': "The server's HTTP address (https://…/mcp).",
+  Cabeçalhos: 'Headers',
+  'Um por linha: Nome: valor.': 'One per line: Name: value.',
+  'Ver a mudança': 'Review the change',
+  'Adicionar um servidor…': 'Add a server…',
+  'Os servidores MCP dão ao Claude ferramentas de outros programas e serviços. Os seus ficam no Claude Code (valem também no terminal); nas conversas do Wisp entram só os ligados aqui, a partir da próxima conversa, e cada ferramenta deles pede permissão pelo card até você marcá-la.':
+    'MCP servers give Claude tools from other programs and services. Yours live in Claude Code (they also apply in the terminal); Wisp conversations only load the ones switched on here, from the next conversation, and each of their tools asks for permission with a card until you check it.',
+  'Servidores MCP': 'MCP servers',
+  'Usar a ferramenta {tool} do servidor {server}': 'Use the tool {tool} from the {server} server',
+  'Ferramentas: marque as que rodam sem perguntar (vale quando o Wisp abrir de novo)':
+    'Tools: check the ones that run without asking (applies when Wisp opens again)'
 }

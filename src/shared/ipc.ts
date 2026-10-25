@@ -45,6 +45,10 @@ import type {
   AgendaItem,
   DiagnosticAction,
   DiagnosticsSnapshot,
+  McpApplyResult,
+  McpChange,
+  McpPreview,
+  McpSnapshot,
   OpenRouterKeyResult,
   PanelView,
   PhonePairResult,
@@ -319,6 +323,12 @@ export const IPC = {
   historyOpen: 'history:open',
   /** chat → main (invoke): busca no que foi dito (Fase 29). Arg: texto. Devolve HistoryHit[]. */
   historySearch: 'history:search',
+  /** chat → main (invoke): os servidores MCP (Fase 30). Devolve McpSnapshot. */
+  mcpList: 'mcp:list',
+  /** chat → main (invoke): o que pôr ou tirar um servidor muda. Arg: McpChange. Devolve McpPreview. */
+  mcpPreview: 'mcp:preview',
+  /** chat → main (invoke): grava a mudança vista. Args: (McpChange, impressão). Devolve McpApplyResult. */
+  mcpApply: 'mcp:apply',
   /** chat → main (invoke): apaga uma conversa do histórico. Arg: id. Devolve boolean. */
   historyDelete: 'history:delete',
   /** chat → main (invoke): fixa ou solta uma conversa no topo. Args: (id, fixada). Devolve boolean. */
@@ -572,6 +582,12 @@ export interface WispApi {
     list(): Promise<SavedPrompt[]>
     /** O texto do prompt com as variáveis da conversa; null se ele não existe. */
     expand(conversation: string, name: string): Promise<string | null>
+  }
+  /** Os servidores MCP do Claude Code (Fase 30). */
+  mcp: {
+    list(): Promise<McpSnapshot | null>
+    preview(change: McpChange): Promise<McpPreview | { error: string }>
+    apply(change: McpChange, fingerprint: string): Promise<McpApplyResult>
   }
   history: {
     list(): Promise<ConversationSummary[]>

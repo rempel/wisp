@@ -190,6 +190,11 @@ const api: WispApi = {
     list: () => ipcRenderer.invoke(IPC.promptsList),
     expand: (conversation, name) => ipcRenderer.invoke(IPC.promptsExpand, conversation, name)
   },
+  mcp: {
+    list: () => ipcRenderer.invoke(IPC.mcpList),
+    preview: (change) => ipcRenderer.invoke(IPC.mcpPreview, change),
+    apply: (change, fingerprint) => ipcRenderer.invoke(IPC.mcpApply, change, fingerprint)
+  },
   history: {
     list: () => ipcRenderer.invoke(IPC.historyList),
     open: (id, at) => ipcRenderer.invoke(IPC.historyOpen, id, at),

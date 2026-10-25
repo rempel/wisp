@@ -631,3 +631,21 @@ O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferen�
 - [ ] **Apagar:** apague uma conversa achada pela busca: ela some dos resultados, e o
       `~/.cache/wisp/busca.json` não tem mais o texto dela.
 - [ ] **Ctrl+F:** numa conversa, a busca acha "ação" por "ACAO".
+
+## Servidores MCP pelo Wisp (Fase 30)
+
+- [ ] **A lista:** em **Configurações → Servidores MCP**, aparecem os servidores do seu Claude Code
+      (`claude mcp list` no terminal mostra os mesmos) e os dos seus projetos, à parte. Das
+      variáveis e dos cabeçalhos, só os nomes.
+- [ ] **Pôr um:** adicione um servidor de verdade, como o de memória: comando `npx`, argumentos
+      `-y` e `@modelcontextprotocol/server-memory`. **Ver a mudança** mostra o diff do
+      `mcpServers` e o backup; **Gravar** grava, e o `~/.claude.json.backup-wisp-…` fica ao lado.
+- [ ] **Na conversa:** Ctrl+K e peça algo que use o servidor ("guarde na memória que meu time é o
+      Atlético"): o card diz a ferramenta e o servidor; **Permitir** e ela roda.
+- [ ] **As ferramentas:** de volta às configurações, o servidor aparece conectado, com as
+      ferramentas. Marque uma, feche e abra o Wisp: ela roda sem card; as outras continuam pedindo.
+- [ ] **No terminal:** `claude mcp list` mostra o servidor novo (ele está no seu Claude Code).
+- [ ] **Tirar:** **Tirar** mostra o que sai; depois disso, ele some do `claude mcp list` e das
+      conversas novas do Wisp.
+- [ ] **Projeto:** um projeto com `.mcp.json` aparece na lista, mas uma conversa aberta nele não
+      carrega esses servidores.
