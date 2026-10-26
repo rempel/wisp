@@ -9,6 +9,8 @@ import { after, test } from 'node:test'
 import { ClaudeSession } from '../src/main/claude'
 import { exportFileName, exportMarkdown, toolSummary } from '../src/main/export'
 import { applyRewinds, History, readPins, rewindPoint, setPinned } from '../src/main/history'
+import { initialState, reducer } from '../src/renderer/chat/state'
+import type { ChatState } from '../src/renderer/chat/state'
 import type { ChatEvent } from '../src/shared/ipc'
 import { FIXTURES } from './helpers/paths'
 
@@ -260,4 +262,39 @@ test('editar: com o Claude trabalhando não dá, e um ponto que sumiu avisa', as
   const lost = await turn(claude, events, 'editada')
   assert.equal(lost.end.outcome, 'error')
   assert.match(lost.notices.join('\n'), /Não consegui voltar a conversa/)
+})
+
+test('editar logo depois da resposta: a nova não vai para a fila nem gruda na resposta velha', () => {
+  const events = (state: ChatState, list: ChatEvent[]): ChatState =>
+    reducer(state, { type: 'events', events: list })
+  let state = reducer(initialState, { type: 'user-message', text: 'primeira', attachments: [] })
+  state = events(state, [
+    { type: 'busy', busy: true },
+    { type: 'text', blockId: 'msg_1:0', delta: 'Oi!' },
+    { type: 'busy', busy: false }
+  ])
+  state = reducer(state, { type: 'user-message', text: 'segunda', attachments: [] })
+  state = events(state, [{ type: 'text', blockId: 'msg_2:0', delta: 'Resposta da segunda.' }])
+  // O fim do turno ainda não chegou à página (o quadro seguinte) quando a edição vem.
+  assert.equal(state.busy, true)
+  state = reducer(state, {
+    type: 'user-message',
+    text: 'segunda editada',
+    attachments: [],
+    replace: true
+  })
+  const edited = state.items.at(-1)
+  assert.equal(edited?.kind, 'user')
+  assert.equal(edited?.kind === 'user' ? (edited.queued ?? false) : null, false)
+  assert.equal(edited?.kind === 'user' ? (edited.midTurn ?? false) : null, false)
+  // O Claude Code novo recomeça os ids: a resposta nova não pode entrar na velha.
+  state = events(state, [
+    { type: 'busy', busy: false },
+    { type: 'busy', busy: true },
+    { type: 'text', blockId: 'msg_1:0', delta: 'Lembro de: primeira | segunda editada' }
+  ])
+  const texts = state.items
+    .filter((item) => item.kind === 'text')
+    .map((item) => (item.kind === 'text' ? item.text : ''))
+  assert.deepEqual(texts, ['Oi!', 'Lembro de: primeira | segunda editada'])
 })
