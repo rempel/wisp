@@ -178,8 +178,11 @@ export function reducer(state: ChatState, action: Action): ChatState {
       // Fica ocupado na hora, sem esperar o main. Com o Claude trabalhando, a mensagem entra na
       // fila: ele a pega na próxima pausa.
       const base = action.replace ? rewound(state) : state
+      // Editar só vale com a conversa parada (o main confere): a nova nunca vai para a fila, mesmo
+      // se o fim do turno ainda não chegou à página (os eventos entram uma vez por quadro).
+      const queued = !action.replace && base.busy
       return {
-        ...append(base, userItem(base.items, action.text, action.attachments, false, base.busy)),
+        ...append(base, userItem(base.items, action.text, action.attachments, false, queued)),
         busy: true
       }
     }
