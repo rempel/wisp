@@ -62,6 +62,14 @@ export async function connect(match, ms = 15000) {
   let id = 0
   const pending = new Map()
   const logs = []
+  let closed = false
+  // O app fechou (ou caiu): quem esperava uma resposta recebe uma vazia, em vez de esperar para
+  // sempre (o roteiro segue e as conferências dizem o que faltou).
+  ws.addEventListener('close', () => {
+    closed = true
+    for (const resolve of pending.values()) resolve({})
+    pending.clear()
+  })
   ws.addEventListener('message', (message) => {
     const data = JSON.parse(message.data)
     if (data.id && pending.has(data.id)) {
@@ -77,6 +85,7 @@ export async function connect(match, ms = 15000) {
   })
   const send = (method, params = {}) =>
     new Promise((resolve) => {
+      if (closed) return resolve({})
       pending.set(++id, resolve)
       ws.send(JSON.stringify({ id, method, params }))
     })
