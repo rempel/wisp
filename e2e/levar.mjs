@@ -289,7 +289,10 @@ check(
   restart
 )
 logs.push(...mascot.logs, ...chat.logs)
-await button('[data-check="update"]', 'Reiniciar o Wisp')
+// O clique fecha o app: ele vai depois da resposta, para o DevTools não ficar sem ela.
+await ev(
+  `setTimeout(() => [...document.querySelectorAll('[data-check="update"] button')].find(b => b.textContent.trim() === 'Reiniciar o Wisp')?.click(), 100)`
+)
 const marker = join(to.home, 'marca')
 const relaunched = await waitFor(
   () => (existsSync(marker) ? readFileSync(marker, 'utf8') : null),
