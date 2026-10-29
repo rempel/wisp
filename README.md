@@ -185,9 +185,11 @@ Para compilar do código, veja as dependências em [Compilar a partir do código
 Os pacotes de cada versão ficam na página de
 [releases](https://github.com/rempel/wisp/releases): o `.deb`, para Ubuntu, Debian e derivados, o
 AppImage, para qualquer distribuição (os dois para x86-64 e ARM64), o Flatpak e o instalador do
-Windows. (Cada push também os gera, nos artefatos `pacotes-linux`, `pacotes-linux-arm64`,
-`pacote-flatpak` e `instalador-windows` da execução do CI, na aba Actions, enquanto a cota de
-armazenamento do GitHub deixa.) Para montar os seus, veja [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
+Windows. (Cada push também gera o instalador do Windows, no artefato `instalador-windows` da
+execução do CI, na aba Actions, enquanto a cota de armazenamento do GitHub deixa; os pacotes do
+Linux saem como artefatos, `pacotes-linux`, `pacotes-linux-arm64` e `pacote-flatpak`, quando o CI
+roda à mão, pelo **Run workflow**.) Para montar os seus, veja
+[Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
 
 ### .deb (Ubuntu, Debian e derivados)
 
