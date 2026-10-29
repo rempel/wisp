@@ -272,7 +272,10 @@ export function McpSection({
             {t('O mcpServers de')} <code>{preview.configPath}</code>{' '}
             {t('fica assim (pelo claude mcp; os valores secretos aparecem como •••):')}
           </p>
-          <DiffView diff={{ added: 0, removed: 0, hunks: preview.diff, truncated: false }} />
+          <DiffView
+            diff={{ added: 0, removed: 0, hunks: preview.diff, truncated: false }}
+            path={preview.configPath}
+          />
           <p className="settings-hint">
             {preview.backupPath
               ? t('Antes, o arquivo atual é copiado para {backupPath}.', {

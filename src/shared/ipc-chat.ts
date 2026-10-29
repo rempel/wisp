@@ -79,6 +79,9 @@ export interface DiffHunk {
   lines: string[]
 }
 
+/** O texto de um arquivo para ver no painel (Fase 34), ou por que ele não aparece. */
+export type FileViewResult = { ok: true; text: string } | { ok: false; message: string }
+
 /** O que uma edição de arquivo mudou. */
 export interface FileDiff {
   added: number

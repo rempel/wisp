@@ -2101,5 +2101,22 @@ export const EN: Record<string, string> = {
   'No Windows, guardar as chaves no sistema chega numa próxima versão: até lá, a OpenRouter e aprovar pelo celular não funcionam lá.':
     "On Windows, keeping keys in the system arrives in a later version: until then, OpenRouter and approving from your phone don't work there.",
   'No Windows, abrir um terminal pelo Wisp chega numa próxima versão.':
-    'On Windows, opening a terminal from Wisp arrives in a later version.'
+    'On Windows, opening a terminal from Wisp arrives in a later version.',
+  'Caminho inválido.': 'Invalid path.',
+  'Este arquivo guarda segredos: o painel não mostra.':
+    "This file holds secrets: the panel doesn't show it.",
+  'O arquivo não existe (ou não dá para ler).': "The file doesn't exist (or can't be read).",
+  'Não é um arquivo.': 'Not a file.',
+  'O arquivo é grande demais para ver aqui ({size} MB).':
+    'The file is too big to view here ({size} MB).',
+  'É um arquivo binário.': "It's a binary file.",
+  'Mostrar em linha': 'Show inline',
+  'Mostrar lado a lado': 'Show side by side',
+  'Em linha': 'Inline',
+  'Lado a lado': 'Side by side',
+  'O editor não carregou ({message}).': "The editor didn't load ({message}).",
+  'só para ler': 'read-only',
+  'Abrindo…': 'Opening…',
+  'Abrir o arquivo no painel': 'Open the file in the panel',
+  'Mudanças em {path}': 'Changes in {path}'
 }

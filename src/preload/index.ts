@@ -190,6 +190,9 @@ const api: WispApi = {
     list: () => ipcRenderer.invoke(IPC.promptsList),
     expand: (conversation, name) => ipcRenderer.invoke(IPC.promptsExpand, conversation, name)
   },
+  files: {
+    view: (path) => ipcRenderer.invoke(IPC.filesView, path)
+  },
   portable: {
     export: (withHistory) => ipcRenderer.invoke(IPC.portableExport, withHistory),
     pick: () => ipcRenderer.invoke(IPC.portablePick),

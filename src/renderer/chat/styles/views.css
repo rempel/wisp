@@ -353,6 +353,123 @@
   margin-top: 6px;
 }
 
+/* O diff no editor do VS Code (Fase 34): o Monaco no lugar do diff simples, quando carrega. */
+.code-diff {
+  position: relative;
+}
+
+.code-diff-editor {
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.code-diff-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 4px;
+}
+
+.code-diff-toggle,
+.tool-open-file {
+  padding: 2px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  cursor: pointer;
+}
+
+.code-diff-toggle:hover,
+.tool-open-file:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.tool-open-file {
+  margin-bottom: 6px;
+}
+
+/* A faixa entre dois trechos do diff (as linhas do meio não vieram). */
+.monaco-hunk-gap {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 16px;
+  text-align: center;
+  background: color-mix(in srgb, var(--border) 45%, transparent);
+}
+
+/* ---- O arquivo aberto no painel (Fase 34) ------------------------------ */
+
+.file-viewer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+}
+
+.file-viewer-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.file-viewer-path {
+  overflow: hidden;
+  flex: 1;
+  color: var(--muted);
+  font-family: var(--mono);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-viewer-note {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.file-viewer-close {
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+
+.file-viewer-close:hover {
+  background: var(--hover);
+}
+
+.file-viewer-message {
+  padding: 24px;
+  color: var(--muted);
+  text-align: center;
+}
+
+.file-viewer-editor {
+  flex: 1;
+  min-height: 0;
+}
+
+.monaco-changed-line {
+  background: color-mix(in srgb, var(--ok) 12%, transparent);
+}
+
+.monaco-changed-mark {
+  width: 3px !important;
+  margin-left: 3px;
+  background: var(--ok);
+}
+
 :root.reduce-motion {
   .chat {
     transition: none;

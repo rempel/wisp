@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
+import { pathOf } from '../../shared/diff'
 import { formatAgo } from '../../shared/format'
 import type {
   ExternalSession,
@@ -94,7 +95,10 @@ function HooksSetup({ snapshot }: { snapshot: SessionsSnapshot }): JSX.Element {
           {t('só as entradas dele em')} <code>{preview.settingsPath}</code>:
         </p>
         {preview.changes ? (
-          <DiffView diff={{ added: 0, removed: 0, hunks: preview.diff, truncated: false }} />
+          <DiffView
+            diff={{ added: 0, removed: 0, hunks: preview.diff, truncated: false }}
+            path={preview.settingsPath}
+          />
         ) : (
           <p className="hooks-muted">{t('Nada a mudar: o arquivo já está assim.')}</p>
         )}
@@ -205,7 +209,7 @@ function StepRow({ step }: { step: ExternalStep }): JSX.Element {
         {step.diff && <DiffCount diff={step.diff} />}
         {hasDiff && <ChevronIcon open={open} />}
       </button>
-      {open && step.diff && <DiffView diff={step.diff} />}
+      {open && step.diff && <DiffView diff={step.diff} path={pathOf(step.input)} />}
     </li>
   )
 }

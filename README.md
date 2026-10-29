@@ -85,6 +85,8 @@ Em resumo:
 - Os modos de permissão do Claude Code (**Pedir**, **Aceitar edições**, **Planejar**,
   **Automático**), por conversa, e um **Permitir sempre** que entende comandos (`git status` não
   libera `git push`).
+- As edições no editor do VS Code (o Monaco): o diff com o realce da linguagem e os números das
+  linhas, em linha ou lado a lado, e o arquivo aberto no painel, só para ler.
 
 **Agir no desktop**, com o card de permissão no que muda alguma coisa: abrir apps e links, abrir
 projetos no editor, abrir um terminal numa pasta, listar e trazer janelas para a frente,
@@ -145,7 +147,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto) e 32 (paleta de comandos e não
-  perturbe) e 33 (o essencial no Windows):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  perturbe), 33 (o essencial no Windows) e 34 (o editor do VS Code):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -604,6 +606,23 @@ agora**: o `/compact` do Claude Code troca o que veio antes por um resumo, e a c
 bem menos contexto. No campo de cima, diga o que o resumo deve manter (por exemplo, "as decisões
 sobre o banco"). O painel continua mostrando a conversa inteira; um aviso marca onde ela foi
 compactada. Perto do limite, o Claude Code compacta sozinho, e o aviso diz isso também.
+
+### Diffs e arquivos no editor do VS Code
+
+- **O diff de uma edição:** abrir o card de um Edit ou de um Write mostra as mudanças no editor do
+  VS Code (o Monaco), com o realce da linguagem do arquivo, os números das linhas do arquivo e o
+  que entrou e o que saiu marcados. No painel estreito, o diff fica em linha; com o painel largo
+  (maximizado), o botão **Lado a lado** põe o antes e o depois um ao lado do outro, e o painel
+  lembra a escolha. As prévias das mudanças nos seus arquivos de configuração (os hooks e os
+  servidores MCP) também aparecem assim.
+- **O arquivo no painel:** **Abrir o arquivo no painel**, num card de Read, Edit ou Write, abre o
+  arquivo inteiro como ele está agora, só para ler, na linha da mudança e com as linhas que a
+  edição pôs marcadas. O Ctrl+F busca nele; o Esc ou **Fechar** voltam para a conversa. Editar
+  continua com o Claude ou com o seu editor. Os arquivos de segredos (as chaves do SSH, os `.env`
+  e os outros que o Claude só lê com aprovação) não aparecem, nem por um link; nem arquivos
+  binários ou com mais de 2 MB.
+- **Leve:** o editor só carrega na primeira vez que um diff ou um arquivo aparece, e cada
+  linguagem só quando um arquivo dela aparece. O painel abre como antes.
 
 ### Modo terminal e o chat como o CLI
 
@@ -1356,6 +1375,8 @@ hora uma conversa apagada.
   Wisp (a assinatura cobre o nome, com a versão, e o sha256 do arquivo).
 - **Exportar:** o arquivo exportado é só seu e não tem chaves; importar mostra o que muda antes,
   marca o que muda o que roda na sua máquina e faz o backup do `config.json`.
+- **O arquivo no painel** é lido pelo próprio Wisp, só para mostrar: nada sai da máquina, e os
+  arquivos de segredos não aparecem.
 - **Pastas de projetos:** um projeto que roda comandos sozinho (hooks, permissões, skills com
   `allowed-tools`) só é aberto depois de você confiar nele, e a confiança vale até esses arquivos
   mudarem.

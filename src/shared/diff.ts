@@ -172,3 +172,74 @@ export function compactHunks(hunk: DiffHunk, context = 3): DiffHunk[] {
   if (current) hunks.push(current)
   return hunks
 }
+
+/** Os dois lados de um diff para o editor do VS Code (Fase 34). */
+export interface DiffSides {
+  /** O texto de antes e o de depois, os trechos um depois do outro. */
+  original: string
+  modified: string
+  /** O número no arquivo de cada linha do editor (0 quando não se sabe). */
+  originalLines: number[]
+  modifiedLines: number[]
+  /** Depois de quantas linhas de cada lado começa cada trecho (menos o primeiro). */
+  breaks: { original: number; modified: number }[]
+}
+
+/**
+ * Os trechos de um diff como os dois textos que o editor compara: o de antes (o contexto e o que
+ * saiu) e o de depois (o contexto e o que entrou), com o número de cada linha no arquivo.
+ */
+export function diffSides(diff: FileDiff): DiffSides {
+  const original: string[] = []
+  const modified: string[] = []
+  const originalLines: number[] = []
+  const modifiedLines: number[] = []
+  const breaks: DiffSides['breaks'] = []
+  diff.hunks.forEach((hunk, index) => {
+    if (index > 0) breaks.push({ original: original.length, modified: modified.length })
+    let oldLine = hunk.oldStart
+    let newLine = hunk.newStart
+    for (const line of hunk.lines) {
+      // "\ No newline at end of file" não é uma linha do arquivo.
+      if (line.startsWith('\\')) continue
+      const text = line.slice(1)
+      if (!line.startsWith('+')) {
+        original.push(text)
+        originalLines.push(oldLine > 0 ? oldLine++ : 0)
+      }
+      if (!line.startsWith('-')) {
+        modified.push(text)
+        modifiedLines.push(newLine > 0 ? newLine++ : 0)
+      }
+    }
+  })
+  return {
+    original: original.join('\n'),
+    modified: modified.join('\n'),
+    originalLines,
+    modifiedLines,
+    breaks
+  }
+}
+
+/** O arquivo de uma chamada de ferramenta (o `file_path` do Read, Edit e Write); '' se não há. */
+export function pathOf(input: unknown): string {
+  const fields = (input ?? {}) as Record<string, unknown>
+  const path = fields.file_path ?? fields.notebook_path
+  return typeof path === 'string' ? path : ''
+}
+
+/** As linhas do arquivo que a edição pôs (as que entraram), quando os números são conhecidos. */
+export function changedLines(diff: FileDiff): number[] {
+  const lines: number[] = []
+  for (const hunk of diff.hunks) {
+    if (hunk.newStart <= 0) continue
+    let line = hunk.newStart
+    for (const text of hunk.lines) {
+      if (text.startsWith('\\') || text.startsWith('-')) continue
+      if (text.startsWith('+')) lines.push(line)
+      line++
+    }
+  }
+  return lines
+}
