@@ -2093,5 +2093,13 @@ export const EN: Record<string, string> = {
   'no Windows, as sessões do terminal chegam numa próxima versão':
     'on Windows, terminal sessions arrive in a future version',
   'No Windows, acompanhar as sessões do terminal chega numa próxima versão do Wisp.':
-    'On Windows, following terminal sessions arrives in a future version of Wisp.'
+    'On Windows, following terminal sessions arrives in a future version of Wisp.',
+  'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, ':
+    'Open PowerShell, run `claude` and log in (it opens the browser). Then ',
+  'pelo Windows': 'through Windows',
+  'numa próxima versão': 'in a later version',
+  'No Windows, guardar as chaves no sistema chega numa próxima versão: até lá, a OpenRouter e aprovar pelo celular não funcionam lá.':
+    "On Windows, keeping keys in the system arrives in a later version: until then, OpenRouter and approving from your phone don't work there.",
+  'No Windows, abrir um terminal pelo Wisp chega numa próxima versão.':
+    'On Windows, opening a terminal from Wisp arrives in a later version.'
 }

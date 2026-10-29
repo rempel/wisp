@@ -51,6 +51,8 @@ export interface Facts {
   selfUpdate?: boolean
   /** A versão já baixada e trocada, que entra quando o Wisp abrir de novo. */
   installed?: string | null
+  /** No Windows (Fase 33): o que lá ainda não há diz que chega numa próxima versão. */
+  windows?: boolean
 }
 
 /** Compara versões "1.2.3" (sem pré-lançamentos); negativo se a é mais velha. */
@@ -170,12 +172,20 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
         'error',
         t('sem login'),
         t('O Claude Code não está logado na sua conta.'),
-        {
-          fix:
-            t('Abra um terminal, rode `claude` e faça o login (ele abre o navegador). Depois, ') +
-            t('clique em **Conferir de novo**.'),
-          action: 'terminal'
-        }
+        facts.windows
+          ? {
+              fix:
+                t(
+                  'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, '
+                ) + t('clique em **Conferir de novo**.')
+            }
+          : {
+              fix:
+                t(
+                  'Abra um terminal, rode `claude` e faça o login (ele abre o navegador). Depois, '
+                ) + t('clique em **Conferir de novo**.'),
+              action: 'terminal'
+            }
       )
     )
   } else if (claude.loggedIn === null) {
@@ -237,7 +247,11 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
         'shortcut',
         t('Atalho global'),
         'ok',
-        shortcut.via === 'portal' ? t('pelo portal do desktop') : t('pelo X11'),
+        shortcut.via === 'portal'
+          ? t('pelo portal do desktop')
+          : facts.windows
+            ? t('pelo Windows')
+            : t('pelo X11'),
         t('{v1} abre e fecha o painel{v2}.', {
           v1: shortcut.label ?? t('O atalho'),
           v2: shortcut.via === 'portal' ? t(' (pelo portal do desktop)') : ''
@@ -286,7 +300,20 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
   }
 
   // O chaveiro.
-  if (facts.keyring === 'running' || facts.keyring === 'activatable') {
+  if (facts.windows) {
+    checks.push(
+      check(
+        'keyring',
+        t('Chaveiro do sistema'),
+        facts.needsKeyring ? 'warn' : 'off',
+        t('numa próxima versão'),
+        t(
+          'No Windows, guardar as chaves no sistema chega numa próxima versão: até lá, a OpenRouter e aprovar pelo celular não funcionam lá.'
+        ),
+        { optional: true }
+      )
+    )
+  } else if (facts.keyring === 'running' || facts.keyring === 'activatable') {
     checks.push(
       check(
         'keyring',
@@ -357,28 +384,37 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
 
   // O terminal.
   checks.push(
-    facts.terminal
+    facts.windows
       ? check(
           'terminal',
           t('Terminal'),
-          'ok',
-          'achado',
-          t('Há um terminal para abrir projetos e o login.'),
+          'off',
+          t('numa próxima versão'),
+          t('No Windows, abrir um terminal pelo Wisp chega numa próxima versão.'),
           { optional: true }
         )
-      : check(
-          'terminal',
-          t('Terminal'),
-          'warn',
-          t('não achado'),
-          t('Não achei um terminal instalado.'),
-          {
-            fix: t(
-              'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).'
-            ),
-            optional: true
-          }
-        )
+      : facts.terminal
+        ? check(
+            'terminal',
+            t('Terminal'),
+            'ok',
+            'achado',
+            t('Há um terminal para abrir projetos e o login.'),
+            { optional: true }
+          )
+        : check(
+            'terminal',
+            t('Terminal'),
+            'warn',
+            t('não achado'),
+            t('Não achei um terminal instalado.'),
+            {
+              fix: t(
+                'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).'
+              ),
+              optional: true
+            }
+          )
   )
 
   // O config.json.

@@ -133,8 +133,10 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 - **Onde roda:** feito para o GNOME e o KDE Plasma, no X11 e no Wayland (pelo XWayland), com o
   Claude Code 2.1 ou mais novo. O CI roda no Ubuntu 22.04 e 24.04; outras distribuições com GNOME ou
-  KDE devem funcionar.
-- **Pacotes:** .deb e AppImage para x86-64 e ARM64, e um Flatpak. Os de ARM64 são montados num
+  KDE devem funcionar. No **Windows 10 e 11** (Fase 33), o essencial: o mascote, o painel, as
+  conversas, os cards e o modo terminal; o resto da integração com o desktop chega na Fase 35
+  (veja [Windows](#windows)). O CI também roda num Windows de verdade.
+- **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64). Os de ARM64 são montados num
   x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
@@ -143,20 +145,20 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto) e 32 (paleta de comandos e não
-  perturbe):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  perturbe) e 33 (o essencial no Windows):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
 
 **Para usar o Wisp:**
 
-| O quê                                                             | Para quê           | Como ter                                                                                                                                                                                              |
-| ----------------------------------------------------------------- | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Linux com GNOME ou KDE Plasma (X11 ou Wayland)                    | Tudo               | No Wayland, o Wisp roda pelo XWayland, que o GNOME e o KDE já trazem                                                                                                                                  |
-| [Claude Code](https://docs.claude.com/en/docs/claude-code) logado | O cérebro          | Instale pelo [guia oficial](https://docs.claude.com/en/docs/claude-code) (o instalador ou `npm install -g @anthropic-ai/claude-code`) e rode `claude` uma vez para fazer o login com a sua assinatura |
-| `gtk-launch` ou `gio`                                             | Abrir apps         | `libgtk-3-bin` ou `libglib2.0-bin` (o .deb já recomenda); no KDE, o `kioclient` também serve                                                                                                          |
-| `xdg-open`                                                        | Abrir links        | `xdg-utils` (já vem na maioria dos desktops)                                                                                                                                                          |
-| Extensão AppIndicator (só GNOME fora do Ubuntu)                   | O ícone na bandeja | "AppIndicator and KStatusNotifierItem Support"; o mascote e o chat funcionam sem ela                                                                                                                  |
+| O quê                                                              | Para quê           | Como ter                                                                                                                                                                                              |
+| ------------------------------------------------------------------ | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Linux com GNOME ou KDE Plasma (X11 ou Wayland), ou o Windows 10/11 | Tudo               | No Wayland, o Wisp roda pelo XWayland, que o GNOME e o KDE já trazem. No Windows, veja [Windows](#windows)                                                                                            |
+| [Claude Code](https://docs.claude.com/en/docs/claude-code) logado  | O cérebro          | Instale pelo [guia oficial](https://docs.claude.com/en/docs/claude-code) (o instalador ou `npm install -g @anthropic-ai/claude-code`) e rode `claude` uma vez para fazer o login com a sua assinatura |
+| `gtk-launch` ou `gio`                                              | Abrir apps         | `libgtk-3-bin` ou `libglib2.0-bin` (o .deb já recomenda); no KDE, o `kioclient` também serve                                                                                                          |
+| `xdg-open`                                                         | Abrir links        | `xdg-utils` (já vem na maioria dos desktops)                                                                                                                                                          |
+| Extensão AppIndicator (só GNOME fora do Ubuntu)                    | O ícone na bandeja | "AppIndicator and KStatusNotifierItem Support"; o mascote e o chat funcionam sem ela                                                                                                                  |
 
 **Opcionais, para cada recurso:**
 
@@ -180,9 +182,10 @@ Para compilar do código, veja as dependências em [Compilar a partir do código
 
 Os pacotes de cada versão ficam na página de
 [releases](https://github.com/rempel/wisp/releases): o `.deb`, para Ubuntu, Debian e derivados, o
-AppImage, para qualquer distribuição (os dois para x86-64 e ARM64), e o Flatpak. (Cada push também
-os gera, nos artefatos `pacotes-linux`, `pacotes-linux-arm64` e `pacote-flatpak` da execução do CI,
-na aba Actions.) Para montar os seus, veja [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
+AppImage, para qualquer distribuição (os dois para x86-64 e ARM64), o Flatpak e o instalador do
+Windows. (Cada push também os gera, nos artefatos `pacotes-linux`, `pacotes-linux-arm64`,
+`pacote-flatpak` e `instalador-windows` da execução do CI, na aba Actions, enquanto a cota de
+armazenamento do GitHub deixa.) Para montar os seus, veja [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
 
 ### .deb (Ubuntu, Debian e derivados)
 
@@ -233,6 +236,38 @@ sudo apparmor_parser -r /etc/apparmor.d/wisp-appimage
 ```
 
 Prefira o .deb no Ubuntu: o perfil dele vale só para o `/opt/Wisp/wisp`.
+
+### Windows
+
+O instalador `Wisp-<versão>-Setup-x64.exe` (Windows 10 e 11, x64) põe o Wisp só para o seu
+usuário, sem pedir administrador, no menu Iniciar e na área de trabalho, e abre o Wisp no fim.
+
+- **Antes:** o Claude Code, pelo instalador oficial, no PowerShell, e o
+  [Git para Windows](https://git-scm.com/download/win) (o Claude Code roda os comandos no Git
+  Bash). Depois, rode `claude` uma vez no PowerShell para fazer o login.
+
+```powershell
+irm https://claude.ai/install.ps1 | iex
+```
+
+- **O aviso do SmartScreen:** o instalador ainda não é assinado, e o Windows mostra "O Windows
+  protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**.
+- **Onde ficam as coisas:** o `config.json` em `%APPDATA%\Wisp`; as conversas, o cache e o
+  registro (`Logs\wisp.log`) em `%LOCALAPPDATA%\Wisp`.
+- **O que já funciona:** o mascote, o painel, as conversas e as abas, os cards (cada comando do
+  Bash pede, como no Linux, sem passar por um shell), os modos, o modo terminal (o Claude Code de
+  verdade, no ConPTY), a bandeja, o atalho global, as notificações simples, o print da tela, o
+  início com o sistema, os prompts salvos e as tarefas, a busca no histórico, os servidores MCP,
+  o diagnóstico e os primeiros passos.
+- **O que chega na Fase 35:** a aba Sessões e os cards no modo terminal (lá, por enquanto, os
+  pedidos aparecem no próprio terminal), as notificações com Permitir e Negar, o chaveiro (a
+  OpenRouter e aprovar pelo celular), a música, o volume, as janelas e o terminal pelo Claude, o
+  "não perturbe", a voz e o comando `wisp`. O diagnóstico diz o que ainda não há.
+- **Atualizar:** rode o instalador novo; as configurações e as conversas continuam.
+- **Remover:** Configurações do Windows → **Aplicativos** → Wisp → **Desinstalar**. As pastas
+  `%APPDATA%\Wisp` e `%LOCALAPPDATA%\Wisp` ficam; apague-as para tirar tudo.
+- **Do código, no Windows:** com o [Node](https://nodejs.org) 22 e o Git, `npm ci` e
+  `npm run dev` abrem o Wisp; `npm run dist:win` monta o instalador em `dist\`.
 
 ### ARM64
 

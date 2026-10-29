@@ -1,7 +1,8 @@
 # CI do Wisp: a cada push e pull request, tipos, lint, formatação, build e testes de unidade; em
 # jobs à parte, os testes de ponta a ponta (Xvfb e DevTools), os pacotes (.deb e AppImage para
-# x86-64, com o AppImage aberto de verdade, e ARM64, e o Flatpak, instalado e aberto) e o aviso das
-# dependências. Numa tag v*, os pacotes vão para um release.
+# x86-64, com o AppImage aberto de verdade, e ARM64, e o Flatpak, instalado e aberto), o Windows (os
+# testes, o roteiro do essencial e o instalador) e o aviso das dependências. Numa tag v*, os
+# pacotes e o instalador do Windows vão para um release.
 name: CI
 
 on:
@@ -217,12 +218,54 @@ jobs:
           if-no-files-found: error
           retention-days: 7
 
+  # O Wisp no Windows (Fase 33), num Windows de verdade: os testes de unidade que valem lá, o
+  # roteiro de ponta a ponta do essencial (abrir, conversar, o hook do Bash, o card, o modo
+  # terminal, o diagnóstico, com os prints) e o instalador.
+  windows:
+    name: Windows (testes, ponta a ponta e instalador)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx install-electron
+      - run: npx electron-vite build
+      - name: Testes de unidade que valem no Windows
+        run: npm test -- windows paleta busca conversa diagnostics notificacoes
+      - name: Ponta a ponta (o essencial)
+        timeout-minutes: 10
+        run: node e2e/essencial.mjs
+        env:
+          WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Os prints do Wisp no Windows
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v6
+        with:
+          name: telas-windows
+          path: ${{ runner.temp }}/telas
+          if-no-files-found: ignore
+          retention-days: 3
+      - name: O instalador
+        run: npx electron-builder --win nsis --publish never
+      - uses: actions/upload-artifact@v6
+        continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
+        with:
+          name: instalador-windows
+          path: dist/*.exe
+          if-no-files-found: error
+          retention-days: 7
+
   release:
     name: Release
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-24.04
     timeout-minutes: 15
-    needs: [package, package-arm64, flatpak, e2e]
+    needs: [package, package-arm64, flatpak, e2e, windows]
     permissions:
       contents: write
     steps:
@@ -239,6 +282,10 @@ jobs:
       - uses: actions/download-artifact@v6
         with:
           name: pacote-flatpak
+          path: dist
+      - uses: actions/download-artifact@v6
+        with:
+          name: instalador-windows
           path: dist
       # Assina os AppImage para o Atualizar do Wisp (Fase 31); sem o segredo, saem sem assinatura.
       - name: Assina os AppImage

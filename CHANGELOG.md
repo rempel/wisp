@@ -51,6 +51,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   do terminal, projetos e conversas numa busca só, sem acentos, pelo teclado.
 - **Não perturbe** (Fase 32): com o "não perturbe" do KDE ou do GNOME ligado, o Wisp não manda
   notificações nem toca sons; os cards esperam no painel (`quietWithDnd`).
+- **O Wisp no Windows** (Fase 33): um instalador para o Windows 10 e 11 (x64, por usuário, sem
+  administrador). O mascote, o painel, as conversas, os cards (cada Bash pede, sem passar por um
+  shell), o modo terminal, a bandeja, o atalho global, o print da tela e o início com o sistema
+  funcionam; o Claude Code do instalador oficial ou do npm é achado sozinho. O resto da integração
+  com o desktop chega na Fase 35, e o diagnóstico diz o que ainda não há.
 
 ### Mudou
 
@@ -68,6 +73,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
   permissão, os olhos brilham.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
+- O `main` do app é o `out/main/boot.js`, que responde o hook do Bash (`--wisp-mode-hook`) antes de
+  carregar o resto.
+- O CI ganhou o job **Windows**, num Windows de verdade (os testes, o roteiro do essencial com os
+  prints e o instalador), e numa tag o instalador do Windows vai para o release.
 
 ### Consertado
 
@@ -77,6 +86,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - O CI monta e confere os pacotes ARM64 e o Flatpak.
 - O CI não cai mais por um espelho do apt lento: os pacotes ficam em cache, cada `apt-get` tem
   tentativas e um limite de tempo, e todo job tem o seu limite.
+- Com o painel escondendo enquanto a notificação de um card ainda saía, o Wisp mostrava duas, e o
+  Permitir da primeira não respondia nada.
+- Editar a última mensagem logo depois da resposta não junta mais a resposta nova com a velha.
 
 ## 0.1.0
 

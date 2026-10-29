@@ -6,7 +6,7 @@
 // Claude Code, e o registro fica na pasta do sistema, sem erros.
 // Uso: node e2e/essencial.mjs (no Linux, veja e2e/run.sh).
 import { spawnSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import {
   appEnv,
@@ -26,6 +26,30 @@ import {
 
 const { check, failed } = checks()
 const home = testHome()
+// Os prints (no CI do Windows, um artefato): o painel pelo DevTools e, no Windows, a tela toda.
+const SHOTS = process.env.WISP_E2E_SHOTS
+if (SHOTS) mkdirSync(SHOTS, { recursive: true })
+const shoot = async (page, name) => {
+  if (!SHOTS) return
+  const { data } = await page.send('Page.captureScreenshot', { format: 'png' })
+  if (data) writeFileSync(join(SHOTS, `${name}.png`), Buffer.from(data, 'base64'))
+  if (!IS_WINDOWS) return
+  const file = join(SHOTS, `${name}-tela.png`).replaceAll("'", "''")
+  spawnSync(
+    'powershell.exe',
+    [
+      '-NoProfile',
+      '-Command',
+      'Add-Type -AssemblyName System.Windows.Forms,System.Drawing; ' +
+        '$b = [System.Windows.Forms.SystemInformation]::VirtualScreen; ' +
+        '$i = New-Object System.Drawing.Bitmap $b.Width, $b.Height; ' +
+        '$g = [System.Drawing.Graphics]::FromImage($i); ' +
+        '$g.CopyFromScreen($b.Left, $b.Top, 0, 0, $i.Size); ' +
+        `$i.Save('${file}', [System.Drawing.Imaging.ImageFormat]::Png)`
+    ],
+    { timeout: 30000, windowsHide: true }
+  )
+}
 const spawns = () => {
   try {
     return readFileSync(join(home.home, '.fake-claude/spawns.log'), 'utf8')
@@ -53,6 +77,7 @@ const reply = await waitFor(
   20000
 )
 check('E2 o Claude Code responde', /Oi! Tudo certo/.test(reply ?? ''), reply)
+await shoot(chat, 'conversa')
 
 const hook = spawns().at(-1)?.bashHook ?? {}
 check(
@@ -99,6 +124,7 @@ const card = await waitFor(
   15000
 )
 check('E5 o card aparece com o comando', /npm test/.test(card ?? ''), card)
+await shoot(chat, 'card')
 await sleep(1200)
 await ev(
   `[...document.querySelectorAll('.pane .permission-pending button')].find(b => b.textContent.trim() === 'Negar')?.click()`
@@ -124,6 +150,7 @@ const screen = await waitFor(async () => {
   return /Claude Code de mentira \(terminal\)/.test(text ?? '') ? text : null
 }, 20000)
 check('E7 o Claude Code abre no terminal da aba (pty)', !!screen, screen)
+await shoot(chat, 'terminal')
 // De volta ao chat, o processo do terminal sai (no Windows, o node-pty não manda sinais).
 const tui = spawns()
   .filter((spawn) => !spawn.args.includes('-p'))
