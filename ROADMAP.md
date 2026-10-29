@@ -1225,6 +1225,58 @@ Notas da entrega:
   configurado. A tela de configurações diz o estado de agora, e o menu da bandeja mostra quando o
   Wisp está quieto. Num desktop que não diz nada, o Wisp nunca fica quieto por conta disso.
 
+### Fase 33: o essencial no Windows
+
+O Windows passou a ser o sistema principal de quem usa o Wisp. A interface (Electron, como o VS
+Code, com o mesmo terminal, o xterm.js) já roda lá; o que prende ao Linux é a integração com o
+desktop: 25 dos 97 arquivos do processo principal falam com o D-Bus, o X11, os portais e os
+.desktop. Esta fase põe o Wisp de pé no Windows; as integrações nativas ficam para a Fase 35.
+
+- **Os caminhos e o Claude Code (M):** as pastas do Windows (`%APPDATA%\Wisp` para o
+  `config.json`, `%LOCALAPPDATA%\Wisp` para o resto); achar o `claude.exe` do instalador oficial
+  (e o do npm, rodando o `cli.js` com o Node, sem passar por um shell); encerrar a árvore de
+  processos de uma conversa.
+- **Todo Bash pelo card, também no Windows (P):** o hook que manda cada comando para o card é de
+  shell do Linux; no Windows, ele vira a forma exec do Claude Code (`command` + `args`, sem shell),
+  rodando o próprio `Wisp.exe`.
+- **O que é do Linux fica quieto (M):** o D-Bus, o X11, os portais, a agenda do Evolution e afins
+  ficam desligados no Windows, sem erro no registro; o diagnóstico diz o que não há lá. O Electron
+  já faz a bandeja, o atalho global, as notificações simples, o print da tela e o início com o
+  sistema.
+- **O instalador e o CI (M):** um instalador NSIS (x64), e um job no CI num Windows de verdade:
+  os testes de unidade que valem lá, um teste de ponta a ponta (abrir, conversar, o modo terminal,
+  as configurações) e o instalador como artefato para baixar.
+
+**Aceite:** no Windows 11, o instalador põe o Wisp no menu Iniciar; o mascote aparece, o painel
+abre pelo atalho, uma conversa com o Claude Code funciona, cada Bash pede pelo card, e o modo
+terminal abre o Claude Code de verdade.
+
+### Fase 34: o editor do VS Code (Monaco)
+
+- **Ver arquivos e diffs com o editor do VS Code (M):** o diff das edições nos cards e um arquivo
+  aberto pelo painel passam a usar o Monaco, com realce de sintaxe, números de linha, lado a lado
+  ou em linha, e o tema do Wisp (claro, escuro e alto contraste). Só leitura: editar continua com
+  o Claude ou com o seu editor.
+- **Leve (P):** o Monaco carrega só quando um diff é aberto, e as linguagens só quando aparecem.
+
+**Aceite:** o diff de uma edição abre no Monaco com o realce da linguagem do arquivo, e o painel
+não fica mais pesado para abrir.
+
+### Fase 35: o Windows por inteiro
+
+- **Os cards do modo terminal e a aba Sessões (M):** os hooks pelo `Wisp.exe` (forma exec), com o
+  relay falando com o Wisp por um named pipe de nome sorteado, que só o seu usuário conhece.
+- **Notificações com botões (M):** Permitir e Negar na notificação do Windows.
+- **Chaveiro (P):** a chave da OpenRouter e o pareamento do celular cifrados pelo Windows (DPAPI).
+- **Janelas, terminal e música (M):** listar e focar janelas, abrir o Windows Terminal, e a música
+  e o volume do sistema.
+- **Tela bloqueada e não perturbe (P):** o resumo "enquanto você estava fora" e o "não perturbe"
+  do Windows.
+- **A voz (M):** o whisper.cpp e o Piper do Windows, e o segurar para falar.
+
+**Aceite:** no Windows, um card do modo terminal aparece no Wisp, um pedido é respondido pela
+notificação, e o Claude foca uma janela pelo nome.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
@@ -1236,11 +1288,6 @@ Notas da entrega:
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
   linhas. São coisa de painel de agentes de código.
 - **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18.
-- **Windows:** avaliado depois da Fase 26 e deixado de fora (o uso é no Linux). Cerca de 20% do
-  processo principal (≈4.500 de ≈23.000 linhas) depende do Linux: o cliente D-Bus e o que usa ele,
-  o X11, os .desktop, o socket Unix dos hooks e o Flatpak. Portar seriam quatro fases (o núcleo, o
-  desktop, a voz, e o pacote com os testes), e o maior peso estaria nos testes, que hoje rodam só
-  em Linux. Quem precisar no Windows 11 pode rodar a versão Linux no WSL2.
 
 ## Princípios que ficam
 

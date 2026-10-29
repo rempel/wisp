@@ -7,8 +7,9 @@ import type { PermissionMode, Provider } from '../shared/ipc'
 import { WRAPPER_PATH } from './hooks/install'
 import { HOOK_EVENTS, STATUS_ARG, TAB_ARG } from './hooks/protocol'
 import { shellQuote } from './launcher'
+import { ASK_FOR_BASH, MODE_FILE_ENV, MODE_HOOK_ARG } from './mode-hook'
 import type { OpenRouterModel } from './openrouter'
-import { t } from '../shared/i18n'
+import { IS_WINDOWS } from './platform'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
 export const SAFE_TOOLS = [
@@ -64,12 +65,27 @@ const SENSITIVE_PATHS = [
   '~/.config/google-chrome/**',
   '~/.config/chromium/**',
   '~/.config/BraveSoftware/**',
+  // No Windows (Fase 33): os perfis dos navegadores e as credenciais em %APPDATA%.
+  '~/AppData/Roaming/Mozilla/**',
+  '~/AppData/Local/Google/Chrome/User Data/**',
+  '~/AppData/Local/Microsoft/Edge/User Data/**',
+  '~/AppData/Local/BraveSoftware/**',
+  '~/AppData/Roaming/gcloud/**',
+  '~/AppData/Roaming/GitHub CLI/**',
   '//**/.env',
   '//**/.env.*'
 ]
 
-/** Variável com o arquivo do modo de permissão da conversa, que o hook do Bash lê. */
-export const MODE_FILE_ENV = 'WISP_PERMISSION_MODE_FILE'
+export { MODE_FILE_ENV }
+
+/**
+ * Como o Claude Code roda o próprio Wisp num hook, no Windows: o Wisp.exe (ou, no código, o
+ * Electron com a pasta do app). O index.ts define ao abrir.
+ */
+let selfCommand: { command: string; args: string[] } | null = null
+export function setSelfCommand(command: string, args: string[]): void {
+  selfCommand = { command, args }
+}
 
 /**
  * Configurações extras da sessão (--settings):
@@ -79,20 +95,31 @@ export const MODE_FILE_ENV = 'WISP_PERMISSION_MODE_FILE'
  *   Code. O modo vem de um arquivo, porque muda no meio da conversa e o --settings não.
  * - as regras "ask" dos arquivos de segredos.
  */
-const ASK_FOR_BASH = JSON.stringify({
-  hookSpecificOutput: {
-    hookEventName: 'PreToolUse',
-    permissionDecision: 'ask',
-    permissionDecisionReason: t('O Wisp pede aprovação para todo comando.')
-  }
-})
 const BASH_HOOK = `[ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ] || printf %s '${ASK_FOR_BASH}'`
-export const SESSION_SETTINGS = JSON.stringify({
-  permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
-  hooks: {
-    PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: BASH_HOOK }] }]
+
+/**
+ * O hook do Bash: no Linux, a linha de shell; no Windows, a forma exec (command + args, sem shell),
+ * rodando o próprio Wisp, que lê o modo e responde (mode-hook.ts). Um hook de shell no Windows
+ * rodaria no Git Bash ou no PowerShell, conforme a máquina.
+ */
+function bashHook(): Record<string, unknown> {
+  if (IS_WINDOWS && selfCommand) {
+    return {
+      type: 'command',
+      command: selfCommand.command,
+      args: [...selfCommand.args, MODE_HOOK_ARG]
+    }
   }
-})
+  return { type: 'command', command: BASH_HOOK }
+}
+
+/** As configurações extras do chat (--settings). */
+export function sessionSettings(): string {
+  return JSON.stringify({
+    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [bashHook()] }] }
+  })
+}
 
 /**
  * As configurações do Claude Code do modo terminal (--settings): as do chat (o hook que manda
@@ -102,7 +129,15 @@ export const SESSION_SETTINGS = JSON.stringify({
 export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   const command = (...parts: string[]): string => [shellQuote(relay), ...parts].join(' ')
   const hooks: Record<string, unknown[]> = {
-    PreToolUse: [{ matcher: 'Bash', hooks: [{ type: 'command', command: BASH_HOOK }] }]
+    PreToolUse: [{ matcher: 'Bash', hooks: [bashHook()] }]
+  }
+  // No Windows, por enquanto, os pedidos aparecem no próprio terminal (os do Claude Code): os
+  // cards do Wisp pelo relay chegam na Fase 35.
+  if (IS_WINDOWS) {
+    return JSON.stringify({
+      permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+      hooks
+    })
   }
   for (const { event, timeout, async } of HOOK_EVENTS) {
     // A mensagem vai antes de tudo: sem esperar por ela, os hooks em segundo plano podem chegar

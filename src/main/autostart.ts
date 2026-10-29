@@ -1,7 +1,9 @@
+import { app } from 'electron'
 import { readFileSync } from 'fs'
 import { homedir } from 'os'
 import { isAbsolute, join } from 'path'
 import { APP_ID, desktopExec, MARKER, removeOwnFile, writeOwnFile } from './launcher'
+import { IS_WINDOWS } from './platform'
 import { t } from '../shared/i18n'
 
 /** O .desktop em ~/.config/autostart que abre o Wisp quando você entra na sessão. */
@@ -31,6 +33,8 @@ function entry(icon: string): string {
 
 /** O Wisp abre com o sistema? (Só conta o arquivo dele, com a marca.) */
 export function isAutostartEnabled(): boolean {
+  // No Windows (Fase 33), o item de login do próprio Electron.
+  if (IS_WINDOWS) return app.getLoginItemSettings().openAtLogin
   try {
     return readFileSync(autostartPath(), 'utf8').includes(MARKER)
   } catch {
@@ -43,6 +47,10 @@ export function isAutostartEnabled(): boolean {
  * Wisp: devolve o motivo, para o menu avisar.
  */
 export function setAutostart(enabled: boolean, icon: string): string | null {
+  if (IS_WINDOWS) {
+    app.setLoginItemSettings({ openAtLogin: enabled })
+    return null
+  }
   const path = autostartPath()
   try {
     if (enabled) {
@@ -58,7 +66,7 @@ export function setAutostart(enabled: boolean, icon: string): string | null {
 
 /** Ligado, o arquivo é reescrito a cada abertura, para acompanhar o lugar do app. */
 export function refreshAutostart(icon: string): void {
-  if (!isAutostartEnabled()) return
+  if (IS_WINDOWS || !isAutostartEnabled()) return
   try {
     writeOwnFile(autostartPath(), entry(icon))
   } catch (err) {

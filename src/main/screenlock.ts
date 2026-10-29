@@ -1,6 +1,8 @@
+import { powerMonitor } from 'electron'
 import { EventEmitter } from 'events'
 import { DBusConnection } from './dbus'
 import type { Signal } from './dbus'
+import { IS_WINDOWS } from './platform'
 
 // A tela bloqueada, para a escuta pausar. O Electron só avisa do bloqueio no macOS e no Windows;
 // no Linux, o Wisp ouve duas fontes pelo D-Bus:
@@ -40,6 +42,12 @@ export class ScreenLock extends EventEmitter {
    */
   static watch(env: NodeJS.ProcessEnv = process.env): ScreenLock {
     const lock = new ScreenLock()
+    if (IS_WINDOWS) {
+      // No Windows (Fase 33), o próprio Electron avisa.
+      powerMonitor.on('lock-screen', () => lock.set('windows', true))
+      powerMonitor.on('unlock-screen', () => lock.set('windows', false))
+      return lock
+    }
     void lock.watchSavers(env).catch(() => {})
     void lock.watchLogind(env).catch(() => {})
     return lock

@@ -147,7 +147,8 @@ function run(
   return new Promise((resolve, reject) => {
     const run = viaHost(binary, args)
     const child = spawn(run.command, run.args, {
-      stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe']
+      stdio: [input ? 'pipe' : 'ignore', 'pipe', 'pipe'],
+      windowsHide: true
     })
     let stdout = ''
     let stderr = ''

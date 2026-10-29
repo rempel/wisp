@@ -102,13 +102,15 @@ import { IPC } from '../shared/ipc'
 import type { TaskResult, VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 import { t } from '../shared/i18n'
+import { setSelfCommand } from './claude-settings'
+import { IS_LINUX, IS_WINDOWS } from './platform'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
 app.setPath('userData', join(CACHE_DIR, 'electron'))
 // A identidade do app no desktop: o nome do .desktop, a classe das janelas no X11 e o id que os
 // portais conferem (o GNOME 50 recusa o atalho global de um id sem .desktop instalado).
-app.setDesktopName(APP_ID)
+if (IS_LINUX) app.setDesktopName(APP_ID)
 
 const kind = installKind(app.isPackaged)
 /** Numa sessão Wayland sem --ozone-platform=x11, o Wisp seria um app Wayland nativo. */
@@ -175,6 +177,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   const entryIcon = desktopIcon(kind, appIcon)
   loadConfig()
   console.log(`[wisp] config: ${CONFIG_PATH}`)
+  // Os hooks do Windows rodam o próprio Wisp (forma exec): o Wisp.exe, ou o Electron com o app.
+  setSelfCommand(process.execPath, app.isPackaged ? [] : [app.getAppPath()])
   void cleanOldAttachments()
   guardPermissions()
 
@@ -519,31 +523,35 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     }
   })
   let hooks: HookServer | null = null
-  let listening: { ok: boolean; problem?: string } = { ok: false, problem: 'abrindo…' }
-  void startHookServer((event, pending) => {
-    // Uma mensagem no Claude Code do terminal conta no resumo da semana, com a pasta do projeto.
-    if (event.event === 'UserPromptSubmit' && typeof event.input.cwd === 'string') {
-      activity.record({
-        k: 'terminal',
-        projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
-      })
-    }
-    // O modo terminal de uma aba (a ficha dela vem no evento): vai para a aba, não para Sessões.
-    if (event.tab) {
-      if (!chat?.terminalEvent(event, pending)) pending?.reply({ decision: null })
-      return
-    }
-    sessions.handle(event, pending)
-  }).then((started) => {
-    if (started.ok) {
-      hooks = started.server
-      listening = { ok: true }
-    } else {
-      listening = { ok: false, problem: started.problem }
-      console.warn('[wisp] não vou ouvir as sessões do Claude Code:', started.problem)
-    }
-    chat?.notifySessions()
-  })
+  let listening: { ok: boolean; problem?: string } = IS_WINDOWS
+    ? { ok: false, problem: t('no Windows, as sessões do terminal chegam numa próxima versão') }
+    : { ok: false, problem: 'abrindo…' }
+  // No Windows (Fase 33), sem o socket dos hooks por enquanto (o named pipe vem na Fase 35).
+  if (!IS_WINDOWS)
+    void startHookServer((event, pending) => {
+      // Uma mensagem no Claude Code do terminal conta no resumo da semana, com a pasta do projeto.
+      if (event.event === 'UserPromptSubmit' && typeof event.input.cwd === 'string') {
+        activity.record({
+          k: 'terminal',
+          projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
+        })
+      }
+      // O modo terminal de uma aba (a ficha dela vem no evento): vai para a aba, não para Sessões.
+      if (event.tab) {
+        if (!chat?.terminalEvent(event, pending)) pending?.reply({ decision: null })
+        return
+      }
+      sessions.handle(event, pending)
+    }).then((started) => {
+      if (started.ok) {
+        hooks = started.server
+        listening = { ok: true }
+      } else {
+        listening = { ok: false, problem: started.problem }
+        console.warn('[wisp] não vou ouvir as sessões do Claude Code:', started.problem)
+      }
+      chat?.notifySessions()
+    })
   setupSessionsIpc({
     sessions,
     isChat: (sender) => chat?.isSender(sender) ?? false,
@@ -799,16 +807,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // O comando `wisp` e a entrada do menu de apps (fora de um pacote, que traz a dele). A entrada
   // vem antes do atalho: o portal confere o id do app contra ela.
   // No AppImage, o comando chama o arquivo .AppImage, e o ícone vai para um lugar fixo.
-  deployLauncher(
-    {
-      electron: launchTarget(kind),
-      appPath: kind === 'dev' ? app.getAppPath() : null,
-      icon: entryIcon,
-      flatpak: kind === 'flatpak' ? (process.env.FLATPAK_ID ?? null) : null
-    },
-    // O .deb e o Flatpak trazem a entrada do menu de apps deles.
-    kind !== 'package' && kind !== 'flatpak'
-  )
+  if (IS_LINUX)
+    deployLauncher(
+      {
+        electron: launchTarget(kind),
+        appPath: kind === 'dev' ? app.getAppPath() : null,
+        icon: entryIcon,
+        flatpak: kind === 'flatpak' ? (process.env.FLATPAK_ID ?? null) : null
+      },
+      // O .deb e o Flatpak trazem a entrada do menu de apps deles.
+      kind !== 'package' && kind !== 'flatpak'
+    )
   // Os atalhos globais: um abre e fecha o painel; outro, segurado, ouve; e o da paleta (Fase 32). Trocados no
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
   let boundShortcuts: string | undefined

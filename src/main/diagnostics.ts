@@ -8,6 +8,7 @@
 
 import type { DiagnosticCheck, DiagnosticStatus } from '../shared/ipc'
 import { t } from '../shared/i18n'
+import { IS_WINDOWS } from './platform'
 
 /** A versão mais velha do Claude Code com o que o Wisp usa (os hooks, o modo terminal). */
 export const MIN_CLAUDE = '2.1.0'
@@ -77,8 +78,14 @@ const check = (
 ): DiagnosticCheck => ({ id, title, status, summary, detail, ...extra })
 
 const INSTALL_FIX =
-  t('Instale com o instalador oficial, num terminal:\n\n') +
-  t('```sh\ncurl -fsSL https://claude.ai/install.sh | bash\n```\n\n') +
+  (IS_WINDOWS
+    ? t('Instale com o instalador oficial, no PowerShell:\n\n') +
+      '```powershell\nirm https://claude.ai/install.ps1 | iex\n```\n\n' +
+      t(
+        'O Claude Code usa o Git para Windows (o Git Bash) para rodar comandos: instale-o também.\n\n'
+      )
+    : t('Instale com o instalador oficial, num terminal:\n\n') +
+      t('```sh\ncurl -fsSL https://claude.ai/install.sh | bash\n```\n\n')) +
   t('ou pelo npm (com o Node 18 ou mais novo):\n\n') +
   t('```sh\nnpm install -g @anthropic-ai/claude-code\n```\n\n') +
   t('Se ele já está instalado num lugar fora do PATH, informe o caminho em `claudePath` no ') +

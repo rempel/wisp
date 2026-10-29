@@ -2077,5 +2077,21 @@ export const EN: Record<string, string> = {
   'tarefa agendada, às {time}': 'scheduled task, at {time}',
   'tarefa agendada': 'scheduled task',
   'Abrir a sessão do terminal: {project}': 'Open the terminal session: {project}',
-  'sessão terminal': 'session terminal'
+  'sessão terminal': 'session terminal',
+  'Não encontrei o Claude Code (`claude`). Instale-o pelo PowerShell ':
+    "I couldn't find Claude Code (`claude`). Install it from PowerShell ",
+  '(`irm https://claude.ai/install.ps1 | iex`), rode `claude` num terminal para fazer login e ':
+    '(`irm https://claude.ai/install.ps1 | iex`), run `claude` in a terminal to log in, and ',
+  'depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o caminho ':
+    "then send the message again. If it's somewhere outside the PATH, set the path ",
+  'em `claudePath` no `%APPDATA%\\Wisp\\config.json`. ':
+    'in `claudePath` in `%APPDATA%\\Wisp\\config.json`. ',
+  'Instale com o instalador oficial, no PowerShell:\n\n':
+    'Install it with the official installer, in PowerShell:\n\n',
+  'O Claude Code usa o Git para Windows (o Git Bash) para rodar comandos: instale-o também.\n\n':
+    'Claude Code uses Git for Windows (Git Bash) to run commands: install it too.\n\n',
+  'no Windows, as sessões do terminal chegam numa próxima versão':
+    'on Windows, terminal sessions arrive in a future version',
+  'No Windows, acompanhar as sessões do terminal chega numa próxima versão do Wisp.':
+    'On Windows, following terminal sessions arrives in a future version of Wisp.'
 }
