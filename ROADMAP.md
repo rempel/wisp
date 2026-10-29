@@ -1295,7 +1295,14 @@ Notas da entrega:
   escondendo enquanto a notificação de um card ainda saía, o Wisp mostrava duas, e o Permitir da
   primeira não respondia nada. Agora sai uma só por card.
 
-### Fase 34: o editor do VS Code (Monaco)
+### Fase 34: o editor do VS Code (Monaco) ✅
+
+**Status:** pronta, esperando validação. Testes: `test/editor.test.ts` (os dois lados do diff com
+os números das linhas, as linhas que a edição pôs, os arquivos de segredos e os limites de ler um
+arquivo, inclusive por um link) e `e2e/monaco.mjs` (o painel abre sem o Monaco; o diff de uma
+edição abre nele com o realce do TypeScript e os números do arquivo; o tema claro e o escuro; o
+lado a lado com o painel largo; o arquivo no painel na linha da mudança; o Esc; um segredo e um
+binário recusados), que roda no Linux e no job **Windows** do CI.
 
 - **Ver arquivos e diffs com o editor do VS Code (M):** o diff das edições nos cards e um arquivo
   aberto pelo painel passam a usar o Monaco, com realce de sintaxe, números de linha, lado a lado
@@ -1305,6 +1312,25 @@ Notas da entrega:
 
 **Aceite:** o diff de uma edição abre no Monaco com o realce da linguagem do arquivo, e o painel
 não fica mais pesado para abrir.
+
+Notas da entrega:
+
+- o diff dos cards (Edit, MultiEdit, Write, os passos das sessões do terminal) e o das prévias dos
+  arquivos de configuração (os hooks, os servidores MCP) usam o Monaco 0.57, com os números das
+  linhas do arquivo (os trechos do Claude Code viram os dois textos que o editor compara, com uma
+  faixa entre eles), o que entrou e o que saiu marcados até a palavra, e o espaço em branco
+  contando. Em linha por padrão; com o card largo, **Lado a lado**, lembrado no painel;
+- **Abrir o arquivo no painel** nos cards de Read, Edit e Write: o arquivo como está agora, só para
+  ler, na linha da mudança, com as linhas novas marcadas, a busca (Ctrl+F) e as dobras. O main lê
+  pelo caminho real, até 2 MB, só texto, e nunca um arquivo de segredos (os mesmos padrões que o
+  Claude só lê com aprovação), nem por um link;
+- leve: o painel cresceu 12 KB; o editor (uns 6 MB, com o CSS e o worker do diff) carrega no
+  primeiro diff, e cada linguagem quando um arquivo dela aparece. Até o editor chegar (ou se ele
+  falhar), aparece o diff simples de antes;
+- o tema `wisp` do Monaco sai das cores do painel e acompanha o claro, o escuro e o alto contraste
+  na hora;
+- o Monaco 0.57 traz o DOMPurify 3.4.15, com um alerta crítico; um `overrides` no `package.json`
+  põe o 3.4.17, que corrige, e o `npm audit` fica limpo.
 
 ### Fase 35: o Windows por inteiro
 

@@ -21,6 +21,8 @@ export default defineConfig({
   preload: {},
   renderer: {
     plugins: [react()],
+    // O worker do Monaco (Fase 34) como módulo, com os imports dele.
+    worker: { format: 'es' },
     build: {
       rollupOptions: {
         // Uma página por janela.

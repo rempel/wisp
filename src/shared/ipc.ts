@@ -12,6 +12,7 @@ import type {
   ConversationSummary,
   ConversationView,
   ExportResult,
+  FileViewResult,
   FolderChoice,
   FolderResult,
   HistoryHit,
@@ -331,6 +332,8 @@ export const IPC = {
   mcpPreview: 'mcp:preview',
   /** chat → main (invoke): grava a mudança vista. Args: (McpChange, impressão). Devolve McpApplyResult. */
   mcpApply: 'mcp:apply',
+  /** chat → main (invoke): o texto de um arquivo para ver no painel (Fase 34). Arg: caminho. Devolve FileViewResult. */
+  filesView: 'files:view',
   /** chat → main (invoke): exporta para um arquivo (Fase 31). Arg: com o histórico. Devolve PortableResult. */
   portableExport: 'portable:export',
   /** chat → main (invoke): escolhe um arquivo para importar. Devolve PortablePreview, { error } ou null. */
@@ -590,6 +593,10 @@ export interface WispApi {
     list(): Promise<SavedPrompt[]>
     /** O texto do prompt com as variáveis da conversa; null se ele não existe. */
     expand(conversation: string, name: string): Promise<string | null>
+  }
+  /** Ver um arquivo no painel (Fase 34), só para ler. */
+  files: {
+    view(path: string): Promise<FileViewResult>
   }
   /** Levar o Wisp junto (Fase 31): exportar e importar. */
   portable: {

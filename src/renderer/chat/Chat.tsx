@@ -19,6 +19,8 @@ import type {
 import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
+import { FileViewer } from './FileViewer'
+import { fileViewOpen } from './fileView'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
@@ -360,8 +362,8 @@ export default function Chat(): JSX.Element {
   // Ctrl+M liga e desliga os sons. Voltar ao painel devolve o foco para a caixa de texto.
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
-      // Com a paleta aberta, as teclas são dela.
-      if (paletteRef.current) return
+      // Com a paleta ou um arquivo aberto (Fase 34), as teclas são deles.
+      if (paletteRef.current || fileViewOpen()) return
       // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
       if (
         fromTerminal(event.target) &&
@@ -828,6 +830,7 @@ export default function Chat(): JSX.Element {
           </>
         )}
         {palette && <CommandPalette actions={actions} onClose={closePalette} />}
+        <FileViewer />
       </div>
     </AvatarContext.Provider>
   )

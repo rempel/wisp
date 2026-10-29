@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
 import type { JSX } from 'react'
-import { diffFromInput } from '../../shared/diff'
+import { changedLines, diffFromInput, pathOf } from '../../shared/diff'
 import { danceLabel, emotionLabel, isDance, isEmotion } from '../../shared/emotions'
 import { DiffCount, DiffView } from './DiffView'
+import { openFileView } from './fileView'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { stepLabel, toolLabel } from './state'
 import type { Item, SubagentStep } from './state'
+import type { FileDiff } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
 
 type ToolItem = Extract<Item, { kind: 'tool' }>
@@ -39,6 +41,18 @@ function summarize(name: string, input: unknown): string {
   const key = SUMMARY_KEYS.find((k) => typeof fields[k] === 'string' && fields[k])
   const value = key ? String(fields[key]) : ''
   return ATTACHMENT_PATH.exec(value)?.[1] ?? value
+}
+
+/** Ferramentas de um arquivo: o card abre o arquivo no painel (Fase 34). */
+const FILE_TOOLS = new Set(['Read', 'Edit', 'MultiEdit', 'Write', 'NotebookEdit'])
+
+/** Onde abrir o arquivo: na primeira linha que a edição pôs, ou de onde o Read leu. */
+function fileTarget(tool: ToolItem, diff: FileDiff | null): Parameters<typeof openFileView>[0] {
+  const changed = diff ? changedLines(diff) : []
+  const offset = (tool.input as { offset?: unknown } | undefined)?.offset
+  const first = diff?.hunks.find((hunk) => hunk.newStart > 0)?.newStart ?? 0
+  const line = changed[0] ?? (first || (typeof offset === 'number' && offset > 0 ? offset : 1))
+  return { path: pathOf(tool.input), line, changed }
 }
 
 /** Ferramentas cujas imagens aparecem sem abrir o card: o print mostra o que o Claude viu. */
@@ -121,6 +135,7 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
     tool.status === 'error' || tool.status === 'stopped' ? null : (tool.diff ?? predicted)
   const images = tool.images ?? []
   const inlineImages = images.length > 0 && INLINE_IMAGES.has(tool.name)
+  const filePath = FILE_TOOLS.has(tool.name) ? pathOf(tool.input) : ''
 
   return (
     <div className={`tool tool-${tool.status}`}>
@@ -151,10 +166,19 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
       {tool.steps && tool.steps.length > 0 && <SubagentSteps steps={tool.steps} all={open} />}
       {open && (
         <div className="tool-body">
+          {filePath && (
+            <button
+              type="button"
+              className="tool-open-file"
+              onClick={() => openFileView(fileTarget(tool, diff))}
+            >
+              {t('Abrir o arquivo no painel')}
+            </button>
+          )}
           {diff && diff.hunks.length > 0 ? (
             <>
               <div className="tool-label">{t('Mudanças')}</div>
-              <DiffView diff={diff} />
+              <DiffView diff={diff} path={filePath} />
             </>
           ) : (
             tool.input !== undefined && (

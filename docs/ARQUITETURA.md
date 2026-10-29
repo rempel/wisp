@@ -88,6 +88,7 @@ src/
 │  ├─ mode-hook.ts   # a resposta do hook do Bash: pedir, ou nada no modo Automático
 │  ├─ platform.ts    # IS_WINDOWS e IS_LINUX
 │  ├─ win.ts         # no Windows: achar o claude, o atalho .cmd do npm sem shell, o taskkill
+│  ├─ file-view.ts   # ler um arquivo para o visualizador do painel (limites, sem segredos)
 │  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida ou aberta)
 │  ├─ folders.ts     # conversas numa pasta: o que o .claude dela faz sozinho e a confiança
 │  ├─ skills.ts      # as skills: listar (pessoais e de plugins), instalar de uma pasta
@@ -153,9 +154,11 @@ src/
    │                 # pareamento do celular), o Testar voz, o diagnóstico e os primeiros passos;
    │                 # describe-request.tsx diz o que cada pedido quer (o card e o leitor de tela);
    │                 # a paleta de comandos: palette.ts (achar e ordenar), palette-actions.ts (as
-   │                 # ações) e CommandPalette.tsx (a tela); o chat.css liga as folhas de styles/
-   │                 # (base, mensagens, caixa de texto, cards, telas, abas, configurações, o resto
-   │                 # e a paleta, nessa ordem)
+   │                 # ações) e CommandPalette.tsx (a tela); o editor do VS Code: DiffView.tsx (o
+   │                 # diff dos cards), FileViewer.tsx e fileView.ts (o arquivo aberto no painel) e
+   │                 # monaco/ (load.ts carrega, monaco.ts é o editor, num pedaço à parte); o
+   │                 # chat.css liga as folhas de styles/ (base, mensagens, caixa de texto, cards,
+   │                 # telas, abas, configurações, o resto e a paleta, nessa ordem)
    └─ common/        # miniaturas das imagens e appearance.ts (as classes reduce-motion e
                      # contrast no <html>), do painel e do mascote
 resources/
@@ -167,7 +170,7 @@ test/                  # testes de unidade (node --test), com um Claude Code de 
 e2e/                   # testes de ponta a ponta: o app num HOME temporário, pelo DevTools
 docs/                  # este arquivo e os roteiros de validação
 build/                 # ícones dos pacotes, o afterPack do electron-builder e o Flatpak
-electron-builder.yml   # os pacotes .deb e AppImage
+electron-builder.yml   # os pacotes .deb e AppImage e o instalador do Windows
 CHANGELOG.md           # as notas de versão
 CONTRIBUTING.md        # o guia de contribuição
 .github/workflows/     # o CI
@@ -889,3 +892,32 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     do CI roda num Windows de verdade os testes de unidade que valem lá, o `e2e/essencial.mjs`
     (com os prints) e o instalador, que numa tag vai para o release junto com os pacotes do
     Linux.
+- **O editor do VS Code (Fase 34):** o Monaco, só para ver, no lugar do diff simples:
+  - **carregar só quando precisa:** o `DiffView` mostra o diff simples de sempre e pede o
+    `monaco/monaco.ts` por um `import()` dinâmico (`monaco/load.ts`, uma vez só); quando ele chega,
+    o diff do Monaco toma o lugar (se ele falhar, o simples fica). O Vite põe o Monaco, o CSS dele e
+    o worker num pedaço à parte, e cada linguagem noutro: o Monaco 0.56+ é modular, e o Wisp
+    importa só o editor, os recursos que um visualizador usa (o diff, a busca, as dobras, a cópia,
+    os parênteses e os ícones) e o `register.all` das linguagens, que registra os nomes e as
+    extensões e deixa cada gramática para quando um arquivo dela aparece. O painel cresceu 12 KB;
+    os ~6 MB do editor só carregam no primeiro diff;
+  - **o worker:** o cálculo do diff roda no `editor.worker`, um arquivo do próprio app (o
+    `?worker` do Vite, como módulo), o que o CSP do painel (`default-src 'self'`) já permite;
+  - **o diff:** os trechos do Claude Code (o `structuredPatch`) viram dois textos (`diffSides` no
+    `shared/diff.ts`): o de antes (o contexto e o que saiu) e o de depois (o contexto e o que
+    entrou), um trecho depois do outro, com o número de cada linha no arquivo. A margem mostra esses
+    números (o `lineNumbers` do Monaco aceita uma função), e uma faixa fina (uma _view zone_) separa
+    os trechos. A prévia de um Edit, sem saber a linha, fica sem números. Em linha por padrão; o
+    lado a lado só aparece como escolha com o card largo (520 px), e a escolha fica no
+    `localStorage` do painel. A altura acompanha o conteúdo até 420 px, e a roda do mouse passa
+    para a conversa;
+  - **o tema:** o tema `wisp` do Monaco sai das variáveis de cor do painel (o fundo do código, o
+    texto, as bordas), sobre o `vs`, o `vs-dark` ou os de alto contraste, e é refeito quando o
+    sistema troca de claro para escuro ou quando o alto contraste das configurações liga;
+  - **o arquivo no painel:** o card manda o caminho ao main (`files:view`), que lê pelo caminho
+    real (depois dos links), só um arquivo de até 2 MB, sem bytes nulos no começo, e recusa os
+    arquivos de segredos: os mesmos padrões das regras `ask` do Read que o Wisp passa ao Claude
+    Code (`isSensitivePath`), conferidos no caminho pedido e no real. O visualizador cobre o
+    painel, abre na linha da mudança, marca as linhas que a edição pôs e fecha com o Esc (pego na
+    captura, antes de chegar ao painel, que se esconderia; com a busca do editor aberta, o Esc
+    fecha só a busca). Com ele aberto, os atalhos do painel esperam.

@@ -235,10 +235,15 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows paleta busca conversa diagnostics notificacoes
+        run: npm test -- windows paleta busca conversa diagnostics notificacoes editor
       - name: Ponta a ponta (o essencial)
         timeout-minutes: 10
         run: node e2e/essencial.mjs
+        env:
+          WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Ponta a ponta (o editor do VS Code)
+        timeout-minutes: 10
+        run: node e2e/monaco.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
       - name: Os prints do Wisp no Windows

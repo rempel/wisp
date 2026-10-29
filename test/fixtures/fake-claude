@@ -448,17 +448,25 @@ async function runTurn(text) {
     process.stderr.write('FATAL: algo explodiu dentro do CLI\n')
     process.exit(3)
   }
-  if (text.includes('[edit]')) {
+  // [edit] ou [edit /caminho]: com um caminho de um arquivo que existe, a edição vale de verdade
+  // (o visualizador do painel, Fase 34, lê o arquivo mudado).
+  const editing = /\[edit(?: ([^\]]+))?\]/.exec(text)
+  if (editing) {
+    const file = editing[1] ?? '/home/u/projeto/src/app.ts'
+    if (editing[1] && fs.existsSync(file)) {
+      const before = fs.readFileSync(file, 'utf8')
+      fs.writeFileSync(file, before.replace('const b = 2', 'const b = 3\nconst c = 4'))
+    }
     await tool(
       'Edit',
       {
-        file_path: '/home/u/projeto/src/app.ts',
+        file_path: file,
         old_string: 'const b = 2',
         new_string: 'const b = 3\nconst c = 4'
       },
-      'The file /home/u/projeto/src/app.ts has been updated.',
+      `The file ${file} has been updated.`,
       {
-        filePath: '/home/u/projeto/src/app.ts',
+        filePath: file,
         structuredPatch: [
           {
             oldStart: 10,

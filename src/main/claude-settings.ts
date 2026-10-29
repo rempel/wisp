@@ -2,6 +2,7 @@
 // segredos que sempre pedem aprovação, o hook que manda todo Bash para o card, o --settings do
 // modo terminal e as opções de uma conversa.
 
+import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode, Provider } from '../shared/ipc'
 import { WRAPPER_PATH } from './hooks/install'
@@ -75,6 +76,38 @@ const SENSITIVE_PATHS = [
   '//**/.env',
   '//**/.env.*'
 ]
+
+/** Um padrão de SENSITIVE_PATHS como expressão regular (só o que eles usam: ~/, //, * e **). */
+function sensitiveRegex(glob: string, home: string): RegExp {
+  const anywhere = glob.startsWith('//**/')
+  const rest = anywhere ? glob.slice(5) : glob.slice(2)
+  const body = rest
+    .split(/(\*\*\/|\*\*|\*)/)
+    .map((part) =>
+      part === '**/'
+        ? '(?:.*/)?'
+        : part === '**'
+          ? '.*'
+          : part === '*'
+            ? '[^/]*'
+            : part.replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+    )
+    .join('')
+  const base = home
+    .replaceAll('\\', '/')
+    .replace(/\/+$/, '')
+    .replace(/[.+?^${}()|[\]\\]/g, '\\$&')
+  return new RegExp(anywhere ? `(?:^|/)${body}$` : `^${base}/${body}$`, IS_WINDOWS ? 'i' : '')
+}
+
+/**
+ * Um arquivo de segredos (Fase 34): o painel não mostra o que o Claude só lê com aprovação. As
+ * barras do Windows valem como as do Linux.
+ */
+export function isSensitivePath(path: string, home = homedir()): boolean {
+  const normal = path.replaceAll('\\', '/')
+  return SENSITIVE_PATHS.some((glob) => sensitiveRegex(glob, home).test(normal))
+}
 
 export { MODE_FILE_ENV }
 

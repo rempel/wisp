@@ -56,6 +56,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   shell), o modo terminal, a bandeja, o atalho global, o print da tela e o início com o sistema
   funcionam; o Claude Code do instalador oficial ou do npm é achado sozinho. O resto da integração
   com o desktop chega na Fase 35, e o diagnóstico diz o que ainda não há.
+- **O editor do VS Code** (Fase 34): o diff das edições nos cards (e o das prévias dos arquivos de
+  configuração) no Monaco, com o realce da linguagem, os números das linhas do arquivo, em linha ou
+  lado a lado, no tema do Wisp; e **Abrir o arquivo no painel**, só para ler, na linha da mudança.
+  O editor carrega só quando um diff aparece, e cada linguagem só quando um arquivo dela aparece.
 
 ### Mudou
 

@@ -722,3 +722,21 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
       `%LOCALAPPDATA%\Wisp`; o registro não tem erros.
 - [ ] **Remover:** Configurações → Aplicativos → Wisp → Desinstalar tira o app e os atalhos; as
       pastas do Wisp ficam.
+
+## O editor do VS Code (Fase 34)
+
+- [ ] **O diff:** peça ao Claude uma mudança pequena num arquivo de um projeto; abra o card do
+      Edit: o diff aparece com as cores da linguagem (o `const`, as strings e os números em cores
+      diferentes), os números das linhas do arquivo e o que entrou e saiu marcados.
+- [ ] **Lado a lado:** com o painel maximizado, **Lado a lado** põe o antes à esquerda; feche e
+      abra o painel: a escolha continua. No painel estreito, o diff fica em linha, sem o botão.
+- [ ] **O tema:** troque o tema (claro, escuro, alto contraste) com um diff aberto: o editor
+      acompanha na hora.
+- [ ] **O arquivo:** **Abrir o arquivo no painel** abre o arquivo inteiro, na linha da mudança, com
+      as linhas novas marcadas; Ctrl+F busca nele; não dá para digitar; Esc volta para a conversa
+      (o painel não se esconde); com a busca aberta, o primeiro Esc fecha só a busca.
+- [ ] **O que não aparece:** num card de Read de um `.env` ou de uma chave do SSH (depois de
+      aprovar), **Abrir o arquivo no painel** diz que o arquivo guarda segredos.
+- [ ] **Leve:** abra o painel com uma conversa nova: o tempo para abrir é o de antes; o primeiro
+      diff leva um instante a mais (o editor carregando), e os próximos abrem na hora.
+- [ ] **No Windows:** o mesmo roteiro, no instalador.
