@@ -168,8 +168,13 @@ test('busca: no que foi dito, sem acentos, com o trecho e onde abrir; o cache e 
 
   // O cache: gravado ao fechar, só para o usuário, e reaproveitado sem reler as conversas.
   index.dispose()
-  assert.equal(SEARCH_FILE, join(HOME, '.cache/wisp/busca.json'))
-  assert.equal(statSync(SEARCH_FILE).mode & 0o777, 0o600)
+  // No Windows, no %LOCALAPPDATA%, que é só do usuário (lá não há os bits de permissão do Unix).
+  if (process.platform === 'win32') {
+    assert.equal(SEARCH_FILE, join(HOME, 'AppData/Local/Wisp/Cache/busca.json'))
+  } else {
+    assert.equal(SEARCH_FILE, join(HOME, '.cache/wisp/busca.json'))
+    assert.equal(statSync(SEARCH_FILE).mode & 0o777, 0o600)
+  }
   assert.ok(readFileSync(SEARCH_FILE, 'utf8').includes('certbot'))
   const loads: string[] = []
   const spy = {
