@@ -8,6 +8,8 @@ import { randomBytes } from 'crypto'
 import { spawn } from 'node-pty'
 import type { IPty } from 'node-pty'
 import type { TerminalLaunch } from './claude'
+import { IS_WINDOWS } from './platform'
+import { killTree } from './win'
 
 /** O que a página recebe ao abrir a aba de novo: o fim do que o terminal mostrou. */
 const MAX_BUFFER = 512 * 1024
@@ -97,18 +99,24 @@ export class TerminalProcess {
     }
   }
 
-  /** Encerra o processo (SIGTERM, e SIGKILL se não sair a tempo). Resolve quando ele sai. */
+  /**
+   * Encerra o processo (SIGTERM, e SIGKILL se não sair a tempo; no Windows, fecha o ConPTY, e o
+   * taskkill na árvore se não sair a tempo). Resolve quando ele sai.
+   */
   async kill(): Promise<void> {
     const pty = this.pty
     if (!pty) return
     this.pty = null
     const exited = this.exited
     try {
-      pty.kill('SIGTERM')
+      // No Windows, o node-pty não manda sinais (com um, ele recusa): fechar o ConPTY encerra.
+      if (IS_WINDOWS) pty.kill()
+      else pty.kill('SIGTERM')
     } catch {
       return
     }
     const timer = setTimeout(() => {
+      if (IS_WINDOWS) return killTree(pty.pid)
       try {
         pty.kill('SIGKILL')
       } catch {

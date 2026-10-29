@@ -18,6 +18,7 @@ import {
   Variant
 } from './dbus-wire'
 import type { DBusMessage } from './dbus-wire'
+import { IS_WINDOWS } from './platform'
 
 export { DBusError, marshal, plain, splitSignature, unmarshal, Variant } from './dbus-wire'
 export type { DBusMessage } from './dbus-wire'
@@ -149,6 +150,8 @@ export class DBusConnection extends EventEmitter {
   }
 
   private static async open(paths: string[]): Promise<DBusConnection | null> {
+    // No Windows não há D-Bus: o que depende dele fica desligado, sem erro.
+    if (IS_WINDOWS) return null
     for (const path of paths) {
       const socket = await openSocket(path)
       if (!socket) continue
