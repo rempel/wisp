@@ -689,3 +689,36 @@ O app não deve mudar em nada: o roteiro é usar como sempre e procurar diferen�
 - [ ] **Não perturbe (GNOME):** o mesmo, com o "Não perturbe" do menu de notificações do GNOME.
 - [ ] **Celular:** com a aprovação pelo celular ligada e o "não perturbe" ligado, o card ainda
       chega ao celular.
+
+## O essencial no Windows (Fase 33)
+
+Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o Git para Windows.
+
+- [ ] **Instalar:** o `Wisp-<versão>-Setup-x64.exe` (do release, ou do artefato
+      `instalador-windows` do CI) instala sem pedir administrador (o SmartScreen avisa: **Mais
+      informações** → **Executar assim mesmo**); o Wisp aparece no menu Iniciar e na área de
+      trabalho, e abre no fim.
+- [ ] **O mascote e o painel:** o mascote aparece por cima das janelas e fora da barra de tarefas;
+      o clique abre o painel; o ícone fica na área de notificação, com o menu.
+- [ ] **O atalho:** Ctrl+Alt+W (ou o seu) abre e fecha o painel de qualquer lugar.
+- [ ] **Conversar:** uma conversa responde pela sua assinatura (o diagnóstico mostra o Claude Code
+      achado e o login).
+- [ ] **Cada Bash pede:** peça "rode `dir`": o card aparece; Negar segue sem rodar. No modo
+      Automático, o mesmo pedido roda sem card. Nenhuma janela de console pisca.
+- [ ] **O modo terminal:** a troca para Terminal abre o Claude Code de verdade na aba (as cores, o
+      Enter e o Ctrl+C funcionam); de volta ao Chat, o `claude.exe` some do Gerenciador de
+      Tarefas.
+- [ ] **Parar:** com uma resposta no meio, Parar encerra o turno; fechar a aba encerra o Claude Code
+      e os filhos dele (o Gerenciador de Tarefas não mostra nenhum `claude.exe` ou `node.exe` dele).
+- [ ] **O print da tela:** o botão da câmera anexa a tela; "tire um print" pelo Claude pede pelo
+      card.
+- [ ] **Notificação:** um lembrete ("me lembre em 1 minuto") aparece como notificação do Windows,
+      com o nome Wisp.
+- [ ] **Iniciar com o sistema:** ligado na bandeja, o Wisp aparece em Configurações → Aplicativos →
+      Inicialização e abre depois de entrar de novo.
+- [ ] **O diagnóstico:** o chaveiro e o terminal dizem "numa próxima versão", e nada fala do
+      GNOME, do KDE ou do X11.
+- [ ] **As pastas:** o `config.json` em `%APPDATA%\Wisp`; as conversas e o `Logs\wisp.log` em
+      `%LOCALAPPDATA%\Wisp`; o registro não tem erros.
+- [ ] **Remover:** Configurações → Aplicativos → Wisp → Desinstalar tira o app e os atalhos; as
+      pastas do Wisp ficam.

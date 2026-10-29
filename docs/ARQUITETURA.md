@@ -84,6 +84,10 @@ src/
 │  ├─ settings-ipc.ts # a tela de configurações: ler, conferir e gravar
 │  ├─ menu.ts        # o menu da bandeja e do botão direito do mascote (o mesmo)
 │  ├─ log.ts         # o registro em ~/.local/state/wisp (1 MB, sem comandos nem endereços)
+│  ├─ boot.ts        # a porta de entrada: responde o hook do Bash (--wisp-mode-hook) ou abre o app
+│  ├─ mode-hook.ts   # a resposta do hook do Bash: pedir, ou nada no modo Automático
+│  ├─ platform.ts    # IS_WINDOWS e IS_LINUX
+│  ├─ win.ts         # no Windows: achar o claude, o atalho .cmd do npm sem shell, o taskkill
 │  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida ou aberta)
 │  ├─ folders.ts     # conversas numa pasta: o que o .claude dela faz sozinho e a confiança
 │  ├─ skills.ts      # as skills: listar (pessoais e de plugins), instalar de uma pasta
@@ -115,7 +119,7 @@ src/
 │  │  ├─ player.ts   # o Claude Code gravado do modo demonstração (stream-json)
 │  │  └─ recordings.ts # qual gravação responde a qual mensagem
 │  ├─ page.ts        # carregar as páginas e recarregá-las se caírem
-│  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache)
+│  └─ paths.ts       # pastas XDG (~/.config, ~/.local/share, ~/.cache) ou as do Windows
 ├─ preload/          # expõe window.wisp (só funções específicas)
 ├─ shared/
 │  ├─ ipc.ts         # canais de IPC e o tipo da API do preload
@@ -844,3 +848,44 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   `UserPromptSubmit`) e grava uma linha por coisa, com a hora. A semana vai de segunda a segunda
   no fuso local. O cartão do histórico pede os dois resumos ao main (`summary:get`), e a
   notificação de segunda guarda em `~/.local/share/wisp/resumo.json` a semana que já mostrou.
+- **No Windows (Fase 33):** a mesma base, com o que é do Linux desligado e o resto trocado:
+  - **as pastas:** o `config.json` em `%APPDATA%\Wisp` (vai junto com o perfil), e os dados, o
+    cache (`Cache`), o registro (`Logs`) e os arquivos de vida curta (`Run`) em
+    `%LOCALAPPDATA%\Wisp`, que só o usuário lê (lá não há os bits de permissão do Unix);
+  - **achar o Claude Code:** o `win.ts` procura no PATH (que no Windows se chama `Path`) e nas
+    pastas dos instaladores (o oficial, em `~\.local\bin`, o npm, o Volta, o pnpm, o Bun, o
+    Scoop e o WinGet). O `claude.exe` vem antes do `claude.cmd`, e o `claude` sem extensão que o
+    npm também instala (um script do sh, para o Git Bash) nunca é usado;
+  - **sem shell:** um `.cmd` só roda dentro do `cmd.exe`, e passar argumentos por ele seria passar
+    uma string a um shell. O atalho do npm é lido (`"%~dp0\…\cli.js" %*`) e o Wisp roda o
+    `node.exe` (o do lado do atalho, ou o do PATH) com o `cli.js` e a lista de argumentos. Sem
+    Node nenhum, o próprio Electron do Wisp faz as vezes dele (`ELECTRON_RUN_AS_NODE`). Todo
+    processo de fundo sobe com `windowsHide` (sem a janela do console); os apps que o Claude abre
+    no desktop, não;
+  - **o hook do Bash:** no Linux, é uma linha de shell que lê o arquivo do modo. No Windows, o
+    Claude Code rodaria a linha no Git Bash ou no PowerShell (e, sem o Git Bash, um hook que falha
+    pode travar a ferramenta). Lá, ele vai na forma exec (`command` + `args`, sem shell): o
+    próprio executável do Wisp com `--wisp-mode-hook` (do código, o Electron com a pasta do app
+    antes). O `boot.ts`, o `main` do `package.json`, vê o argumento e responde antes de carregar o
+    app: o `mode-hook.ts` lê o arquivo de `WISP_PERMISSION_MODE_FILE` e escreve o pedido de
+    aprovação, ou nada no Automático (sem o arquivo, pede). O Electron no Windows escreve uma
+    linha em branco ao abrir, antes da resposta; o Claude Code apara a saída do hook antes de
+    procurar o JSON, então o pedido vale;
+  - **encerrar:** no Windows não há grupo de processos nem sinais. Uma conversa encerrada leva a
+    árvore dela pelo `taskkill /pid … /t /f` (o do `%SystemRoot%\System32`, nunca um do PATH).
+    No modo terminal, o node-pty recusa qualquer sinal: o Wisp fecha o ConPTY, e o `taskkill` na
+    árvore se o Claude Code não sair em 3 s;
+  - **desligado até a Fase 35:** o D-Bus (a conexão nem é tentada: as notificações com botões, o
+    chaveiro, o "não perturbe", a música, a agenda do Evolution), o socket dos hooks e a aba
+    Sessões (instalar os hooks é recusado: um hook quebrado no `settings.json` do usuário poderia
+    travar as ferramentas do Claude Code), o comando `wisp`, o `.desktop`, as janelas e o
+    terminal. No modo terminal, os pedidos de permissão aparecem no próprio terminal. O
+    diagnóstico diz o que chega numa próxima versão, em vez de pedir o que é do Linux;
+  - **o que o Electron já faz:** a bandeja, o atalho global (o `globalShortcut`), as notificações
+    simples, o print da tela (o `desktopCapturer`), a tela bloqueada (o `powerMonitor`) e o
+    início com o sistema (o item de login, no lugar do `~/.config/autostart`);
+  - **o instalador:** NSIS por usuário (sem administrador), no menu Iniciar e na área de trabalho,
+    com o binário do node-pty para Windows (os de outros sistemas ficam de fora). O job `windows`
+    do CI roda num Windows de verdade os testes de unidade que valem lá, o `e2e/essencial.mjs`
+    (com os prints) e o instalador, que numa tag vai para o release junto com os pacotes do
+    Linux.

@@ -111,6 +111,8 @@ app.setPath('userData', join(CACHE_DIR, 'electron'))
 // A identidade do app no desktop: o nome do .desktop, a classe das janelas no X11 e o id que os
 // portais conferem (o GNOME 50 recusa o atalho global de um id sem .desktop instalado).
 if (IS_LINUX) app.setDesktopName(APP_ID)
+// No Windows, o id das notificações: o mesmo do atalho do menu Iniciar que o instalador cria.
+if (IS_WINDOWS) app.setAppUserModelId(APP_ID)
 
 const kind = installKind(app.isPackaged)
 /** Numa sessão Wayland sem --ozone-platform=x11, o Wisp seria um app Wayland nativo. */

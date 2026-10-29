@@ -5,7 +5,7 @@
 import { clipboard, ipcMain, shell } from 'electron'
 import type { WebContents } from 'electron'
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'fs'
-import { homedir, release } from 'os'
+import { homedir, release, version } from 'os'
 import { join } from 'path'
 import { claudeStatus } from './claude'
 import { configProblems, getConfig, notifyConfigChange, updateConfig } from './config'
@@ -15,6 +15,7 @@ import { buildReport, desktopOf, evaluate, issueUrl, osName } from './diagnostic
 import type { BusName, Facts } from './diagnostics'
 import type { InstallKind } from './launcher'
 import { DATA_DIR } from './paths'
+import { IS_WINDOWS } from './platform'
 import type { SelfUpdater } from './self-update'
 import type { ShortcutStatus } from './shortcut'
 import type { UpdateChecker } from './updates'
@@ -135,12 +136,17 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
           electron: process.versions.electron ?? '',
           node: process.versions.node
         },
-        os: { name: readOsRelease(), kernel: release(), arch: process.arch },
-        desktop: desktopOf(process.env),
+        os: {
+          name: IS_WINDOWS ? version() : readOsRelease(),
+          kernel: release(),
+          arch: process.arch
+        },
+        desktop: IS_WINDOWS ? { name: 'Windows', session: 'outra' } : desktopOf(process.env),
         claude,
         provider: config.provider,
         keyring,
-        tray,
+        // No Windows, a área de notificação da barra de tarefas sempre está lá.
+        tray: IS_WINDOWS ? 'running' : tray,
         shortcut:
           config.shortcut === null
             ? null
@@ -152,7 +158,8 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         needsKeyring: config.provider === 'openrouter' || config.phoneApprovals,
         update: options.updates.available(),
         selfUpdate: options.selfUpdate !== null,
-        installed: options.selfUpdate?.installed() ?? null
+        installed: options.selfUpdate?.installed() ?? null,
+        windows: IS_WINDOWS
       }
     } finally {
       bus?.close()

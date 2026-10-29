@@ -70,7 +70,11 @@ test('diagnostics: without Claude Code, how to install and the demo', () => {
   const claude = byId(checks, 'claude')
   assert.equal(claude.status, 'error')
   assert.equal(claude.action, 'demo')
-  assert.match(claude.fix ?? '', /claude\.ai\/install\.sh/)
+  // No Windows, o instalador do PowerShell.
+  assert.match(
+    claude.fix ?? '',
+    process.platform === 'win32' ? /claude\.ai\/install\.ps1/ : /claude\.ai\/install\.sh/
+  )
   assert.match(claude.fix ?? '', /npm install -g @anthropic-ai\/claude-code/)
   assert.equal(byId(checks, 'login').status, 'off')
 })
@@ -137,6 +141,37 @@ test('diagnostics: shortcut, tray, keyring, voice, terminal, config and update',
       .fix ?? '',
     /AppIndicator/
   )
+})
+
+test('diagnostics: on Windows, nothing about the Linux desktop, and what comes later says so', () => {
+  const windows = (patch: Partial<Facts> = {}) =>
+    evaluate(
+      facts({
+        os: { name: 'Windows 11 Pro', kernel: '10.0.26100', arch: 'x64' },
+        desktop: { name: 'Windows', session: 'outra' },
+        keyring: 'unknown',
+        shortcut: { via: 'x11', label: 'Ctrl+Alt+W' },
+        terminal: false,
+        windows: true,
+        ...patch
+      })
+    )
+  const checks = windows()
+  assert.equal(byId(checks, 'shortcut').summary, 'pelo Windows')
+  assert.equal(byId(checks, 'keyring').status, 'off')
+  assert.match(byId(checks, 'keyring').detail, /próxima versão/)
+  assert.doesNotMatch(byId(checks, 'keyring').fix ?? '', /GNOME|KWallet/)
+  assert.equal(byId(checks, 'terminal').status, 'off')
+  assert.match(byId(checks, 'terminal').detail, /próxima versão/)
+  // Com a OpenRouter ou o celular ligado, a falta do chaveiro é um aviso.
+  assert.equal(byId(windows({ needsKeyring: true }), 'keyring').status, 'warn')
+  // O login pelo PowerShell, sem o botão de abrir um terminal.
+  const login = byId(
+    windows({ claude: { installed: true, version: '2.1.296', loggedIn: false } }),
+    'login'
+  )
+  assert.match(login.fix ?? '', /PowerShell/)
+  assert.equal(login.action, undefined)
 })
 
 test('diagnostics: the report has versions and results, nothing personal', () => {

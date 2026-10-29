@@ -1225,7 +1225,14 @@ Notas da entrega:
   configurado. A tela de configurações diz o estado de agora, e o menu da bandeja mostra quando o
   Wisp está quieto. Num desktop que não diz nada, o Wisp nunca fica quieto por conta disso.
 
-### Fase 33: o essencial no Windows
+### Fase 33: o essencial no Windows ✅
+
+**Status:** pronta, esperando validação num Windows de uso. Testes: `test/windows.test.ts` (achar o
+`claude`, o atalho `.cmd` do npm sem shell, o script do Node, o `Path` e a resposta do hook do
+Bash), `test/diagnostics.test.ts` (o diagnóstico no Windows) e `e2e/essencial.mjs`, que roda no
+Linux junto com os outros e, no job **Windows** do CI, num Windows de verdade (abrir, conversar, o
+hook do sistema respondido pelo executável, o card, o modo terminal e a saída dele, o diagnóstico,
+o registro sem erros, com os prints como artefato), seguido do instalador.
 
 O Windows passou a ser o sistema principal de quem usa o Wisp. A interface (Electron, como o VS
 Code, com o mesmo terminal, o xterm.js) já roda lá; o que prende ao Linux é a integração com o
@@ -1250,6 +1257,43 @@ desktop: 25 dos 97 arquivos do processo principal falam com o D-Bus, o X11, os p
 **Aceite:** no Windows 11, o instalador põe o Wisp no menu Iniciar; o mascote aparece, o painel
 abre pelo atalho, uma conversa com o Claude Code funciona, cada Bash pede pelo card, e o modo
 terminal abre o Claude Code de verdade.
+
+Notas da entrega:
+
+- as pastas são as do Windows: o `config.json` em `%APPDATA%\Wisp` (vai junto com o perfil), e as
+  conversas, o cache, o registro e os arquivos de vida curta em `%LOCALAPPDATA%\Wisp`;
+- o Claude Code é achado no PATH e nas pastas dos instaladores (o oficial, o npm, o Volta, o pnpm,
+  o Bun, o Scoop e o WinGet): o `claude.exe` antes do `claude.cmd`, e nunca o script do sh sem
+  extensão. O `.cmd` do npm roda como o Node com o `cli.js` e a lista de argumentos (um `.cmd` só
+  roda dentro do `cmd.exe`, e passar argumentos por ele seria passar uma string a um shell). Uma
+  conversa encerrada leva a árvore de processos dela (o `taskkill /t`), e nenhum processo de fundo
+  abre a janela do console;
+- todo Bash pelo card, também no Windows: o hook do Bash vira a forma exec do Claude Code
+  (`command` + `args`, sem shell), rodando o próprio Wisp com `--wisp-mode-hook`, que responde e
+  sai antes de carregar o app (`boot.ts`). O primeiro CI no Windows mostrou que o Electron de lá
+  escreve uma linha em branco antes da resposta; o Claude Code apara a saída do hook antes de ler o
+  JSON (conferido no código dele), então o pedido vale;
+- o modo terminal roda no ConPTY. Lá, o node-pty recusa qualquer sinal, e o encerrar do Wisp
+  (SIGTERM, depois SIGKILL) era engolido sem fechar nada: agora fecha o ConPTY, e o `taskkill` na
+  árvore se o Claude Code não sair em 3 s. No modo terminal, os pedidos aparecem no próprio
+  terminal até a Fase 35 (os hooks do relay precisam do pipe nomeado);
+- o que é do Linux fica de fora: a conexão com o D-Bus nem é tentada, nem o socket dos hooks, o
+  `.desktop`, o comando `wisp` e o `setDesktopName`; instalar os hooks na aba Sessões é recusado
+  (um hook quebrado no `settings.json` poderia travar as ferramentas do Claude Code). O início com
+  o sistema é o item de login do Electron, a tela bloqueada vem do `powerMonitor`, e as
+  notificações saem com o id do atalho do menu Iniciar (o `AppUserModelId`). Os caminhos dos
+  navegadores e das credenciais do Windows entram nos arquivos de segredos que sempre pedem
+  aprovação;
+- o diagnóstico, no Windows: o atalho "pelo Windows", a bandeja sempre lá, o chaveiro e o terminal
+  "numa próxima versão", e o login pelo PowerShell; nada fala do GNOME, do KDE ou do X11;
+- o instalador é NSIS, por usuário (sem administrador), no menu Iniciar e na área de trabalho,
+  com o binário do node-pty para Windows (`npm run dist:win`); sem assinatura de código, então o
+  SmartScreen avisa na primeira vez. O job **Windows** entrou no CI principal e, numa tag, o
+  instalador vai para o release. Os artefatos de cada push dependem da cota de armazenamento do
+  GitHub Actions (quando ela acaba, o upload falha sem derrubar o CI, como os pacotes do Linux);
+- de quebra, uma falha de vez em quando do `e2e/notificacoes.mjs` era de verdade: com o painel
+  escondendo enquanto a notificação de um card ainda saía, o Wisp mostrava duas, e o Permitir da
+  primeira não respondia nada. Agora sai uma só por card.
 
 ### Fase 34: o editor do VS Code (Monaco)
 
