@@ -164,6 +164,28 @@ test('notificação: com o painel escondido, Permitir e Negar; à vista, nada', 
   assert.equal(answers.length, 2)
 })
 
+test('notificação: uma só por card, mesmo com o painel escondendo enquanto ela sai', async () => {
+  const { notifier, shown } = memoryNotifier()
+  const approvals = new DesktopApprovals({
+    enabled: () => true,
+    hidden: () => true,
+    notifier: () => notifier,
+    answer: () => true,
+    open: () => {},
+    armMs: 0
+  })
+  // O card chega com o painel escondido, e o aviso de que ele escondeu vem logo depois.
+  approvals.request('p1', 'Bash', { command: 'npm test' })
+  approvals.panelHidden()
+  approvals.panelHidden()
+  await settle()
+  assert.equal(shown.length, 1)
+  assert.equal(approvals.shown(), 1)
+  approvals.panelHidden()
+  await settle()
+  assert.equal(shown.length, 1, 'já está na tela')
+})
+
 test('notificação: o plano, os segredos, as perguntas e o painel que abre', async () => {
   const { notifier, shown, closed } = memoryNotifier()
   let hidden = true

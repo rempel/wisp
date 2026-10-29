@@ -2,8 +2,8 @@
 // no job do CI de lá. O app abre com o config.json do lugar do sistema, uma conversa com o Claude
 // Code de mentira funciona, o hook que manda todo Bash para o card é o do sistema (no Windows, a
 // forma exec rodando o próprio Wisp, sem shell) e responde certo, um comando pede pelo card, o
-// modo terminal abre o Claude Code num pty, o diagnóstico acha o Claude Code, e o registro fica na
-// pasta do sistema.
+// modo terminal abre o Claude Code num pty (e ele sai ao voltar ao chat), o diagnóstico acha o
+// Claude Code, e o registro fica na pasta do sistema, sem erros.
 // Uso: node e2e/essencial.mjs (no Linux, veja e2e/run.sh).
 import { spawnSync } from 'node:child_process'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
@@ -71,11 +71,14 @@ const runHook = (mode) => {
   writeFileSync(modeFile, mode)
   // Como root no Linux (o contêiner do CI), o Electron só abre sem o sandbox.
   const extra = IS_WINDOWS ? [] : ['--no-sandbox']
-  return spawnSync(ELECTRON, [ROOT, '--wisp-mode-hook', ...extra], {
+  const { stdout } = spawnSync(ELECTRON, [ROOT, '--wisp-mode-hook', ...extra], {
     env: { ...appEnv(home), WISP_PERMISSION_MODE_FILE: modeFile },
     encoding: 'utf8',
     timeout: 30000
-  }).stdout
+  })
+  // No Windows, o Electron escreve uma linha em branco ao abrir; o Claude Code apara a saída do
+  // hook antes de ler o JSON, e o roteiro lê do mesmo jeito.
+  return stdout?.trim()
 }
 const asked = runHook('default\n')
 const quiet = runHook('auto\n')
@@ -121,21 +124,43 @@ const screen = await waitFor(async () => {
   return /Claude Code de mentira \(terminal\)/.test(text ?? '') ? text : null
 }, 20000)
 check('E7 o Claude Code abre no terminal da aba (pty)', !!screen, screen)
+// De volta ao chat, o processo do terminal sai (no Windows, o node-pty não manda sinais).
+const tui = spawns()
+  .filter((spawn) => !spawn.args.includes('-p'))
+  .at(-1)?.pid
+const alive = (pid) => {
+  try {
+    process.kill(pid, 0)
+    return true
+  } catch (err) {
+    return err.code === 'EPERM'
+  }
+}
 await ev(
   `[...document.querySelectorAll('.pane .view-toggle button')].find(b => b.textContent.includes('Chat'))?.click()`
 )
+const gone = !!tui && (await waitFor(() => !alive(tui), 10000))
+check('E8 de volta ao chat, o Claude Code do terminal sai', gone === true, String(tui))
 
 console.log('== O diagnóstico')
 const snapshot = await ev(`window.wisp.diagnostics.run()`)
 const claude = snapshot?.checks?.find((item) => item.id === 'claude')
-check('E8 o diagnóstico acha o Claude Code', claude?.status === 'ok', JSON.stringify(claude))
+check('E9 o diagnóstico acha o Claude Code', claude?.status === 'ok', JSON.stringify(claude))
 
 const log = IS_WINDOWS
   ? join(dataDir(home.home), 'Logs/wisp.log')
   : join(home.home, '.local/state/wisp/wisp.log')
-check('E9 o registro fica na pasta do sistema', existsSync(log), log)
+check('E10 o registro fica na pasta do sistema', existsSync(log), log)
+// O que é de um desktop Linux (o D-Bus, o X11, os portais) fica quieto onde não há: nenhum erro.
+const problems = existsSync(log)
+  ? readFileSync(log, 'utf8')
+      .split('\n')
+      .filter((line) => / (WARN|ERROR) /.test(line))
+  : []
+if (problems.length) console.log(problems.join('\n'))
+check('E11 o registro sem erros', !problems.some((line) => / ERROR /.test(line)))
 check(
-  'E10 sem erros nas páginas',
+  'E12 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,
   [...mascot.logs, ...chat.logs].join('\n')
 )

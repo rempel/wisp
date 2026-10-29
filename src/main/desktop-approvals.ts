@@ -149,6 +149,8 @@ interface Card {
   toolName: string
   input: unknown
   notification: number | null
+  /** A notificação está saindo (o servidor ainda não deu o id): não vai outra. */
+  showing: boolean
   shownAt: number
   allow: string | null
   deny: string | null
@@ -170,6 +172,7 @@ export class DesktopApprovals {
       toolName,
       input,
       notification: null,
+      showing: false,
       shownAt: 0,
       allow: null,
       deny: null
@@ -243,9 +246,18 @@ export class DesktopApprovals {
   }
 
   private async show(card: Card): Promise<void> {
-    if (!this.deps.enabled()) return
+    if (card.showing || card.notification !== null || !this.deps.enabled()) return
     const notifier = this.deps.notifier()
     if (!notifier) return
+    card.showing = true
+    try {
+      await this.showNow(card, notifier)
+    } finally {
+      card.showing = false
+    }
+  }
+
+  private async showNow(card: Card, notifier: Notifier): Promise<void> {
     const summary = summarize(card.toolName, card.input)
     const buttons = await notifier.hasActions()
     let title: string
