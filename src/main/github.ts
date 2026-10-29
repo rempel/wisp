@@ -280,7 +280,8 @@ export function runQuery(gh: string, timeoutMs = 30_000): Promise<unknown> {
     })
     const child = spawn(run.command, run.args, {
       env,
-      stdio: ['ignore', 'pipe', 'pipe']
+      stdio: ['ignore', 'pipe', 'pipe'],
+      windowsHide: true
     })
     let out = ''
     let err = ''

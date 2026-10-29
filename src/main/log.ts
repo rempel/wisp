@@ -1,5 +1,5 @@
 // O registro do Wisp em arquivo: o que ele escreve no terminal (console.log/warn/error) também vai
-// para ~/.local/state/wisp/wisp.log, para dar para ver o que aconteceu depois, sem um terminal
+// para ~/.local/state/wisp/wisp.log (no Windows, %LOCALAPPDATA%\Wisp\Logs), para dar para ver o que aconteceu depois, sem um terminal
 // aberto. O arquivo tem no máximo 1 MB no total (o atual e um anterior, de 512 KB cada) e não leva
 // comandos, URLs nem segredos: cada linha passa por redact() antes de ir para o disco. O terminal
 // continua recebendo tudo, como antes.
@@ -8,11 +8,9 @@ import { closeSync, mkdirSync, openSync, renameSync, statSync, writeSync } from 
 import { homedir } from 'os'
 import { dirname, join } from 'path'
 import { formatWithOptions } from 'util'
+import { STATE_DIR } from './paths'
 
-export const LOG_DIR = join(
-  process.env.XDG_STATE_HOME || join(homedir(), '.local', 'state'),
-  'wisp'
-)
+export const LOG_DIR = STATE_DIR
 export const LOG_PATH = join(LOG_DIR, 'wisp.log')
 
 /** Cada arquivo (o atual e o anterior, wisp.log.1) tem no máximo isto: 1 MB no total. */

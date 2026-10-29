@@ -24,7 +24,7 @@ const TIMEOUT_MS = 3000
 function run(command: string, args: string[]): Promise<string | null> {
   return new Promise((resolve) => {
     const host = viaHost(command, args)
-    execFile(host.command, host.args, { timeout: TIMEOUT_MS }, (error, stdout) =>
+    execFile(host.command, host.args, { timeout: TIMEOUT_MS, windowsHide: true }, (error, stdout) =>
       resolve(error ? null : stdout)
     )
   })

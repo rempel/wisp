@@ -1,4 +1,5 @@
-# Pacotes do Wisp para Linux: .deb e AppImage. `npm run dist` monta os dois em dist/.
+# Pacotes do Wisp: .deb e AppImage para Linux (`npm run dist`) e o instalador do Windows
+# (`npm run dist:win`, Fase 33). Saem em dist/.
 appId: io.github.rempel.Wisp
 productName: Wisp
 executableName: wisp
@@ -22,9 +23,9 @@ files:
   - '!**/*.map'
   # Os testes de unidade montados (npm test) não vão no pacote.
   - '!out/test/**'
-  # Do node-pty (o modo terminal), só o que roda no Linux: o código e o pty.node compilado. Os
-  # binários de Windows e macOS e o código-fonte em C ficam de fora.
-  - '!node_modules/node-pty/{prebuilds,deps,third_party,src,scripts,typings}/**'
+  # Do node-pty (o modo terminal), o código-fonte em C fica de fora; os binários de cada sistema
+  # vão no pacote de cada um (linux.files e win.files).
+  - '!node_modules/node-pty/{deps,third_party,src,scripts,typings}/**'
 # O node-pty usa a N-API: o pty.node compilado no npm install serve para o Electron sem
 # recompilar (e recompilar baixaria os cabeçalhos do Electron).
 npmRebuild: false
@@ -40,6 +41,9 @@ linux:
   target:
     - deb
     - AppImage
+  # No Linux, o pty.node compilado no npm install: os binários de Windows e macOS ficam de fora.
+  files:
+    - '!node_modules/node-pty/prebuilds/**'
   category: Utility
   icon: build/icons
   maintainer: rempel <rempel@users.noreply.github.com>
@@ -81,5 +85,24 @@ appImage:
   artifactName: Wisp-${version}-${arch}.AppImage
 toolsets:
   appimage: 1.0.3
+# O Windows (Fase 33): um instalador por usuário (sem pedir administrador), no menu Iniciar e na
+# área de trabalho. O node-pty traz o binário dele pronto (prebuilds/win32-x64).
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  icon: build/icons/256x256.png
+  artifactName: Wisp-${version}-Setup-${arch}.${ext}
+  files:
+    - '!node_modules/node-pty/prebuilds/{darwin-*,linux-*,win32-arm64}/**'
+    - '!node_modules/node-pty/build/**'
+nsis:
+  oneClick: true
+  perMachine: false
+  runAfterFinish: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: Wisp
 # Sem atualização automática: os pacotes saem nos releases do GitHub.
 publish: null

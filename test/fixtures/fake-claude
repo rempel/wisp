@@ -101,6 +101,14 @@ fs.appendFileSync(
     apiKey: 'ANTHROPIC_API_KEY' in process.env,
     memory: process.env.CLAUDE_CODE_DISABLE_AUTO_MEMORY,
     internal: process.env.WISP_INTERNAL,
+    // O hook que manda todo Bash para o card (Fase 33: no Windows, a forma exec).
+    bashHook: (() => {
+      try {
+        return JSON.parse(flag('--settings')).hooks.PreToolUse[0].hooks[0]
+      } catch {
+        return null
+      }
+    })(),
     cwd: process.cwd(),
     // O idioma em que o Wisp pede as respostas (Fase 25), pelo prompt do sistema.
     replyIn: /Reply in English/.test(flag('--append-system-prompt') ?? '')

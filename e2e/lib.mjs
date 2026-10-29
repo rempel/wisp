@@ -1,7 +1,7 @@
 // Apoio aos testes de ponta a ponta: abre o Wisp montado (out/) num HOME temporário, com o Claude
 // Code de mentira (test/fixtures/fake-claude), e fala com as páginas pelo DevTools.
-// Precisa de um servidor X (DISPLAY) e de um barramento D-Bus de sessão; no CI, o e2e/run.sh
-// sobe os dois.
+// No Linux, precisa de um servidor X (DISPLAY) e de um barramento D-Bus de sessão; no CI, o
+// e2e/run.sh sobe os dois. No Windows (Fase 33), roda direto (o e2e/windows.mjs).
 import { spawn, execFileSync } from 'node:child_process'
 import {
   chmodSync,
@@ -15,9 +15,15 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-export const ROOT = new URL('..', import.meta.url).pathname
-export const ELECTRON = join(ROOT, 'node_modules/electron/dist/electron')
+export const IS_WINDOWS = process.platform === 'win32'
+export const ROOT = fileURLToPath(new URL('..', import.meta.url))
+export const ELECTRON = join(
+  ROOT,
+  'node_modules/electron/dist',
+  IS_WINDOWS ? 'electron.exe' : 'electron'
+)
 export const FAKE_CLAUDE = join(ROOT, 'test/fixtures/fake-claude')
 export const PORT = 9333
 
@@ -105,9 +111,9 @@ export function testHome(config = {}) {
   const runtime = join(home, 'run')
   mkdirSync(runtime, { mode: 0o700 })
   chmodSync(runtime, 0o700)
-  mkdirSync(join(home, '.config/wisp'), { recursive: true })
+  mkdirSync(configDir(home), { recursive: true })
   writeFileSync(
-    join(home, '.config/wisp/config.json'),
+    join(configDir(home), 'config.json'),
     JSON.stringify({
       claudePath: FAKE_CLAUDE,
       sleepAfterMinutes: 10,
@@ -118,13 +124,38 @@ export function testHome(config = {}) {
   )
   // Os primeiros passos (Fase 20) já vistos: cada roteiro abre direto na conversa. O
   // e2e/primeiros-passos.mjs apaga o arquivo para ver a primeira vez.
-  mkdirSync(join(home, '.local/share/wisp'), { recursive: true })
-  writeFileSync(join(home, '.local/share/wisp/boas-vindas.json'), '{"done":"e2e"}')
+  mkdirSync(dataDir(home), { recursive: true })
+  writeFileSync(join(dataDir(home), 'boas-vindas.json'), '{"done":"e2e"}')
   return { home, runtime, remove: () => rmSync(home, { recursive: true, force: true }) }
+}
+
+/** Onde o app do HOME de teste guarda o config.json (no Windows, o %APPDATA%\Wisp). */
+export const configDir = (home) =>
+  IS_WINDOWS ? join(home, 'AppData/Roaming/Wisp') : join(home, '.config/wisp')
+
+/** Onde o app do HOME de teste guarda os dados (no Windows, o %LOCALAPPDATA%\Wisp). */
+export const dataDir = (home) =>
+  IS_WINDOWS ? join(home, 'AppData/Local/Wisp') : join(home, '.local/share/wisp')
+
+/** As variáveis sem as quais um programa do Windows não abre (e as pastas do HOME de teste). */
+function windowsEnv(home) {
+  const keep = ['SystemRoot', 'SystemDrive', 'windir', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP']
+  const env = {}
+  for (const key of keep) if (process.env[key]) env[key] = process.env[key]
+  return {
+    ...env,
+    Path: process.env.Path ?? process.env.PATH,
+    USERPROFILE: home,
+    APPDATA: join(home, 'AppData/Roaming'),
+    LOCALAPPDATA: join(home, 'AppData/Local')
+  }
 }
 
 /** O ambiente do app: só o necessário, como um login novo (nada do terminal de quem testa). */
 export function appEnv({ home, runtime }, extra = {}) {
+  if (IS_WINDOWS) {
+    return { HOME: home, ...windowsEnv(home), LANG: 'pt_BR.UTF-8', ...extra }
+  }
   return {
     HOME: home,
     PATH: process.env.PATH,
@@ -151,7 +182,7 @@ export async function startApp(home, extra = {}, args = []) {
   app = spawn(
     ELECTRON,
     [ROOT, '--no-sandbox', '--ozone-platform=x11', `--remote-debugging-port=${PORT}`, ...args],
-    { env: appEnv(home, extra), stdio: ['ignore', log, log], detached: true }
+    { env: appEnv(home, extra), stdio: ['ignore', log, log], detached: !IS_WINDOWS }
   )
   let mascot
   try {
@@ -174,7 +205,9 @@ export async function stopApp() {
   if (child.exitCode === null) {
     const exited = new Promise((resolve) => child.once('exit', resolve))
     try {
-      process.kill(-child.pid, 'SIGTERM')
+      // No Windows não há grupo de processos: o taskkill /T leva a árvore toda.
+      if (IS_WINDOWS) execFileSync('taskkill', ['/pid', String(child.pid), '/t', '/f'])
+      else process.kill(-child.pid, 'SIGTERM')
     } catch {
       // Já saiu.
     }
@@ -193,6 +226,19 @@ export async function stopApp() {
 
 /** Roda o comando `wisp` que o app escreveu no HOME (--show, --ask, --toggle…). */
 export function wisp(home, ...args) {
+  if (IS_WINDOWS) {
+    // No Windows não há o comando `wisp` (Fase 35): o próprio app, como segunda instância.
+    try {
+      execFileSync(ELECTRON, [ROOT, ...args], {
+        env: appEnv(home),
+        stdio: 'ignore',
+        timeout: 20000
+      })
+    } catch {
+      // A segunda instância sai com erro depois de entregar o pedido.
+    }
+    return
+  }
   const launcher = join(home.home, '.local/share/wisp/bin/wisp')
   if (!existsSync(launcher)) throw new Error('o comando wisp ainda não foi escrito')
   try {

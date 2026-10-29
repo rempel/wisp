@@ -1,0 +1,43 @@
+# O Wisp no Windows (Fase 33), num Windows de verdade: os testes de unidade que valem lá, o
+# roteiro de ponta a ponta do essencial (abrir, conversar, o hook do Bash, o card, o modo terminal,
+# o diagnóstico) e o instalador, que fica como artefato para baixar.
+name: Windows
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    name: Windows (testes, ponta a ponta e instalador)
+    runs-on: windows-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npx install-electron
+      - run: npx electron-vite build
+      - name: Testes de unidade que valem no Windows
+        run: npm test -- windows paleta busca conversa
+      - name: Ponta a ponta (o essencial)
+        timeout-minutes: 10
+        run: node e2e/essencial.mjs
+      - name: O instalador
+        run: npx electron-builder --win nsis --publish never
+      - uses: actions/upload-artifact@v6
+        with:
+          name: wisp-windows-instalador
+          path: dist/*.exe
+          if-no-files-found: error
+      - name: Registro do app, se algo falhar
+        if: failure()
+        shell: bash
+        run: find "$RUNNER_TEMP" "$TEMP" -maxdepth 6 -name wisp.log -exec tail -n 80 {} \; 2>/dev/null || true

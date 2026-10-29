@@ -12,7 +12,7 @@ import { INSTALL_HINT, checkClaude, claudeCommand, claudeEnv, resolveCommand } f
 import {
   MODE_FILE_ENV,
   PERMISSION_TOOL,
-  SESSION_SETTINGS,
+  sessionSettings,
   terminalSettings
 } from './claude-settings'
 import type { TerminalLaunch } from './claude-settings'
@@ -29,6 +29,8 @@ export {
   modeOf,
   terminalSettings
 } from './claude-settings'
+import { IS_WINDOWS } from './platform'
+import { killTree } from './win'
 export type { ClaudeOptions, DemoPlayer, TerminalLaunch } from './claude-settings'
 export { INSTALL_HINT, LOGIN_HINT, checkClaude, claudeStatus, resolveCommand } from './claude-cli'
 export type { ClaudeStatus } from './claude-cli'
@@ -329,7 +331,7 @@ export class ClaudeSession extends StreamReader {
   dispose(): void {
     this.turn++
     this.clearStop()
-    this.proc?.kill('SIGTERM')
+    if (this.proc) stopProcess(this.proc, 'SIGTERM')
     this.proc = null
   }
 
@@ -494,7 +496,7 @@ export class ClaudeSession extends StreamReader {
       '--append-system-prompt',
       this.options.appendSystemPrompt,
       '--settings',
-      SESSION_SETTINGS
+      sessionSettings()
     ]
     const mcpConfig = this.options.mcpConfig?.()
     if (mcpConfig) {
@@ -541,7 +543,8 @@ export class ClaudeSession extends StreamReader {
     const run = demo
       ? { command, args: [demo.player, ...args] }
       : claudeCommand(command, args, env, cwd)
-    const proc = spawn(run.command, run.args, { cwd, env })
+    // No Windows, sem a janela do console que um programa de terminal abriria.
+    const proc = spawn(run.command, run.args, { cwd, env, windowsHide: true })
     this.proc = proc
     this.echoes = []
 
@@ -644,15 +647,24 @@ export class ClaudeSession extends StreamReader {
   }
 }
 
+/**
+ * Encerra o processo. No Windows não há sinais: o taskkill encerra o Claude Code e o que ele abriu
+ * (o Bash, os servidores MCP), de uma vez.
+ */
+function stopProcess(proc: ChildProcess, signal: NodeJS.Signals): void {
+  if (IS_WINDOWS && proc.pid !== undefined) killTree(proc.pid)
+  else proc.kill(signal)
+}
+
 /** Manda SIGTERM e, se o processo não sair a tempo, SIGKILL. Resolve quando ele sai. */
 function killProcess(proc: ChildProcess): Promise<void> {
   return new Promise((resolve) => {
     if (proc.exitCode !== null || proc.signalCode !== null) return resolve()
-    const timer = setTimeout(() => proc.kill('SIGKILL'), KILL_TIMEOUT_MS)
+    const timer = setTimeout(() => stopProcess(proc, 'SIGKILL'), KILL_TIMEOUT_MS)
     proc.once('exit', () => {
       clearTimeout(timer)
       resolve()
     })
-    proc.kill('SIGTERM')
+    stopProcess(proc, 'SIGTERM')
   })
 }

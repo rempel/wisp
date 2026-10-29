@@ -65,7 +65,10 @@ export function synthesize(text: string, options: PiperOptions): Promise<Speech>
   const rate = modelRate(setup.model)
   return new Promise((resolve, reject) => {
     const run = viaHost(setup.binary, ['--model', setup.model, '--output-raw'])
-    const child = spawn(run.command, run.args, { stdio: ['pipe', 'pipe', 'pipe'] })
+    const child = spawn(run.command, run.args, {
+      stdio: ['pipe', 'pipe', 'pipe'],
+      windowsHide: true
+    })
     const chunks: Buffer[] = []
     let size = 0
     let stderr = ''

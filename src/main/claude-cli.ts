@@ -9,6 +9,8 @@ import { INTERNAL_ENV } from './hooks/protocol'
 import { hostProgramDirs, viaHost } from './host'
 import type { HostCommand } from './host'
 import { expandHome } from './paths'
+import { IS_WINDOWS } from './platform'
+import { pathDirs, pathKey, resolveWindows, windowsInstallDirs, windowsLaunch } from './win'
 import { t } from '../shared/i18n'
 
 /** Como ver o Wisp funcionando antes de instalar o Claude Code ou de fazer login. */
@@ -19,11 +21,22 @@ const DEMO_HINT =
 
 export const LOGIN_HINT =
   t('Rode `claude` no terminal e faça login. Depois é só mandar a mensagem de novo. ') + DEMO_HINT
-export const INSTALL_HINT =
-  t('Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ') +
-  t('login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o ') +
-  t('caminho em `claudePath` no `~/.config/wisp/config.json`. ') +
-  DEMO_HINT
+export const INSTALL_HINT = IS_WINDOWS
+  ? t('Não encontrei o Claude Code (`claude`). Instale-o pelo PowerShell ') +
+    t(
+      '(`irm https://claude.ai/install.ps1 | iex`), rode `claude` num terminal para fazer login e '
+    ) +
+    t(
+      'depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o caminho '
+    ) +
+    t('em `claudePath` no `%APPDATA%\\Wisp\\config.json`. ') +
+    DEMO_HINT
+  : t('Não encontrei o Claude Code (`claude`). Instale-o, rode `claude` no terminal para fazer ') +
+    t(
+      'login e depois mande a mensagem de novo. Se ele estiver num lugar fora do PATH, informe o '
+    ) +
+    t('caminho em `claudePath` no `~/.config/wisp/config.json`. ') +
+    DEMO_HINT
 
 const AUTH_TIMEOUT_MS = 15000
 
@@ -33,6 +46,9 @@ const AUTH_TIMEOUT_MS = 15000
  * PATH pode não incluí-las.
  */
 export function resolveCommand(command: string): string | null {
+  if (IS_WINDOWS) {
+    return resolveWindows(expandHome(command), [...pathDirs(process.env), ...windowsInstallDirs()])
+  }
   const candidates = command.includes('/')
     ? [expandHome(command)]
     : [...(process.env.PATH ?? '').split(delimiter), ...installDirs(), ...hostProgramDirs()]
@@ -117,9 +133,11 @@ export function claudeEnv(bin: string): NodeJS.ProcessEnv {
   env[INTERNAL_ENV] = '1'
   // O `claude` instalado pelo npm é um script `#!/usr/bin/env node`: a pasta dele (onde, no nvm,
   // fica o node da mesma versão) vai na frente do PATH.
+  // No Windows, a variável se chama Path, e numa cópia do ambiente o nome importa.
+  const key = pathKey(env)
   const dir = dirname(bin)
-  const path = (env.PATH ?? '').split(delimiter).filter(Boolean)
-  if (!path.includes(dir)) env.PATH = [dir, ...path].join(delimiter)
+  const path = (env[key] ?? '').split(delimiter).filter(Boolean)
+  if (!path.includes(dir)) env[key] = [dir, ...path].join(delimiter)
   return env
 }
 
@@ -133,6 +151,12 @@ export function claudeCommand(
   env: NodeJS.ProcessEnv,
   cwd?: string
 ): HostCommand {
+  if (IS_WINDOWS) {
+    // Sem shell: o claude.exe direto, ou o Node com o cli.js do npm (Fase 33).
+    const launch = windowsLaunch(bin, args, env)
+    Object.assign(env, launch.env)
+    return { command: launch.command, args: launch.args }
+  }
   return viaHost(bin, args, { env, cwd, unset: NEVER_PASS })
 }
 
@@ -150,7 +174,8 @@ export async function checkClaude(command: string): Promise<CheckResult> {
       const child = spawn(run.command, run.args, {
         env,
         stdio: ['ignore', 'pipe', 'ignore'],
-        timeout: AUTH_TIMEOUT_MS
+        timeout: AUTH_TIMEOUT_MS,
+        windowsHide: true
       })
       let stdout = ''
       child.stdout.setEncoding('utf8')
@@ -188,7 +213,8 @@ function runClaude(bin: string, args: string[]): Promise<string | null> {
     const child = spawn(run.command, run.args, {
       env,
       stdio: ['ignore', 'pipe', 'ignore'],
-      timeout: AUTH_TIMEOUT_MS
+      timeout: AUTH_TIMEOUT_MS,
+      windowsHide: true
     })
     let stdout = ''
     child.stdout.setEncoding('utf8')
@@ -216,7 +242,8 @@ export function runClaudeCli(
       env,
       cwd: homedir(),
       stdio: ['ignore', 'pipe', 'pipe'],
-      timeout: timeoutMs
+      timeout: timeoutMs,
+      windowsHide: true
     })
     let output = ''
     for (const stream of [child.stdout, child.stderr]) {

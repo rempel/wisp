@@ -5,7 +5,7 @@
   "description": "A little light on your desktop.",
   "private": true,
   "license": "GPL-3.0-or-later",
-  "main": "./out/main/index.js",
+  "main": "./out/main/boot.js",
   "engines": {
     "node": ">=22.12"
   },
@@ -27,6 +27,8 @@
     "dist:deb": "npm run build && electron-builder --linux deb",
     "predist:appimage": "install-electron",
     "dist:appimage": "npm run build && electron-builder --linux AppImage",
+    "predist:win": "install-electron",
+    "dist:win": "npm run build && electron-builder --win nsis",
     "icons": "node scripts/icons.mjs",
     "test": "node scripts/test.mjs",
     "i18n": "node scripts/i18n.mjs"

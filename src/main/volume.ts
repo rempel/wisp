@@ -18,7 +18,10 @@ function run(command: string, args: string[]): Promise<{ code: number; stdout: s
       resolve({ code, stdout })
     }
     const run = viaHost(command, args)
-    const child = spawn(run.command, run.args, { stdio: ['ignore', 'pipe', 'ignore'] })
+    const child = spawn(run.command, run.args, {
+      stdio: ['ignore', 'pipe', 'ignore'],
+      windowsHide: true
+    })
     const timer = setTimeout(() => {
       child.kill('SIGKILL')
       done(-1)
