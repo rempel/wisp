@@ -503,68 +503,28 @@ test(
   }
 )
 
-// Sonda (Fase 35): o PowerShell com o ambiente mínimo que o roteiro de ponta a ponta dava ao app
-// (sem as variáveis de um login) passava do tempo em todo script. Mostra até onde ele chega com
-// esse ambiente e com o de um login, para saber qual variável faz falta. Não falha: só conta.
-test('o PowerShell com um ambiente mínimo (sonda)', windowsOnly, async () => {
-  const { spawnSync } = await import('node:child_process')
-  const { POWERSHELL } = await import('../src/main/powershell')
-  const pick = (keys: string[]): Record<string, string> =>
-    Object.fromEntries(
-      keys.filter((key) => process.env[key]).map((key) => [key, process.env[key]!])
-    )
-  const minimal = {
-    ...pick(['SystemRoot', 'SystemDrive', 'windir', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP']),
-    Path: process.env.Path ?? process.env.PATH ?? '',
-    USERPROFILE: HOME,
-    APPDATA: join(HOME, 'AppData', 'Roaming'),
-    LOCALAPPDATA: join(HOME, 'AppData', 'Local')
+// O PowerShell sem o PSModulePath travava ao carregar o primeiro módulo (o e2e/integracoes.mjs,
+// com o ambiente mínimo, passava de 20 s em todo script): o Wisp fixa o dos módulos do Windows.
+test(
+  'o PowerShell responde mesmo sem o PSModulePath no ambiente do Wisp',
+  windowsOnly,
+  async () => {
+    const { MODULES, runPowerShell } = await import('../src/main/powershell')
+    const key = Object.keys(process.env).find((name) => name.toUpperCase() === 'PSMODULEPATH')
+    const saved = key ? process.env[key] : undefined
+    if (key) delete process.env[key]
+    try {
+      const started = Date.now()
+      const result = await runPowerShell(
+        '$null = Get-Date; $null = Get-Process -Id $PID; $env:PSModulePath',
+        {},
+        15000
+      )
+      console.log(`sem o PSModulePath: ${Date.now() - started} ms`)
+      assert.equal(result.code, 0, result.stderr)
+      assert.equal(result.stdout.trim(), MODULES)
+    } finally {
+      if (key && saved !== undefined) process.env[key] = saved
+    }
   }
-  const steps =
-    "'inicio'; [Console]::Out.Flush(); $null = Get-Date; 'get-date'; " +
-    "Add-Type -TypeDefinition 'public static class Sonda { public static int Um() { return 1; } }'; 'add-type'; " +
-    "$null = Get-Process -Id $PID; 'get-process'"
-  const extras: [string, Record<string, string>][] = [
-    ['mínimo', {}],
-    ['mínimo + PSModulePath', pick(['PSModulePath'])],
-    [
-      'mínimo + pastas do sistema',
-      pick([
-        'ProgramFiles',
-        'ProgramFiles(x86)',
-        'ProgramW6432',
-        'CommonProgramFiles',
-        'ProgramData',
-        'ALLUSERSPROFILE'
-      ])
-    ],
-    [
-      'mínimo + processador e usuário',
-      pick([
-        'PROCESSOR_ARCHITECTURE',
-        'NUMBER_OF_PROCESSORS',
-        'USERNAME',
-        'USERDOMAIN',
-        'COMPUTERNAME',
-        'OS'
-      ])
-    ]
-  ]
-  for (const [name, extra] of extras) {
-    const begin = Date.now()
-    const run = spawnSync(
-      POWERSHELL,
-      ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', steps],
-      {
-        env: { ...minimal, ...extra },
-        encoding: 'utf8',
-        timeout: 25000,
-        windowsHide: true
-      }
-    )
-    console.log(
-      `sonda ${name}: ${Date.now() - begin} ms, saída ${JSON.stringify(run.stdout?.trim().split(/\r?\n/))}` +
-        `${run.error ? `, ${run.error.message}` : ''}${run.stderr?.trim() ? `, erro ${run.stderr.trim().slice(0, 300)}` : ''}`
-    )
-  }
-})
+)

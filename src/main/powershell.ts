@@ -7,14 +7,36 @@
 import { spawn } from 'child_process'
 import { join } from 'path'
 
-/** O PowerShell do sistema (o 5.1, que todo Windows tem). */
-export const POWERSHELL = join(
+/** O $PSHOME do PowerShell do sistema. */
+const PS_HOME = join(
   process.env.SystemRoot ?? 'C:\\Windows',
   'System32',
   'WindowsPowerShell',
-  'v1.0',
-  'powershell.exe'
+  'v1.0'
 )
+
+/** O PowerShell do sistema (o 5.1, que todo Windows tem). */
+export const POWERSHELL = join(PS_HOME, 'powershell.exe')
+
+/**
+ * Os módulos que os scripts usam: só os que vêm com o Windows. Sem o PSModulePath, o PowerShell
+ * trava ao carregar o primeiro módulo (o CI mostrou: 25 s, contra 0,4 s com ele); e com o do
+ * usuário, um módulo da pasta dele (ou um do PowerShell 7) poderia tomar o lugar de um comando
+ * do sistema.
+ */
+export const MODULES = join(PS_HOME, 'Modules')
+
+/**
+ * O ambiente do script: o do Wisp, com o PSModulePath fixo e as variáveis dele. No Windows, as
+ * variáveis não ligam para maiúsculas: uma "PSMODULEPATH" a mais ganharia da nossa.
+ */
+function scriptEnv(vars: Record<string, string>): NodeJS.ProcessEnv {
+  const env: NodeJS.ProcessEnv = {}
+  for (const [key, value] of Object.entries(process.env)) {
+    if (key.toUpperCase() !== 'PSMODULEPATH') env[key] = value
+  }
+  return { ...env, PSModulePath: MODULES, ...vars }
+}
 
 /** O que vem antes de todo script: erro para o script, e a saída em UTF-8 (os títulos com acento). */
 const PRELUDE =
@@ -47,7 +69,7 @@ export function runPowerShell(
     const child = spawn(
       POWERSHELL,
       ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', PRELUDE + script],
-      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: { ...process.env, ...vars } }
+      { stdio: ['ignore', 'pipe', 'pipe'], windowsHide: true, env: scriptEnv(vars) }
     )
     const timer = setTimeout(() => {
       child.kill()
