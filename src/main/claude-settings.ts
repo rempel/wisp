@@ -191,12 +191,26 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   return JSON.stringify({
     permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
     hooks,
-    // A linha de status do Claude Code é uma linha de shell (sem a forma exec): no Windows, fica a
-    // dele.
-    ...(windows
-      ? {}
-      : { statusLine: { type: 'command', command: command(STATUS_ARG, tab), padding: 0 } })
+    statusLine: {
+      type: 'command',
+      command: windows
+        ? windowsStatusCommand(windows.command, windows.args, tab)
+        : command(STATUS_ARG, tab),
+      padding: 0
+    }
   })
+}
+
+/**
+ * A linha de status no Windows (Fase 36). Ela só aceita uma linha de shell (sem a forma exec), e o
+ * Claude Code a roda no bash do Git para Windows: o próprio Wisp entre aspas simples, com as
+ * barras normais (que o bash do Git entende), e nada além da ficha da aba, que é hexadecimal. Sem
+ * o Git Bash, o Claude Code usa o PowerShell, que não roda esta linha: a linha de status fica a
+ * dele, como antes.
+ */
+export function windowsStatusCommand(command: string, args: string[], tab: string): string {
+  const path = (part: string): string => shellQuote(part.replaceAll('\\', '/'))
+  return [path(command), ...args.map(path), RELAY_ARG, STATUS_ARG, tab].join(' ')
 }
 
 /** Como subir o Claude Code interativo do modo terminal (num pty). */

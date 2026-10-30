@@ -2138,5 +2138,7 @@ export const EN: Record<string, string> = {
     "On Windows, players don't expose their own volume: the system volume is now {level}%.",
   'Não consegui mudar o volume do Windows.': "I couldn't change the Windows volume.",
   'O Windows não respondeu com a lista de janelas.':
-    "Windows didn't respond with the list of windows."
+    "Windows didn't respond with the list of windows.",
+  'O Windows não deixou trazer a janela do terminal para a frente.':
+    "Windows didn't let me bring the terminal window to the front."
 }

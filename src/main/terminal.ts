@@ -3,6 +3,8 @@ import { readFileSync } from 'fs'
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import { isKde, kwinActivatePids } from './kwin'
 import { viaHost } from './host'
+import { IS_WINDOWS } from './platform'
+import { focusWindowsProcess } from './windows-win'
 import { t } from '../shared/i18n'
 
 /** O que se sabe de onde uma sessão roda. */
@@ -92,6 +94,18 @@ async function focusWithEwmh(windowId: string | undefined, pids: number[]): Prom
  */
 export async function focusTerminal(target: TerminalTarget): Promise<FocusResult> {
   if (!target.pid) return { ok: false, message: t('Não sei em que terminal esta sessão roda.') }
+  if (IS_WINDOWS) {
+    // No Windows (Fase 36): pelos pais do Claude Code, até a janela do terminal.
+    const result = await focusWindowsProcess(target.pid)
+    if (result === 'ok') return { ok: true }
+    return {
+      ok: false,
+      message:
+        result === 'nao'
+          ? t('O Windows não deixou trazer a janela do terminal para a frente.')
+          : t('Não achei a janela do terminal.')
+    }
+  }
   const pids = ancestors(target.pid)
   for (const client of await tmuxClients(target.env)) pids.push(...ancestors(client))
   // O próprio Claude Code e o shell não têm janela; ficam no fim.

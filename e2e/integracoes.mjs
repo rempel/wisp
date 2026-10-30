@@ -7,7 +7,7 @@
 // testar.
 // Uso: node e2e/integracoes.mjs
 import { spawn, spawnSync } from 'node:child_process'
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import {
   checks,
@@ -28,7 +28,8 @@ if (!IS_WINDOWS) {
 }
 
 const { check, failed } = checks()
-const home = testHome()
+// O navegador do Claude ligado: o Wisp acha um Chrome ou o Edge nas pastas do Windows (Fase 36).
+const home = testHome({ browserAutomation: true })
 const SHOTS = process.env.WISP_E2E_SHOTS
 if (SHOTS) mkdirSync(SHOTS, { recursive: true })
 const powershell = (script) =>
@@ -213,6 +214,15 @@ console.log('== O diagnóstico')
 const snapshot = await ev(`window.wisp.diagnostics.run()`)
 const terminal = snapshot?.checks?.find((c) => c.id === 'terminal')
 check('I14 o diagnóstico acha o terminal', terminal?.status === 'ok', JSON.stringify(terminal))
+
+console.log('== O navegador do Claude')
+const playwright = JSON.parse(readFileSync(join(run, file), 'utf8')).mcpServers.playwright
+const browser = playwright?.args?.[playwright.args.indexOf('--executable-path') + 1] ?? ''
+check(
+  'I15 o navegador do Claude é um Chrome ou o Edge achado nas pastas do Windows',
+  /\\(chrome|msedge)\.exe$/i.test(browser) && existsSync(browser),
+  browser
+)
 
 form.kill()
 await stopApp()

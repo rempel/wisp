@@ -543,3 +543,104 @@ test('o PowerShell responde mesmo com o ambiente mínimo', windowsOnly, async ()
     Object.assign(process.env, saved)
   }
 })
+
+// A Fase 36: o que ainda faltava no Windows.
+
+test('o navegador do Claude no Windows: o Chrome, o Edge e os outros onde os instaladores os põem', async () => {
+  const { findBrowser, windowsBrowsers } = await import('../src/main/browser')
+  const programs = folder('Program Files', {})
+  const local = folder('AppData-Local', {})
+  const env = {
+    ProgramFiles: programs,
+    'ProgramFiles(x86)': folder('Program Files (x86)', {}),
+    LOCALAPPDATA: local,
+    PATH: ''
+  }
+  const edge = join(env['ProgramFiles(x86)'], 'Microsoft', 'Edge', 'Application', 'msedge.exe')
+  assert.ok(windowsBrowsers(env).includes(edge))
+  // Só o Edge (o que vem com o Windows): é ele.
+  mkdirSync(join(edge, '..'), { recursive: true })
+  writeFileSync(edge, '', { mode: 0o755 })
+  assert.deepEqual(findBrowser(null, env, true), { path: edge })
+  // O Chrome instalado só para o usuário ganha do Edge.
+  const chrome = join(local, 'Google', 'Chrome', 'Application', 'chrome.exe')
+  mkdirSync(join(chrome, '..'), { recursive: true })
+  writeFileSync(chrome, '', { mode: 0o755 })
+  assert.deepEqual(findBrowser(null, env, true), { path: chrome })
+  // O do config.json vale primeiro; fora do Windows, as pastas dele não contam.
+  assert.deepEqual(findBrowser(edge, env, true), { path: edge })
+  assert.ok('error' in findBrowser(null, env, false))
+})
+
+test('a linha de status no Windows: o próprio Wisp, numa linha do bash do Git, só com a ficha da aba', async () => {
+  const { windowsStatusCommand } = await import('../src/main/claude-settings')
+  const token = 'a'.repeat(32)
+  assert.equal(
+    windowsStatusCommand(
+      'C:\\Users\\João Silva\\AppData\\Local\\Programs\\Wisp\\Wisp.exe',
+      [],
+      token
+    ),
+    `'C:/Users/João Silva/AppData/Local/Programs/Wisp/Wisp.exe' --wisp-hook --status ${token}`
+  )
+  // Rodando do código: o Electron e a pasta do app; um apóstrofo no caminho fica fechado.
+  assert.equal(
+    windowsStatusCommand('D:\\dev\\electron.exe', ["D:\\O'Neil\\wisp"], token),
+    `'D:/dev/electron.exe' 'D:/O'\\''Neil/wisp' --wisp-hook --status ${token}`
+  )
+})
+
+test(
+  'trazer o terminal de uma sessão para a frente no Windows: pelos pais do processo até uma janela',
+  windowsOnly,
+  async () => {
+    const { spawn } = await import('node:child_process')
+    const { focusWindowsProcess, windowsWindows } = await import('../src/main/windows-win')
+    // Um "terminal" (um formulário com título conhecido) que roda um "Claude Code" sem janela.
+    const pidFile = join(HOME, 'filho.pid')
+    const terminal = spawn(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-Command',
+        "$c = Start-Process -FilePath ($env:SystemRoot + '\\System32\\PING.EXE') -ArgumentList '-n','60','127.0.0.1' -WindowStyle Hidden -PassThru; " +
+          'Set-Content -Path $env:WISP_PID -Value $c.Id; ' +
+          'Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form; ' +
+          "$f.Text = 'wisp-terminal-de-teste'; [System.Windows.Forms.Application]::Run($f)"
+      ],
+      { stdio: 'ignore', env: { ...process.env, WISP_PID: pidFile } }
+    )
+    let child = 0
+    try {
+      for (let i = 0; i < 40; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        const windows = await windowsWindows()
+        const shown = windows?.some((window) => window.title === 'wisp-terminal-de-teste')
+        try {
+          child = Number(readFileSync(pidFile, 'utf8').trim())
+        } catch {
+          child = 0
+        }
+        if (shown && child) break
+      }
+      assert.ok(child > 0, 'o "Claude Code" subiu')
+      const result = await focusWindowsProcess(child)
+      console.log(`trazer o terminal: ${result}`)
+      // Achou a janela pelo pai (pode ser que o Windows não deixe trazer: "nao").
+      assert.ok(result === 'ok' || result === 'nao', String(result))
+      if (result === 'ok') {
+        const active = (await windowsWindows())?.find((window) => window.active)
+        assert.equal(active?.title, 'wisp-terminal-de-teste')
+      }
+      // Um processo que não existe não tem janela.
+      assert.equal(await focusWindowsProcess(4_000_000), 'sem')
+    } finally {
+      try {
+        if (child) process.kill(child)
+      } catch {
+        // Já saiu.
+      }
+      terminal.kill()
+    }
+  }
+)
