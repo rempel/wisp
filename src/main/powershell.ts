@@ -18,12 +18,7 @@ const PS_HOME = join(
 /** O PowerShell do sistema (o 5.1, que todo Windows tem). */
 export const POWERSHELL = join(PS_HOME, 'powershell.exe')
 
-/**
- * Os módulos que os scripts usam: só os que vêm com o Windows. Sem o PSModulePath, o PowerShell
- * trava ao carregar o primeiro módulo (o CI mostrou: 25 s, contra 0,4 s com ele); e com o do
- * usuário, um módulo da pasta dele (ou um do PowerShell 7) poderia tomar o lugar de um comando
- * do sistema.
- */
+/** Os módulos do Windows: o PSModulePath dos scripts (nada da pasta do usuário). */
 export const MODULES = join(PS_HOME, 'Modules')
 
 /**
@@ -38,10 +33,23 @@ function scriptEnv(vars: Record<string, string>): NodeJS.ProcessEnv {
   return { ...env, PSModulePath: MODULES, ...vars }
 }
 
-/** O que vem antes de todo script: erro para o script, e a saída em UTF-8 (os títulos com acento). */
+/** Carrega um módulo do Windows pelo caminho (com o $PSHOME do próprio PowerShell). */
+export const importModule = (name: string): string =>
+  `Import-Module ($PSHOME + '\\Modules\\${name}\\${name}.psd1'); `
+
+/**
+ * O que vem antes de todo script: erro para o script, a saída em UTF-8 (os títulos com acento) e
+ * os dois módulos que os scripts usam, carregados pelo caminho, com o carregamento automático
+ * desligado. Procurar o módulo de um comando é onde o PowerShell travava (a sonda do CI: parado
+ * no primeiro Get-Date, conforme o ambiente de quem abriu o Wisp); sem procurar, não trava, e um
+ * módulo de fora não toma o lugar de um comando do sistema.
+ */
 const PRELUDE =
   "$ErrorActionPreference = 'Stop'; $ProgressPreference = 'SilentlyContinue'; " +
-  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; '
+  "$PSModuleAutoLoadingPreference = 'None'; " +
+  '[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; ' +
+  importModule('Microsoft.PowerShell.Utility') +
+  importModule('Microsoft.PowerShell.Management')
 
 export interface PowerShellResult {
   /** O código de saída; -1 se não abriu ou passou do tempo. */
