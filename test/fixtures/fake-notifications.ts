@@ -4,7 +4,7 @@
 // linha {"lock": true} (ou false) faz as vezes da proteção de tela: o sinal ActiveChanged. Com
 // $FAKE_NOTIFY_INHIBITED (0 ou 1), o servidor tem o "não perturbe" do KDE, e uma linha
 // {"inhibit": true} (ou false) o liga ou desliga.
-import { existsSync, readFileSync, watchFile, writeFileSync } from 'node:fs'
+import { existsSync, readFileSync, renameSync, watchFile, writeFileSync } from 'node:fs'
 import { DBusConnection } from '../../src/main/dbus'
 import { serveNotifications } from './notifications'
 import type { NotifyState } from './notifications'
@@ -20,7 +20,10 @@ const state: NotifyState = {
       ? undefined
       : process.env.FAKE_NOTIFY_INHIBITED === '1',
   changed: () => {
-    if (file) writeFileSync(file, JSON.stringify({ shown: state.shown, closed: state.closed }))
+    if (!file) return
+    // O arquivo novo entra inteiro (o roteiro o lê a qualquer momento: pela metade, ele cairia).
+    writeFileSync(`${file}.novo`, JSON.stringify({ shown: state.shown, closed: state.closed }))
+    renameSync(`${file}.novo`, file)
   }
 }
 const bus = await DBusConnection.session()

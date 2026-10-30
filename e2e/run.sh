@@ -12,6 +12,12 @@ fi
 status=0
 for script in "$@"; do
   echo "== $script"
-  node "$script" || status=1
+  if ! node "$script"; then
+    status=1
+    # Um roteiro que caiu no meio pode deixar o Wisp aberto (com a porta do DevTools ocupada) e
+    # derrubar os seguintes: fecha o que sobrou dele.
+    pkill -f -- '--remote-debugging-port=9333' || true
+    sleep 1
+  fi
 done
 exit $status
