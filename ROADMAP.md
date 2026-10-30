@@ -1334,10 +1334,10 @@ Notas da entrega:
 
 ### Fase 35: o Windows por inteiro
 
-**Status:** em andamento. Prontos: os cards do modo terminal e a aba Sessões, as notificações com
-botões e o chaveiro (testes: `test/windows.test.ts`, `e2e/toast.mjs` e o card do modo terminal no
-`e2e/essencial.mjs`, no job **Windows** do CI). Faltam as janelas, o terminal, a música e o
-volume, o "não perturbe" e a voz.
+**Status:** pronta (testes: `test/windows.test.ts`, com os scripts do PowerShell rodando no
+Windows; `e2e/toast.mjs`, `e2e/integracoes.mjs` e o card do modo terminal no `e2e/essencial.mjs`,
+no job **Windows** do CI). Fica para depois o segurar para falar (no Windows, o atalho de voz liga
+a escuta, que acaba no silêncio).
 
 - **Os cards do modo terminal e a aba Sessões (M):** os hooks pelo `Wisp.exe` (forma exec), com o
   relay falando com o Wisp por um named pipe de nome sorteado, que só o seu usuário conhece.
@@ -1352,7 +1352,7 @@ volume, o "não perturbe" e a voz.
 **Aceite:** no Windows, um card do modo terminal aparece no Wisp, um pedido é respondido pela
 notificação, e o Claude foca uma janela pelo nome.
 
-Notas da entrega (até aqui):
+Notas da entrega:
 
 - os hooks no Windows vão pelo próprio Wisp na forma exec do Claude Code (`command` + `args`, sem
   shell), com `--wisp-hook`: o `boot.ts` roda o relay (o mesmo do Linux) antes de carregar o app,
@@ -1373,6 +1373,30 @@ Notas da entrega (até aqui):
   não decifra (cifrado noutra conta) pede para guardar de novo;
 - de quebra, o teste dos pacotes do Linux esperava o app fechar só depois de apagar a pasta dele (o
   Chromium ainda gravava o cache): agora espera e apaga.
+- o desktop pelo Claude: o que no Linux vem do D-Bus, do X11 ou de programas do sistema, no
+  Windows vem das APIs dele, por scripts fixos do PowerShell que só rodam quando pedem (o que muda
+  vai por variáveis de ambiente, nunca no texto do script). As janelas pelo user32 (o filtro da
+  barra de tarefas; trazer para a frente junto da fila de entrada da janela da frente, que é o que
+  o Windows deixa); a música pelo controle de mídia do Windows (SMTC); o volume pelo Core Audio.
+  O primeiro CI mostrou o C# do volume compilando e o Windows respondendo "sem aparelho de som"
+  (o runner não tem), e o controle de mídia respondendo sem sessões;
+- o terminal: o Windows Terminal com `-d .` e a pasta no lugar de rodar (como o VS Code faz);
+  sem ele, o PowerShell 7, o Windows PowerShell ou o cmd num console novo, pelo `Start-Process`.
+  Nada pelo `cmd /c start`: o `start` e o `CreateProcess` procuram o programa na pasta atual
+  primeiro, e uma pasta de projeto com um `pwsh.exe` dentro rodaria. Os programas são achados
+  pelas pastas absolutas do PATH, sempre pelo caminho completo;
+- os apps: os atalhos do menu Iniciar e a lista do `Get-StartApps`, que traz os apps da loja e os
+  do sistema sem atalho (no Windows 11, a Calculadora e o Bloco de Notas não têm `.lnk`);
+- o editor: o `code` do PATH é o `code.cmd`, que só roda pelo cmd; o Wisp abre o `Code.exe` ao
+  lado dele (e o mesmo para o Cursor, o VSCodium e o Windsurf), e recusa outro `.cmd`;
+- a voz: o `whisper-cli.exe` e o `piper.exe` pelo nome, pelo caminho e em
+  `%LOCALAPPDATA%\Wisp\Voz`. O atalho de voz não sabe quando a tecla é solta (o
+  `globalShortcut` só avisa o aperto): segurar para falar fica para depois;
+- o "não perturbe": o do Windows segura as notificações do Wisp sozinho (os sons continuam; o
+  Windows não diz a um app se o "não perturbe" está ligado sem consultar de tempos em tempos, o que
+  gastaria CPU parado);
+- de quebra, o E2 do `e2e/essencial.mjs` esperava o primeiro pedaço da resposta (no Windows, ele
+  chegou antes do resto), e no job do Windows cada roteiro roda mesmo que um anterior falhe.
 
 ## Ideias avaliadas e deixadas de fora
 

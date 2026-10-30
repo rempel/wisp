@@ -878,9 +878,42 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     árvore dela pelo `taskkill /pid … /t /f` (o do `%SystemRoot%\System32`, nunca um do PATH).
     No modo terminal, o node-pty recusa qualquer sinal: o Wisp fecha o ConPTY, e o `taskkill` na
     árvore se o Claude Code não sair em 3 s;
-  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o "não perturbe", a música, a
-    agenda do Evolution), o comando `wisp`, o `.desktop`, as janelas e o terminal. O diagnóstico
-    diz o que chega numa próxima versão, em vez de pedir o que é do Linux;
+  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o "não perturbe" do desktop, o
+    MPRIS, a agenda do Evolution), o comando `wisp` no PATH e o `.desktop`. O diagnóstico não
+    pede o que é do Linux;
+  - **o desktop pelo Claude (Fase 35):** o que no Linux vem do D-Bus, do X11 ou de programas do
+    sistema, no Windows vem das APIs dele, por scripts fixos do PowerShell (`powershell.ts`: o
+    `powershell.exe` do `%SystemRoot%`, sem perfil e sem janela, só quando pedem). O texto de cada
+    script está no código; o que muda vai por variáveis de ambiente (`WISP_*`), nunca no texto.
+    O que precisa do Win32 é C# compilado pelo `Add-Type` a cada vez (menos de um segundo):
+    - **as janelas** (`windows-win.ts`): o `EnumWindows` com o filtro da barra de tarefas
+      (visível, sem dona, sem `WS_EX_TOOLWINDOW`, sem `DWMWA_CLOAKED`, com título), em ordem de
+      Z; o nome do app pela descrição do executável. Trazer para a frente: tira do minimizado e
+      chama o `SetForegroundWindow` com o `AttachThreadInput` na fila da janela da frente (sem
+      isso, o Windows só pisca a janela na barra);
+    - **a música** (`media-win.ts`): o `GlobalSystemMediaTransportControlsSessionManager`
+      (WinRT, esperado pelo `AsTask`), com o nome do app pelo `Get-StartApps`. A escolha do
+      player é a mesma do MPRIS (`choosePlayers`, no `media.ts`). O Wisp não fica escutando as
+      sessões: o mascote dança com o que viu na última consulta;
+    - **o volume** (`volume-win.ts`): o `IAudioEndpointVolume` do aparelho de saída padrão
+      (Core Audio, por COM). Os players do Windows não mostram o volume deles, e o
+      `media_volume` muda o do sistema;
+    - **os programas** (`desktop-win.ts`): achados pelas pastas absolutas do PATH com o PATHEXT,
+      nunca na pasta atual (o `CreateProcess` e o `start` do cmd procurariam nela primeiro: uma
+      pasta de projeto com um `pwsh.exe` dentro). O `.cmd` de um editor conhecido (o
+      `bin\code.cmd` do VS Code) vira o executável dele; outro `.cmd` ou `.bat` é recusado. O que
+      o Windows abre por associação (um atalho do menu Iniciar, um link, um console novo numa
+      pasta) vai pelo `Start-Process`, com o alvo e a pasta em variáveis, tiradas do ambiente
+      antes de abrir. O Windows Terminal abre direto, com `-d .` e a pasta no lugar de rodar
+      (como o VS Code faz: o `-d` com a pasta escrita esbarraria no `;`, que o `wt` usa para
+      separar comandos). Os apps são os atalhos `.lnk` e `.url` do menu Iniciar (o do usuário e o
+      de todos, até três pastas de profundidade) somados à lista do `Get-StartApps` (guardada por
+      2 minutos), que traz os apps da loja e os do sistema sem atalho, como a Calculadora; esses
+      abrem pelo `shell:AppsFolder\<AppID>`;
+    - **a voz:** o `programs.ts` acha o `whisper-cli.exe` e o `piper.exe` pelo nome, pelo caminho
+      do Windows e em `%LOCALAPPDATA%\Wisp\Voz`. O atalho de voz não sabe quando a tecla é solta
+      (o `globalShortcut` só avisa o aperto, e o X11 que o Linux consulta não existe): a escuta
+      acaba no silêncio, como num toque rápido no Linux;
   - **os hooks (Fase 35):** o relay é o próprio Wisp com `--wisp-hook`, na forma exec (o `boot.ts`
     chama o `runRelay` do `hooks/relay.ts` antes de carregar o app; no Linux, o mesmo relay roda
     pelo script `wisp-hook`, com o Electron em modo Node). No lugar do socket, um pipe nomeado
@@ -902,9 +935,10 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     início com o sistema (o item de login, no lugar do `~/.config/autostart`);
   - **o instalador:** NSIS por usuário (sem administrador), no menu Iniciar e na área de trabalho,
     com o binário do node-pty para Windows (os de outros sistemas ficam de fora). O job `windows`
-    do CI roda num Windows de verdade os testes de unidade que valem lá, o `e2e/essencial.mjs`
-    (com os prints) e o instalador, que numa tag vai para o release junto com os pacotes do
-    Linux.
+    do CI roda num Windows de verdade os testes de unidade que valem lá (os scripts do
+    PowerShell inclusive), o `e2e/essencial.mjs` (com os prints), o `e2e/monaco.mjs`, o
+    `e2e/toast.mjs`, o `e2e/integracoes.mjs` (as ferramentas do desktop pelo servidor MCP) e o
+    instalador, que numa tag vai para o release junto com os pacotes do Linux.
 - **O editor do VS Code (Fase 34):** o Monaco, só para ver, no lugar do diff simples:
   - **carregar só quando precisa:** o `DiffView` mostra o diff simples de sempre e pede o
     `monaco/monaco.ts` por um `import()` dinâmico (`monaco/load.ts`, uma vez só); quando ele chega,

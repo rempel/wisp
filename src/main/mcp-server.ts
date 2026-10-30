@@ -137,7 +137,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       _meta: ALWAYS_LOAD
     },
     async ({ busca }) => {
-      const apps = listApps(busca)
+      const apps = await listApps(busca)
       return text(apps.length ? JSON.stringify(apps) : 'Nenhum app encontrado.')
     }
   )

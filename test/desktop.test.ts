@@ -65,21 +65,21 @@ writeFileSync(
   '[Desktop Entry]\nType=Application\nName=Com Ação\nExec=x\n\n[Desktop Action nova]\nName=Outro Nome\n'
 )
 
-test('apps: nome em português, descrição, e os escondidos ficam de fora', () => {
-  const ours = listApps().filter((app) => app.id.startsWith('wisp-teste.'))
+test('apps: nome em português, descrição, e os escondidos ficam de fora', async () => {
+  const ours = (await listApps()).filter((app) => app.id.startsWith('wisp-teste.'))
   assert.deepEqual(ours, [
     { id: 'wisp-teste.acao', nome: 'Com Ação' },
     { id: 'wisp-teste.navegador', nome: 'Navegador de Teste', descricao: 'Navegador web' }
   ])
 })
 
-test('apps: a busca ignora acentos e olha as palavras-chave', () => {
+test('apps: a busca ignora acentos e olha as palavras-chave', async () => {
   assert.deepEqual(
-    listApps('NAVEGADOR').map((app) => app.id),
-    listApps('navegador').map((app) => app.id)
+    (await listApps('NAVEGADOR')).map((app) => app.id),
+    (await listApps('navegador')).map((app) => app.id)
   )
-  assert.ok(listApps('paginas').some((app) => app.id === 'wisp-teste.navegador'))
-  assert.ok(!listApps('nada-parecido-com-isto').length)
+  assert.ok((await listApps('paginas')).some((app) => app.id === 'wisp-teste.navegador'))
+  assert.ok(!(await listApps('nada-parecido-com-isto')).length)
 })
 
 test('abrir app: só ids da lista, pelo gtk-launch', async () => {

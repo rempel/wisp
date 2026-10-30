@@ -6,10 +6,10 @@ import { expandHome } from './paths'
 import { viaHost } from './host'
 import {
   findWindowsTerminal,
-  readWindowsApps,
   startWindows,
   whichWindows,
   windowsProgram,
+  windowsApps,
   windowsTerminalPath,
   windowsTerminals
 } from './desktop-win'
@@ -171,10 +171,15 @@ function normalize(text: string): string {
 }
 
 /** Apps instalados. `busca` filtra por nome, id, descrição ou palavras-chave. */
-export function listApps(busca?: string): AppEntry[] {
+export async function listApps(busca?: string): Promise<AppEntry[]> {
   const query = busca ? normalize(busca.trim()) : ''
   const apps = IS_WINDOWS
-    ? readWindowsApps().map(({ id, nome }): DesktopFile => ({ id, nome, keywords: '', path: '' }))
+    ? (await windowsApps()).map(({ id, nome }): DesktopFile => ({
+        id,
+        nome,
+        keywords: '',
+        path: ''
+      }))
     : readApps()
   return apps
     .filter(
@@ -286,7 +291,7 @@ export async function openApp(id: string): Promise<Outcome> {
 /** No Windows, um atalho do menu Iniciar, pelo id do list_apps (ou o nome). */
 async function openWindowsApp(id: string): Promise<Outcome> {
   const wanted = id.trim().toLowerCase()
-  const apps = readWindowsApps()
+  const apps = await windowsApps()
   const app =
     apps.find((entry) => entry.id.toLowerCase() === wanted) ??
     apps.find((entry) => entry.nome.toLowerCase() === wanted)

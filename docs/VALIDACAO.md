@@ -741,7 +741,7 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
       diff leva um instante a mais (o editor carregando), e os próximos abrem na hora.
 - [ ] **No Windows:** o mesmo roteiro, no instalador.
 
-## O Windows por inteiro (Fase 35, até aqui)
+## O Windows por inteiro (Fase 35)
 
 - [ ] **O card do modo terminal:** no modo terminal, peça "rode `dir`": o card do Wisp aparece por
       cima do terminal, junto com o diálogo do Claude Code; Permitir no card libera.
@@ -756,3 +756,24 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
       Wisp: a chave continua lá. O diagnóstico mostra o chaveiro "pelo Windows".
 - [ ] **Desinstalar:** depois de tirar os hooks, desinstalar remove o endereço `wisp://`
       (Configurações → Aplicativos → Aplicativos padrão não lista mais o Wisp para ele).
+- [ ] **O terminal:** peça "abre um terminal no projeto X": o card pede; Permitir abre o Windows
+      Terminal (ou, sem ele, o PowerShell) na pasta do projeto. Peça um terminal em `C:\Windows`:
+      o Wisp recusa (fora da pasta pessoal e dos projetos).
+- [ ] **As janelas:** com o Bloco de Notas e o navegador abertos, peça "quais janelas estão
+      abertas?": a lista vem com o app e o título, sem as do Wisp. Minimize o Bloco de Notas e
+      peça "traz o bloco de notas": ele volta e fica na frente.
+- [ ] **Os apps e os links:** "abre a calculadora" (um app da loja, sem atalho) e "abre o
+      Firefox" (um atalho do menu Iniciar) abrem pelo card;
+      "abre o site do Wisp no GitHub" abre no navegador padrão.
+- [ ] **A música:** com o Spotify (ou um vídeo no navegador) tocando, "o que está tocando?"
+      responde a faixa; "pausa a música" pausa, e "próxima" pula. O mascote dança quando o Claude
+      viu algo tocando.
+- [ ] **O volume:** "aumenta o volume" (pela voz, sem o Claude) sobe o volume do sistema de 5 em
+      5% e diz quanto ficou; "volume em 30" (pelo Claude) deixa em 30%.
+- [ ] **A voz:** com o `whisper-cli.exe` e o `ggml-small.bin` em `%LOCALAPPDATA%\Wisp\Voz`,
+      **Configurações → Voz → Testar voz** mostra o que foi entendido. Ctrl+Alt+Espaço liga a
+      escuta, que acaba quando você para de falar.
+- [ ] **O editor:** com o VS Code instalado (e `editorCommand` `code`), "abre o projeto X no
+      editor" abre o VS Code na pasta, sem janela do cmd piscando.
+- [ ] **O diagnóstico:** o item **Terminal** aparece como achado; sem login no Claude Code, o
+      item **Login** tem o botão de abrir um terminal.
