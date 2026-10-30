@@ -387,34 +387,54 @@ test('a música no Windows: as sessões do controle de mídia viram players, e a
 const windowsOnly = { skip: process.platform !== 'win32' && 'só no Windows' }
 
 test(
-  'as janelas do Windows: lista a do Bloco de Notas e a traz para a frente',
+  'as janelas do Windows: lista uma janela aberta e a traz para a frente',
   windowsOnly,
   async () => {
-    const { spawn } = await import('node:child_process')
+    const { spawn, spawnSync } = await import('node:child_process')
     const { activateWindowsWindow, windowsWindows } = await import('../src/main/windows-win')
-    const file = join(
-      folder('janelas', { 'wisp-janela-de-teste.txt': 'oi' }),
-      'wisp-janela-de-teste.txt'
+    // Uma janela com título conhecido: um formulário do próprio PowerShell.
+    const form = spawn(
+      'powershell.exe',
+      [
+        '-NoProfile',
+        '-Command',
+        'Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form; ' +
+          "$f.Text = 'wisp-janela-de-teste'; [System.Windows.Forms.Application]::Run($f)"
+      ],
+      { stdio: 'ignore' }
     )
-    const notepad = spawn('notepad.exe', [file], { stdio: 'ignore' })
     try {
+      let windows: Awaited<ReturnType<typeof windowsWindows>> = null
       let found
       for (let i = 0; i < 40 && !found; i++) {
         await new Promise((resolve) => setTimeout(resolve, 500))
-        found = (await windowsWindows())?.find((window) =>
-          window.title.includes('wisp-janela-de-teste')
-        )
+        windows = await windowsWindows()
+        found = windows?.find((window) => window.title.includes('wisp-janela-de-teste'))
       }
-      assert.ok(found, 'a janela do Bloco de Notas aparece')
+      if (!found) {
+        console.log(`janelas: ${JSON.stringify(windows)}`)
+        const processes = spawnSync(
+          'powershell.exe',
+          [
+            '-NoProfile',
+            '-Command',
+            'Get-Process | Where-Object { $_.MainWindowHandle -ne 0 } | ' +
+              'Format-Table Id, ProcessName, MainWindowHandle, MainWindowTitle -AutoSize | Out-String -Width 200'
+          ],
+          { encoding: 'utf8' }
+        )
+        console.log(processes.stdout, processes.stderr)
+      }
+      assert.ok(found, 'a janela aparece')
       assert.ok(found.pid > 0)
-      assert.match(found.app ?? '', /notepad|bloco|notas/i)
+      assert.match(found.app ?? '', /powershell/i)
       console.log(`janela: ${JSON.stringify(found)}`)
       // Trazer para a frente pode ser barrado pelo Windows (o teste não é a janela da frente):
       // o que importa é o script rodar e responder.
       console.log(`trazer para a frente: ${await activateWindowsWindow(found.id)}`)
       assert.equal(await activateWindowsWindow(1), false)
     } finally {
-      notepad.kill()
+      form.kill()
     }
   }
 )
@@ -442,5 +462,26 @@ test(
     const players = await media.players()
     console.log(`players: ${JSON.stringify(players)}`)
     assert.ok(Array.isArray(players))
+  }
+)
+
+test(
+  'a voz no Windows: o whisper-cli.exe e o piper.exe pelo nome, pelo caminho e na pasta da voz',
+  windowsOnly,
+  async () => {
+    const { findProgram, VOICE_DIR } = await import('../src/main/programs')
+    const { findWhisper } = await import('../src/main/whisper')
+    const bin = folder('voz-bin', { 'whisper-cli.exe': '', 'piper.exe': '' })
+    const env = { Path: ['relativa', bin].join(';') }
+    assert.equal(findWhisper('whisper-cli', env), join(bin, 'whisper-cli.exe'))
+    assert.equal(findProgram('piper', ['piper', 'piper-tts'], [], env), join(bin, 'piper.exe'))
+    // Um caminho do Windows, com ou sem o .exe.
+    assert.equal(findWhisper(join(bin, 'whisper-cli'), {}), join(bin, 'whisper-cli.exe'))
+    assert.equal(findWhisper(join(bin, 'whisper-cli.exe'), {}), join(bin, 'whisper-cli.exe'))
+    assert.equal(findWhisper('relativa\\whisper-cli.exe', env), null)
+    // Sem nada no PATH, na pasta da voz do Wisp (%LOCALAPPDATA%\Wisp\Voz\whisper).
+    mkdirSync(join(VOICE_DIR, 'whisper'), { recursive: true })
+    writeFileSync(join(VOICE_DIR, 'whisper', 'whisper-cli.exe'), '')
+    assert.equal(findWhisper('whisper-cli', {}), join(VOICE_DIR, 'whisper', 'whisper-cli.exe'))
   }
 )

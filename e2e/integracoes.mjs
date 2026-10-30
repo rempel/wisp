@@ -103,9 +103,17 @@ const call = async (name, args = {}) => {
 }
 
 console.log('== As janelas')
-const target = join(home.home, 'wisp-e2e-janela.txt')
-writeFileSync(target, 'a janela do teste\r\n')
-const notepad = spawn('notepad.exe', [target], { stdio: 'ignore' })
+// Uma janela com título conhecido: um formulário do próprio PowerShell.
+const form = spawn(
+  'powershell.exe',
+  [
+    '-NoProfile',
+    '-Command',
+    'Add-Type -AssemblyName System.Windows.Forms; $f = New-Object System.Windows.Forms.Form; ' +
+      "$f.Text = 'wisp-e2e-janela'; [System.Windows.Forms.Application]::Run($f)"
+  ],
+  { stdio: 'ignore' }
+)
 const listed = await waitFor(
   async () => {
     const windows = await call('list_windows')
@@ -206,7 +214,7 @@ const snapshot = await ev(`window.wisp.diagnostics.run()`)
 const terminal = snapshot?.checks?.find((c) => c.id === 'terminal')
 check('I14 o diagnóstico acha o terminal', terminal?.status === 'ok', JSON.stringify(terminal))
 
-notepad.kill()
+form.kill()
 await stopApp()
 // Os terminais e os Bloco de Notas que o roteiro abriu.
 powershell(

@@ -72,10 +72,12 @@ const conversation = await ev(`document.querySelector('.pane').dataset.conversat
 
 console.log('== Conversar')
 await ev(`window.wisp.chat.send(${JSON.stringify(conversation)}, 'oi', [])`)
-const reply = await waitFor(
-  () => ev(`document.querySelector('.pane .msg.assistant')?.innerText ?? null`),
-  20000
-)
+// A resposta chega aos pedaços: espera o texto inteiro, e não o primeiro pedaço.
+let reply = null
+await waitFor(async () => {
+  reply = await ev(`document.querySelector('.pane .msg.assistant')?.innerText ?? null`)
+  return /Oi! Tudo certo/.test(reply ?? '') || null
+}, 20000)
 check('E2 o Claude Code responde', /Oi! Tudo certo/.test(reply ?? ''), reply)
 await shoot(chat, 'conversa')
 

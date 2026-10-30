@@ -9,7 +9,8 @@ import {
 } from 'fs'
 import { join } from 'path'
 import { z } from 'zod'
-import { CONFIG_DIR } from './paths'
+import { CONFIG_DIR, DATA_DIR } from './paths'
+import { IS_WINDOWS } from './platform'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
 import { AVATARS } from '../shared/avatars'
@@ -216,12 +217,17 @@ function defaults(): WispConfig {
     voiceShortcut: 'Ctrl+Alt+Space',
     voiceReview: false,
     whisperPath: 'whisper-cli',
-    whisperModel: '~/.local/share/wisp/voz/ggml-small.bin',
+    // No Windows, na pasta de dados do Wisp (%LOCALAPPDATA%\Wisp\Voz).
+    whisperModel: IS_WINDOWS
+      ? join(DATA_DIR, 'Voz', 'ggml-small.bin')
+      : '~/.local/share/wisp/voz/ggml-small.bin',
     voiceLanguage: 'pt',
     quickCommands: true,
     voiceReplies: false,
     piperPath: 'piper',
-    piperModel: '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx',
+    piperModel: IS_WINDOWS
+      ? join(DATA_DIR, 'Voz', 'pt_BR-faber-medium.onnx')
+      : '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx',
     demo: false,
     compact: false,
     github: false,
