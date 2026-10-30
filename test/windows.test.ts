@@ -240,3 +240,31 @@ test('a notificação do Windows: o XML com os botões, e o clique volta pelo en
   toasts[1].onClosed()
   assert.deepEqual(closed, [other])
 })
+
+test('os hooks da aba Sessões: no Windows, o próprio Wisp na forma exec, e tirar acha os dele', async () => {
+  const { applyHooks, hooksStatus, previewHooks, settingsPath } =
+    await import('../src/main/hooks/install')
+  const { setSelfCommand } = await import('../src/main/self-command')
+  setSelfCommand(join(HOME, 'Wisp', 'wisp.exe'), [])
+  const install = previewHooks('install')
+  assert.ok(!('error' in install))
+  const applied = applyHooks('install', install.fingerprint)
+  assert.ok(!('error' in applied))
+  const settings = JSON.parse(readFileSync(settingsPath(), 'utf8'))
+  const hook = settings.hooks.PermissionRequest[0].hooks[0]
+  if (process.platform === 'win32') {
+    assert.equal(hook.command, join(HOME, 'Wisp', 'wisp.exe'))
+    assert.deepEqual(hook.args, ['--wisp-hook', 'PermissionRequest'])
+  } else {
+    assert.match(hook.command, /\/wisp-hook' PermissionRequest$/)
+    assert.equal(hook.args, undefined)
+  }
+  assert.equal(hooksStatus().installed, true)
+  // Tirar acha as entradas do Wisp (pelo --wisp-hook no Windows) e deixa o resto.
+  const remove = previewHooks('uninstall')
+  assert.ok(!('error' in remove))
+  assert.ok(!('error' in applyHooks('uninstall', remove.fingerprint)))
+  const after = JSON.parse(readFileSync(settingsPath(), 'utf8'))
+  assert.equal(after.hooks, undefined)
+  assert.equal(hooksStatus().installed, false)
+})

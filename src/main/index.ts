@@ -103,7 +103,7 @@ import { IPC } from '../shared/ipc'
 import type { TaskResult, VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 import { t } from '../shared/i18n'
-import { setSelfCommand } from './claude-settings'
+import { setSelfCommand } from './self-command'
 import { IS_LINUX, IS_WINDOWS } from './platform'
 import { TOAST_SCHEME } from './toast'
 

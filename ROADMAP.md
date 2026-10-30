@@ -1334,6 +1334,11 @@ Notas da entrega:
 
 ### Fase 35: o Windows por inteiro
 
+**Status:** em andamento. Prontos: os cards do modo terminal e a aba Sessões, as notificações com
+botões e o chaveiro (testes: `test/windows.test.ts`, `e2e/toast.mjs` e o card do modo terminal no
+`e2e/essencial.mjs`, no job **Windows** do CI). Faltam as janelas, o terminal, a música e o
+volume, o "não perturbe" e a voz.
+
 - **Os cards do modo terminal e a aba Sessões (M):** os hooks pelo `Wisp.exe` (forma exec), com o
   relay falando com o Wisp por um named pipe de nome sorteado, que só o seu usuário conhece.
 - **Notificações com botões (M):** Permitir e Negar na notificação do Windows.
@@ -1346,6 +1351,28 @@ Notas da entrega:
 
 **Aceite:** no Windows, um card do modo terminal aparece no Wisp, um pedido é respondido pela
 notificação, e o Claude foca uma janela pelo nome.
+
+Notas da entrega (até aqui):
+
+- os hooks no Windows vão pelo próprio Wisp na forma exec do Claude Code (`command` + `args`, sem
+  shell), com `--wisp-hook`: o `boot.ts` roda o relay (o mesmo do Linux) antes de carregar o app,
+  e o relay acha o Wisp por um pipe nomeado de nome sorteado a cada abertura, com o nome num
+  arquivo de `%LOCALAPPDATA%\Wisp\Run` (só do usuário). O primeiro CI no Windows mostrou que o
+  Electron lê o stdin do hook e responde direito pelo stdout. O modo terminal leva os hooks no
+  `--settings` do processo; a aba Sessões os grava no `settings.json`, com o diff e o backup, como
+  no Linux, e os reconhece pelo `--wisp-hook`. A linha de status do Claude Code é uma linha de
+  shell (sem a forma exec): no Windows, fica a dele;
+- as notificações com botões: o Windows só entrega o clique num botão abrindo um endereço. Cada
+  botão abre `wisp://notificacao/<id>/<chave>`, o Windows roda o Wisp com ele, e a instância
+  aberta o recebe (a segunda instância). A chave de cada botão é sorteada a cada notificação (um
+  `wisp://` aberto por uma página não adivinha nenhuma). O instalador registra o endereço só para
+  o usuário e o desinstalador o tira; sem ele (rodando do código), as notificações saem sem botões
+  e mandam abrir o painel. Com botões, elas ficam na tela até a resposta (o cenário "reminder");
+- o chaveiro: cada segredo cifrado pelo DPAPI (o `safeStorage` do Electron) num arquivo de
+  `%LOCALAPPDATA%\Wisp\Segredos`, com o nome tirado de um hash, trocado inteiro ao guardar; o que
+  não decifra (cifrado noutra conta) pede para guardar de novo;
+- de quebra, o teste dos pacotes do Linux esperava o app fechar só depois de apagar a pasta dele (o
+  Chromium ainda gravava o cache): agora espera e apaga.
 
 ## Ideias avaliadas e deixadas de fora
 

@@ -260,13 +260,18 @@ irm https://claude.ai/install.ps1 | iex
   registro (`Logs\wisp.log`) em `%LOCALAPPDATA%\Wisp`.
 - **O que já funciona:** o mascote, o painel, as conversas e as abas, os cards (cada comando do
   Bash pede, como no Linux, sem passar por um shell), os modos, o modo terminal (o Claude Code de
-  verdade, no ConPTY), a bandeja, o atalho global, as notificações simples, o print da tela, o
+  verdade, no ConPTY, com os cards do Wisp), a aba Sessões (o Claude Code que você roda no
+  terminal), as notificações com **Permitir** e **Negar**, o chaveiro (a chave da OpenRouter e o
+  pareamento do celular cifrados pelo Windows), a bandeja, o atalho global, o print da tela, o
   início com o sistema, os prompts salvos e as tarefas, a busca no histórico, os servidores MCP,
-  o diagnóstico e os primeiros passos.
-- **O que chega na Fase 35:** a aba Sessões e os cards no modo terminal (lá, por enquanto, os
-  pedidos aparecem no próprio terminal), as notificações com Permitir e Negar, o chaveiro (a
-  OpenRouter e aprovar pelo celular), a música, o volume, as janelas e o terminal pelo Claude, o
-  "não perturbe", a voz e o comando `wisp`. O diagnóstico diz o que ainda não há.
+  o editor do VS Code nos diffs, o diagnóstico e os primeiros passos.
+- **Ainda não (no resto da Fase 35):** a música, o volume, as janelas e o terminal pelo Claude, a
+  voz e o comando `wisp`. No modo terminal, a linha de status do Claude Code é a dele (sem a do
+  Wisp). O "não perturbe" do Windows já segura as notificações do Wisp (os sons continuam). O
+  diagnóstico diz o que ainda não há.
+- **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
+  `settings.json` do Claude Code chamam o `wisp.exe`, e sem ele o Claude Code reclama a cada hook
+  (sem travar).
 - **Atualizar:** rode o instalador novo; as configurações e as conversas continuam.
 - **Remover:** Configurações do Windows → **Aplicativos** → Wisp → **Desinstalar**. As pastas
   `%APPDATA%\Wisp` e `%LOCALAPPDATA%\Wisp` ficam; apague-as para tirar tudo.
@@ -748,6 +753,10 @@ Se você também usa o `claude` direto no terminal, o Wisp pode acompanhar essas
 5. **Tirar**, no fim da aba, mostra o diff e devolve o `settings.json` ao que era.
 
 Com o Wisp fechado, o Claude Code do terminal segue normal: os hooks saem na hora, sem esperar nada.
+
+No Windows, os hooks chamam o próprio `wisp.exe` (sem passar por um shell), e o Wisp os ouve por
+um pipe nomeado de nome sorteado a cada abertura; **Terminal** (trazer a janela para a frente)
+ainda não funciona lá.
 
 ### O que o Claude faz no desktop
 

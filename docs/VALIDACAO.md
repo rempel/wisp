@@ -740,3 +740,19 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
 - [ ] **Leve:** abra o painel com uma conversa nova: o tempo para abrir é o de antes; o primeiro
       diff leva um instante a mais (o editor carregando), e os próximos abrem na hora.
 - [ ] **No Windows:** o mesmo roteiro, no instalador.
+
+## O Windows por inteiro (Fase 35, até aqui)
+
+- [ ] **O card do modo terminal:** no modo terminal, peça "rode `dir`": o card do Wisp aparece por
+      cima do terminal, junto com o diálogo do Claude Code; Permitir no card libera.
+- [ ] **A aba Sessões:** **Ver o que muda** mostra os hooks com o `wisp.exe` e `--wisp-hook`;
+      **Instalar** grava com o backup. Rode `claude` no PowerShell e peça algo: a sessão aparece na
+      aba, e um pedido de permissão vira o card. **Tirar** devolve o `settings.json`.
+- [ ] **A notificação com botões:** esconda o painel e peça algo que precise de permissão: a
+      notificação do Windows aparece com **Permitir** e **Negar** e fica na tela; **Permitir**
+      libera o Claude, e a notificação some. Abrir o painel antes tira a notificação.
+- [ ] **O chaveiro:** ponha a chave da OpenRouter nas configurações: ela fica em
+      `%LOCALAPPDATA%\Wisp\Segredos` (um arquivo cifrado, sem a chave legível); feche e abra o
+      Wisp: a chave continua lá. O diagnóstico mostra o chaveiro "pelo Windows".
+- [ ] **Desinstalar:** depois de tirar os hooks, desinstalar remove o endereço `wisp://`
+      (Configurações → Aplicativos → Aplicativos padrão não lista mais o Wisp para ele).

@@ -878,12 +878,25 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     árvore dela pelo `taskkill /pid … /t /f` (o do `%SystemRoot%\System32`, nunca um do PATH).
     No modo terminal, o node-pty recusa qualquer sinal: o Wisp fecha o ConPTY, e o `taskkill` na
     árvore se o Claude Code não sair em 3 s;
-  - **desligado até a Fase 35:** o D-Bus (a conexão nem é tentada: as notificações com botões, o
-    chaveiro, o "não perturbe", a música, a agenda do Evolution), o socket dos hooks e a aba
-    Sessões (instalar os hooks é recusado: um hook quebrado no `settings.json` do usuário poderia
-    travar as ferramentas do Claude Code), o comando `wisp`, o `.desktop`, as janelas e o
-    terminal. No modo terminal, os pedidos de permissão aparecem no próprio terminal. O
-    diagnóstico diz o que chega numa próxima versão, em vez de pedir o que é do Linux;
+  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o "não perturbe", a música, a
+    agenda do Evolution), o comando `wisp`, o `.desktop`, as janelas e o terminal. O diagnóstico
+    diz o que chega numa próxima versão, em vez de pedir o que é do Linux;
+  - **os hooks (Fase 35):** o relay é o próprio Wisp com `--wisp-hook`, na forma exec (o `boot.ts`
+    chama o `runRelay` do `hooks/relay.ts` antes de carregar o app; no Linux, o mesmo relay roda
+    pelo script `wisp-hook`, com o Electron em modo Node). No lugar do socket, um pipe nomeado
+    (`\\.\pipe\wisp-<32 hex>`, sorteado a cada abertura), com o nome num arquivo de
+    `%LOCALAPPDATA%\Wisp\Run`, que só o usuário lê; o relay só aceita um nome nesse formato. A
+    linha de status fica a do Claude Code (ela é uma linha de shell, sem a forma exec);
+  - **as notificações com botões (Fase 35):** o `toast.ts` monta o XML da notificação do Windows
+    (o `toastXml` do Electron), com um botão por ação, cada um com `activationType="protocol"` e o
+    endereço `wisp://notificacao/<id>/<chave>`. O Windows abre o endereço rodando o Wisp, e a
+    segunda instância entrega o argumento à primeira, que confere o formato, o id de uma
+    notificação na tela e a chave sorteada antes de responder o card. O endereço é registrado pelo
+    instalador (`build/nsis/installer.nsh`, no `HKCU\Software\Classes\wisp`) e tirado ao
+    desinstalar; sem o registro (`app.isDefaultProtocolClient`), as notificações saem sem botões;
+  - **o chaveiro (Fase 35):** o `secrets-win.ts` cifra cada segredo com o DPAPI (o `safeStorage`
+    do Electron) num arquivo de `%LOCALAPPDATA%\Wisp\Segredos` com o nome tirado de um hash do nome
+    do segredo; grava num temporário e renomeia;
   - **o que o Electron já faz:** a bandeja, o atalho global (o `globalShortcut`), as notificações
     simples, o print da tela (o `desktopCapturer`), a tela bloqueada (o `powerMonitor`) e o
     início com o sistema (o item de login, no lugar do `~/.config/autostart`);
