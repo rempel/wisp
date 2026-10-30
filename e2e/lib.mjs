@@ -137,9 +137,40 @@ export const configDir = (home) =>
 export const dataDir = (home) =>
   IS_WINDOWS ? join(home, 'AppData/Local/Wisp') : join(home, '.local/share/wisp')
 
-/** As variáveis sem as quais um programa do Windows não abre (e as pastas do HOME de teste). */
+/**
+ * As variáveis que o Windows dá a todo login (as pastas do sistema, o processador, o usuário, as
+ * dos módulos do PowerShell) e as pastas do HOME de teste; nada do terminal de quem testa.
+ */
 function windowsEnv(home) {
-  const keep = ['SystemRoot', 'SystemDrive', 'windir', 'COMSPEC', 'PATHEXT', 'TEMP', 'TMP']
+  const keep = [
+    'SystemRoot',
+    'SystemDrive',
+    'windir',
+    'COMSPEC',
+    'PATHEXT',
+    'TEMP',
+    'TMP',
+    'ProgramFiles',
+    'ProgramFiles(x86)',
+    'ProgramW6432',
+    'CommonProgramFiles',
+    'CommonProgramFiles(x86)',
+    'CommonProgramW6432',
+    'ProgramData',
+    'ALLUSERSPROFILE',
+    'PUBLIC',
+    'PSModulePath',
+    'OS',
+    'PROCESSOR_ARCHITECTURE',
+    'PROCESSOR_IDENTIFIER',
+    'PROCESSOR_LEVEL',
+    'PROCESSOR_REVISION',
+    'NUMBER_OF_PROCESSORS',
+    'USERNAME',
+    'USERDOMAIN',
+    'COMPUTERNAME',
+    'DriverData'
+  ]
   const env = {}
   for (const key of keep) if (process.env[key]) env[key] = process.env[key]
   return {
@@ -151,7 +182,7 @@ function windowsEnv(home) {
   }
 }
 
-/** O ambiente do app: só o necessário, como um login novo (nada do terminal de quem testa). */
+/** O ambiente do app: o de um login novo (nada do terminal de quem testa). */
 export function appEnv({ home, runtime }, extra = {}) {
   if (IS_WINDOWS) {
     return { HOME: home, ...windowsEnv(home), LANG: 'pt_BR.UTF-8', ...extra }

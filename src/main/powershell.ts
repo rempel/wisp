@@ -51,6 +51,8 @@ export function runPowerShell(
     )
     const timer = setTimeout(() => {
       child.kill()
+      // O que ele já tinha escrito diz onde parou.
+      stderr = `passou de ${timeoutMs / 1000} s${stderr ? `: ${stderr}` : ''}`
       done(-1)
     }, timeoutMs)
     child.stdout.setEncoding('utf8').on('data', (chunk: string) => (stdout += chunk))
