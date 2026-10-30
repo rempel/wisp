@@ -14,7 +14,21 @@ ok() { echo "ok   $*"; }
 deb=$(realpath "$(ls dist/*.deb | head -n 1)")
 appimage=$(realpath "$(ls dist/*.AppImage | head -n 1)")
 work=$(mktemp -d)
-trap 'pkill -f "appimage_extracted_" 2>/dev/null || true; rm -rf "$work"' EXIT
+# No fim, o app fecha e só então a pasta sai: o Chromium ainda grava o cache enquanto fecha (um
+# rm no mesmo instante falhava com "Directory not empty").
+cleanup() {
+  pkill -f "appimage_extracted_" 2>/dev/null || true
+  for _ in $(seq 50); do
+    pgrep -f "appimage_extracted_" >/dev/null || break
+    sleep 0.1
+  done
+  pkill -9 -f "appimage_extracted_" 2>/dev/null || true
+  rm -rf "$work" 2>/dev/null || {
+    sleep 1
+    rm -rf "$work"
+  }
+}
+trap cleanup EXIT
 
 echo "== $(basename "$deb")"
 dpkg-deb -c "$deb" | awk '{print $6}' >"$work/deb.txt"
