@@ -196,7 +196,8 @@ let startCache: { at: number; apps: { nome: string; id: string }[] } | null = nu
 /** Os apps do Windows: os atalhos e a lista do menu Iniciar (guardada por 2 minutos). */
 export async function windowsApps(): Promise<WindowsApp[]> {
   if (!startCache || Date.now() - startCache.at > START_TTL_MS) {
-    const found = await powerShellJson<{ nome: string; id: string }[]>(START_APPS)
+    // Sem resposta em 10 s, só os atalhos (e o Wisp não pergunta de novo por 2 minutos).
+    const found = await powerShellJson<{ nome: string; id: string }[]>(START_APPS, {}, 10_000)
     startCache = { at: Date.now(), apps: Array.isArray(found) ? found : [] }
   }
   return mergeApps(readWindowsApps(), startCache.apps)
