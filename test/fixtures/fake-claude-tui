@@ -59,10 +59,17 @@ module.exports = function tui({ args, flag, model, mode, sessionId, sessionFile,
         let output = ''
         child.stdout.on('data', (chunk) => (output += chunk))
         child.stdin.end(payload)
+        const started = Date.now()
         runs.push({
           child,
           async: hook.async === true,
-          done: new Promise((resolve) => child.on('close', () => resolve(output)))
+          done: new Promise((resolve) =>
+            child.on('close', () => {
+              // Quanto o hook levou (para ver, quando um roteiro falha, qual segurou a resposta).
+              log({ hookDone: event, ms: Date.now() - started })
+              resolve(output)
+            })
+          )
         })
       }
     }
@@ -230,6 +237,8 @@ module.exports = function tui({ args, flag, model, mode, sessionId, sessionFile,
         line = ''
         write('\n')
         if (!text) continue
+        // O que chegou (para ver, quando um roteiro falha, se a linha digitada chegou aqui).
+        log({ line: text.slice(0, 60), busy })
         if (busy) {
           // No meio de uma resposta: entra nela.
           runHooks('UserPromptSubmit', { prompt: text })

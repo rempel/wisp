@@ -149,7 +149,9 @@ const screen = await waitFor(async () => {
   const text = await ev(
     `[...document.querySelectorAll('.pane .xterm-rows > div')].map(d => d.textContent).join('\\n')`
   )
-  return /Claude Code de mentira \(terminal\)/.test(text ?? '') ? text : null
+  // O prompt (">") sai depois de o Claude Code ligar o modo cru: antes dele, o Enter chegaria
+  // como uma quebra de linha.
+  return /Claude Code de mentira \(terminal\)[\s\S]*\n>/.test(text ?? '') ? text : null
 }, 20000)
 check('E7 o Claude Code abre no terminal da aba (pty)', !!screen, screen)
 // Um pedido de permissão no terminal vira o card do Wisp, pelo relay dos hooks (no Windows, o
@@ -162,10 +164,24 @@ const terminalCard = await waitFor(
   20000
 )
 await shoot(chat, 'terminal')
+// Sem o card, os hooks que o Claude Code do terminal rodou e quanto cada um levou.
+const tuiHooks = () => {
+  try {
+    return readFileSync(join(home.home, '.fake-claude/tui.log'), 'utf8')
+      .trim()
+      .split('\n')
+      .map((line) => JSON.parse(line))
+      .filter(
+        (entry) => entry.start || entry.line || entry.hook || entry.hookDone || entry.decision
+      )
+  } catch {
+    return []
+  }
+}
 check(
   'E7b o pedido do terminal vira o card do Wisp',
   /ls -la/.test(terminalCard ?? ''),
-  terminalCard
+  terminalCard ?? JSON.stringify(tuiHooks())
 )
 await sleep(800)
 await ev(

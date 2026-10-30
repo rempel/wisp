@@ -89,7 +89,13 @@ check('T5 a pílula do contexto acompanha a linha de status', pill === '17%', pi
 console.log('== O card do Wisp por cima do terminal')
 await type('roda [pede ls -la]\r')
 let text = await waitFor(card, 8000)
-check('T6 o card aparece por cima do terminal', /ls -la/.test(text ?? ''), text)
+check(
+  'T6 o card aparece por cima do terminal',
+  /ls -la/.test(text ?? ''),
+  // Sem o card, os hooks que rodaram e quanto cada um levou.
+  text ??
+    JSON.stringify(tuiLog().filter((e) => e.start || e.line || e.hook || e.hookDone || e.decision))
+)
 check('T7 o diálogo do terminal aparece junto', /Do you want to proceed/.test(await screen()))
 await sleep(800)
 await ev(

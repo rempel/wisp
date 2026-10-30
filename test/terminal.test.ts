@@ -174,6 +174,26 @@ test('o pseudo-terminal: o tamanho, a colagem, a tela guardada e o fim', async (
   assert.equal(terminal.running, false)
   assert.match(terminal.snapshot(), /recebi/)
 
+  // Colado logo depois de subir: espera o programa mostrar algo (e mais um instante), porque o que
+  // chegasse antes se perderia (este joga fora o que chegou antes do "pronto", como um programa que
+  // ainda não ligou o modo cru do terminal).
+  let early = ''
+  const fresh = new TerminalProcess({ data: (chunk) => (early += chunk), exit: () => {} })
+  fresh.start({
+    file: '/bin/bash',
+    args: [
+      '-c',
+      'stty -echo; sleep 0.5; while read -t 0.05 junk; do :; done; echo pronto; read line; echo "recebi: $line"'
+    ],
+    env: { PATH: process.env.PATH ?? '/usr/bin:/bin', TERM: 'xterm-256color' },
+    cwd: dir
+  })
+  fresh.paste('cedo demais', true)
+  const until = Date.now() + 5000
+  while (!/recebi:/.test(early) && Date.now() < until) await new Promise((r) => setTimeout(r, 20))
+  assert.match(early, /pronto[\s\S]*recebi: .*cedo demais/)
+  await fresh.kill()
+
   // Encerrar um que não sai sozinho.
   const stuck = new TerminalProcess({ data: () => {}, exit: () => {} })
   stuck.start({

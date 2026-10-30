@@ -92,6 +92,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- No modo terminal, uma mensagem mandada pelo `wisp --ask` ou pela voz a um Claude Code que
+  acabou de subir podia ficar na caixa sem enviar (o Enter chegava antes de ele ligar o modo cru
+  do terminal, como uma quebra de linha): agora a colagem espera ele mostrar alguma coisa.
 - Sem a libnotify, as notificações (lembretes, o resumo de quando você saiu, as tarefas) não
   apareciam: agora vão direto pelo D-Bus.
 - O aviso de tela bloqueada não espera mais o barramento do sistema responder.

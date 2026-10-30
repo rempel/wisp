@@ -15,6 +15,14 @@ import { killTree } from './win'
 const MAX_BUFFER = 512 * 1024
 /** Quanto esperar o Claude Code sair depois do SIGTERM antes do SIGKILL. */
 const KILL_TIMEOUT_MS = 3000
+/**
+ * Uma colagem (o --ask, a voz) num Claude Code que acabou de subir espera ele mostrar alguma coisa
+ * e mais um instante: antes de ele ligar o modo cru do terminal, o Enter chegaria como uma quebra
+ * de linha (no modo normal, o terminal troca o \r por \n), e a mensagem ficaria sem enviar.
+ */
+const READY_GRACE_MS = 300
+/** Sem saída nenhuma nesse tempo, cola assim mesmo. */
+const READY_TIMEOUT_MS = 10_000
 /** O tamanho de um terminal novo, até a página medir o dela. */
 const DEFAULT_COLS = 100
 const DEFAULT_ROWS = 30
@@ -32,6 +40,8 @@ export class TerminalProcess {
   private pty: IPty | null = null
   private buffer = ''
   private exited: Promise<void> = Promise.resolve()
+  /** O Claude Code já mostrou algo (e lê as teclas cruas): as colagens esperam por ele. */
+  private ready: Promise<void> = Promise.resolve()
 
   constructor(
     private readonly callbacks: TerminalCallbacks,
@@ -59,12 +69,23 @@ export class TerminalProcess {
     this.pty = pty
     let done!: () => void
     this.exited = new Promise((resolve) => (done = resolve))
+    let markReady!: () => void
+    this.ready = new Promise((resolve) => (markReady = resolve))
+    const fallback = setTimeout(markReady, READY_TIMEOUT_MS)
+    let shown = false
     pty.onData((chunk) => {
+      if (!shown) {
+        shown = true
+        clearTimeout(fallback)
+        setTimeout(markReady, READY_GRACE_MS)
+      }
       if (pty !== this.pty) return
       this.buffer = (this.buffer + chunk).slice(-MAX_BUFFER)
       this.callbacks.data(chunk)
     })
     pty.onExit(({ exitCode, signal }) => {
+      clearTimeout(fallback)
+      markReady()
       done()
       if (pty !== this.pty) return
       this.pty = null
@@ -77,15 +98,21 @@ export class TerminalProcess {
     this.pty?.write(data)
   }
 
-  /** Cola um texto como se fosse colado no terminal (bracketed paste) e, se pedido, envia. */
+  /**
+   * Cola um texto como se fosse colado no terminal (bracketed paste) e, se pedido, envia. Num
+   * Claude Code que acabou de subir, espera ele ficar pronto (veja READY_GRACE_MS).
+   */
   paste(text: string, submit: boolean): void {
     const pty = this.pty
     if (!pty) return
     // As marcas do bracketed paste dentro do texto acabariam a colagem antes da hora.
     const clean = text.split('\x1b[200~').join('').split('\x1b[201~').join('')
-    pty.write(`\x1b[200~${clean}\x1b[201~`)
-    // O Enter vai um pouco depois: o Claude Code trata a colagem antes de receber o envio.
-    if (submit) setTimeout(() => this.pty === pty && pty.write('\r'), 120)
+    void this.ready.then(() => {
+      if (this.pty !== pty) return
+      pty.write(`\x1b[200~${clean}\x1b[201~`)
+      // O Enter vai um pouco depois: o Claude Code trata a colagem antes de receber o envio.
+      if (submit) setTimeout(() => this.pty === pty && pty.write('\r'), 120)
+    })
   }
 
   resize(cols: number, rows: number): void {
