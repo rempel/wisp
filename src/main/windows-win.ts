@@ -39,6 +39,14 @@ const NATIVE =
   '[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c); ' +
   '[DllImport("user32.dll")] static extern bool AttachThreadInput(uint a, uint b, bool c); ' +
   '[DllImport("kernel32.dll")] static extern uint GetCurrentThreadId(); ' +
+  // Os processos (Fase 36): quem é pai de quem, e quando cada um nasceu.
+  '[StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)] struct Entrada { public uint dwSize; public uint cntUsage; public uint th32ProcessID; public IntPtr th32DefaultHeapID; public uint th32ModuleID; public uint cntThreads; public uint th32ParentProcessID; public int pcPriClassBase; public uint dwFlags; [MarshalAs(UnmanagedType.ByValTStr, SizeConst = 260)] public string szExeFile; } ' +
+  '[DllImport("kernel32.dll")] static extern IntPtr CreateToolhelp32Snapshot(uint f, uint p); ' +
+  '[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32FirstW(IntPtr s, ref Entrada p); ' +
+  '[DllImport("kernel32.dll", CharSet = CharSet.Unicode)] static extern bool Process32NextW(IntPtr s, ref Entrada p); ' +
+  '[DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h); ' +
+  '[DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint a, bool h, uint p); ' +
+  '[DllImport("kernel32.dll")] static extern bool GetProcessTimes(IntPtr h, out long c, out long e, out long k, out long u); ' +
   'public class Janela { public long Id; public uint Processo; public string Titulo; public bool Minimizada; public bool Ativa; } ' +
   'public static List<Janela> Listar() { ' +
   'var lista = new List<Janela>(); var ativa = GetForegroundWindow(); ' +
@@ -66,7 +74,22 @@ const NATIVE =
   'bool junto = dela != 0 && dela != minha && AttachThreadInput(minha, dela, true); ' +
   'BringWindowToTop(h); SetForegroundWindow(h); ' +
   'if (junto) AttachThreadInput(minha, dela, false); ' +
-  'return GetForegroundWindow() == h; } } }'
+  'return GetForegroundWindow() == h; } ' +
+  'static long Criado(uint p) { var h = OpenProcess(0x1000, false, p); if (h == IntPtr.Zero) return 0; ' +
+  'long c, e, k, u; bool ok = GetProcessTimes(h, out c, out e, out k, out u); CloseHandle(h); return ok ? c : 0; } ' +
+  // O processo e os pais dele. Um "pai" que nasceu depois do filho é outro processo com o número
+  // de um que já foi embora (o Windows reaproveita os números): o caminho para ali.
+  'public static List<uint> Ancestrais(uint pid) { ' +
+  'var pais = new Dictionary<uint, uint>(); var s = CreateToolhelp32Snapshot(2, 0); ' +
+  'var p = new Entrada(); p.dwSize = (uint)Marshal.SizeOf(typeof(Entrada)); ' +
+  'if (Process32FirstW(s, ref p)) { do { pais[p.th32ProcessID] = p.th32ParentProcessID; } while (Process32NextW(s, ref p)); } ' +
+  'CloseHandle(s); ' +
+  'var lista = new List<uint>(); uint atual = pid; long quando = Criado(pid); ' +
+  'while (atual != 0 && !lista.Contains(atual) && lista.Count < 32) { lista.Add(atual); ' +
+  'uint pai; if (!pais.TryGetValue(atual, out pai) || pai == 0) break; ' +
+  'long dele = Criado(pai); if (dele != 0 && quando != 0 && dele > quando) break; ' +
+  'atual = pai; if (dele != 0) quando = dele; } ' +
+  'return lista; } } }'
 
 const LOAD = `Add-Type -TypeDefinition '${NATIVE}'; `
 
@@ -87,6 +110,33 @@ const LIST =
 
 const ACTIVATE =
   LOAD + "if ([Wisp.Janelas]::Ativar([long]$env:WISP_JANELA)) { 'ok' } else { 'nao' }"
+
+/**
+ * A janela do processo WISP_PROCESSO ou do pai mais próximo que tenha uma (o Windows Terminal, o
+ * VS Code, o console), trazida para a frente: "ok", "nao" (o Windows não deixou) ou "sem".
+ */
+const FOCUS_PROCESS =
+  LOAD +
+  "$janelas = @([Wisp.Janelas]::Listar()); $resposta = 'sem'; " +
+  'foreach ($p in [Wisp.Janelas]::Ancestrais([uint32]$env:WISP_PROCESSO)) { ' +
+  '$j = $janelas | Where-Object { $_.Processo -eq $p } | Select-Object -First 1; ' +
+  "if ($j) { $resposta = $(if ([Wisp.Janelas]::Ativar($j.Id)) { 'ok' } else { 'nao' }); break } }; " +
+  '$resposta'
+
+/**
+ * Traz para a frente a janela onde o processo roda (Fase 36: o terminal de uma sessão do Claude
+ * Code): a dele ou a do pai mais próximo que tenha uma. null se o script falhou.
+ */
+export async function focusWindowsProcess(pid: number): Promise<'ok' | 'nao' | 'sem' | null> {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return 'sem'
+  const result = await runPowerShell(FOCUS_PROCESS, { WISP_PROCESSO: String(pid) })
+  const answer = result.stdout.trim()
+  if (result.code !== 0 || !['ok', 'nao', 'sem'].includes(answer)) {
+    console.warn(`[wisp] terminal: ${firstLine(result.stderr) || answer}`)
+    return null
+  }
+  return answer as 'ok' | 'nao' | 'sem'
+}
 
 /** As janelas abertas (da mais à frente para a mais atrás), sem as do processo `self`. */
 export async function windowsWindows(self = process.pid): Promise<RawWindow[] | null> {

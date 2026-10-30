@@ -1,6 +1,7 @@
 import { accessSync, constants, readFileSync, realpathSync, statSync } from 'fs'
 import { delimiter, dirname, isAbsolute, join } from 'path'
 import { CACHE_DIR, DATA_DIR, expandHome } from './paths'
+import { IS_WINDOWS } from './platform'
 import { t } from '../shared/i18n'
 
 // O navegador do Claude (Fase 9): o servidor MCP do Playwright, rodado pelo próprio Claude Code
@@ -26,6 +27,26 @@ const CANDIDATES = [
   'vivaldi'
 ]
 
+/**
+ * No Windows (Fase 36), os navegadores não ficam no PATH: onde os instaladores os põem, na ordem
+ * de preferência (o Edge vem com o Windows, então sempre há um).
+ */
+export function windowsBrowsers(env: NodeJS.ProcessEnv = process.env): string[] {
+  const program = [env.ProgramFiles, env['ProgramFiles(x86)'], env.LOCALAPPDATA].filter(
+    (dir): dir is string => !!dir
+  )
+  const local = env.LOCALAPPDATA ? [env.LOCALAPPDATA] : []
+  const under = (roots: string[], ...parts: string[]): string[] =>
+    roots.map((root) => join(root, ...parts))
+  return [
+    ...under(program, 'Google', 'Chrome', 'Application', 'chrome.exe'),
+    ...under(local, 'Chromium', 'Application', 'chrome.exe'),
+    ...under(program, 'BraveSoftware', 'Brave-Browser', 'Application', 'brave.exe'),
+    ...under(program, 'Microsoft', 'Edge', 'Application', 'msedge.exe'),
+    ...under(program, 'Vivaldi', 'Application', 'vivaldi.exe')
+  ]
+}
+
 function executable(path: string): boolean {
   try {
     accessSync(path, constants.X_OK)
@@ -49,10 +70,14 @@ function snap(path: string): boolean {
   }
 }
 
-/** O navegador a usar: o do config (browserExecutable) ou o primeiro Chromium achado no PATH. */
+/**
+ * O navegador a usar: o do config (browserExecutable) ou o primeiro Chromium achado (no Windows,
+ * nas pastas dos instaladores; nos outros, no PATH).
+ */
 export function findBrowser(
   configured: string | null,
-  env: NodeJS.ProcessEnv = process.env
+  env: NodeJS.ProcessEnv = process.env,
+  windows = IS_WINDOWS
 ): { path: string } | { error: string } {
   if (configured?.trim()) {
     const path = expandHome(configured.trim())
@@ -63,6 +88,10 @@ export function findBrowser(
             configured
           })
         }
+  }
+  if (windows) {
+    const found = windowsBrowsers(env).find(executable)
+    if (found) return { path: found }
   }
   for (const name of CANDIDATES) {
     for (const dir of (env.PATH ?? '').split(delimiter).filter(Boolean)) {

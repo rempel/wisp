@@ -154,6 +154,12 @@ const screen = await waitFor(async () => {
   return /Claude Code de mentira \(terminal\)[\s\S]*\n>/.test(text ?? '') ? text : null
 }, 20000)
 check('E7 o Claude Code abre no terminal da aba (pty)', !!screen, screen)
+// A linha de status do Wisp (no Windows, Fase 36, o próprio Wisp por uma linha do bash do Git).
+check(
+  'E7a a linha de status do Wisp aparece no terminal',
+  /Wisp · [^\n]+ · contexto \d+%/.test(screen ?? ''),
+  screen
+)
 // Um pedido de permissão no terminal vira o card do Wisp, pelo relay dos hooks (no Windows, o
 // próprio Wisp na forma exec, pelo pipe nomeado).
 await ev(
