@@ -208,10 +208,13 @@ wisp(home, '--show')
 chat = await connect('/chat/')
 ev = (expression) => chat.evaluate(expression)
 await waitFor(() => ev(`!!document.querySelector('.pane .composer')`), 15000)
-const back = await waitFor(
-  () => ev(`document.querySelector('.pane .view-toggle .active')?.textContent ?? null`),
-  8000
-)
+// O painel aparece com o estado de começo (no chat) e recebe o da conversa logo depois: espera
+// ele chegar, em vez de ler o primeiro quadro.
+let back = null
+await waitFor(async () => {
+  back = await ev(`document.querySelector('.pane .view-toggle .active')?.textContent ?? null`)
+  return back === 'Terminal'
+}, 8000)
 check('T18 a aba volta no modo terminal', back === 'Terminal', back)
 await shows(/Claude Code de mentira/)
 const resumed = starts().at(-1)
