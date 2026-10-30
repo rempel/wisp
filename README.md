@@ -188,7 +188,8 @@ AppImage, para qualquer distribuição (os dois para x86-64 e ARM64), o Flatpak 
 Windows. (Cada push também gera o instalador do Windows, no artefato `instalador-windows` da
 execução do CI, na aba Actions, enquanto a cota de armazenamento do GitHub deixa; os pacotes do
 Linux saem como artefatos, `pacotes-linux`, `pacotes-linux-arm64` e `pacote-flatpak`, quando o CI
-roda à mão, pelo **Run workflow**.) Para montar os seus, veja
+roda à mão, pelo **Run workflow**. Se a cota encher, o workflow **Limpar artefatos**, rodado à
+mão, apaga os guardados.) Para montar os seus, veja
 [Gerar o .deb](#5-gerar-o-deb-e-o-appimage).
 
 ### .deb (Ubuntu, Debian e derivados)

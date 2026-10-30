@@ -1,0 +1,32 @@
+# Apaga os artefatos guardados do GitHub Actions (os pacotes e instaladores de execuções antigas),
+# para liberar a cota de armazenamento. Roda à mão (Run workflow) e quando este arquivo muda. Os
+# releases não são afetados. O GitHub recalcula o uso da cota a cada 6 a 12 horas.
+name: Limpar artefatos
+
+on:
+  workflow_dispatch:
+  push:
+    paths: ['.github/workflows/limpar-artefatos.yml']
+
+permissions:
+  actions: write
+
+jobs:
+  limpar:
+    name: Apaga os artefatos guardados
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Apaga os artefatos
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh api --paginate "repos/$GITHUB_REPOSITORY/actions/artifacts?per_page=100" \
+            --jq '.artifacts[] | "\(.id) \(.size_in_bytes) \(.name)"' > artefatos.txt
+          total=$(awk '{ s += $2 } END { printf "%.0f", s / 1048576 }' artefatos.txt)
+          echo "$(wc -l < artefatos.txt) artefatos, ${total} MB"
+          while read -r id size name; do
+            echo "apagando $name ($((size / 1048576)) MB)"
+            gh api -X DELETE "repos/$GITHUB_REPOSITORY/actions/artifacts/$id"
+          done < artefatos.txt
+          echo "pronto"
