@@ -60,10 +60,14 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   configuração) no Monaco, com o realce da linguagem, os números das linhas do arquivo, em linha ou
   lado a lado, no tema do Wisp; e **Abrir o arquivo no painel**, só para ler, na linha da mudança.
   O editor carrega só quando um diff aparece, e cada linguagem só quando um arquivo dela aparece.
-- **Mais Windows** (Fase 35, em andamento): os cards do modo terminal e a aba Sessões (os hooks
-  pelo próprio `wisp.exe`, sem shell, e um pipe nomeado de nome sorteado), as notificações com
-  **Permitir** e **Negar** (pelo endereço `wisp://`, que o instalador registra) e o chaveiro (as
-  chaves cifradas pelo Windows, DPAPI).
+- **O Windows por inteiro** (Fase 35): os cards do modo terminal e a aba Sessões (os hooks pelo
+  próprio `wisp.exe`, sem shell, e um pipe nomeado de nome sorteado), as notificações com
+  **Permitir** e **Negar** (pelo endereço `wisp://`, que o instalador registra), o chaveiro (as
+  chaves cifradas pelo Windows, DPAPI) e o desktop pelo Claude: abrir um terminal numa pasta (o
+  Windows Terminal, o PowerShell ou o cmd), ver as janelas e trazer uma para a frente, abrir os
+  apps do menu Iniciar (os da loja também) e os links, a música pelo controle de mídia do Windows e
+  o volume do sistema. A voz acha o whisper.cpp e o Piper do Windows. Nada passa pelo cmd, e
+  nenhum programa é procurado na pasta atual.
 
 ### Mudou
 

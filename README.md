@@ -135,9 +135,10 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 - **Onde roda:** feito para o GNOME e o KDE Plasma, no X11 e no Wayland (pelo XWayland), com o
   Claude Code 2.1 ou mais novo. O CI roda no Ubuntu 22.04 e 24.04; outras distribuições com GNOME ou
-  KDE devem funcionar. No **Windows 10 e 11** (Fase 33), o essencial: o mascote, o painel, as
-  conversas, os cards e o modo terminal; o resto da integração com o desktop chega na Fase 35
-  (veja [Windows](#windows)). O CI também roda num Windows de verdade.
+  KDE devem funcionar. No **Windows 10 e 11** (Fases 33 e 35), o mascote, o painel, as
+  conversas, os cards, o modo terminal e a integração com o desktop (as janelas, o terminal, os
+  apps, a música, o volume e a voz), com poucas diferenças (veja [Windows](#windows)). O CI
+  também roda num Windows de verdade.
 - **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64). Os de ARM64 são montados num
   x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
@@ -146,8 +147,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
-  acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto) e 32 (paleta de comandos e não
-  perturbe), 33 (o essencial no Windows) e 34 (o editor do VS Code):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
+  perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code) e 35 (o Windows por
+  inteiro):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -266,10 +268,21 @@ irm https://claude.ai/install.ps1 | iex
   pareamento do celular cifrados pelo Windows), a bandeja, o atalho global, o print da tela, o
   início com o sistema, os prompts salvos e as tarefas, a busca no histórico, os servidores MCP,
   o editor do VS Code nos diffs, o diagnóstico e os primeiros passos.
-- **Ainda não (no resto da Fase 35):** a música, o volume, as janelas e o terminal pelo Claude, a
-  voz e o comando `wisp`. No modo terminal, a linha de status do Claude Code é a dele (sem a do
-  Wisp). O "não perturbe" do Windows já segura as notificações do Wisp (os sons continuam). O
-  diagnóstico diz o que ainda não há.
+- **O desktop pelo Claude** (Fase 35): abrir um terminal numa pasta (o Windows Terminal; sem ele,
+  o PowerShell ou o cmd), ver as janelas abertas e trazer uma para a frente, abrir os apps do menu
+  Iniciar (os da loja também, como a Calculadora) e os links, a música (tocar, pausar e pular pelo controle de mídia do Windows: Spotify,
+  navegadores, o player do Windows) e o volume do sistema. Tudo pelas funções do próprio Windows,
+  sem o cmd: nada procura programas na pasta atual. O `editorCommand` `code` abre o `Code.exe`
+  do VS Code (o `code.cmd` passaria pelo cmd; o mesmo para o Cursor, o VSCodium e o Windsurf).
+- **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). O atalho de voz liga a
+  escuta, que acaba no silêncio depois da fala (ou num segundo aperto): segurar para falar ainda
+  não dá no Windows.
+- **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
+  sistema; o mascote dança com o que viu tocando da última vez que o Claude olhou (o Wisp não
+  fica escutando os players). No modo terminal, a linha de status do Claude Code é a dele (sem a do Wisp). O
+  "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
+  menu do mascote). O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
+  (`& "$env:LOCALAPPDATA\Programs\Wisp\Wisp.exe" --ask "oi"`).
 - **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
   `settings.json` do Claude Code chamam o `wisp.exe`, e sem ele o Claude Code reclama a cada hook
   (sem travar).
@@ -767,11 +780,11 @@ ainda não funciona lá.
 | Listar apps e projetos, notificar         | Não                |                                                                                  |
 | Lembretes ("me lembra de… em 10 minutos") | Não                | Avisam com o Wisp aberto; os que venceram com ele fechado avisam quando ele abre |
 | Mostrar uma emoção ou dançar no mascote   | Não                | Só mexe no desenho dele, por uns segundos                                        |
-| Música (pausar, próxima, volume)          | Não                | Players com MPRIS: Spotify, Firefox, Chrome, VLC, Rhythmbox…                     |
-| Abrir um app                              | Sim                | Só apps instalados (do menu de apps)                                             |
+| Música (pausar, próxima, volume)          | Não                | Players com MPRIS (no Windows, o controle de mídia dele): Spotify, Firefox…      |
+| Abrir um app                              | Sim                | Só apps instalados (do menu de apps; no Windows, do menu Iniciar)                |
 | Abrir um projeto no editor                | Sim                | Só pastas dentro de `projectRoots`                                               |
 | Abrir um terminal numa pasta              | Sim                | O do seu desktop, ou o de `terminalCommand`                                      |
-| Listar janelas, trazer uma para a frente  | Sim                | KDE e X11                                                                        |
+| Listar janelas, trazer uma para a frente  | Sim                | Windows, KDE e X11                                                               |
 | Print da tela                             | Sim                | O painel sai da frente durante o print                                           |
 | Comandos, criar e editar arquivos         | Sim (pelo modo)    | As ferramentas do próprio Claude Code                                            |
 | Navegador do Claude (opcional)            | Ao abrir cada site | Liberado o site, ler e clicar nele passam; rodar código na página sempre pede    |
@@ -810,6 +823,25 @@ Para o Wisp falar as respostas (opcional), instale o Piper (`pipx install piper-
 em português, como a `pt_BR-faber-medium` (o `.onnx` e o `.onnx.json`), em
 `~/.local/share/wisp/voz/`. Depois, ponha `"voiceReplies": true` no `config.json`. As vozes estão
 em [huggingface.co/rhasspy/piper-voices](https://huggingface.co/rhasspy/piper-voices/tree/main/pt/pt_BR).
+
+**No Windows,** a pasta da voz é `%LOCALAPPDATA%\Wisp\Voz`. Baixe o `whisper-bin-x64.zip` das
+[versões do whisper.cpp](https://github.com/ggml-org/whisper.cpp/releases) e extraia em
+`%LOCALAPPDATA%\Wisp\Voz\whisper`, e o modelo
+[`ggml-small.bin`](https://huggingface.co/ggerganov/whisper.cpp/tree/main) em
+`%LOCALAPPDATA%\Wisp\Voz`:
+
+```powershell
+$voz = "$env:LOCALAPPDATA\Wisp\Voz"
+New-Item -ItemType Directory -Force $voz | Out-Null
+Expand-Archive "$HOME\Downloads\whisper-bin-x64.zip" "$voz\whisper"
+Invoke-WebRequest https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-small.bin -OutFile "$voz\ggml-small.bin"
+```
+
+O Wisp acha o `whisper-cli.exe` no `PATH` e nessa pasta (e em `whisper\Release`, como o zip o
+traz). Para o Piper, o `piper.exe` vai em `%LOCALAPPDATA%\Wisp\Voz\piper` (ou no `PATH`, pelo
+`pip install piper-tts`), e a voz (o `.onnx` e o `.onnx.json`) em `%LOCALAPPDATA%\Wisp\Voz`. O
+Windows precisa deixar os apps usarem o microfone (Configurações → Privacidade → Microfone →
+**Permitir que aplicativos da área de trabalho acessem o microfone**).
 
 ### OpenRouter (experimental)
 
@@ -1244,8 +1276,10 @@ de configurações), e as mudanças chegam por sinal do D-Bus.
 `clipboardChip` liga o chip "usar o que você copiou" do painel. O Wisp só olha a área de
 transferência quando o painel ganha o foco, e nada sai do computador até você clicar no chip e
 enviar a mensagem. `terminalCommand` é o terminal que o Claude abre: `null` escolhe pelo desktop
-(Ptyxis, Console ou GNOME Terminal no GNOME; Konsole no KDE; o do `$TERMINAL`, se houver) ou um
-comando com argumentos, como `"kitty"` ou `"konsole --workdir {dir}"` (`{dir}` vira a pasta).
+(Ptyxis, Console ou GNOME Terminal no GNOME; Konsole no KDE; o do `$TERMINAL`, se houver; no
+Windows, o Windows Terminal, o PowerShell ou o cmd) ou um comando com argumentos, como `"kitty"`
+ou `"konsole --workdir {dir}"` (`{dir}` vira a pasta). No Windows, o comando é um programa com
+janela (`"wt -d {dir}"`, `"wezterm-gui start --cwd {dir}"`), nunca um `.cmd` ou `.bat`.
 
 `browserAutomation` liga o navegador do Claude: um Chrome ou Chromium separado, com perfil
 próprio em `~/.local/share/wisp/navegador`, que o Claude controla pelo

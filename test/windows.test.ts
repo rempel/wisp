@@ -304,7 +304,7 @@ test('achar programas no Windows: pelo PATHEXT, só pastas absolutas, nunca a pa
 })
 
 test('os apps do Windows: os atalhos do menu Iniciar, o do usuário primeiro, sem desinstalar', async () => {
-  const { readWindowsApps, startMenuDirs, windowsTerminals } =
+  const { mergeApps, readWindowsApps, startMenuDirs, windowsTerminals } =
     await import('../src/main/desktop-win')
   const user = folder('menu-usuario', {
     'Firefox.lnk': '',
@@ -333,6 +333,23 @@ test('os apps do Windows: os atalhos do menu Iniciar, o do usuário primeiro, se
     startMenuDirs({ APPDATA: 'A', ProgramData: 'P' }).map((dir) => dir.split(/[\\/]/)[0]),
     ['A', 'P']
   )
+  // A lista do Windows soma os apps sem atalho (os da loja), abertos pelo shell:AppsFolder; um
+  // nome que já tem atalho fica com o atalho.
+  const merged = mergeApps(apps, [
+    { nome: 'Calculadora', id: 'Microsoft.WindowsCalculator_8wekyb3d8bbwe!App' },
+    { nome: 'firefox', id: '308046B0AF4A39CB' },
+    { nome: 'Desinstalar o Programa', id: 'x' },
+    { nome: '', id: 'y' }
+  ])
+  assert.deepEqual(
+    merged.map((app) => app.nome),
+    ['Bloco de Notas', 'Calculadora', 'Firefox', 'Jogo legal', 'Visual Studio Code']
+  )
+  assert.equal(
+    merged.find((app) => app.nome === 'Calculadora')?.path,
+    'shell:AppsFolder\\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App'
+  )
+  assert.equal(merged.find((app) => app.nome === 'Firefox')?.path, join(user, 'Firefox.lnk'))
   // O Windows Terminal primeiro, o cmd por último.
   assert.deepEqual(
     windowsTerminals().map(([command]) => command),

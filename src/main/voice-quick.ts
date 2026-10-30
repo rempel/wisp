@@ -65,7 +65,7 @@ export function voiceQuick(options: QuickOptions): VoiceQuick {
       }
       case 'open': {
         // Um nome que não é de um app instalado vai para o Claude, que sabe procurar melhor.
-        const found = matchApp(command.name, listApps())
+        const found = matchApp(command.name, await listApps())
         if (!found) return false
         chat.utterance(text)
         // O mesmo card do open_app do Claude: nada abre sem um clique (a não ser que o open_app

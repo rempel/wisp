@@ -6,7 +6,7 @@
 
 import { accessSync, constants, lstatSync, readdirSync } from 'fs'
 import { basename, dirname, extname, isAbsolute, join, relative, sep } from 'path'
-import { firstLine, runPowerShell } from './powershell'
+import { firstLine, powerShellJson, runPowerShell } from './powershell'
 import { pathDirs } from './win'
 import { t } from '../shared/i18n'
 
@@ -118,9 +118,13 @@ export async function startWindows(target: string, folder?: string): Promise<str
 // Os apps do menu Iniciar
 
 export interface WindowsApp {
-  /** O caminho do atalho dentro da pasta do menu, com "/" ("Accessories/Notepad"). */
+  /**
+   * O caminho do atalho dentro da pasta do menu, com "/" ("Accessories/Notepad"), ou o AppID do
+   * menu Iniciar ("Microsoft.WindowsCalculator_8wekyb3d8bbwe!App").
+   */
   id: string
   nome: string
+  /** O que o Windows abre: o atalho, ou o app pelo shell:AppsFolder. */
   path: string
 }
 
@@ -162,6 +166,40 @@ export function readWindowsApps(dirs: string[] = startMenuDirs()): WindowsApp[] 
   }
   for (const root of dirs) visit(root, root, 0)
   return [...apps.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+}
+
+/** O que o menu Iniciar do Windows mostra (com os apps da loja, que não têm atalho). */
+const START_APPS =
+  '$apps = @(Get-StartApps | ForEach-Object { [pscustomobject]@{ nome = [string]$_.Name; id = [string]$_.AppID } }); ' +
+  'ConvertTo-Json -InputObject $apps -Compress'
+
+/**
+ * Junta os atalhos das pastas do menu Iniciar com a lista do Windows (a Calculadora, o Bloco de
+ * Notas e os apps da loja não têm atalho no Windows 11): um app por nome, o atalho primeiro.
+ */
+export function mergeApps(
+  shortcuts: WindowsApp[],
+  start: { nome: string; id: string }[]
+): WindowsApp[] {
+  const apps = new Map(shortcuts.map((app) => [app.nome.toLowerCase(), app]))
+  for (const { nome, id } of start) {
+    const name = nome?.trim()
+    if (!name || !id || NOT_APPS.test(name) || apps.has(name.toLowerCase())) continue
+    apps.set(name.toLowerCase(), { id, nome: name, path: `shell:AppsFolder\\${id}` })
+  }
+  return [...apps.values()].sort((a, b) => a.nome.localeCompare(b.nome, 'pt-BR'))
+}
+
+const START_TTL_MS = 2 * 60_000
+let startCache: { at: number; apps: { nome: string; id: string }[] } | null = null
+
+/** Os apps do Windows: os atalhos e a lista do menu Iniciar (guardada por 2 minutos). */
+export async function windowsApps(): Promise<WindowsApp[]> {
+  if (!startCache || Date.now() - startCache.at > START_TTL_MS) {
+    const found = await powerShellJson<{ nome: string; id: string }[]>(START_APPS)
+    startCache = { at: Date.now(), apps: Array.isArray(found) ? found : [] }
+  }
+  return mergeApps(readWindowsApps(), startCache.apps)
 }
 
 // ---------------------------------------------------------------------------
