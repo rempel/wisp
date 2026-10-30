@@ -216,12 +216,18 @@ check('I14 o diagnóstico acha o terminal', terminal?.status === 'ok', JSON.stri
 
 form.kill()
 await stopApp()
-// Os terminais e os Bloco de Notas que o roteiro abriu.
+// Os terminais (e o shell de dentro do Windows Terminal, que segura a pasta) e os Bloco de Notas
+// que o roteiro abriu: os que começaram depois dele.
 powershell(
-  `Get-Process notepad, pwsh, powershell, cmd, WindowsTerminal -ErrorAction SilentlyContinue | ` +
-    `Where-Object { $_.StartTime -gt [datetime]'${started.toISOString()}' -and $_.MainWindowHandle -ne 0 } | ` +
+  `Get-Process notepad, pwsh, powershell, cmd, WindowsTerminal, OpenConsole -ErrorAction SilentlyContinue | ` +
+    `Where-Object { $_.StartTime -gt [datetime]'${started.toISOString()}' } | ` +
     `Stop-Process -Force -ErrorAction SilentlyContinue`
 )
-home.remove()
+await sleep(1000)
+try {
+  home.remove()
+} catch (err) {
+  console.log(`a pasta de teste ficou: ${err.message}`)
+}
 console.log(failed() ? `${failed()} FAIL` : 'all ok')
 process.exit(failed() ? 1 : 0)
