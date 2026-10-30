@@ -13,7 +13,7 @@ import { runtimeDir } from './paths'
 import { describeTrack } from './media'
 import { DANCES, EMOTIONS } from '../shared/emotions'
 import type { Dance, Emotion } from '../shared/emotions'
-import type { Media, MediaAction } from './media'
+import type { MediaAction, MediaPlayers } from './media'
 import { describeIn, describeWhen, parseWhen } from './reminders'
 import type { Reminder } from './reminders'
 import { activateWindow, describeWindow, findWindows, listWindows } from './windows'
@@ -62,7 +62,7 @@ export interface DesktopServerOptions {
   /** O terminal do config.json (null: escolhe pelo desktop). */
   terminalCommand?(): string | null
   /** Os players de música (MPRIS); null sem D-Bus. */
-  media?: () => Media | null
+  media?: () => MediaPlayers | null
   /** Tira o print das telas, com o painel fora da frente. Lança um erro com o motivo. */
   screenshot?: () => Promise<ScreenshotImage[]>
   /** Os lembretes do app (Fase 9). */
@@ -225,7 +225,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       title: 'Janelas abertas',
       description:
         'Lista as janelas abertas (o app e o título), da mais à frente para a mais atrás. ' +
-        'Funciona no KDE e no X11; no GNOME com Wayland o sistema não deixa.',
+        'Funciona no Windows, no KDE e no X11; no GNOME com Wayland o sistema não deixa.',
       annotations: { readOnlyHint: true },
       _meta: ALWAYS_LOAD
     },
@@ -246,8 +246,8 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       title: 'Trazer janela para a frente',
       description:
         'Traz uma janela para a frente (e tira do minimizado). `janela` é o nome do app ' +
-        '("Firefox", "Konsole") ou um pedaço do título. Funciona no KDE e no X11; no GNOME com ' +
-        'Wayland o sistema não deixa.',
+        '("Firefox", "Konsole") ou um pedaço do título. Funciona no Windows, no KDE e no X11; no ' +
+        'GNOME com Wayland o sistema não deixa.',
       inputSchema: { janela: z.string() },
       _meta: ALWAYS_LOAD
     },
@@ -537,7 +537,8 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
         title: 'Volume da música',
         description:
           'Muda o volume do player (de 0 a 100): `volume` define o valor, `mudar` soma ou ' +
-          'subtrai (ex.: -20). É o volume do player, não o do sistema.',
+          'subtrai (ex.: -20). É o volume do player, não o do sistema (no Windows, onde os ' +
+          'players não mostram o volume deles, é o do sistema).',
         inputSchema: {
           volume: z.number().min(0).max(100).optional(),
           mudar: z.number().min(-100).max(100).optional(),

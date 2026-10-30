@@ -30,7 +30,8 @@ export interface PlayerInfo {
 
 export type MediaAction = 'tocar' | 'pausar' | 'alternar' | 'parar' | 'proxima' | 'anterior'
 
-const METHODS: Record<MediaAction, string> = {
+/** O método de cada ação (o mesmo nome no MPRIS e no script do Windows). */
+export const METHODS: Record<MediaAction, string> = {
   tocar: 'Play',
   pausar: 'Pause',
   alternar: 'PlayPause',
@@ -53,11 +54,75 @@ export function describeTrack(player: PlayerInfo): string {
     : `“${player.title}”`
 }
 
+/** O que o Wisp usa dos players: o MPRIS no Linux, o controle de mídia do Windows lá. */
+export interface MediaPlayers {
+  /** Algum player está tocando (o mascote dança). */
+  readonly playing: boolean
+  players(): Promise<PlayerInfo[]>
+  control(action: MediaAction, target?: string): Promise<string>
+  volume(level: number | undefined, delta: number | undefined, target?: string): Promise<string>
+  on(event: 'playing', listener: (playing: boolean) => void): unknown
+  dispose(): void
+}
+
+/** Como ficaram os players depois do comando: "Spotify: pausado, “Song” de Artist." */
+export function describeAfter(players: PlayerInfo[]): string {
+  return players
+    .map((player) => {
+      const track = describeTrack(player)
+      const state =
+        player.status === 'Playing'
+          ? t('tocando')
+          : player.status === 'Paused'
+            ? t('pausado')
+            : t('parado')
+      return `${player.name}: ${state}${track ? `, ${track}` : ''}.`
+    })
+    .join(' ')
+}
+
+/**
+ * Para quem vai o comando. Com `target`, o player com esse nome. Sem ele: pausar e parar valem
+ * para todos que estão tocando; o resto, para o que está tocando, o último que tocou
+ * (`lastActive`) ou o primeiro que aceita controle. Um texto quando não há para quem.
+ */
+export function choosePlayers(
+  players: PlayerInfo[],
+  action: MediaAction,
+  target: string | undefined,
+  lastActive: string | null,
+  none = t('Nenhum player de música ou vídeo aberto (que fale MPRIS).')
+): PlayerInfo[] | string {
+  const controllable = players.filter((player) => player.canControl)
+  if (!controllable.length) {
+    return players.length ? t('Os players abertos não aceitam controle.') : none
+  }
+  if (target?.trim()) {
+    const wanted = fold(target.trim())
+    const found = controllable.filter(
+      (player) => fold(player.name).includes(wanted) || fold(player.bus).includes(wanted)
+    )
+    return found.length
+      ? [found[0]]
+      : t('Não achei o player "{target}". Abertos: {v2}.', {
+          target,
+          v2: controllable.map((p) => p.name).join(', ')
+        })
+  }
+  const playing = controllable.filter((player) => player.status === 'Playing')
+  if (action === 'pausar' || action === 'parar') {
+    return playing.length ? playing : t('Nada está tocando.')
+  }
+  if (playing.length) return [playing[0]]
+  const last = controllable.find((player) => player.bus === lastActive)
+  return [last ?? controllable[0]]
+}
+
 /**
  * Os players abertos. Acompanha quem está tocando (para o mascote dançar) pelos sinais do
  * barramento, sem perguntar de tempos em tempos.
  */
-export class Media extends EventEmitter {
+export class Media extends EventEmitter implements MediaPlayers {
   /** Nome único (":1.42") → nome do player (org.mpris.MediaPlayer2.spotify). */
   private readonly owners = new Map<string, string>()
   /** Nome do player → PlaybackStatus. */
@@ -98,7 +163,7 @@ export class Media extends EventEmitter {
   /** Toca, pausa, pula… Sem `target`, escolhe o player que faz sentido. Devolve o que fez. */
   async control(action: MediaAction, target?: string): Promise<string> {
     const players = await this.players()
-    const chosen = this.choose(players, action, target)
+    const chosen = choosePlayers(players, action, target, this.lastActive)
     if (typeof chosen === 'string') return chosen
     for (const player of chosen) {
       await this.bus.call({
@@ -112,19 +177,7 @@ export class Media extends EventEmitter {
     // O player leva um instante para mudar de faixa ou de estado.
     await new Promise((resolve) => setTimeout(resolve, 400))
     const after = await Promise.all(chosen.map((player) => this.info(player.bus)))
-    return after
-      .filter((player): player is PlayerInfo => player !== null)
-      .map((player) => {
-        const track = describeTrack(player)
-        const state =
-          player.status === 'Playing'
-            ? t('tocando')
-            : player.status === 'Paused'
-              ? t('pausado')
-              : t('parado')
-        return `${player.name}: ${state}${track ? `, ${track}` : ''}.`
-      })
-      .join(' ')
+    return describeAfter(after.filter((player): player is PlayerInfo => player !== null))
   }
 
   /** Muda o volume do player (0 a 100), para um valor ou somando `delta`. */
@@ -134,7 +187,7 @@ export class Media extends EventEmitter {
     target?: string
   ): Promise<string> {
     const players = await this.players()
-    const chosen = this.choose(players, 'tocar', target)
+    const chosen = choosePlayers(players, 'tocar', target, this.lastActive)
     if (typeof chosen === 'string') return chosen
     const player = chosen[0]
     if (player.volume === undefined)
@@ -151,43 +204,6 @@ export class Media extends EventEmitter {
       timeout: CALL_TIMEOUT_MS
     })
     return t('Volume do {name}: {v2}%.', { name: player.name, v2: Math.round(clamped * 100) })
-  }
-
-  /**
-   * Para quem vai o comando. Com `target`, o player com esse nome. Sem ele: pausar e parar valem
-   * para todos que estão tocando; o resto, para o que está tocando, o último que tocou ou o
-   * primeiro que aceita controle.
-   */
-  private choose(
-    players: PlayerInfo[],
-    action: MediaAction,
-    target?: string
-  ): PlayerInfo[] | string {
-    const controllable = players.filter((player) => player.canControl)
-    if (!controllable.length) {
-      return players.length
-        ? t('Os players abertos não aceitam controle.')
-        : t('Nenhum player de música ou vídeo aberto (que fale MPRIS).')
-    }
-    if (target?.trim()) {
-      const wanted = fold(target.trim())
-      const found = controllable.filter(
-        (player) => fold(player.name).includes(wanted) || fold(player.bus).includes(wanted)
-      )
-      return found.length
-        ? [found[0]]
-        : t('Não achei o player "{target}". Abertos: {v2}.', {
-            target,
-            v2: controllable.map((p) => p.name).join(', ')
-          })
-    }
-    const playing = controllable.filter((player) => player.status === 'Playing')
-    if (action === 'pausar' || action === 'parar') {
-      return playing.length ? playing : t('Nada está tocando.')
-    }
-    if (playing.length) return [playing[0]]
-    const last = controllable.find((player) => player.bus === this.lastActive)
-    return [last ?? controllable[0]]
   }
 
   private async playerNames(): Promise<string[]> {

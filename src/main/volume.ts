@@ -1,8 +1,11 @@
 import { spawn } from 'child_process'
 import { viaHost } from './host'
+import { IS_WINDOWS } from './platform'
+import { setWindowsVolume } from './volume-win'
 
 // O volume do sistema, para o "aumenta o volume" da voz: pelo wpctl (PipeWire) ou pelo pactl
-// (PulseAudio, e o PipeWire com o pipewire-pulse). Sempre de 5 em 5%, até 100%.
+// (PulseAudio, e o PipeWire com o pipewire-pulse); no Windows, pela API de áudio dele. Sempre de
+// 5 em 5%, até 100%.
 
 const STEP = 5
 const TIMEOUT_MS = 3000
@@ -46,9 +49,14 @@ export function parsePactlVolume(stdout: string): number | null {
 
 /**
  * Sobe (1) ou desce (-1) o volume do sistema. Devolve o novo volume em %, ou null se não há
- * wpctl nem pactl que funcione (quem chamou tenta o volume do player).
+ * wpctl nem pactl que funcione (quem chamou tenta o volume do player) ou, no Windows, aparelho
+ * de som.
  */
 export async function stepSystemVolume(direction: 1 | -1): Promise<number | null> {
+  if (IS_WINDOWS) {
+    const level = await setWindowsVolume({ step: direction * STEP })
+    return typeof level === 'number' ? level : null
+  }
   const step = `${STEP}%${direction > 0 ? '+' : '-'}`
   const wp = await run('wpctl', ['set-volume', '-l', '1.0', '@DEFAULT_AUDIO_SINK@', step])
   if (wp.code === 0) {

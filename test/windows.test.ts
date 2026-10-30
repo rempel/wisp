@@ -268,3 +268,179 @@ test('os hooks da aba Sessões: no Windows, o próprio Wisp na forma exec, e tir
   assert.equal(after.hooks, undefined)
   assert.equal(hooksStatus().installed, false)
 })
+
+// As integrações do Windows (Fase 35, parte 3): o terminal, os apps, as janelas, a música e o
+// volume. O que é lógica pura roda em qualquer sistema; os scripts do PowerShell, só no Windows.
+
+test('achar programas no Windows: pelo PATHEXT, só pastas absolutas, nunca a pasta atual', async () => {
+  const { launchableWindows, whichWindows } = await import('../src/main/desktop-win')
+  const bin = folder('win-bin', { 'wt.exe': '', 'code.cmd': '', 'velho.com': '' })
+  mkdirSync(join(bin, 'pasta.exe'), { recursive: true })
+  const env = {
+    PATH: ['relativa', bin].join(process.platform === 'win32' ? ';' : ':'),
+    PATHEXT: '.COM;.EXE;.CMD'
+  }
+  assert.equal(whichWindows('wt', env), join(bin, 'wt.exe'))
+  assert.equal(whichWindows('wt.exe', env), join(bin, 'wt.exe'))
+  assert.equal(whichWindows('code', env), join(bin, 'code.cmd'))
+  assert.equal(whichWindows('velho', env), join(bin, 'velho.com'))
+  // Uma pasta com nome de programa não é programa; um caminho relativo não vale.
+  assert.equal(whichWindows('pasta', env), null)
+  assert.equal(whichWindows(join('relativa', 'wt.exe'), env), null)
+  assert.equal(whichWindows(join(bin, 'wt'), env), join(bin, 'wt.exe'))
+  assert.equal(whichWindows('nada', env), null)
+
+  // O .cmd de um editor conhecido vira o executável dele; outro script, nada.
+  const vscode = join(HOME, 'Programs', 'Microsoft VS Code')
+  const exists = (path: string): boolean => path === join(vscode, 'Code.exe')
+  assert.equal(launchableWindows(join(vscode, 'bin', 'code.cmd'), exists), join(vscode, 'Code.exe'))
+  assert.equal(launchableWindows(join(vscode, 'bin', 'outro.cmd'), exists), null)
+  assert.equal(
+    launchableWindows(join(vscode, 'bin', 'code.bat'), () => false),
+    null
+  )
+  assert.equal(launchableWindows(join(bin, 'wt.exe')), join(bin, 'wt.exe'))
+  assert.equal(launchableWindows(join(bin, 'script.ps1')), null)
+})
+
+test('os apps do Windows: os atalhos do menu Iniciar, o do usuário primeiro, sem desinstalar', async () => {
+  const { readWindowsApps, startMenuDirs, windowsTerminals } =
+    await import('../src/main/desktop-win')
+  const user = folder('menu-usuario', {
+    'Firefox.lnk': '',
+    'Steam/Jogo legal.url': '',
+    'Ferramentas/Fundo/Mais fundo/Longe/Escondido.lnk': '',
+    'desktop.ini': ''
+  })
+  const all = folder('menu-todos', {
+    'firefox.lnk': '',
+    'Visual Studio Code/Visual Studio Code.lnk': '',
+    'Visual Studio Code/Uninstall Visual Studio Code.lnk': '',
+    'Acessórios/Bloco de Notas.lnk': ''
+  })
+  const apps = readWindowsApps([user, all])
+  assert.deepEqual(
+    apps.map((app) => [app.id, app.nome]),
+    [
+      ['Acessórios/Bloco de Notas', 'Bloco de Notas'],
+      ['Firefox', 'Firefox'],
+      ['Steam/Jogo legal', 'Jogo legal'],
+      ['Visual Studio Code/Visual Studio Code', 'Visual Studio Code']
+    ]
+  )
+  assert.equal(apps.find((app) => app.nome === 'Firefox')?.path, join(user, 'Firefox.lnk'))
+  assert.deepEqual(
+    startMenuDirs({ APPDATA: 'A', ProgramData: 'P' }).map((dir) => dir.split(/[\\/]/)[0]),
+    ['A', 'P']
+  )
+  // O Windows Terminal primeiro, o cmd por último.
+  assert.deepEqual(
+    windowsTerminals().map(([command]) => command),
+    ['wt.exe', 'pwsh.exe', 'powershell.exe', 'cmd.exe']
+  )
+})
+
+test('a música no Windows: as sessões do controle de mídia viram players, e a escolha é a mesma', async () => {
+  const { appNameOf, playerOf } = await import('../src/main/media-win')
+  const { choosePlayers } = await import('../src/main/media')
+  assert.equal(appNameOf('Spotify.exe'), 'Spotify')
+  assert.equal(appNameOf('Microsoft.ZuneMusic_8wekyb3d8bbwe!Microsoft.ZuneMusic'), 'ZuneMusic')
+  assert.equal(appNameOf('chrome'), 'Chrome')
+  const spotify = playerOf({
+    id: 'Spotify.exe',
+    name: null,
+    status: 'Playing',
+    title: 'Song',
+    artist: 'Artist',
+    album: '',
+    canControl: true
+  })
+  assert.deepEqual(spotify, {
+    bus: 'Spotify.exe',
+    name: 'Spotify',
+    status: 'Playing',
+    title: 'Song',
+    artist: 'Artist',
+    canControl: true
+  })
+  const firefox = playerOf({
+    id: '308046B0AF4A39CB',
+    name: 'Firefox',
+    status: 'Changing',
+    title: null,
+    artist: null,
+    album: null,
+    canControl: true
+  })
+  assert.equal(firefox.name, 'Firefox')
+  assert.equal(firefox.status, 'Stopped')
+  const none = 'Nenhum player de música ou vídeo aberto.'
+  assert.equal(choosePlayers([], 'tocar', undefined, null, none), none)
+  assert.deepEqual(choosePlayers([firefox, spotify], 'pausar', undefined, null), [spotify])
+  assert.deepEqual(choosePlayers([firefox, spotify], 'proxima', 'fire', null), [firefox])
+  assert.equal(
+    choosePlayers([{ ...spotify, status: 'Paused' }], 'pausar', undefined, null),
+    'Nada está tocando.'
+  )
+})
+
+const windowsOnly = { skip: process.platform !== 'win32' && 'só no Windows' }
+
+test(
+  'as janelas do Windows: lista a do Bloco de Notas e a traz para a frente',
+  windowsOnly,
+  async () => {
+    const { spawn } = await import('node:child_process')
+    const { activateWindowsWindow, windowsWindows } = await import('../src/main/windows-win')
+    const file = join(
+      folder('janelas', { 'wisp-janela-de-teste.txt': 'oi' }),
+      'wisp-janela-de-teste.txt'
+    )
+    const notepad = spawn('notepad.exe', [file], { stdio: 'ignore' })
+    try {
+      let found
+      for (let i = 0; i < 40 && !found; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 500))
+        found = (await windowsWindows())?.find((window) =>
+          window.title.includes('wisp-janela-de-teste')
+        )
+      }
+      assert.ok(found, 'a janela do Bloco de Notas aparece')
+      assert.ok(found.pid > 0)
+      assert.match(found.app ?? '', /notepad|bloco|notas/i)
+      console.log(`janela: ${JSON.stringify(found)}`)
+      // Trazer para a frente pode ser barrado pelo Windows (o teste não é a janela da frente):
+      // o que importa é o script rodar e responder.
+      console.log(`trazer para a frente: ${await activateWindowsWindow(found.id)}`)
+      assert.equal(await activateWindowsWindow(1), false)
+    } finally {
+      notepad.kill()
+    }
+  }
+)
+
+test(
+  'o volume e a música do Windows: os scripts rodam (sem aparelho de som, o erro do Windows)',
+  windowsOnly,
+  async () => {
+    const { setWindowsVolume } = await import('../src/main/volume-win')
+    const { WindowsMedia } = await import('../src/main/media-win')
+    const started = Date.now()
+    const level = await setWindowsVolume({ step: 0 })
+    console.log(`volume: ${JSON.stringify(level)} (${Date.now() - started} ms)`)
+    if (typeof level === 'number') {
+      assert.ok(level >= 0 && level <= 100)
+      assert.equal(await setWindowsVolume({ level }), level)
+    } else {
+      // Sem aparelho de som (o CI), o erro é o do Windows, não um do script (C# ou PowerShell).
+      assert.doesNotMatch(
+        level.error,
+        /error CS\d|ParserError|Add-Type|não é reconhecido|not recognized/i
+      )
+    }
+    const media = new WindowsMedia()
+    const players = await media.players()
+    console.log(`players: ${JSON.stringify(players)}`)
+    assert.ok(Array.isArray(players))
+  }
+)

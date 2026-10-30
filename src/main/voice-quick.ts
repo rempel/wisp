@@ -4,8 +4,9 @@
 import type { Chat } from './chat'
 import { getConfig } from './config'
 import { listApps, openApp } from './desktop'
-import type { Media } from './media'
+import type { MediaPlayers } from './media'
 import type { Notify } from './notify'
+import { IS_WINDOWS } from './platform'
 import { matchApp } from './voice-commands'
 import type { QuickCommand } from './voice-commands'
 import { stepSystemVolume } from './volume'
@@ -14,7 +15,7 @@ import { t } from '../shared/i18n'
 
 export interface QuickOptions {
   chat(): Chat | null
-  media(): Media | null
+  media(): MediaPlayers | null
   notify: Notify
   /** O mascote comemora o comando feito. */
   happy(): void
@@ -55,6 +56,8 @@ export function voiceQuick(options: QuickOptions): VoiceQuick {
       case 'volume': {
         const level = await stepSystemVolume(command.direction)
         if (level !== null) return done(true, t('Volume do sistema em {level}%.', { level }))
+        // No Windows, o volume do player já é o do sistema.
+        if (IS_WINDOWS) return done(false, t('Não consegui mudar o volume do Windows.'))
         if (media && (await media.players()).length) {
           return done(true, await media.volume(undefined, command.direction * 10))
         }

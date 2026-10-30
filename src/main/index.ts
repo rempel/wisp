@@ -63,6 +63,8 @@ import { startDesktopServer } from './mcp-server'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
+import type { MediaPlayers } from './media'
+import { WindowsMedia } from './media-win'
 import { setupMcpIpc } from './mcp-ipc'
 import { wispServers } from './mcp-servers'
 import { MascotMood } from './mood'
@@ -191,9 +193,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   void cleanOldAttachments()
   guardPermissions()
 
-  // Os players de música (MPRIS): ferramentas do Claude e a dança do mascote. Conecta mais
-  // abaixo; até lá, as ferramentas respondem que não há D-Bus.
-  let media: Media | null = null
+  // Os players de música (MPRIS; no Windows, o controle de mídia dele): ferramentas do Claude e a
+  // dança do mascote. Conecta mais abaixo; até lá, as ferramentas respondem que não há D-Bus.
+  let media: MediaPlayers | null = null
   let music = false
 
   // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
@@ -788,7 +790,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     voice: (event) => voice?.handle(event)
   })
   sounds.watch()
-  void Media.connect().then((connected) => {
+  void (IS_WINDOWS ? Promise.resolve(new WindowsMedia()) : Media.connect()).then((connected) => {
     media = connected
     if (!media) return
     const dance = (playing: boolean): void => {

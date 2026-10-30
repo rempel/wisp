@@ -143,7 +143,7 @@ test('diagnostics: shortcut, tray, keyring, voice, terminal, config and update',
   )
 })
 
-test('diagnostics: on Windows, nothing about the Linux desktop, and what comes later says so', () => {
+test('diagnostics: on Windows, nothing about the Linux desktop', () => {
   const windows = (patch: Partial<Facts> = {}) =>
     evaluate(
       facts({
@@ -164,16 +164,20 @@ test('diagnostics: on Windows, nothing about the Linux desktop, and what comes l
   assert.equal(byId(windows({ keyring: 'running' }), 'keyring').summary, 'pelo Windows')
   assert.equal(byId(windows({ keyring: 'absent' }), 'keyring').status, 'off')
   assert.doesNotMatch(byId(checks, 'keyring').fix ?? '', /GNOME|KWallet/)
-  assert.equal(byId(checks, 'terminal').status, 'off')
-  assert.match(byId(checks, 'terminal').detail, /próxima versão/)
+  // O terminal (Fase 35): o Windows Terminal, o PowerShell ou o cmd; sem nenhum, o exemplo é o
+  // do Windows.
+  assert.equal(byId(windows({ terminal: true }), 'terminal').status, 'ok')
+  assert.equal(byId(checks, 'terminal').status, 'warn')
+  assert.match(byId(checks, 'terminal').fix ?? '', /wt -d \{dir\}/)
+  assert.doesNotMatch(byId(checks, 'terminal').fix ?? '', /konsole/)
   assert.equal(byId(windows({ keyring: 'absent', needsKeyring: true }), 'keyring').status, 'warn')
-  // O login pelo PowerShell, sem o botão de abrir um terminal.
+  // O login pelo PowerShell, com o botão de abrir um terminal.
   const login = byId(
     windows({ claude: { installed: true, version: '2.1.296', loggedIn: false } }),
     'login'
   )
   assert.match(login.fix ?? '', /PowerShell/)
-  assert.equal(login.action, undefined)
+  assert.equal(login.action, 'terminal')
 })
 
 test('diagnostics: the report has versions and results, nothing personal', () => {

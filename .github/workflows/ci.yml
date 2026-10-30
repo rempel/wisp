@@ -229,7 +229,8 @@ jobs:
 
   # O Wisp no Windows (Fase 33), num Windows de verdade: os testes de unidade que valem lá, o
   # roteiro de ponta a ponta do essencial (abrir, conversar, o hook do Bash, o card, o modo
-  # terminal, o diagnóstico, com os prints) e o instalador.
+  # terminal, o diagnóstico, com os prints), as integrações do Windows (Fase 35: as janelas, o
+  # terminal, os apps, a música e o volume) e o instalador.
   windows:
     name: Windows (testes, ponta a ponta e instalador)
     runs-on: windows-latest
@@ -258,6 +259,11 @@ jobs:
       - name: Ponta a ponta (as notificações com botões)
         timeout-minutes: 10
         run: node e2e/toast.mjs
+      - name: Ponta a ponta (as janelas, o terminal, os apps, a música e o volume)
+        timeout-minutes: 10
+        run: node e2e/integracoes.mjs
+        env:
+          WISP_E2E_SHOTS: ${{ runner.temp }}/telas
       - name: Os prints do Wisp no Windows
         if: always()
         continue-on-error: true

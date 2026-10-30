@@ -1,14 +1,17 @@
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import type { XWindow } from './ewmh'
 import { isKde, kwinActivate, kwinWindows } from './kwin'
+import { IS_WINDOWS } from './platform'
+import { activateWindowsWindow, windowsWindows } from './windows-win'
 import { t } from '../shared/i18n'
 
 // As janelas dos outros apps: listar e trazer para a frente onde o desktop deixa. No KDE, por um
-// script do KWin (X11 e Wayland); no X11, pelo EWMH. No GNOME com Wayland não há como.
+// script do KWin (X11 e Wayland); no X11, pelo EWMH; no Windows (Fase 35), pelas funções do
+// próprio Windows. No GNOME com Wayland não há como.
 
 /** Uma janela de app. */
 export interface WindowInfo {
-  /** "kwin:{uuid}" ou "x11:<número>". */
+  /** "kwin:{uuid}", "x11:<número>" ou "win:<número>" (o HWND). */
   id: string
   app: string
   title: string
@@ -49,6 +52,18 @@ const fromX = (window: XWindow): WindowInfo => ({
 export async function listWindows(
   env: NodeJS.ProcessEnv = process.env
 ): Promise<WindowInfo[] | { error: string }> {
+  if (IS_WINDOWS) {
+    const found = await windowsWindows(process.pid)
+    if (!found) return { error: t('O Windows não respondeu com a lista de janelas.') }
+    return found.map(({ id, pid, app, title, minimized, active }) => ({
+      id: `win:${id}`,
+      app: app ?? '',
+      title,
+      minimized,
+      active,
+      ...(pid ? { pid } : {})
+    }))
+  }
   if (isKde(env)) {
     const found = await kwinWindows(process.pid)
     if (found) return found.map((window) => ({ ...window, id: `kwin:${window.id}` }))
@@ -74,6 +89,7 @@ export async function activateWindow(
   env: NodeJS.ProcessEnv = process.env
 ): Promise<boolean> {
   if (window.id.startsWith('kwin:')) return kwinActivate(window.id.slice(5))
+  if (window.id.startsWith('win:')) return activateWindowsWindow(Number(window.id.slice(4)))
   const id = Number(window.id.slice(4))
   if (!window.id.startsWith('x11:') || !Number.isInteger(id)) return false
   const client = await XClient.open(env)
