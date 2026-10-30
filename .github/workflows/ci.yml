@@ -247,19 +247,24 @@ jobs:
       - name: Testes de unidade que valem no Windows
         run: npm test -- windows paleta busca conversa diagnostics notificacoes editor
       - name: Ponta a ponta (o essencial)
+        # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
+        if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/essencial.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
       - name: Ponta a ponta (o editor do VS Code)
+        if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/monaco.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
       - name: Ponta a ponta (as notificações com botões)
+        if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/toast.mjs
       - name: Ponta a ponta (as janelas, o terminal, os apps, a música e o volume)
+        if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/integracoes.mjs
         env:

@@ -4,7 +4,8 @@ import { mkdirSync, unlinkSync, writeFileSync } from 'fs'
 import { availableParallelism, homedir } from 'os'
 import { basename, join } from 'path'
 import { VOICE_RATE } from '../shared/vad'
-import { expandHome } from './paths'
+import { expandHome, runtimeDir } from './paths'
+import { IS_WINDOWS } from './platform'
 import { findProgram, isFile } from './programs'
 import { viaHost } from './host'
 import { t } from '../shared/i18n'
@@ -20,7 +21,12 @@ const OPTIONAL_FLAGS = ['-sns']
 const quirks = new Map<string, { flags: Set<string>; noStdin: boolean }>()
 /** Nomes do programa, do mais novo para o mais antigo, e onde o build do whisper.cpp o deixa. */
 const NAMES = ['whisper-cli', 'whisper-cpp', 'whisper.cpp']
-const BUILD_DIRS = ['~/whisper.cpp/build/bin', '~/.local/share/whisper.cpp/build/bin']
+const BUILD_DIRS = [
+  '~/whisper.cpp/build/bin',
+  '~/.local/share/whisper.cpp/build/bin',
+  // No Windows, o build do CMake deixa o programa em build\bin\Release.
+  ...(IS_WINDOWS ? ['~/whisper.cpp/build/bin/Release'] : [])
+]
 
 /** Por que a transcrição não saiu, em português. */
 export class WhisperError extends Error {
@@ -180,9 +186,12 @@ function run(
   })
 }
 
-/** O WAV num arquivo em $XDG_RUNTIME_DIR (na memória), para um whisper-cli que não lê o stdin. */
+/**
+ * O WAV num arquivo em $XDG_RUNTIME_DIR (na memória), para um whisper-cli que não lê o stdin. No
+ * Windows, que não tem uma pasta na memória, na pasta só do usuário do Wisp (e apagado logo).
+ */
 function runtimeWav(wav: Buffer): string {
-  const runtime = process.env.XDG_RUNTIME_DIR
+  const runtime = IS_WINDOWS ? runtimeDir() : process.env.XDG_RUNTIME_DIR
   if (!runtime) {
     throw new WhisperError(
       t(
@@ -190,7 +199,7 @@ function runtimeWav(wav: Buffer): string {
       ) + t('ou mais nova lê).')
     )
   }
-  const dir = join(runtime, 'wisp')
+  const dir = IS_WINDOWS ? runtime : join(runtime, 'wisp')
   mkdirSync(dir, { recursive: true, mode: 0o700 })
   const path = join(dir, `voz-${randomBytes(6).toString('hex')}.wav`)
   writeFileSync(path, wav, { mode: 0o600 })
