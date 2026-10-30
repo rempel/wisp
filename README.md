@@ -135,7 +135,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 - **Onde roda:** feito para o GNOME e o KDE Plasma, no X11 e no Wayland (pelo XWayland), com o
   Claude Code 2.1 ou mais novo. O CI roda no Ubuntu 22.04 e 24.04; outras distribuições com GNOME ou
-  KDE devem funcionar. No **Windows 10 e 11** (Fases 33 e 35), o mascote, o painel, as
+  KDE devem funcionar. No **Windows 10 e 11** (Fases 33, 35 e 36), o mascote, o painel, as
   conversas, os cards, o modo terminal e a integração com o desktop (as janelas, o terminal, os
   apps, a música, o volume e a voz), com poucas diferenças (veja [Windows](#windows)). O CI
   também roda num Windows de verdade.
@@ -148,8 +148,8 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
-  perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code) e 35 (o Windows por
-  inteiro):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
+  inteiro) e 36 (o que faltava no Windows):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -279,14 +279,22 @@ irm https://claude.ai/install.ps1 | iex
   não dá no Windows.
 - **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
   sistema; o mascote dança com o que viu tocando da última vez que o Claude olhou (o Wisp não
-  fica escutando os players). No modo terminal, a linha de status do Claude Code é a dele (sem a do Wisp). O
-  "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
+  fica escutando os players). O "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
   menu do mascote). O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
   (`& "$env:LOCALAPPDATA\Programs\Wisp\Wisp.exe" --ask "oi"`).
 - **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
   `settings.json` do Claude Code chamam o `wisp.exe`, e sem ele o Claude Code reclama a cada hook
   (sem travar).
-- **Atualizar:** rode o instalador novo; as configurações e as conversas continuam.
+- **Atualizar:** com o aviso de versão ligado (`updateCheck`), o diagnóstico mostra **Atualizar**
+  quando sai uma versão nova (Fase 36): o Wisp baixa o instalador novo do release para a pasta
+  de cache dele e confere a assinatura; **Reiniciar o Wisp** roda o instalador em silêncio, por
+  cima, e abre a versão nova. Sem a assinatura certa, nada é instalado. As configurações e as
+  conversas continuam. (Rodar o instalador novo à mão também serve.)
+- **Na aba Sessões, Trazer para a frente** (Fase 36) acha a janela do terminal da sessão (o
+  Windows Terminal, o VS Code, o console) pelos processos e a traz para a frente. **O navegador do
+  Claude** (`browserAutomation`) acha o Chrome ou o Edge sozinho, nas pastas de instalação. **No
+  modo terminal**, a linha de status é a do Wisp (com o Git Bash, que o Claude Code usa para
+  ela).
 - **Remover:** Configurações do Windows → **Aplicativos** → Wisp → **Desinstalar**. As pastas
   `%APPDATA%\Wisp` e `%LOCALAPPDATA%\Wisp` ficam; apague-as para tirar tudo.
 - **Do código, no Windows:** com o [Node](https://nodejs.org) 22 e o Git, `npm ci` e
@@ -1286,7 +1294,8 @@ próprio em `~/.local/share/wisp/navegador`, que o Claude controla pelo
 [Playwright MCP](https://github.com/microsoft/playwright-mcp). Você vê a janela e pode entrar em
 sites nela; os logins ficam só nesse perfil. `browserExecutable` é o caminho do navegador; com
 `null`, o Wisp procura o Chrome, o Chromium, o Brave, o Edge ou o Vivaldi no `PATH` (os do Snap
-não servem: o confinamento não deixa usar o perfil).
+não servem: o confinamento não deixa usar o perfil); no Windows, nas pastas onde os instaladores
+os põem (Program Files e `%LOCALAPPDATA%`).
 
 `voiceShortcut` é o atalho de voz (segure enquanto fala; um toque ouve até você parar), no mesmo
 formato do `shortcut`; `null` desliga. No Wayland, os dois atalhos aparecem na mesma janela do
@@ -1319,7 +1328,8 @@ nunca fica no arquivo: ela vai para o chaveiro do sistema pela tela de configura
 `updateCheck` liga o aviso de versão nova: uma vez por dia, o Wisp pergunta ao GitHub qual é a
 última versão publicada e, se for mais nova, avisa numa notificação (uma vez por versão), com o
 link da página dela. No AppImage, o diagnóstico ganha **Atualizar** (baixa, confere a assinatura e
-troca o arquivo). Nada é baixado nem instalado sem o seu clique. Desligado, o Wisp não faz essa
+troca o arquivo); no Windows, também (baixa o instalador, confere a assinatura e instala ao
+reiniciar). Nada é baixado nem instalado sem o seu clique. Desligado, o Wisp não faz essa
 consulta.
 
 `phoneApprovals` é a aprovação pelo celular (veja [Aprovar pelo celular](#aprovar-pelo-celular)).
@@ -1416,9 +1426,10 @@ hora uma conversa apagada.
   processo, sem gravar nada.
 - **Servidores MCP:** nas conversas do Wisp entram só os seus que você ligou; os dos projetos
   nunca. Cada ferramenta deles pede permissão pelo card até você liberá-la.
-- **Atualizar só com o clique e com a assinatura:** o AppImage novo é baixado só quando você clica
-  em **Atualizar**, e só troca o arquivo se a assinatura ed25519 conferir com a chave que veio no
-  Wisp (a assinatura cobre o nome, com a versão, e o sha256 do arquivo).
+- **Atualizar só com o clique e com a assinatura:** o AppImage novo (ou, no Windows, o instalador)
+  é baixado só quando você clica em **Atualizar**, e só troca o arquivo (ou instala) se a
+  assinatura ed25519 conferir com a chave que veio no Wisp (a assinatura cobre o nome, com a
+  versão, e o sha256 do arquivo).
 - **Exportar:** o arquivo exportado é só seu e não tem chaves; importar mostra o que muda antes,
   marca o que muda o que roda na sua máquina e faz o backup do `config.json`.
 - **O arquivo no painel** é lido pelo próprio Wisp, só para mostrar: nada sai da máquina, e os
@@ -1610,8 +1621,9 @@ o que vale para toda mudança. O que mudou em cada versão está nas [notas de v
 2. Faça o commit e crie a tag: `git tag v<versão>` e `git push origin v<versão>`.
 3. Mova o "Não lançado" do [CHANGELOG](CHANGELOG.md) para a versão nova.
 4. O CI monta os pacotes, confere e cria o release da tag, com o .deb e o AppImage (x86-64 e ARM64),
-   o Flatpak e as notas geradas dos commits. Com o segredo `WISP_RELEASE_KEY`, cada AppImage sai
-   com um `.sig` ao lado, que o **Atualizar** do Wisp confere.
+   o Flatpak, o instalador do Windows e as notas geradas dos commits. Com o segredo
+   `WISP_RELEASE_KEY`, cada AppImage e o instalador do Windows saem com um `.sig` ao lado, que o
+   **Atualizar** do Wisp confere.
 
 A chave de assinatura dos AppImage se gera uma vez, na sua máquina:
 

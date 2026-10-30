@@ -777,3 +777,16 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
       editor" abre o VS Code na pasta, sem janela do cmd piscando.
 - [ ] **O diagnóstico:** o item **Terminal** aparece como achado; sem login no Claude Code, o
       item **Login** tem o botão de abrir um terminal.
+
+## O que faltava no Windows (Fase 36)
+
+- [ ] **Trazer para a frente:** com uma sessão do Claude Code rodando no Windows Terminal (e os
+      hooks da aba Sessões instalados), minimize o terminal e clique em **Trazer para a frente** no
+      card da sessão: o Windows Terminal volta e fica na frente. O mesmo no terminal do VS Code.
+- [ ] **O navegador do Claude:** com `"browserAutomation": true` e sem `browserExecutable`, peça
+      "abre o site do Wisp no navegador do Claude": o Chrome (ou o Edge) abre num perfil separado.
+- [ ] **A linha de status:** no modo terminal, embaixo da caixa do Claude Code aparece
+      `Wisp · <modelo> · contexto N%`, e a pílula de contexto do painel acompanha.
+- [ ] **Atualizar:** numa versão com o `.sig` no release e o aviso de versão ligado, o diagnóstico
+      mostra **Atualizar**; o clique baixa o instalador e diz "baixado e conferido"; **Reiniciar o
+      Wisp** fecha o Wisp, instala em silêncio e abre a versão nova, com as conversas.

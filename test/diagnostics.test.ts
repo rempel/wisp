@@ -178,6 +178,18 @@ test('diagnostics: on Windows, nothing about the Linux desktop', () => {
   )
   assert.match(login.fix ?? '', /PowerShell/)
   assert.equal(login.action, 'terminal')
+  // A versão nova (Fase 36): o Atualizar baixa o instalador, e o Reiniciar instala.
+  const update = { version: '0.9.0', url: 'https://github.com/rempel/wisp/releases/tag/v0.9.0' }
+  const available = byId(windows({ update, selfUpdate: true, updateFormat: 'installer' }), 'update')
+  assert.equal(available.action, 'update')
+  assert.match(available.fix ?? '', /instalador novo/)
+  const downloaded = byId(
+    windows({ update, selfUpdate: true, updateFormat: 'installer', installed: '0.9.0' }),
+    'update'
+  )
+  assert.equal(downloaded.action, 'restart')
+  assert.match(downloaded.summary, /baixada/)
+  assert.match(downloaded.detail, /instala por cima/)
 })
 
 test('diagnostics: the report has versions and results, nothing personal', () => {

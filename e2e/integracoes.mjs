@@ -129,6 +129,13 @@ check(
   !!listed && !/Wisp:|“Wisp”/.test(listed.text),
   listed?.text
 )
+// Os roteiros de antes (o essencial, com o modo terminal) não deixam a caixa de erro do Electron
+// de um hook que perdeu o Claude Code (Fase 36).
+check(
+  'I2b nenhuma caixa de erro do Electron aberta',
+  !!listed && !/Electron: “Error”/.test(listed.text),
+  listed?.text
+)
 // O painel na frente; o focus_window traz o Bloco de Notas.
 wisp(home, '--show')
 await sleep(800)

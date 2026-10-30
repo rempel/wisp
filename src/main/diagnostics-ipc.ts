@@ -160,6 +160,7 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         needsKeyring: config.provider === 'openrouter' || config.phoneApprovals,
         update: options.updates.available(),
         selfUpdate: options.selfUpdate !== null,
+        ...(options.selfUpdate ? { updateFormat: options.selfUpdate.format } : {}),
         installed: options.selfUpdate?.installed() ?? null,
         windows: IS_WINDOWS
       }
@@ -204,14 +205,21 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         const update = options.updates.available()
         if (!update || !options.selfUpdate) return { ok: false, message: t('Não há versão nova.') }
         const result = await options.selfUpdate.install(update)
-        return result.ok
-          ? {
-              ok: true,
-              message: t('Pronto: o Wisp {version} já está no lugar. Reinicie para usar.', {
-                version: update.version
-              })
-            }
-          : result
+        if (!result.ok) return result
+        return {
+          ok: true,
+          message:
+            options.selfUpdate.format === 'installer'
+              ? t(
+                  'Pronto: o instalador do Wisp {version} foi baixado e conferido. Reinicie para instalar.',
+                  {
+                    version: update.version
+                  }
+                )
+              : t('Pronto: o Wisp {version} já está no lugar. Reinicie para usar.', {
+                  version: update.version
+                })
+        }
       }
       case 'restart':
         if (!options.selfUpdate?.installed()) {

@@ -2140,5 +2140,16 @@ export const EN: Record<string, string> = {
   'O Windows não respondeu com a lista de janelas.':
     "Windows didn't respond with the list of windows.",
   'O Windows não deixou trazer a janela do terminal para a frente.':
-    "Windows didn't let me bring the terminal window to the front."
+    "Windows didn't let me bring the terminal window to the front.",
+  'Pronto: o instalador do Wisp {version} foi baixado e conferido. Reinicie para instalar.':
+    'Done: the Wisp {version} installer was downloaded and checked. Restart to install.',
+  '{version} baixada, falta reiniciar': '{version} downloaded, restart pending',
+  'O instalador do Wisp {version} já foi baixado e conferido: em **Reiniciar**, ele instala por cima e abre o Wisp de novo.':
+    'The Wisp {version} installer was downloaded and checked: on **Restart**, it installs over this one and opens Wisp again.',
+  'Em **Atualizar**, o Wisp baixa o instalador novo e confere a assinatura dele; em **Reiniciar**, ele instala por cima. As configurações e as conversas continuam.':
+    'With **Update**, Wisp downloads the new installer and checks its signature; with **Restart**, it installs over this one. Your settings and conversations stay.',
+  'Clique para atualizar: o Wisp baixa o instalador, confere a assinatura e instala.':
+    'Click to update: Wisp downloads the installer, checks the signature and installs it.',
+  'A versão {version} não tem o instalador assinado: baixe pela página da versão.':
+    'Version {version} has no signed installer: download it from the release page.'
 }

@@ -1409,6 +1409,49 @@ Notas da entrega:
   prompt. O Claude Code de mentira registra cada linha que recebe e quanto cada hook levou, para
   um roteiro que falhar dizer onde parou.
 
+### Fase 36: o que faltava no Windows
+
+**Status:** pronta (testes: `test/windows.test.ts`, `test/levar.test.ts`, `test/diagnostics.test.ts`;
+`e2e/essencial.mjs` (E7a), `e2e/integracoes.mjs` (I15) e `e2e/atualizar-win.mjs`, no job
+**Windows** do CI).
+
+Depois da Fase 35, o que ainda era só do Linux:
+
+- **Trazer o terminal de uma sessão para a frente (P):** do processo do Claude Code, pelos pais
+  dele, até a janela do terminal.
+- **O navegador do Claude (P):** achar o Chrome, o Edge e os outros fora do PATH.
+- **A linha de status do Wisp no modo terminal (P):** pelo próprio Wisp.
+- **Atualizar com um clique (M):** baixar o instalador, conferir a assinatura e instalar.
+
+**Aceite:** no Windows, a aba Sessões traz o terminal da sessão para a frente, o navegador do
+Claude abre sem configurar o caminho, a linha de status do Wisp aparece no modo terminal, e o
+**Atualizar** baixa, confere e instala a versão nova.
+
+Notas da entrega:
+
+- o terminal: um snapshot dos processos (`CreateToolhelp32Snapshot`) dá o pai de cada um; do
+  Claude Code (o pai do relay, na forma exec) até a primeira janela da barra de tarefas de um dos
+  pais (o Windows Terminal, o VS Code, o console), trazida para a frente como no `focus_window`. Um
+  "pai" que nasceu depois do filho é outro processo com um número reaproveitado: o caminho para
+  ali;
+- o navegador: o Chrome, o Chromium, o Brave, o Edge e o Vivaldi nas pastas dos instaladores
+  (Program Files e `%LOCALAPPDATA%`); o Edge vem com o Windows, então sempre há um;
+- a linha de status: o Claude Code só aceita uma linha de shell para ela (sem a forma exec), e a
+  roda no bash do Git; ele apara a saída e pula as linhas vazias (conferido no Claude Code
+  2.1.314), então a linha em branco que o Electron escreve no começo não atrapalha. A linha chama
+  o próprio Wisp entre aspas simples, com as barras normais, e leva só a ficha da aba. Sem o Git
+  Bash, o Claude Code usa o PowerShell, que não roda essa linha: fica a dele, como antes;
+- atualizar: o instalador do release (`Wisp-<versão>-Setup-x64.exe`) e o `.sig` dele, assinado no
+  CI como os AppImage; baixado para `%LOCALAPPDATA%\Wisp\Cache\atualizacao` e conferido antes
+  de ficar com o nome; **Reiniciar o Wisp** roda o instalador com `--updated /S --force-run` (o
+  NSIS do electron-builder instala em silêncio e abre o Wisp novo) e fecha este. O roteiro do CI
+  monta um instalador de mentira (um .exe que anota os argumentos), assina com uma chave de teste
+  e confere o caminho todo, até o Wisp fechar.
+- de quebra, o CI do Windows achou que um hook que perdia o Claude Code (o stdout fechado quando
+  ele sai, EPIPE) mostrava a caixa de erro do Electron, que ficava aberta: no Windows, o relay e
+  o hook do Bash são o próprio Wisp.exe. Agora eles só saem, sem caixa (e o relay do Linux
+  também sai quieto); o `e2e/integracoes.mjs` confere que nenhuma caixa "Error" ficou aberta.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

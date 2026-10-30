@@ -1,5 +1,6 @@
 // O idioma antes de tudo: os textos guardados em constantes já saem nele (Fase 25).
 import './locale-init'
+import { spawn } from 'child_process'
 import { app, ipcMain, nativeTheme, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
 import { basename, join } from 'path'
@@ -656,23 +657,33 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     settings.notify()
     menu?.refresh()
   })
-  // Atualizar com um clique (Fase 31): só o AppImage, e só com a chave que confere a assinatura.
-  const updateFile = updateTarget(kind, app.isPackaged)
+  // Atualizar com um clique (Fase 31): o AppImage e, no Windows (Fase 36), o instalador; só com a
+  // chave que confere a assinatura.
+  const updatePlan = updateTarget(kind, app.isPackaged)
   const publicKey = releaseKey(app.isPackaged)
   const downloadBase = app.isPackaged ? '' : (process.env.WISP_TEST_DOWNLOAD_BASE ?? '')
   const selfUpdate =
-    updateFile && publicKey
+    updatePlan && publicKey
       ? new SelfUpdater({
-          target: updateFile,
+          ...updatePlan,
           publicKey,
           rewrite: downloadBase
             ? (url) => url.replace(/^https:\/\/github\.com/, downloadBase)
             : undefined,
-          relaunch: (target) => {
-            app.relaunch({
-              execPath: target,
-              args: process.argv.slice(1).filter((arg) => !parseCommand([arg]))
-            })
+          relaunch: (path) => {
+            if (updatePlan.format === 'installer') {
+              // O instalador (conferido) instala por cima em silêncio e abre o Wisp novo; este fecha
+              // para ele trocar os arquivos.
+              spawn(path, ['--updated', '/S', '--force-run'], {
+                detached: true,
+                stdio: 'ignore'
+              }).unref()
+            } else {
+              app.relaunch({
+                execPath: path,
+                args: process.argv.slice(1).filter((arg) => !parseCommand([arg]))
+              })
+            }
             app.quit()
           }
         })
@@ -686,7 +697,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       selfUpdate
         ? notify(
             t('Wisp {version} disponível', { version: release.version }),
-            t('Clique para atualizar: o Wisp baixa, confere a assinatura e troca o AppImage.'),
+            selfUpdate.format === 'installer'
+              ? t(
+                  'Clique para atualizar: o Wisp baixa o instalador, confere a assinatura e instala.'
+                )
+              : t('Clique para atualizar: o Wisp baixa, confere a assinatura e troca o AppImage.'),
             () => chat?.showView('diagnostics')
           )
         : notify(
