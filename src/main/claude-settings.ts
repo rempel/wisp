@@ -11,6 +11,7 @@ import { shellQuote } from './launcher'
 import { ASK_FOR_BASH, MODE_FILE_ENV, MODE_HOOK_ARG } from './mode-hook'
 import type { OpenRouterModel } from './openrouter'
 import { IS_WINDOWS } from './platform'
+import { selfCommandOf } from './self-command'
 
 /** Ferramentas que o Claude usa sem pedir permissão (seção 5.4 da especificação). */
 export const SAFE_TOOLS = [
@@ -112,15 +113,6 @@ export function isSensitivePath(path: string, home = homedir()): boolean {
 export { MODE_FILE_ENV }
 
 /**
- * Como o Claude Code roda o próprio Wisp num hook, no Windows: o Wisp.exe (ou, no código, o
- * Electron com a pasta do app). O index.ts define ao abrir.
- */
-let selfCommand: { command: string; args: string[] } | null = null
-export function setSelfCommand(command: string, args: string[]): void {
-  selfCommand = { command, args }
-}
-
-/**
  * Configurações extras da sessão (--settings):
  * - um hook que manda todo comando Bash para a aprovação. Sem ele o Claude Code roda sozinho
  *   comandos que considera só de leitura (ps, whoami, ls na pasta de trabalho, e também um `cat`
@@ -136,6 +128,7 @@ const BASH_HOOK = `[ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ] || printf
  * rodaria no Git Bash ou no PowerShell, conforme a máquina.
  */
 function bashHook(): Record<string, unknown> {
+  const selfCommand = selfCommandOf()
   if (IS_WINDOWS && selfCommand) {
     return {
       type: 'command',
@@ -163,7 +156,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   const command = (...parts: string[]): string => [shellQuote(relay), ...parts].join(' ')
   // No Windows (Fase 35), o relay é o próprio Wisp na forma exec (sem shell). Sem saber o
   // executável, os pedidos aparecem só no próprio terminal.
-  const windows = IS_WINDOWS ? selfCommand : null
+  const windows = IS_WINDOWS ? selfCommandOf() : null
   const relayHook = (...parts: string[]): Record<string, unknown> =>
     windows
       ? { command: windows.command, args: [...windows.args, RELAY_ARG, ...parts] }

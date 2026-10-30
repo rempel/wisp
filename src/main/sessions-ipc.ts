@@ -7,11 +7,6 @@ import type { ExternalSessions } from './sessions'
 import { focusTerminal } from './terminal'
 import type { FocusResult } from './terminal'
 import { t } from '../shared/i18n'
-import { IS_WINDOWS } from './platform'
-
-const WINDOWS_LATER = t(
-  'No Windows, acompanhar as sessões do terminal chega numa próxima versão do Wisp.'
-)
 
 export interface SessionsIpcOptions {
   sessions: ExternalSessions
@@ -92,16 +87,12 @@ export function setupSessionsIpc(options: SessionsIpcOptions): void {
   })
   ipcMain.handle(IPC.hooksPreview, (event, action: unknown) => {
     if (!isChat(event.sender) || !isAction(action)) return { error: t('pedido inválido') }
-    // No Windows (Fase 33), os hooks do relay ainda não existem: um hook de shell quebrado no
-    // settings.json poderia até travar as ferramentas do Claude Code. Chegam na Fase 35.
-    if (IS_WINDOWS && action === 'install') return { error: WINDOWS_LATER }
     return previewHooks(action)
   })
   ipcMain.handle(IPC.hooksApply, (event, action: unknown, fingerprint: unknown) => {
     if (!isChat(event.sender) || !isAction(action) || typeof fingerprint !== 'string') {
       return { error: t('pedido inválido') }
     }
-    if (IS_WINDOWS && action === 'install') return { error: WINDOWS_LATER }
     const result = applyHooks(action, fingerprint)
     options.changed()
     return result

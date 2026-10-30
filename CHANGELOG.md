@@ -60,6 +60,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   configuração) no Monaco, com o realce da linguagem, os números das linhas do arquivo, em linha ou
   lado a lado, no tema do Wisp; e **Abrir o arquivo no painel**, só para ler, na linha da mudança.
   O editor carrega só quando um diff aparece, e cada linguagem só quando um arquivo dela aparece.
+- **Mais Windows** (Fase 35, em andamento): os cards do modo terminal e a aba Sessões (os hooks
+  pelo próprio `wisp.exe`, sem shell, e um pipe nomeado de nome sorteado), as notificações com
+  **Permitir** e **Negar** (pelo endereço `wisp://`, que o instalador registra) e o chaveiro (as
+  chaves cifradas pelo Windows, DPAPI).
 
 ### Mudou
 

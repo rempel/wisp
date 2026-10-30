@@ -2090,8 +2090,6 @@ export const EN: Record<string, string> = {
     'Install it with the official installer, in PowerShell:\n\n',
   'O Claude Code usa o Git para Windows (o Git Bash) para rodar comandos: instale-o também.\n\n':
     'Claude Code uses Git for Windows (Git Bash) to run commands: install it too.\n\n',
-  'No Windows, acompanhar as sessões do terminal chega numa próxima versão do Wisp.':
-    'On Windows, following terminal sessions arrives in a future version of Wisp.',
   'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, ':
     'Open PowerShell, run `claude` and log in (it opens the browser). Then ',
   'pelo Windows': 'through Windows',

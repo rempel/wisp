@@ -9,13 +9,15 @@ import {
   writeFileSync
 } from 'fs'
 import { homedir } from 'os'
-import { dirname, isAbsolute, join } from 'path'
+import { dirname, isAbsolute, join, sep } from 'path'
 import { backupFile, stamp } from '../backup'
 import { compactHunks, lineDiff } from '../../shared/diff'
 import type { HookPreview, HooksAction, HooksStatus } from '../../shared/ipc'
 import { shellQuote } from '../launcher'
 import { DATA_DIR } from '../paths'
-import { HOOK_EVENTS, RELAY_NAME } from './protocol'
+import { selfCommandOf } from '../self-command'
+import { IS_WINDOWS } from '../platform'
+import { HOOK_EVENTS, RELAY_ARG, RELAY_NAME } from './protocol'
 import { t } from '../../shared/i18n'
 
 /** Onde o relay fica para o Claude Code: um script curto que roda o relay do app. */
@@ -28,7 +30,7 @@ export function settingsPath(env: NodeJS.ProcessEnv = process.env): string {
 }
 
 const tilde = (path: string): string =>
-  path.startsWith(homedir() + '/') ? `~${path.slice(homedir().length)}` : path
+  path.startsWith(homedir() + sep) ? `~${path.slice(homedir().length)}` : path
 
 /**
  * Escreve o script que o Claude Code chama a cada hook. Ele roda o relay com o próprio Electron
@@ -74,9 +76,16 @@ export function deployRelay(
   }
 }
 
-/** O comando de um evento: o caminho do relay (entre aspas) e o nome do evento. */
-function hookCommand(event: string): string {
-  return `${shellQuote(WRAPPER_PATH)} ${event}`
+/**
+ * O comando de um evento: o caminho do relay (entre aspas) e o nome do evento. No Windows (Fase
+ * 35), a forma exec (sem shell): o próprio Wisp com --wisp-hook e o evento.
+ */
+function hookCommand(event: string): Record<string, unknown> {
+  const self = selfCommandOf()
+  if (IS_WINDOWS && self) {
+    return { command: self.command, args: [...self.args, RELAY_ARG, event] }
+  }
+  return { command: `${shellQuote(WRAPPER_PATH)} ${event}` }
 }
 
 /** A entrada do Wisp num evento, no formato do settings.json. */
@@ -85,7 +94,7 @@ function ourEntry(event: (typeof HOOK_EVENTS)[number]): Record<string, unknown> 
     hooks: [
       {
         type: 'command',
-        command: hookCommand(event.event),
+        ...hookCommand(event.event),
         timeout: event.timeout,
         ...(event.async ? { async: true } : {})
       }
@@ -93,13 +102,17 @@ function ourEntry(event: (typeof HOOK_EVENTS)[number]): Record<string, unknown> 
   }
 }
 
-/** Uma entrada é do Wisp se algum comando dela chama o relay do Wisp. */
+/**
+ * Uma entrada é do Wisp se algum comando dela chama o relay do Wisp: o script (Linux) ou o Wisp
+ * com --wisp-hook (Windows).
+ */
 function isOurs(entry: unknown): boolean {
   const hooks = (entry as { hooks?: unknown } | null)?.hooks
   return (
     Array.isArray(hooks) &&
-    hooks.some((hook: { command?: unknown } | null) => {
+    hooks.some((hook: { command?: unknown; args?: unknown } | null) => {
       const command = hook?.command
+      if (Array.isArray(hook?.args) && hook.args.includes(RELAY_ARG)) return true
       return typeof command === 'string' && command.includes(`/${RELAY_NAME}`)
     })
   )
