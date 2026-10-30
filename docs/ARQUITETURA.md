@@ -885,9 +885,11 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     sistema, no Windows vem das APIs dele, por scripts fixos do PowerShell (`powershell.ts`: o
     `powershell.exe` do `%SystemRoot%`, sem perfil e sem janela, só quando pedem). O texto de cada
     script está no código; o que muda vai por variáveis de ambiente (`WISP_*`), nunca no texto.
-    O `PSModulePath` é sempre o dos módulos do Windows (`System32\WindowsPowerShell\v1.0\Modules`):
-    sem ele, o PowerShell trava ao carregar o primeiro módulo, e com o do usuário um módulo da
-    pasta dele (ou um do PowerShell 7) poderia tomar o lugar de um comando do sistema. O que
+    Os scripts não procuram módulos: o carregamento automático fica desligado, e os módulos que
+    eles usam (os dois do PowerShell e o `StartLayout`) vêm pelo caminho do `$PSHOME`, com o
+    `PSModulePath` nos módulos do Windows. Procurar o módulo do primeiro comando é onde o
+    PowerShell travava, conforme o ambiente de quem abriu o Wisp; e assim um módulo da pasta do
+    usuário (ou um do PowerShell 7) não toma o lugar de um comando do sistema. O que
     precisa do Win32 é C# compilado pelo `Add-Type` a cada vez (menos de um segundo):
     - **as janelas** (`windows-win.ts`): o `EnumWindows` com o filtro da barra de tarefas
       (visível, sem dona, sem `WS_EX_TOOLWINDOW`, sem `DWMWA_CLOAKED`, com título), em ordem de

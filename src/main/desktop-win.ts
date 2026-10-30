@@ -6,7 +6,7 @@
 
 import { accessSync, constants, lstatSync, readdirSync } from 'fs'
 import { basename, dirname, extname, isAbsolute, join, relative, sep } from 'path'
-import { firstLine, powerShellJson, runPowerShell } from './powershell'
+import { firstLine, importModule, powerShellJson, runPowerShell } from './powershell'
 import { pathDirs } from './win'
 import { t } from '../shared/i18n'
 
@@ -170,6 +170,7 @@ export function readWindowsApps(dirs: string[] = startMenuDirs()): WindowsApp[] 
 
 /** O que o menu Iniciar do Windows mostra (com os apps da loja, que não têm atalho). */
 const START_APPS =
+  importModule('StartLayout') +
   '$apps = @(Get-StartApps | ForEach-Object { [pscustomobject]@{ nome = [string]$_.Name; id = [string]$_.AppID } }); ' +
   'ConvertTo-Json -InputObject $apps -Compress'
 

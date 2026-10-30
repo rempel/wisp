@@ -1380,10 +1380,11 @@ Notas da entrega:
   o Windows deixa); a música pelo controle de mídia do Windows (SMTC); o volume pelo Core Audio.
   O primeiro CI mostrou o C# do volume compilando e o Windows respondendo "sem aparelho de som"
   (o runner não tem), e o controle de mídia respondendo sem sessões. Pelo app, no começo, todo
-  script passava de 20 s: o roteiro abria o Wisp sem o `PSModulePath`, e sem ele o PowerShell
-  trava ao carregar o primeiro módulo (uma sonda no CI mediu 25 s sem ele e 0,4 s com ele). O Wisp
-  agora fixa o `PSModulePath` nos módulos do Windows, o que também impede um módulo da pasta do
-  usuário de tomar o lugar de um comando do sistema;
+  script passava de 20 s: uma sonda no CI mostrou o PowerShell parado no primeiro comando,
+  procurando o módulo dele, conforme o ambiente (sem o `PSModulePath` do runner, 25 s; com ele,
+  0,4 s). Os scripts agora não procuram: o carregamento automático fica desligado e os módulos
+  vêm pelo caminho do `$PSHOME`, o que também impede um módulo de fora de tomar o lugar de um
+  comando do sistema;
 - o terminal: o Windows Terminal com `-d .` e a pasta no lugar de rodar (como o VS Code faz);
   sem ele, o PowerShell 7, o Windows PowerShell ou o cmd num console novo, pelo `Start-Process`.
   Nada pelo `cmd /c start`: o `start` e o `CreateProcess` procuram o programa na pasta atual

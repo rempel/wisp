@@ -7,7 +7,7 @@
 import { EventEmitter } from 'events'
 import { choosePlayers, describeAfter, METHODS } from './media'
 import type { MediaAction, MediaPlayers, PlayerInfo } from './media'
-import { firstLine, powerShellJson, runPowerShell } from './powershell'
+import { firstLine, importModule, powerShellJson, runPowerShell } from './powershell'
 import { setWindowsVolume } from './volume-win'
 import { t } from '../shared/i18n'
 
@@ -26,7 +26,9 @@ const MANAGER =
 const LIST =
   MANAGER +
   '$apps = @{}; $sessoes = @($gerente.GetSessions()); ' +
-  'if ($sessoes.Count -gt 0) { try { foreach ($a in @(Get-StartApps)) { $apps[[string]$a.AppID] = $a.Name } } catch {} }; ' +
+  'if ($sessoes.Count -gt 0) { try { ' +
+  importModule('StartLayout') +
+  'foreach ($a in @(Get-StartApps)) { $apps[[string]$a.AppID] = $a.Name } } catch {} }; ' +
   '$saida = foreach ($s in $sessoes) { ' +
   '$info = $s.GetPlaybackInfo(); $props = $null; ' +
   'try { $props = Esperar ($s.TryGetMediaPropertiesAsync()) ' +

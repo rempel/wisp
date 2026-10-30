@@ -503,28 +503,43 @@ test(
   }
 )
 
-// O PowerShell sem o PSModulePath travava ao carregar o primeiro módulo (o e2e/integracoes.mjs,
-// com o ambiente mínimo, passava de 20 s em todo script): o Wisp fixa o dos módulos do Windows.
-test(
-  'o PowerShell responde mesmo sem o PSModulePath no ambiente do Wisp',
-  windowsOnly,
-  async () => {
-    const { MODULES, runPowerShell } = await import('../src/main/powershell')
-    const key = Object.keys(process.env).find((name) => name.toUpperCase() === 'PSMODULEPATH')
-    const saved = key ? process.env[key] : undefined
-    if (key) delete process.env[key]
-    try {
-      const started = Date.now()
-      const result = await runPowerShell(
-        '$null = Get-Date; $null = Get-Process -Id $PID; $env:PSModulePath',
-        {},
-        15000
-      )
-      console.log(`sem o PSModulePath: ${Date.now() - started} ms`)
-      assert.equal(result.code, 0, result.stderr)
-      assert.equal(result.stdout.trim(), MODULES)
-    } finally {
-      if (key && saved !== undefined) process.env[key] = saved
-    }
+// O PowerShell travava procurando o módulo do primeiro comando, conforme o ambiente de quem abria o
+// Wisp (no CI, com o ambiente mínimo de um roteiro, parava no primeiro Get-Date): os scripts do
+// Wisp carregam os módulos pelo caminho, sem procurar. Aqui, com esse mesmo ambiente mínimo.
+test('o PowerShell responde mesmo com o ambiente mínimo', windowsOnly, async () => {
+  const { MODULES, runPowerShell } = await import('../src/main/powershell')
+  const saved = { ...process.env }
+  const keep = new Set([
+    'SYSTEMROOT',
+    'SYSTEMDRIVE',
+    'WINDIR',
+    'COMSPEC',
+    'PATHEXT',
+    'TEMP',
+    'TMP',
+    'PATH'
+  ])
+  for (const key of Object.keys(process.env))
+    if (!keep.has(key.toUpperCase())) delete process.env[key]
+  process.env.USERPROFILE = HOME
+  process.env.APPDATA = join(HOME, 'AppData', 'Roaming')
+  process.env.LOCALAPPDATA = join(HOME, 'AppData', 'Local')
+  try {
+    const started = Date.now()
+    const result = await runPowerShell(
+      '$null = Get-Process -Id $PID; $null = Get-Date; $x = @(1, 2) | Select-Object -First 1; ' +
+        "Add-Type -TypeDefinition 'public static class Sonda { public static int Um() { return 1; } }'; " +
+        'ConvertTo-Json -InputObject @([Sonda]::Um(), $env:PSModulePath) -Compress',
+      {},
+      15000
+    )
+    console.log(`com o ambiente mínimo: ${Date.now() - started} ms`)
+    assert.equal(result.code, 0, result.stderr)
+    const [one, modules] = JSON.parse(result.stdout.trim()) as [number, string]
+    assert.equal(one, 1)
+    assert.ok(modules.split(';').includes(MODULES), modules)
+  } finally {
+    for (const key of Object.keys(process.env)) delete process.env[key]
+    Object.assign(process.env, saved)
   }
-)
+})
