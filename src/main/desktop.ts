@@ -4,10 +4,21 @@ import { homedir } from 'os'
 import { delimiter, join, resolve, sep } from 'path'
 import { expandHome } from './paths'
 import { viaHost } from './host'
+import {
+  findWindowsTerminal,
+  readWindowsApps,
+  startWindows,
+  whichWindows,
+  windowsProgram,
+  windowsTerminalPath,
+  windowsTerminals
+} from './desktop-win'
+import { IS_WINDOWS } from './platform'
 import { t } from '../shared/i18n'
 
 // Ferramentas de desktop do servidor MCP (seção 6). Node puro: sem Electron, para dar para
-// testar fora do app. Processos sempre com spawn e lista de argumentos, nunca via shell.
+// testar fora do app. Processos sempre com spawn e lista de argumentos, nunca via shell. No
+// Windows (Fase 35), os apps são os atalhos do menu Iniciar e o resto vem do desktop-win.ts.
 
 // ---------------------------------------------------------------------------
 // Apps (.desktop)
@@ -162,7 +173,10 @@ function normalize(text: string): string {
 /** Apps instalados. `busca` filtra por nome, id, descrição ou palavras-chave. */
 export function listApps(busca?: string): AppEntry[] {
   const query = busca ? normalize(busca.trim()) : ''
-  return readApps()
+  const apps = IS_WINDOWS
+    ? readWindowsApps().map(({ id, nome }): DesktopFile => ({ id, nome, keywords: '', path: '' }))
+    : readApps()
+  return apps
     .filter(
       (app) =>
         !query ||
@@ -232,6 +246,7 @@ function launchEnv(): NodeJS.ProcessEnv {
 
 /** Abre um app pelo id do .desktop (gtk-launch; gio ou kioclient se ele não existir). */
 export async function openApp(id: string): Promise<Outcome> {
+  if (IS_WINDOWS) return openWindowsApp(id)
   const cleanId = id.trim().replace(/\.desktop$/, '')
   const app = /^[\w.@+-]+$/.test(cleanId) ? readApps().find((a) => a.id === cleanId) : undefined
   if (!app) {
@@ -268,6 +283,25 @@ export async function openApp(id: string): Promise<Outcome> {
   }
 }
 
+/** No Windows, um atalho do menu Iniciar, pelo id do list_apps (ou o nome). */
+async function openWindowsApp(id: string): Promise<Outcome> {
+  const wanted = id.trim().toLowerCase()
+  const apps = readWindowsApps()
+  const app =
+    apps.find((entry) => entry.id.toLowerCase() === wanted) ??
+    apps.find((entry) => entry.nome.toLowerCase() === wanted)
+  if (!app) {
+    return {
+      ok: false,
+      message: t('Não achei o app "{id}". Use list_apps para ver os ids.', { id })
+    }
+  }
+  const error = await startWindows(app.path)
+  return error
+    ? { ok: false, message: t('O Windows não abriu {nome}: {error}', { nome: app.nome, error }) }
+    : { ok: true, message: t('Abri {nome}.', { nome: app.nome }) }
+}
+
 /** Abre um link no navegador padrão. Só http e https. */
 export async function openUrl(url: string): Promise<Outcome> {
   let parsed: URL
@@ -278,6 +312,12 @@ export async function openUrl(url: string): Promise<Outcome> {
   }
   if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
     return { ok: false, message: t('Só abro links http e https.') }
+  }
+  if (IS_WINDOWS) {
+    const error = await startWindows(parsed.href)
+    return error
+      ? { ok: false, message: t('O Windows não abriu o link: {error}', { error }) }
+      : { ok: true, message: t('Abri {href} no navegador.', { href: parsed.href }) }
   }
   const result = await launch('xdg-open', [parsed.href], 3000)
   if (result === 'missing') {
@@ -355,6 +395,36 @@ function realpathOrNull(path: string): string | null {
   }
 }
 
+/** A pasta está dentro de `root` (ou é ela)? No Windows, sem diferença de maiúsculas. */
+function within(target: string, root: string): boolean {
+  const [a, b] = IS_WINDOWS ? [target.toLowerCase(), root.toLowerCase()] : [target, root]
+  return a === b || a.startsWith(b.endsWith(sep) ? b : b + sep)
+}
+
+/**
+ * Um programa do config.json (o editor ou o terminal) pronto para o spawn: no Windows, o caminho
+ * completo do .exe; uma mensagem se não deu.
+ */
+function programOf(command: string, what: 'editor' | 'terminal'): string | { message: string } {
+  if (!IS_WINDOWS) return command
+  const found = windowsProgram(command)
+  if ('path' in found) return found.path
+  if (found.error === 'script') {
+    return {
+      message: t(
+        'No Windows, o Wisp não roda "{command}": é um script .cmd ou .bat, que passaria pelo cmd. Diga o .exe dele no config.json.',
+        { command }
+      )
+    }
+  }
+  return {
+    message:
+      what === 'editor'
+        ? t('Não achei o editor "{command}" (editorCommand no config.json).', { command })
+        : t('Não achei o terminal "{command}" (terminalCommand no config.json).', { command })
+  }
+}
+
 /**
  * Abre uma pasta no editor (`editorCommand`, que pode ter argumentos, como "code -n").
  * A pasta precisa estar dentro de uma das projectRoots (links simbólicos resolvidos).
@@ -370,7 +440,7 @@ export async function openProject(
   const roots = projectRoots
     .map((root) => realpathOrNull(resolve(expandHome(root))))
     .filter((root): root is string => root !== null)
-  if (!roots.some((root) => target === root || target.startsWith(root + sep))) {
+  if (!roots.some((root) => within(target, root))) {
     return {
       ok: false,
       message:
@@ -393,7 +463,9 @@ export async function openInEditor(path: string, editorCommand: string): Promise
     return { ok: false, message: t('A pasta "{path}" não existe.', { path }) }
   const [command, ...args] = editorCommand.trim().split(/\s+/)
   if (!command) return { ok: false, message: t('editorCommand está vazio no config.json.') }
-  const result = await launch(command, [...args, target], 5000)
+  const program = programOf(command, 'editor')
+  if (typeof program !== 'string') return { ok: false, ...program }
+  const result = await launch(program, [...args, target], 5000)
   if (result === 'missing') {
     return {
       ok: false,
@@ -448,6 +520,10 @@ export function findTerminal(
   env: NodeJS.ProcessEnv = process.env
 ): string | null {
   const configured = terminalCommand?.trim().split(/\s+/)[0]
+  if (IS_WINDOWS) {
+    if (configured) return whichWindows(configured, env)
+    return findWindowsTerminal(env)?.path ?? null
+  }
   if (configured) return inPath(configured) ? configured : null
   return terminalOrder(env).find(inPath) ?? null
 }
@@ -464,8 +540,10 @@ export async function openTerminal(
   const configured = terminalCommand?.trim()
   if (configured) {
     const [command, ...args] = configured.split(/\s+/)
+    const program = programOf(command, 'terminal')
+    if (typeof program !== 'string') return { ok: false, ...program }
     const result = await launch(
-      command,
+      program,
       args.map((arg) => arg.replaceAll('{dir}', dir)),
       1500,
       dir
@@ -482,6 +560,7 @@ export async function openTerminal(
       ? { ok: true, message: t('Abri o terminal em {dir}.', { dir }) }
       : { ok: false, message: t('O terminal saiu com erro (código {result}).', { result }) }
   }
+  if (IS_WINDOWS) return openWindowsTerminal(dir, env)
   for (const command of terminalOrder(env)) {
     if (!inPath(command)) continue
     const known = TERMINALS[command.split('/').pop() ?? command]
@@ -494,6 +573,31 @@ export async function openTerminal(
     message:
       t('Não achei um terminal instalado. Diga qual usar em terminalCommand no config.json ') +
       t('(por exemplo "kitty" ou "konsole --workdir {dir}").')
+  }
+}
+
+/**
+ * No Windows: o Windows Terminal na pasta (pelo `-d .`, como o VS Code, com a pasta no lugar de
+ * rodar); os outros, um console novo pelo Windows, na pasta.
+ */
+async function openWindowsTerminal(dir: string, env: NodeJS.ProcessEnv): Promise<Outcome> {
+  let error: string | null = null
+  for (const [command, name] of windowsTerminals()) {
+    const path = windowsTerminalPath(command, env)
+    if (!path) continue
+    if (command === 'wt.exe') {
+      if ((await launch(path, ['-d', '.'], 1500, dir)) === 0)
+        return { ok: true, message: t('Abri o {v1} em {dir}.', { v1: name, dir }) }
+      continue
+    }
+    error = await startWindows(path, dir)
+    if (!error) return { ok: true, message: t('Abri o {v1} em {dir}.', { v1: name, dir }) }
+  }
+  return {
+    ok: false,
+    message: error
+      ? t('O Windows não abriu o terminal: {error}', { error })
+      : t('Não achei um terminal. Diga qual usar em terminalCommand no config.json.')
   }
 }
 
@@ -513,7 +617,7 @@ export async function openTerminalIn(
   const roots = [homedir(), ...projectRoots]
     .map((root) => realpathOrNull(resolve(expandHome(root))))
     .filter((root): root is string => root !== null)
-  if (!roots.some((root) => target === root || target.startsWith(root + sep))) {
+  if (!roots.some((root) => within(target, root))) {
     return {
       ok: false,
       message: t(

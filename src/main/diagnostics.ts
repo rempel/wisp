@@ -177,7 +177,8 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
               fix:
                 t(
                   'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, '
-                ) + t('clique em **Conferir de novo**.')
+                ) + t('clique em **Conferir de novo**.'),
+              action: 'terminal'
             }
           : {
               fix:
@@ -395,37 +396,32 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
 
   // O terminal.
   checks.push(
-    facts.windows
+    facts.terminal
       ? check(
           'terminal',
           t('Terminal'),
-          'off',
-          t('numa próxima versão'),
-          t('No Windows, abrir um terminal pelo Wisp chega numa próxima versão.'),
+          'ok',
+          'achado',
+          t('Há um terminal para abrir projetos e o login.'),
           { optional: true }
         )
-      : facts.terminal
-        ? check(
-            'terminal',
-            t('Terminal'),
-            'ok',
-            'achado',
-            t('Há um terminal para abrir projetos e o login.'),
-            { optional: true }
-          )
-        : check(
-            'terminal',
-            t('Terminal'),
-            'warn',
-            t('não achado'),
-            t('Não achei um terminal instalado.'),
-            {
-              fix: t(
-                'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).'
-              ),
-              optional: true
-            }
-          )
+      : check(
+          'terminal',
+          t('Terminal'),
+          'warn',
+          t('não achado'),
+          t('Não achei um terminal instalado.'),
+          {
+            fix: facts.windows
+              ? t(
+                  'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"wt -d {dir}"`).'
+                )
+              : t(
+                  'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"kitty"` ou `"konsole --workdir {dir}"`).'
+                ),
+            optional: true
+          }
+        )
   )
 
   // O config.json.

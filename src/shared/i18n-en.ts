@@ -2093,9 +2093,6 @@ export const EN: Record<string, string> = {
   'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, ':
     'Open PowerShell, run `claude` and log in (it opens the browser). Then ',
   'pelo Windows': 'through Windows',
-  'numa próxima versão': 'in a later version',
-  'No Windows, abrir um terminal pelo Wisp chega numa próxima versão.':
-    'On Windows, opening a terminal from Wisp arrives in a later version.',
   'Caminho inválido.': 'Invalid path.',
   'Este arquivo guarda segredos: o painel não mostra.':
     "This file holds secrets: the panel doesn't show it.",
@@ -2122,5 +2119,24 @@ export const EN: Record<string, string> = {
     "Windows didn't allow encrypting the secret (DPAPI unavailable).",
   'O Windows não decifrou o segredo ({message}); guarde-o de novo.':
     "Windows couldn't decrypt the secret ({message}); store it again.",
-  'não consegui abrir o pipe ({message})': "couldn't open the pipe ({message})"
+  'não consegui abrir o pipe ({message})': "couldn't open the pipe ({message})",
+  'Prompt de Comando': 'Command Prompt',
+  'O Windows não abriu {nome}: {error}': "Windows didn't open {nome}: {error}",
+  'O Windows não abriu o link: {error}': "Windows didn't open the link: {error}",
+  'No Windows, o Wisp não roda "{command}": é um script .cmd ou .bat, que passaria pelo cmd. Diga o .exe dele no config.json.':
+    'On Windows, Wisp doesn\'t run "{command}": it\'s a .cmd or .bat script, which would go through cmd. Give its .exe in config.json.',
+  'O Windows não abriu o terminal: {error}': "Windows didn't open the terminal: {error}",
+  'Não achei um terminal. Diga qual usar em terminalCommand no config.json.':
+    "I couldn't find a terminal. Say which one to use in terminalCommand in config.json.",
+  'Diga qual usar em `terminalCommand` no `config.json` (por exemplo `"wt -d {dir}"`).':
+    'Say which one to use in `terminalCommand` in `config.json` (for example `"wt -d {dir}"`).',
+  'o Windows não respondeu': "Windows didn't respond",
+  'Nenhum player de música ou vídeo aberto.': 'No music or video player open.',
+  'Não consegui mudar o volume do Windows: {error}.':
+    "I couldn't change the Windows volume: {error}.",
+  'No Windows, os players não mostram o volume deles: o volume do sistema ficou em {level}%.':
+    "On Windows, players don't expose their own volume: the system volume is now {level}%.",
+  'Não consegui mudar o volume do Windows.': "I couldn't change the Windows volume.",
+  'O Windows não respondeu com a lista de janelas.':
+    "Windows didn't respond with the list of windows."
 }
