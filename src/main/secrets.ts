@@ -6,6 +6,13 @@
 // que é só do usuário (é o que o secret-tool faz por padrão em vários desktops).
 
 import { DBusConnection, DBusError, Variant } from './dbus'
+import { IS_WINDOWS } from './platform'
+import {
+  deleteWindowsSecret,
+  hasWindowsSecret,
+  readWindowsSecret,
+  storeWindowsSecret
+} from './secrets-win'
 import { t } from '../shared/i18n'
 
 const SERVICE = 'org.freedesktop.secrets'
@@ -23,6 +30,15 @@ const NO_SERVICE =
   t('KWallet ou o KeePassXC com a integração do Secret Service ligada.')
 
 type Secret = [string, number[], number[], string]
+
+/** No Windows (Fase 35), o segredo cifrado pelo próprio Windows, com os erros como SecretError. */
+async function onWindows<T>(work: () => T): Promise<T> {
+  try {
+    return work()
+  } catch (err) {
+    throw new SecretError((err as Error).message)
+  }
+}
 
 async function open(env: NodeJS.ProcessEnv): Promise<{ bus: DBusConnection; session: string }> {
   const bus = await DBusConnection.session(env)
@@ -147,6 +163,7 @@ async function withService<T>(
  * e quem nunca usou a OpenRouter não tem por que ter o chaveiro aberto pelo Wisp).
  */
 export async function hasSecret(name: string, env = process.env): Promise<boolean> {
+  if (IS_WINDOWS) return hasWindowsSecret(name)
   const bus = await DBusConnection.session(env)
   if (!bus) return false
   try {
@@ -177,6 +194,7 @@ export async function hasSecret(name: string, env = process.env): Promise<boolea
 
 /** Lê um segredo do Wisp; null se não houver. */
 export function readSecret(name: string, env = process.env): Promise<string | null> {
+  if (IS_WINDOWS) return onWindows(() => readWindowsSecret(name))
   return withService(env, async (bus, session) => {
     const items = await search(bus, name)
     if (!items.length) return null
@@ -222,6 +240,7 @@ export function storeSecret(
   value: string,
   env = process.env
 ): Promise<void> {
+  if (IS_WINDOWS) return onWindows(() => storeWindowsSecret(name, value))
   return withService(env, async (bus, session) => {
     const collection = await defaultCollection(bus)
     const secret: Secret = [session, [], [...Buffer.from(value, 'utf8')], 'text/plain']
@@ -250,6 +269,7 @@ export function storeSecret(
 
 /** Apaga um segredo do Wisp do chaveiro (não ter o que apagar não é erro). */
 export function deleteSecret(name: string, env = process.env): Promise<void> {
+  if (IS_WINDOWS) return onWindows(() => deleteWindowsSecret(name))
   return withService(env, async (bus) => {
     for (const item of await search(bus, name)) {
       const [promptPath] = await bus.call({

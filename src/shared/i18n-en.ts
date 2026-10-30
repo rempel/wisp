@@ -2090,16 +2090,12 @@ export const EN: Record<string, string> = {
     'Install it with the official installer, in PowerShell:\n\n',
   'O Claude Code usa o Git para Windows (o Git Bash) para rodar comandos: instale-o também.\n\n':
     'Claude Code uses Git for Windows (Git Bash) to run commands: install it too.\n\n',
-  'no Windows, as sessões do terminal chegam numa próxima versão':
-    'on Windows, terminal sessions arrive in a future version',
   'No Windows, acompanhar as sessões do terminal chega numa próxima versão do Wisp.':
     'On Windows, following terminal sessions arrives in a future version of Wisp.',
   'Abra o PowerShell, rode `claude` e faça o login (ele abre o navegador). Depois, ':
     'Open PowerShell, run `claude` and log in (it opens the browser). Then ',
   'pelo Windows': 'through Windows',
   'numa próxima versão': 'in a later version',
-  'No Windows, guardar as chaves no sistema chega numa próxima versão: até lá, a OpenRouter e aprovar pelo celular não funcionam lá.':
-    "On Windows, keeping keys in the system arrives in a later version: until then, OpenRouter and approving from your phone don't work there.",
   'No Windows, abrir um terminal pelo Wisp chega numa próxima versão.':
     'On Windows, opening a terminal from Wisp arrives in a later version.',
   'Caminho inválido.': 'Invalid path.',
@@ -2118,5 +2114,15 @@ export const EN: Record<string, string> = {
   'só para ler': 'read-only',
   'Abrindo…': 'Opening…',
   'Abrir o arquivo no painel': 'Open the file in the panel',
-  'Mudanças em {path}': 'Changes in {path}'
+  'Mudanças em {path}': 'Changes in {path}',
+  'As chaves ficam cifradas pelo Windows (DPAPI), que só as abre na sua conta.':
+    'Keys are encrypted by Windows (DPAPI), which only opens them in your account.',
+  indisponível: 'unavailable',
+  'O Windows não deixou cifrar as chaves (DPAPI): a OpenRouter e aprovar pelo celular não funcionam.':
+    "Windows didn't allow encrypting the keys (DPAPI): OpenRouter and approving from your phone don't work.",
+  'O Windows não deixou cifrar o segredo (DPAPI indisponível).':
+    "Windows didn't allow encrypting the secret (DPAPI unavailable).",
+  'O Windows não decifrou o segredo ({message}); guarde-o de novo.':
+    "Windows couldn't decrypt the secret ({message}); store it again.",
+  'não consegui abrir o pipe ({message})': "couldn't open the pipe ({message})"
 }

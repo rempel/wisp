@@ -9,7 +9,9 @@
 // - Sem decisão, não imprime nada: quem decide é o diálogo do próprio terminal, que o Claude
 //   Code mostra junto. Nada é liberado sem um clique.
 //
-// Roda com o próprio Electron em modo Node (ELECTRON_RUN_AS_NODE=1): nada do Electron aqui.
+// Roda com o próprio Electron em modo Node (ELECTRON_RUN_AS_NODE=1): nada do Electron aqui. No
+// Windows (Fase 35), é o próprio Wisp.exe com --wisp-hook (o boot.ts chama o runRelay), e o
+// caminho até o Wisp é um pipe nomeado de nome sorteado, achado pelo arquivo do nome.
 
 import { createHash } from 'crypto'
 import { lstatSync, readFileSync } from 'fs'
@@ -20,6 +22,8 @@ import {
   DECISION_TIMEOUT_S,
   INTERNAL_ENV,
   isPrivateDir,
+  PIPE_NAME,
+  pipeFile,
   socketDir,
   socketPath,
   STATUS_ARG,
@@ -92,8 +96,19 @@ function claudePid(): number {
   return pid
 }
 
+/** No Windows, o pipe do Wisp: o nome do arquivo do nome, se for um nome nosso. */
+function trustedPipe(): string | null {
+  try {
+    const name = readFileSync(pipeFile(), 'utf8').trim()
+    return PIPE_NAME.test(name) ? name : null
+  } catch {
+    return null
+  }
+}
+
 /** O socket do Wisp, se ele estiver numa pasta só do usuário e for de fato um socket nosso. */
 function trustedSocket(): string | null {
+  if (process.platform === 'win32') return trustedPipe()
   if (!isPrivateDir(socketDir())) return null
   const path = socketPath()
   try {
@@ -132,9 +147,9 @@ function hookOutput(reply: RelayReply, input: Record<string, unknown>): string |
   }
 }
 
-function main(): void {
+/** O relay: `argv` são os argumentos depois do programa (ou do --wisp-hook, no Windows). */
+export function runRelay(argv: string[]): void {
   // O modo terminal de uma aba: `--tab <ficha> <Evento>` ou `--status <ficha>`.
-  const argv = process.argv.slice(2)
   const status = argv[0] === STATUS_ARG
   const tab = status || argv[0] === TAB_ARG ? argv[1] : null
   if (tab !== null && !TAB_TOKEN.test(tab ?? '')) exit()
@@ -220,10 +235,9 @@ function main(): void {
     }
     const out = hookOutput(reply, input)
     if (!out) exit()
-    // No Linux, escrever num pipe é síncrono: a saída está inteira antes de o processo sair.
+    // No Linux, escrever num pipe é síncrono: a saída está inteira antes de o processo sair (no
+    // Windows, o callback do write espera ela sair).
     socket.removeAllListeners('close')
     process.stdout.write(out + '\n', exit)
   })
 }
-
-main()

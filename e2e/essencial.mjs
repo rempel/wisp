@@ -150,7 +150,36 @@ const screen = await waitFor(async () => {
   return /Claude Code de mentira \(terminal\)/.test(text ?? '') ? text : null
 }, 20000)
 check('E7 o Claude Code abre no terminal da aba (pty)', !!screen, screen)
+// Um pedido de permissão no terminal vira o card do Wisp, pelo relay dos hooks (no Windows, o
+// próprio Wisp na forma exec, pelo pipe nomeado).
+await ev(
+  `window.wisp.tui.input(${JSON.stringify(conversation)}, ${JSON.stringify('roda [pede ls -la]\r')})`
+)
+const terminalCard = await waitFor(
+  () => ev(`document.querySelector('.terminal-cards .permission-pending')?.innerText ?? null`),
+  20000
+)
 await shoot(chat, 'terminal')
+check(
+  'E7b o pedido do terminal vira o card do Wisp',
+  /ls -la/.test(terminalCard ?? ''),
+  terminalCard
+)
+await sleep(800)
+await ev(
+  `[...document.querySelectorAll('.terminal-cards .permission-pending button')].find(b => b.textContent.trim() === 'Permitir')?.click()`
+)
+const ran = await waitFor(async () => {
+  const text = await ev(
+    `[...document.querySelectorAll('.pane .xterm-rows > div')].map(d => d.textContent).join('\\n')`
+  )
+  return /Rodei ls -la\./.test(text ?? '') ? text : null
+}, 15000)
+check('E7c permitido no card, o terminal segue', !!ran)
+await waitFor(
+  async () => !(await ev(`document.querySelector('.header .status')?.classList.contains('busy')`)),
+  15000
+)
 // De volta ao chat, o processo do terminal sai (no Windows, o node-pty não manda sinais).
 const tui = spawns()
   .filter((spawn) => !spawn.args.includes('-p'))

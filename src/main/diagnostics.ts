@@ -299,16 +299,27 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
     )
   }
 
-  // O chaveiro.
-  if (facts.windows) {
+  // O chaveiro (no Windows, o DPAPI: as chaves cifradas pelo próprio Windows).
+  if (facts.windows && facts.keyring === 'running') {
+    checks.push(
+      check(
+        'keyring',
+        t('Chaveiro do sistema'),
+        'ok',
+        t('pelo Windows'),
+        t('As chaves ficam cifradas pelo Windows (DPAPI), que só as abre na sua conta.'),
+        { optional: true }
+      )
+    )
+  } else if (facts.windows) {
     checks.push(
       check(
         'keyring',
         t('Chaveiro do sistema'),
         facts.needsKeyring ? 'warn' : 'off',
-        t('numa próxima versão'),
+        t('indisponível'),
         t(
-          'No Windows, guardar as chaves no sistema chega numa próxima versão: até lá, a OpenRouter e aprovar pelo celular não funcionam lá.'
+          'O Windows não deixou cifrar as chaves (DPAPI): a OpenRouter e aprovar pelo celular não funcionam.'
         ),
         { optional: true }
       )

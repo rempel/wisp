@@ -1,7 +1,9 @@
-import { chmodSync, lstatSync, mkdirSync, rmSync } from 'fs'
+import { randomBytes } from 'crypto'
+import { chmodSync, lstatSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { connect, createServer } from 'net'
 import type { Socket } from 'net'
-import { isPrivateDir, socketDir, socketPath, TAB_TOKEN } from './protocol'
+import { dirname } from 'path'
+import { isPrivateDir, pipeFile, socketDir, socketPath, TAB_TOKEN } from './protocol'
 import type { RelayEvent, RelayReply } from './protocol'
 import { t } from '../../shared/i18n'
 
@@ -113,12 +115,54 @@ function handle(
 }
 
 /**
+ * No Windows (Fase 35): um pipe nomeado de nome sorteado, e o nome num arquivo da pasta do Wisp
+ * em %LOCALAPPDATA% (só do usuário), por onde o relay o acha. Ao fechar, o arquivo sai, se ainda
+ * for o deste Wisp.
+ */
+async function startPipeServer(
+  onEvent: (event: RelayEvent, pending: PendingReply | null) => void
+): Promise<HookServerStart> {
+  const name = `\\\\.\\pipe\\wisp-${randomBytes(16).toString('hex')}`
+  const file = pipeFile()
+  const server = createServer((socket) => handle(socket, onEvent))
+  try {
+    await new Promise<void>((resolve, reject) => {
+      server.once('error', reject)
+      server.listen(name, () => resolve())
+    })
+    mkdirSync(dirname(file), { recursive: true })
+    writeFileSync(file, name)
+  } catch (err) {
+    server.close()
+    return {
+      ok: false,
+      problem: t('não consegui abrir o pipe ({message})', { message: (err as Error).message })
+    }
+  }
+  return {
+    ok: true,
+    server: {
+      close() {
+        server.close()
+        try {
+          if (readFileSync(file, 'utf8') === name) rmSync(file)
+        } catch {
+          // Já tinha saído.
+        }
+      }
+    }
+  }
+}
+
+/**
  * Sobe o socket que recebe os hooks: $XDG_RUNTIME_DIR/wisp/hooks.sock, numa pasta só do usuário
- * (0700) e com o socket 0600. Se outro Wisp já estiver ouvindo, não toma o lugar dele.
+ * (0700) e com o socket 0600. Se outro Wisp já estiver ouvindo, não toma o lugar dele. No
+ * Windows, o pipe nomeado (startPipeServer).
  */
 export async function startHookServer(
   onEvent: (event: RelayEvent, pending: PendingReply | null) => void
 ): Promise<HookServerStart> {
+  if (process.platform === 'win32') return startPipeServer(onEvent)
   const dir = socketDir()
   const path = socketPath()
   try {

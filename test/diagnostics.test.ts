@@ -158,13 +158,15 @@ test('diagnostics: on Windows, nothing about the Linux desktop, and what comes l
     )
   const checks = windows()
   assert.equal(byId(checks, 'shortcut').summary, 'pelo Windows')
-  assert.equal(byId(checks, 'keyring').status, 'off')
-  assert.match(byId(checks, 'keyring').detail, /próxima versão/)
+  // O chaveiro é o DPAPI do Windows: disponível, ok; sem ele, o aviso só com a OpenRouter ou o
+  // celular ligados.
+  assert.equal(byId(windows({ keyring: 'running' }), 'keyring').status, 'ok')
+  assert.equal(byId(windows({ keyring: 'running' }), 'keyring').summary, 'pelo Windows')
+  assert.equal(byId(windows({ keyring: 'absent' }), 'keyring').status, 'off')
   assert.doesNotMatch(byId(checks, 'keyring').fix ?? '', /GNOME|KWallet/)
   assert.equal(byId(checks, 'terminal').status, 'off')
   assert.match(byId(checks, 'terminal').detail, /próxima versão/)
-  // Com a OpenRouter ou o celular ligado, a falta do chaveiro é um aviso.
-  assert.equal(byId(windows({ needsKeyring: true }), 'keyring').status, 'warn')
+  assert.equal(byId(windows({ keyring: 'absent', needsKeyring: true }), 'keyring').status, 'warn')
   // O login pelo PowerShell, sem o botão de abrir um terminal.
   const login = byId(
     windows({ claude: { installed: true, version: '2.1.296', loggedIn: false } }),

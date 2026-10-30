@@ -16,6 +16,7 @@ import type { BusName, Facts } from './diagnostics'
 import type { InstallKind } from './launcher'
 import { DATA_DIR } from './paths'
 import { IS_WINDOWS } from './platform'
+import { dpapi } from './secrets-win'
 import type { SelfUpdater } from './self-update'
 import type { ShortcutStatus } from './shortcut'
 import type { UpdateChecker } from './updates'
@@ -144,7 +145,8 @@ export function setupDiagnostics(options: DiagnosticsOptions): {
         desktop: IS_WINDOWS ? { name: 'Windows', session: 'outra' } : desktopOf(process.env),
         claude,
         provider: config.provider,
-        keyring,
+        // No Windows, o DPAPI (Fase 35).
+        keyring: IS_WINDOWS ? (dpapi.available() ? 'running' : 'absent') : keyring,
         // No Windows, a área de notificação da barra de tarefas sempre está lá.
         tray: IS_WINDOWS ? 'running' : tray,
         shortcut:

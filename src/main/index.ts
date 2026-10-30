@@ -105,6 +105,7 @@ import { pcmStats } from '../shared/vad'
 import { t } from '../shared/i18n'
 import { setSelfCommand } from './claude-settings'
 import { IS_LINUX, IS_WINDOWS } from './platform'
+import { TOAST_SCHEME } from './toast'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -116,6 +117,8 @@ if (IS_LINUX) app.setDesktopName(APP_ID)
 if (IS_WINDOWS) app.setAppUserModelId(APP_ID)
 
 const kind = installKind(app.isPackaged)
+/** O endereço wisp:// de um botão de notificação do Windows (as notificações ligam ao abrir). */
+let toastAction: ((url: string) => boolean) | null = null
 /** Numa sessão Wayland sem --ozone-platform=x11, o Wisp seria um app Wayland nativo. */
 const waylandNative =
   process.platform === 'linux' &&
@@ -160,6 +163,9 @@ if (!app.requestSingleInstanceLock({ command: startCommand })) {
   let runCommand: ((command: WispCommand) => void) | null = null
   let waitingCommand: WispCommand | null = startCommand
   app.on('second-instance', (_event, argv, _cwd, data) => {
+    // Um botão de uma notificação do Windows (Fase 35): o Windows abriu o endereço wisp:// dele.
+    const toast = argv.find((arg) => arg.startsWith(`${TOAST_SCHEME}://`))
+    if (toast && toastAction?.(toast)) return
     const sent = checkCommand((data as { command?: unknown } | null)?.command)
     const command = sent ?? parseCommand(argv) ?? { kind: 'show' }
     if (runCommand) runCommand(command)
@@ -196,7 +202,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   let phone: Phone | null = null
 
   // As notificações do sistema e os cards que viram notificação (notify.ts).
-  const { notify, approvals: desktopApprovals, dnd, quiet } = setupNotifications(() => chat)
+  const notifications = setupNotifications(() => chat)
+  const { notify, approvals: desktopApprovals, dnd, quiet } = notifications
+  toastAction = notifications.toastAction
   /** Como os avisos chegam até você: o mascote e os sons vêm mais abaixo. */
   const signals: Signals = {
     notify,
@@ -526,35 +534,32 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     }
   })
   let hooks: HookServer | null = null
-  let listening: { ok: boolean; problem?: string } = IS_WINDOWS
-    ? { ok: false, problem: t('no Windows, as sessões do terminal chegam numa próxima versão') }
-    : { ok: false, problem: 'abrindo…' }
-  // No Windows (Fase 33), sem o socket dos hooks por enquanto (o named pipe vem na Fase 35).
-  if (!IS_WINDOWS)
-    void startHookServer((event, pending) => {
-      // Uma mensagem no Claude Code do terminal conta no resumo da semana, com a pasta do projeto.
-      if (event.event === 'UserPromptSubmit' && typeof event.input.cwd === 'string') {
-        activity.record({
-          k: 'terminal',
-          projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
-        })
-      }
-      // O modo terminal de uma aba (a ficha dela vem no evento): vai para a aba, não para Sessões.
-      if (event.tab) {
-        if (!chat?.terminalEvent(event, pending)) pending?.reply({ decision: null })
-        return
-      }
-      sessions.handle(event, pending)
-    }).then((started) => {
-      if (started.ok) {
-        hooks = started.server
-        listening = { ok: true }
-      } else {
-        listening = { ok: false, problem: started.problem }
-        console.warn('[wisp] não vou ouvir as sessões do Claude Code:', started.problem)
-      }
-      chat?.notifySessions()
-    })
+  let listening: { ok: boolean; problem?: string } = { ok: false, problem: 'abrindo…' }
+  // No Windows (Fase 35), um pipe nomeado no lugar do socket.
+  void startHookServer((event, pending) => {
+    // Uma mensagem no Claude Code do terminal conta no resumo da semana, com a pasta do projeto.
+    if (event.event === 'UserPromptSubmit' && typeof event.input.cwd === 'string') {
+      activity.record({
+        k: 'terminal',
+        projeto: basename(event.input.cwd).slice(0, 100) || 'terminal'
+      })
+    }
+    // O modo terminal de uma aba (a ficha dela vem no evento): vai para a aba, não para Sessões.
+    if (event.tab) {
+      if (!chat?.terminalEvent(event, pending)) pending?.reply({ decision: null })
+      return
+    }
+    sessions.handle(event, pending)
+  }).then((started) => {
+    if (started.ok) {
+      hooks = started.server
+      listening = { ok: true }
+    } else {
+      listening = { ok: false, problem: started.problem }
+      console.warn('[wisp] não vou ouvir as sessões do Claude Code:', started.problem)
+    }
+    chat?.notifySessions()
+  })
   setupSessionsIpc({
     sessions,
     isChat: (sender) => chat?.isSender(sender) ?? false,

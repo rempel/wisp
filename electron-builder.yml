@@ -104,5 +104,7 @@ nsis:
   createDesktopShortcut: true
   createStartMenuShortcut: true
   shortcutName: Wisp
+  # O endereço wisp:// das notificações com botões (Fase 35), registrado e tirado pelo instalador.
+  include: build/nsis/installer.nsh
 # Sem atualização automática: os pacotes saem nos releases do GitHub.
 publish: null

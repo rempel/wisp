@@ -52,7 +52,10 @@ module.exports = function tui({ args, flag, model, mode, sessionId, sessionFile,
         continue
       }
       for (const hook of entry.hooks ?? []) {
-        const child = spawn('sh', ['-c', hook.command], { stdio: ['pipe', 'pipe', 'ignore'] })
+        // A forma exec (command + args, sem shell), como no Windows; ou a linha de shell.
+        const child = Array.isArray(hook.args)
+          ? spawn(hook.command, hook.args, { stdio: ['pipe', 'pipe', 'ignore'], windowsHide: true })
+          : spawn('sh', ['-c', hook.command], { stdio: ['pipe', 'pipe', 'ignore'] })
         let output = ''
         child.stdout.on('data', (chunk) => (output += chunk))
         child.stdin.end(payload)

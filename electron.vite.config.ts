@@ -12,7 +12,7 @@ export default defineConfig({
           // A porta de entrada (o "main" do package.json): os hooks do Windows, ou o app.
           boot: resolve('src/main/boot.ts'),
           index: resolve('src/main/index.ts'),
-          'wisp-hook': resolve('src/main/hooks/relay.ts'),
+          'wisp-hook': resolve('src/main/hooks/relay-cli.ts'),
           'wisp-demo': resolve('src/main/demo/player.ts')
         }
       }
