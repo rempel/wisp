@@ -42,7 +42,20 @@ ok "as variáveis passam (e a chave da API não)"
 
 # Aberto de verdade, como alguém que o instalou e clicou.
 work=$(mktemp -d)
-trap 'pkill -f "/app/wisp/wisp" 2>/dev/null || true; rm -rf "$work"' EXIT
+# No fim, o app fecha e só então a pasta sai (o Chromium ainda grava o cache enquanto fecha).
+cleanup() {
+  pkill -f "/app/wisp/wisp" 2>/dev/null || true
+  for _ in $(seq 50); do
+    pgrep -f "/app/wisp/wisp" >/dev/null || break
+    sleep 0.1
+  done
+  pkill -9 -f "/app/wisp/wisp" 2>/dev/null || true
+  rm -rf "$work" 2>/dev/null || {
+    sleep 1
+    rm -rf "$work"
+  }
+}
+trap cleanup EXIT
 dbus-run-session -- xvfb-run -a flatpak run "$app" --no-sandbox --remote-debugging-port=9335 \
   >"$work/saida.log" 2>&1 &
 for _ in $(seq 1 90); do
