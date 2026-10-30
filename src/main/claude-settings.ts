@@ -6,7 +6,7 @@ import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode, Provider } from '../shared/ipc'
 import { WRAPPER_PATH } from './hooks/install'
-import { HOOK_EVENTS, STATUS_ARG, TAB_ARG } from './hooks/protocol'
+import { HOOK_EVENTS, RELAY_ARG, STATUS_ARG, TAB_ARG } from './hooks/protocol'
 import { shellQuote } from './launcher'
 import { ASK_FOR_BASH, MODE_FILE_ENV, MODE_HOOK_ARG } from './mode-hook'
 import type { OpenRouterModel } from './openrouter'
@@ -161,12 +161,17 @@ export function sessionSettings(): string {
  */
 export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   const command = (...parts: string[]): string => [shellQuote(relay), ...parts].join(' ')
+  // No Windows (Fase 35), o relay é o próprio Wisp na forma exec (sem shell). Sem saber o
+  // executável, os pedidos aparecem só no próprio terminal.
+  const windows = IS_WINDOWS ? selfCommand : null
+  const relayHook = (...parts: string[]): Record<string, unknown> =>
+    windows
+      ? { command: windows.command, args: [...windows.args, RELAY_ARG, ...parts] }
+      : { command: command(...parts) }
   const hooks: Record<string, unknown[]> = {
     PreToolUse: [{ matcher: 'Bash', hooks: [bashHook()] }]
   }
-  // No Windows, por enquanto, os pedidos aparecem no próprio terminal (os do Claude Code): os
-  // cards do Wisp pelo relay chegam na Fase 35.
-  if (IS_WINDOWS) {
+  if (IS_WINDOWS && !windows) {
     return JSON.stringify({
       permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
       hooks
@@ -182,7 +187,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
         hooks: [
           {
             type: 'command',
-            command: command(TAB_ARG, tab, event),
+            ...relayHook(TAB_ARG, tab, event),
             timeout,
             ...(background ? { async: true } : {})
           }
@@ -193,7 +198,11 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   return JSON.stringify({
     permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
     hooks,
-    statusLine: { type: 'command', command: command(STATUS_ARG, tab), padding: 0 }
+    // A linha de status do Claude Code é uma linha de shell (sem a forma exec): no Windows, fica a
+    // dele.
+    ...(windows
+      ? {}
+      : { statusLine: { type: 'command', command: command(STATUS_ARG, tab), padding: 0 } })
   })
 }
 

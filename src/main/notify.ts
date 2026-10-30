@@ -1,6 +1,7 @@
 // As notificações do sistema: pelo Electron (a libnotify) ou, sem ela, direto pelo servidor de
 // notificações do D-Bus; e os cards que esperam com o painel escondido viram notificações com
-// Permitir e Negar (Fase 24). Com o "não perturbe" do desktop ligado (Fase 32), nenhuma sai.
+// Permitir e Negar (Fase 24; no Windows, Fase 35). Com o "não perturbe" do desktop ligado (Fase 32),
+// nenhuma sai.
 
 import { Notification } from 'electron'
 import appIcon from '../../resources/icon.png?asset'
@@ -10,6 +11,8 @@ import { DBusConnection } from './dbus'
 import { DesktopApprovals, dbusNotifier, escape as escapeMarkup } from './desktop-approvals'
 import type { Notifier } from './desktop-approvals'
 import { DoNotDisturb } from './dnd'
+import { IS_WINDOWS } from './platform'
+import { windowsNotifier } from './toast'
 import type { SoundName } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
@@ -32,6 +35,8 @@ export function setupNotifications(chat: () => Chat | null): {
   dnd: DoNotDisturb
   /** O Wisp está quieto: o "não perturbe" do desktop ligado (e respeitado nas configurações). */
   quiet(): boolean
+  /** O endereço wisp:// de um botão de notificação do Windows; false se não é de nenhuma. */
+  toastAction(url: string): boolean
 } {
   // O servidor de notificações pelo D-Bus (Fase 24): os cards, e as outras quando falta a libnotify.
   let notifier: Notifier | null = null
@@ -72,29 +77,33 @@ export function setupNotifications(chat: () => Chat | null): {
     open: () => chat()?.open(),
     log: (message) => console.warn(`[wisp] notificação: ${message}`)
   })
-  void DBusConnection.session()
-    .then(async (bus) => {
-      if (!bus) return
-      const source = await dnd.start(bus).catch(() => null)
-      if (source) console.log(`[wisp] não perturbe: pelo ${source === 'kde' ? 'KDE' : 'GNOME'}.`)
-      notifier = await dbusNotifier(
-        bus,
-        (id, key) => {
-          const click = clicks.get(id)
-          if (!click) return approvals.action(id, key)
-          if (key !== 'default') return
-          clicks.delete(id)
-          click()
-        },
-        (id) => {
-          clicks.delete(id)
-          approvals.closed(id)
-        }
-      )
-    })
-    .catch((err: Error) => console.warn(`[wisp] notificação: sem o D-Bus (${err.message})`))
+  // Um botão (ou o corpo) de uma notificação; e uma notificação que saiu da tela.
+  const onAction = (id: number, key: string): void => {
+    const click = clicks.get(id)
+    if (!click) return approvals.action(id, key)
+    if (key !== 'default') return
+    clicks.delete(id)
+    click()
+  }
+  const onClosed = (id: number): void => {
+    clicks.delete(id)
+    approvals.closed(id)
+  }
+  // No Windows (Fase 35), as notificações do Windows: os botões voltam pelo endereço wisp://.
+  const toasts = IS_WINDOWS ? windowsNotifier(onAction, onClosed) : null
+  if (toasts) notifier = toasts
+  else {
+    void DBusConnection.session()
+      .then(async (bus) => {
+        if (!bus) return
+        const source = await dnd.start(bus).catch(() => null)
+        if (source) console.log(`[wisp] não perturbe: pelo ${source === 'kde' ? 'KDE' : 'GNOME'}.`)
+        notifier = await dbusNotifier(bus, onAction, onClosed)
+      })
+      .catch((err: Error) => console.warn(`[wisp] notificação: sem o D-Bus (${err.message})`))
+  }
   onConfigChange((config) => {
     if (!config.notifyApprovals) approvals.reset()
   })
-  return { notify, approvals, dnd, quiet }
+  return { notify, approvals, dnd, quiet, toastAction: (url) => toasts?.action(url) ?? false }
 }

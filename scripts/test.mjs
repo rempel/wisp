@@ -37,7 +37,7 @@ await build({
 })
 await build({
   ...common,
-  entryPoints: [join(root, 'src/main/hooks/relay.ts')],
+  entryPoints: [join(root, 'src/main/hooks/relay-cli.ts')],
   outfile: join(out, 'wisp-hook.cjs')
 })
 await build({

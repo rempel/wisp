@@ -4,7 +4,7 @@
 // do hook do Bash que o Wisp dá quando o Claude Code o roda na forma exec.
 import { HOME } from './helpers/home'
 import assert from 'node:assert/strict'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
 import { ASK_FOR_BASH, MODE_FILE_ENV, modeHookOutput } from '../src/main/mode-hook'
@@ -126,4 +126,117 @@ test('o hook do Bash: pede em todo modo, menos no Automático', () => {
   assert.equal(run('sumiu'), ASK_FOR_BASH)
   assert.equal(run(), ASK_FOR_BASH)
   assert.match(ASK_FOR_BASH, /"permissionDecision":"ask"/)
+})
+
+test('o chaveiro do Windows: cifrado, num arquivo por segredo, e trocado inteiro', async () => {
+  const { deleteWindowsSecret, hasWindowsSecret, readWindowsSecret, storeWindowsSecret } =
+    await import('../src/main/secrets-win')
+  const dir = join(HOME, 'segredos')
+  // Um DPAPI de mentira: inverte os bytes (o de verdade só existe no Windows, pelo Electron).
+  const cipher = {
+    available: () => true,
+    encrypt: (text: string) => Buffer.from(text, 'utf8').reverse(),
+    decrypt: (data: Buffer) => Buffer.from(data).reverse().toString('utf8')
+  }
+  assert.equal(hasWindowsSecret('openrouter', dir), false)
+  assert.equal(readWindowsSecret('openrouter', dir, cipher), null)
+  storeWindowsSecret('openrouter', 'sk-or-123', dir, cipher)
+  assert.equal(hasWindowsSecret('openrouter', dir), true)
+  assert.equal(readWindowsSecret('openrouter', dir, cipher), 'sk-or-123')
+  // No disco, nem o valor nem o nome do segredo aparecem.
+  const files = readdirSync(dir)
+  assert.equal(files.length, 1)
+  assert.doesNotMatch(files[0], /openrouter/)
+  assert.doesNotMatch(readFileSync(join(dir, files[0]), 'utf8'), /sk-or-123/)
+  storeWindowsSecret('openrouter', 'sk-or-456', dir, cipher)
+  assert.equal(readWindowsSecret('openrouter', dir, cipher), 'sk-or-456')
+  assert.equal(readdirSync(dir).length, 1)
+  // Sem o DPAPI, o erro diz; e o que não decifra (outra conta) também.
+  assert.throws(
+    () => storeWindowsSecret('celular', 'x', dir, { ...cipher, available: () => false }),
+    /DPAPI/
+  )
+  const broken = {
+    ...cipher,
+    decrypt: () => {
+      throw new Error('chave errada')
+    }
+  }
+  assert.throws(() => readWindowsSecret('openrouter', dir, broken), /não decifrou/)
+  deleteWindowsSecret('openrouter', dir)
+  deleteWindowsSecret('openrouter', dir)
+  assert.equal(hasWindowsSecret('openrouter', dir), false)
+})
+
+test('a notificação do Windows: o XML com os botões, e o clique volta pelo endereço', async () => {
+  const { parseToastUrl, toastUrl, toastXml, windowsNotifier } = await import('../src/main/toast')
+  const allow = 'allow-0123456789abcdef'
+  const deny = 'deny-fedcba9876543210'
+  const card = {
+    summary: 'O Claude quer rodar um comando',
+    body: 'rm -rf build &amp;&amp; echo "<ok>"\nApaga arquivos',
+    actions: ['default', 'Abrir o painel', allow, 'Permitir', deny, 'Negar']
+  }
+  const xml = toastXml(card, 7)
+  assert.match(xml, /launch="wisp:\/\/notificacao\/7\/default"/)
+  assert.match(xml, /scenario="reminder"/)
+  assert.match(
+    xml,
+    /<action content="Permitir" activationType="protocol" arguments="wisp:\/\/notificacao\/7\/allow-0123456789abcdef"\/>/
+  )
+  // O corpo vem com a marcação do D-Bus; no XML, cada caractere escapado uma vez só.
+  assert.match(xml, /<text>rm -rf build &amp;&amp; echo &quot;&lt;ok&gt;&quot;<\/text>/)
+  assert.doesNotMatch(xml, /&amp;amp;/)
+  // Sem botões, ela some sozinha (sem o cenário de lembrete).
+  assert.doesNotMatch(toastXml({ summary: 'Oi', body: 'tudo certo', actions: [] }, 1), /reminder/)
+
+  assert.deepEqual(parseToastUrl(toastUrl(7, allow)), { id: 7, key: allow })
+  assert.deepEqual(parseToastUrl('wisp://notificacao/7/default/'), { id: 7, key: 'default' })
+  for (const bad of [
+    'wisp://notificacao/7/allow-123',
+    'wisp://notificacao/x/default',
+    'wisp://outra/7/default',
+    'https://notificacao/7/default',
+    '--show'
+  ]) {
+    assert.equal(parseToastUrl(bad), null, bad)
+  }
+
+  const actions: [number, string][] = []
+  const closed: number[] = []
+  const toasts: { xml: string; closed: boolean; onClosed: () => void }[] = []
+  const notifier = windowsNotifier(
+    (id, key) => actions.push([id, key]),
+    (id) => closed.push(id),
+    (xml, onClosed) => {
+      const toast = { xml, closed: false, onClosed }
+      toasts.push(toast)
+      return { close: () => (toast.closed = true) }
+    },
+    () => true
+  )
+  assert.equal(await notifier.hasActions(), true)
+  // Sem o endereço registrado (rodando do código), sem botões.
+  assert.equal(
+    await windowsNotifier(
+      () => {},
+      () => {},
+      () => ({ close: () => {} }),
+      () => false
+    ).hasActions(),
+    false
+  )
+  const id = await notifier.show(card)
+  assert.match(toasts[0].xml, new RegExp(`notificacao/${id}/${allow}`))
+  assert.equal(notifier.action(toastUrl(id, allow)), true)
+  assert.deepEqual(actions, [[id, allow]])
+  // Um endereço de uma notificação que não está na tela não faz nada.
+  assert.equal(notifier.action(toastUrl(id + 1, allow)), false)
+  notifier.close(id)
+  assert.equal(toasts[0].closed, true)
+  assert.equal(notifier.action(toastUrl(id, allow)), false)
+  // Fechada pelo Windows (dispensada), o card continua no painel.
+  const other = await notifier.show(card)
+  toasts[1].onClosed()
+  assert.deepEqual(closed, [other])
 })

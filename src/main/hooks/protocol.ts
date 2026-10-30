@@ -98,6 +98,24 @@ export type RelayReply =
   | { decision: 'answer'; answers: Record<string, string> }
   | { decision: null }
 
+/**
+ * No Windows (Fase 35), o relay é o próprio Wisp.exe com este argumento (a forma exec dos hooks
+ * do Claude Code, sem shell): o boot.ts o vê e roda o relay antes de carregar o app.
+ */
+export const RELAY_ARG = '--wisp-hook'
+
+/**
+ * No Windows, o Wisp ouve num pipe nomeado de nome sorteado a cada abertura. O nome fica num
+ * arquivo da pasta do Wisp em %LOCALAPPDATA%, que só o usuário lê: é por ele que o relay acha o
+ * pipe.
+ */
+export const PIPE_NAME = /^\\\\\.\\pipe\\wisp-[a-f0-9]{32}$/
+
+export function pipeFile(env: NodeJS.ProcessEnv = process.env): string {
+  const local = env.LOCALAPPDATA || join(env.USERPROFILE ?? '', 'AppData', 'Local')
+  return join(local, 'Wisp', 'Run', 'hooks-pipe')
+}
+
 /** Onde fica o socket: $XDG_RUNTIME_DIR/wisp, ou /run/user/<uid>/wisp sem a variável. */
 export function socketDir(env: NodeJS.ProcessEnv = process.env): string {
   const xdg = env.XDG_RUNTIME_DIR

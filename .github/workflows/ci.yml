@@ -255,6 +255,9 @@ jobs:
         run: node e2e/monaco.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Ponta a ponta (as notificações com botões)
+        timeout-minutes: 10
+        run: node e2e/toast.mjs
       - name: Os prints do Wisp no Windows
         if: always()
         continue-on-error: true
