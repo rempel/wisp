@@ -1402,6 +1402,12 @@ Notas da entrega:
   gastaria CPU parado);
 - de quebra, o E2 do `e2e/essencial.mjs` esperava o primeiro pedaço da resposta (no Windows, ele
   chegou antes do resto), e no job do Windows cada roteiro roda mesmo que um anterior falhe.
+- e o CI do Linux achou uma corrida do modo terminal: o que chega a um Claude Code antes de ele
+  ligar o modo cru do terminal passa pelo modo normal, que troca o Enter (`\r`) por uma quebra de
+  linha (`\n`), e a mensagem não sai. A colagem do Wisp (o `--ask`, a voz) num Claude Code que
+  acabou de subir agora espera a primeira saída dele e mais 300 ms; os roteiros digitam depois do
+  prompt. O Claude Code de mentira registra cada linha que recebe e quanto cada hook levou, para
+  um roteiro que falhar dizer onde parou.
 
 ## Ideias avaliadas e deixadas de fora
 
