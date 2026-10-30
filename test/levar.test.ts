@@ -22,6 +22,8 @@ import {
 } from '../src/main/portable'
 import {
   appImageName,
+  INSTALLER_DIR,
+  installerName,
   installRelease,
   pickAssets,
   releaseKey,
@@ -291,11 +293,22 @@ test('o arquivo a trocar e a chave: os de teste só fora do pacote', () => {
     WISP_TEST_APPIMAGE: '/tmp/x',
     WISP_TEST_RELEASE_KEY: 'k'
   }
-  assert.equal(updateTarget('appimage', true, env), '/opt/Wisp.AppImage')
-  assert.equal(updateTarget('package', true, env), null)
-  assert.equal(updateTarget('flatpak', true, env), null)
-  assert.equal(updateTarget('dev', false, env), '/tmp/x')
-  assert.equal(updateTarget('dev', false, { WISP_TEST_APPIMAGE: 'relativo' }), null)
+  const appimage = (target: string) => ({ target, format: 'appimage' })
+  assert.deepEqual(updateTarget('appimage', true, env, false), appimage('/opt/Wisp.AppImage'))
+  assert.equal(updateTarget('package', true, env, false), null)
+  assert.equal(updateTarget('flatpak', true, env, false), null)
+  assert.deepEqual(updateTarget('dev', false, env, false), appimage('/tmp/x'))
+  assert.equal(updateTarget('dev', false, { WISP_TEST_APPIMAGE: 'relativo' }, false), null)
+  // No Windows (Fase 36): o instalador, baixado na pasta de cache do Wisp.
+  assert.deepEqual(updateTarget('package', true, env, true), {
+    target: INSTALLER_DIR,
+    format: 'installer'
+  })
+  assert.equal(updateTarget('dev', false, env, true), null)
+  assert.deepEqual(updateTarget('dev', false, { WISP_TEST_INSTALLER_DIR: '/tmp/i' }, true), {
+    target: '/tmp/i',
+    format: 'installer'
+  })
   assert.equal(releaseKey(false, env), 'k')
   // Empacotado, só a chave que veio no Wisp.
   assert.equal(releaseKey(true, env), RELEASE_PUBLIC_KEY)
@@ -347,13 +360,63 @@ test('atualizar baixa, confere a assinatura e só então troca o arquivo', async
   })
   assert.equal(updater.installed(), null)
   const [first, second] = await Promise.all([updater.install(rel), updater.install(rel)])
-  assert.deepEqual([first, second], [{ ok: true }, { ok: true }])
+  assert.deepEqual(
+    [first, second],
+    [
+      { ok: true, path: target },
+      { ok: true, path: target }
+    ]
+  )
   assert.equal(readFileSync(target, 'utf8'), bytes.toString())
   assert.equal(statSync(target).mode & 0o777, 0o755)
   assert.deepEqual(readdirSync(dir), ['Wisp.AppImage'])
   assert.equal(updater.installed(), '0.9.0')
   updater.restart()
   assert.equal(relaunched, target)
+})
+
+test('no Windows, atualizar baixa o instalador, confere a assinatura e o roda no reiniciar', async () => {
+  const dir = join(HOME, 'atualizacao')
+  mkdirSync(dir, { recursive: true })
+  // Um instalador de uma versão anterior que ficou na pasta.
+  writeFileSync(join(dir, 'Wisp-0.8.0-Setup-x64.exe'), 'velho')
+  const name = 'Wisp-0.9.0-Setup-x64.exe'
+  assert.equal(installerName('0.9.0', 'x64'), name)
+  assert.equal(installerName('0.9.0', 'arm64'), null)
+  const bytes = Buffer.from('MZ um instalador')
+  const rel = release([
+    { name: 'Wisp-0.9.0-x86_64.AppImage' },
+    { name: 'Wisp-0.9.0-x86_64.AppImage.sig' },
+    { name, size: bytes.length },
+    { name: `${name}.sig` }
+  ])
+  assert.equal(pickAssets(rel, 'x64', 'installer')?.image.name, name)
+  const options = { target: dir, format: 'installer' as const, publicKey: PUBLIC, arch: 'x64' }
+
+  // A assinatura do AppImage não serve para o instalador: nada fica na pasta.
+  const forged = await installRelease(rel, {
+    ...options,
+    fetch: serve({ [name]: bytes, [`${name}.sig`]: signFor('Wisp-0.9.0-x86_64.AppImage', bytes) })
+  })
+  assert.match((forged as { message: string }).message, /assinatura/)
+  assert.deepEqual(readdirSync(dir), ['Wisp-0.8.0-Setup-x64.exe'])
+  // Sem o instalador assinado na versão.
+  const unsigned = await installRelease(release([{ name }]), { ...options, fetch: serve({}) })
+  assert.match((unsigned as { message: string }).message, /instalador assinado/)
+
+  // Certo: o instalador fica na pasta (o velho sai), e o reiniciar o roda.
+  let ran = ''
+  const updater = new SelfUpdater({
+    ...options,
+    fetch: serve({ [name]: bytes, [`${name}.sig`]: signFor(name, bytes) }),
+    relaunch: (path) => (ran = path)
+  })
+  assert.equal(updater.format, 'installer')
+  assert.deepEqual(await updater.install(rel), { ok: true, path: join(dir, name) })
+  assert.deepEqual(readdirSync(dir), [name])
+  assert.equal(readFileSync(join(dir, name), 'utf8'), bytes.toString())
+  updater.restart()
+  assert.equal(ran, join(dir, name))
 })
 
 test('o scripts/sign-release.mjs do CI assina como o Wisp confere', () => {
@@ -373,6 +436,24 @@ test('o scripts/sign-release.mjs do CI assina como o Wisp confere', () => {
     verifyRelease('Wisp-0.9.0-x86_64.AppImage', sha256(readFileSync(file)), signature, PUBLIC),
     true
   )
+  // O instalador do Windows também (Fase 36); outro .exe, não.
+  const installer = join(dir, 'Wisp-0.9.0-Setup-x64.exe')
+  const other = join(dir, 'outro.exe')
+  writeFileSync(installer, Buffer.alloc(1000, 3))
+  writeFileSync(other, 'x')
+  execFileSync(process.execPath, [script, installer, other], {
+    env: { PATH: process.env.PATH, WISP_RELEASE_KEY: PRIVATE }
+  })
+  assert.equal(
+    verifyRelease(
+      'Wisp-0.9.0-Setup-x64.exe',
+      sha256(readFileSync(installer)),
+      readFileSync(`${installer}.sig`, 'utf8'),
+      PUBLIC
+    ),
+    true
+  )
+  assert.equal(existsSync(`${other}.sig`), false)
 })
 
 test('o scripts/release-key.mjs grava a chave pública e não troca uma que já existe', () => {

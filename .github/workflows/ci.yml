@@ -230,7 +230,7 @@ jobs:
   # O Wisp no Windows (Fase 33), num Windows de verdade: os testes de unidade que valem lá, o
   # roteiro de ponta a ponta do essencial (abrir, conversar, o hook do Bash, o card, o modo
   # terminal, o diagnóstico, com os prints), as integrações do Windows (Fase 35: as janelas, o
-  # terminal, os apps, a música e o volume) e o instalador.
+  # terminal, os apps, a música e o volume), o atualizar com um clique (Fase 36) e o instalador.
   windows:
     name: Windows (testes, ponta a ponta e instalador)
     runs-on: windows-latest
@@ -269,6 +269,10 @@ jobs:
         run: node e2e/integracoes.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Ponta a ponta (atualizar com um clique)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/atualizar-win.mjs
       - name: Os prints do Wisp no Windows
         if: always()
         continue-on-error: true
@@ -315,11 +319,12 @@ jobs:
         with:
           name: instalador-windows
           path: dist
-      # Assina os AppImage para o Atualizar do Wisp (Fase 31); sem o segredo, saem sem assinatura.
-      - name: Assina os AppImage
+      # Assina os AppImage e o instalador do Windows para o Atualizar do Wisp (Fases 31 e 36); sem o
+      # segredo, saem sem assinatura.
+      - name: Assina os AppImage e o instalador
         env:
           WISP_RELEASE_KEY: ${{ secrets.WISP_RELEASE_KEY }}
-        run: node scripts/sign-release.mjs dist/*.AppImage
+        run: node scripts/sign-release.mjs dist/*.AppImage dist/*-Setup-*.exe
       - name: Publica os pacotes no release da tag
         env:
           GH_TOKEN: ${{ github.token }}

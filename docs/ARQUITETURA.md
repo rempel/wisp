@@ -935,6 +935,16 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   - **o chaveiro (Fase 35):** o `secrets-win.ts` cifra cada segredo com o DPAPI (o `safeStorage`
     do Electron) num arquivo de `%LOCALAPPDATA%\Wisp\Segredos` com o nome tirado de um hash do nome
     do segredo; grava num temporário e renomeia;
+  - **o que faltava (Fase 36):** trazer o terminal de uma sessão para a frente vai do Claude Code
+    pelos pais dele (um snapshot dos processos, no mesmo script das janelas) até a primeira janela
+    da barra de tarefas de um deles; um "pai" que nasceu depois do filho é um número reaproveitado
+    e para o caminho. O navegador do Claude é procurado nas pastas dos instaladores (o Edge sempre
+    está). A linha de status do modo terminal é uma linha do bash do Git (a única forma que o
+    Claude Code aceita para ela), com o próprio Wisp entre aspas simples e só a ficha da aba. O
+    **Atualizar** (o `self-update.ts`, com o formato `installer`) baixa o instalador do release e o
+    `.sig` para `%LOCALAPPDATA%\Wisp\Cache\atualizacao`, confere a assinatura antes de dar o
+    nome final, apaga os instaladores antigos da pasta e, no **Reiniciar**, roda o instalador com
+    `--updated /S --force-run` e fecha o Wisp;
   - **o que o Electron já faz:** a bandeja, o atalho global (o `globalShortcut`), as notificações
     simples, o print da tela (o `desktopCapturer`), a tela bloqueada (o `powerMonitor`) e o
     início com o sistema (o item de login, no lugar do `~/.config/autostart`);

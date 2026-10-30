@@ -69,6 +69,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   o volume do sistema. A voz acha o whisper.cpp e o Piper do Windows. Nada passa pelo cmd, e
   nenhum programa é procurado na pasta atual.
 
+- **O que faltava no Windows** (Fase 36): na aba Sessões, **Trazer para a frente** acha a janela
+  do terminal da sessão; o navegador do Claude acha o Chrome ou o Edge sozinho; a linha de status
+  do Wisp no modo terminal; e o **Atualizar** com um clique, que baixa o instalador novo, confere a
+  assinatura e instala ao reiniciar.
+
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
@@ -92,6 +97,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- No Windows, um hook do Claude Code que terminava depois de o Claude Code sair podia deixar
+  aberta uma caixa "Error" do Electron; agora ele só sai.
 - No modo terminal, uma mensagem mandada pelo `wisp --ask` ou pela voz a um Claude Code que
   acabou de subir podia ficar na caixa sem enviar (o Enter chegava antes de ele ligar o modo cru
   do terminal, como uma quebra de linha): agora a colagem espera ele mostrar alguma coisa.

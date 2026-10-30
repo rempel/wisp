@@ -1,7 +1,9 @@
-// Atualizar com um clique (Fase 31), só no AppImage: com o clique em "Atualizar", o Wisp baixa o
-// AppImage novo do release no GitHub, confere a assinatura dele (ed25519, com a chave pública que
-// vem no próprio Wisp) e troca o arquivo. Sem a assinatura certa, nada é trocado. O .deb e o
-// Flatpak continuam pela página da versão (quem instala é o gerenciador de pacotes).
+// Atualizar com um clique (Fase 31): com o clique em "Atualizar", o Wisp baixa o AppImage novo do
+// release no GitHub, confere a assinatura dele (ed25519, com a chave pública que vem no próprio
+// Wisp) e troca o arquivo. Sem a assinatura certa, nada é trocado. No Windows (Fase 36), o mesmo
+// com o instalador: baixado e conferido na pasta de cache do Wisp, ele instala por cima no
+// "Reiniciar". O .deb e o Flatpak continuam pela página da versão (quem instala é o gerenciador
+// de pacotes).
 
 import { createHash, createPublicKey, verify } from 'crypto'
 import {
@@ -9,14 +11,18 @@ import {
   chmodSync,
   constants,
   createWriteStream,
+  mkdirSync,
+  readdirSync,
   renameSync,
   rmSync,
   statSync
 } from 'fs'
-import { basename, dirname, isAbsolute } from 'path'
+import { basename, dirname, isAbsolute, join } from 'path'
 import { Readable, Transform } from 'stream'
 import { pipeline } from 'stream/promises'
 import type { InstallKind } from './launcher'
+import { CACHE_DIR } from './paths'
+import { IS_WINDOWS } from './platform'
 import { RELEASE_PUBLIC_KEY } from './release-key'
 import type { Release, ReleaseAsset } from './updates'
 import { t } from '../shared/i18n'
@@ -36,12 +42,24 @@ export function appImageName(version: string, arch: string = process.arch): stri
   return name ? `Wisp-${version}-${name}.AppImage` : null
 }
 
-/** O AppImage desta arquitetura e a assinatura dele, se a versão tem os dois. */
+/** O que se baixa: o AppImage (que é o próprio app) ou o instalador do Windows. */
+export type UpdateFormat = 'appimage' | 'installer'
+
+/** O nome do instalador do Windows de uma versão (o do electron-builder); só há o x64. */
+export function installerName(version: string, arch: string = process.arch): string | null {
+  return arch === 'x64' ? `Wisp-${version}-Setup-x64.exe` : null
+}
+
+/** O arquivo desta arquitetura e a assinatura dele, se a versão tem os dois. */
 export function pickAssets(
   release: Release,
-  arch: string = process.arch
+  arch: string = process.arch,
+  format: UpdateFormat = 'appimage'
 ): { image: ReleaseAsset; signature: ReleaseAsset } | null {
-  const name = appImageName(release.version, arch)
+  const name =
+    format === 'installer'
+      ? installerName(release.version, arch)
+      : appImageName(release.version, arch)
   if (!name) return null
   const image = release.assets?.find((asset) => asset.name === name)
   const signature = release.assets?.find((asset) => asset.name === `${name}.sig`)
@@ -74,17 +92,26 @@ export function verifyRelease(
   }
 }
 
+/** No Windows, onde o instalador novo é baixado e conferido. */
+export const INSTALLER_DIR = join(CACHE_DIR, 'atualizacao')
+
 /**
- * O arquivo a trocar: o AppImage que está rodando. Fora do pacote (os testes),
- * WISP_TEST_APPIMAGE faz as vezes dele.
+ * O que atualizar: o AppImage que está rodando (troca o arquivo) ou, no Windows instalado, a pasta
+ * onde o instalador novo é baixado. Fora do pacote (os testes), WISP_TEST_APPIMAGE e
+ * WISP_TEST_INSTALLER_DIR fazem as vezes deles.
  */
 export function updateTarget(
   kind: InstallKind,
   packaged: boolean,
-  env: NodeJS.ProcessEnv = process.env
-): string | null {
+  env: NodeJS.ProcessEnv = process.env,
+  windows = IS_WINDOWS
+): { target: string; format: UpdateFormat } | null {
+  if (windows) {
+    const dir = packaged ? INSTALLER_DIR : env.WISP_TEST_INSTALLER_DIR
+    return dir && isAbsolute(dir) ? { target: dir, format: 'installer' } : null
+  }
   const path = kind === 'appimage' ? env.APPIMAGE : packaged ? undefined : env.WISP_TEST_APPIMAGE
-  return path && isAbsolute(path) ? path : null
+  return path && isAbsolute(path) ? { target: path, format: 'appimage' } : null
 }
 
 /** A chave pública que confere os AppImage; fora do pacote, WISP_TEST_RELEASE_KEY troca. */
@@ -94,8 +121,9 @@ export function releaseKey(packaged: boolean, env: NodeJS.ProcessEnv = process.e
 }
 
 export interface InstallOptions {
-  /** O AppImage a trocar. */
+  /** O AppImage a trocar, ou a pasta onde baixar o instalador. */
   target: string
+  format?: UpdateFormat
   /** A chave pública (PEM). */
   publicKey: string
   arch?: string
@@ -104,11 +132,17 @@ export interface InstallOptions {
   rewrite?(url: string): string
 }
 
-export type InstallResult = { ok: true } | { ok: false; message: string }
+/** Deu certo: `path` é o AppImage trocado ou o instalador baixado. */
+export type InstallResult = { ok: true; path: string } | { ok: false; message: string }
 
-/** Confere que dá para trocar o arquivo antes de baixar 100 MB. */
-function checkTarget(target: string): string | null {
+/** Confere que dá para trocar o arquivo (ou gravar na pasta do instalador) antes de baixar. */
+function checkTarget(target: string, format: UpdateFormat): string | null {
   try {
+    if (format === 'installer') {
+      mkdirSync(target, { recursive: true })
+      accessSync(target, constants.W_OK)
+      return null
+    }
     if (!statSync(target).isFile()) return t('{file} não é um arquivo.', { file: target })
     accessSync(dirname(target), constants.W_OK)
     return null
@@ -144,20 +178,28 @@ export async function installRelease(
   release: Release,
   options: InstallOptions
 ): Promise<InstallResult> {
-  const assets = pickAssets(release, options.arch)
+  const format = options.format ?? 'appimage'
+  const assets = pickAssets(release, options.arch, format)
   if (!assets) {
     return {
       ok: false,
-      message: t('A versão {version} não tem o AppImage assinado: baixe pela página da versão.', {
-        version: release.version
-      })
+      message:
+        format === 'installer'
+          ? t('A versão {version} não tem o instalador assinado: baixe pela página da versão.', {
+              version: release.version
+            })
+          : t('A versão {version} não tem o AppImage assinado: baixe pela página da versão.', {
+              version: release.version
+            })
     }
   }
-  const problem = checkTarget(options.target)
+  const problem = checkTarget(options.target, format)
   if (problem) return { ok: false, message: problem }
   const { image, signature } = assets
   const limit = image.size > 0 ? Math.min(image.size, MAX_APPIMAGE_BYTES) : MAX_APPIMAGE_BYTES
-  const partial = options.target + PARTIAL_SUFFIX
+  // O instalador vai para a pasta com o nome dele; o AppImage, no lugar do que está rodando.
+  const final = format === 'installer' ? join(options.target, image.name) : options.target
+  const partial = final + PARTIAL_SUFFIX
   try {
     const sig = await smallText(await get(signature.url, options), MAX_SIGNATURE_BYTES)
     const response = await get(image.url, options)
@@ -183,8 +225,14 @@ export async function installRelease(
       throw new Error(t('A assinatura não confere: o arquivo baixado foi descartado.'))
     }
     chmodSync(partial, 0o755)
-    renameSync(partial, options.target)
-    return { ok: true }
+    renameSync(partial, final)
+    // Os instaladores de versões anteriores que ficaram na pasta saem.
+    if (format === 'installer') {
+      for (const name of readdirSync(options.target)) {
+        if (name !== image.name) rmSync(join(options.target, name), { force: true })
+      }
+    }
+    return { ok: true, path: final }
   } catch (err) {
     rmSync(partial, { force: true })
     return { ok: false, message: (err as Error).message }
@@ -194,9 +242,16 @@ export async function installRelease(
 /** O AppImage que se atualiza: um download por vez, e a versão que já ficou no lugar. */
 export class SelfUpdater {
   private done: string | null = null
+  /** O AppImage trocado ou o instalador baixado. */
+  private path: string | null = null
   private running: Promise<InstallResult> | null = null
 
-  constructor(private readonly options: InstallOptions & { relaunch(target: string): void }) {}
+  constructor(private readonly options: InstallOptions & { relaunch(path: string): void }) {}
+
+  /** O AppImage (troca o arquivo) ou o instalador do Windows. */
+  get format(): UpdateFormat {
+    return this.options.format ?? 'appimage'
+  }
 
   /** A versão já trocada, que entra quando o Wisp abrir de novo. */
   installed(): string | null {
@@ -205,17 +260,20 @@ export class SelfUpdater {
 
   /** Baixa, confere e troca (um segundo clique espera o primeiro). */
   async install(release: Release): Promise<InstallResult> {
-    if (this.done === release.version) return { ok: true }
+    if (this.done === release.version && this.path) return { ok: true, path: this.path }
     this.running ??= installRelease(release, this.options).finally(() => {
       this.running = null
     })
     const result = await this.running
-    if (result.ok) this.done = release.version
+    if (result.ok) {
+      this.done = release.version
+      this.path = result.path
+    }
     return result
   }
 
-  /** Abre o AppImage novo (e fecha este). */
+  /** Abre o AppImage novo, ou roda o instalador (e fecha este). */
   restart(): void {
-    this.options.relaunch(this.options.target)
+    if (this.path) this.options.relaunch(this.path)
   }
 }

@@ -49,6 +49,8 @@ export interface Facts {
   update: { version: string; url: string } | null
   /** O Wisp se atualiza sozinho com um clique (o AppImage, com a chave de assinatura; Fase 31). */
   selfUpdate?: boolean
+  /** O que o Atualizar baixa: o AppImage (troca o arquivo) ou o instalador do Windows (Fase 36). */
+  updateFormat?: 'appimage' | 'installer'
   /** A versão já baixada e trocada, que entra quando o Wisp abrir de novo. */
   installed?: string | null
   /** No Windows (Fase 33): o que lá ainda não há diz que chega numa próxima versão. */
@@ -454,13 +456,20 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
         'update',
         t('Versão nova'),
         'warn',
-        t('{version} instalada, falta reiniciar', { version: facts.update.version }),
-        t(
-          'O AppImage do Wisp {version} já está no lugar do antigo: ele entra quando o Wisp abrir de novo.',
-          {
-            version: facts.update.version
-          }
-        ),
+        facts.updateFormat === 'installer'
+          ? t('{version} baixada, falta reiniciar', { version: facts.update.version })
+          : t('{version} instalada, falta reiniciar', { version: facts.update.version }),
+        facts.updateFormat === 'installer'
+          ? t(
+              'O instalador do Wisp {version} já foi baixado e conferido: em **Reiniciar**, ele instala por cima e abre o Wisp de novo.',
+              { version: facts.update.version }
+            )
+          : t(
+              'O AppImage do Wisp {version} já está no lugar do antigo: ele entra quando o Wisp abrir de novo.',
+              {
+                version: facts.update.version
+              }
+            ),
         { action: 'restart', optional: true }
       )
     )
@@ -476,9 +485,14 @@ export function evaluate(facts: Facts): DiagnosticCheck[] {
           version2: facts.app.version
         }),
         {
-          fix: t(
-            'Em **Atualizar**, o Wisp baixa o AppImage novo, confere a assinatura dele e troca o arquivo. As configurações e as conversas continuam.'
-          ),
+          fix:
+            facts.updateFormat === 'installer'
+              ? t(
+                  'Em **Atualizar**, o Wisp baixa o instalador novo e confere a assinatura dele; em **Reiniciar**, ele instala por cima. As configurações e as conversas continuam.'
+                )
+              : t(
+                  'Em **Atualizar**, o Wisp baixa o AppImage novo, confere a assinatura dele e troca o arquivo. As configurações e as conversas continuam.'
+                ),
           action: 'update',
           optional: true
         }
