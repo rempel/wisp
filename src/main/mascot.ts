@@ -10,6 +10,7 @@ import { IslandController, parseIslandAction } from './island-state'
 import type { IslandContent, IslandStatus, PeekReason } from './island-state'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
+import { DEFAULT_AVATAR } from '../shared/avatars'
 import type { AvatarName } from '../shared/avatars'
 import type { Dance, MascotAct } from '../shared/emotions'
 import type {
@@ -40,7 +41,7 @@ let mascotWin: BrowserWindow | null = null
 let view: MascotView = { state: 'idle', look: 'left' }
 /** O acessório do dia, reenviado quando a página (re)carrega. */
 let accessory: Accessory | null = null
-let avatar: AvatarName = 'robo'
+let avatar: AvatarName = DEFAULT_AVATAR
 /** A dança de quando toca música (Fase 27), reenviada quando a página (re)carrega. */
 let danceStyle: Dance = 'mix'
 let reduceMotion = false

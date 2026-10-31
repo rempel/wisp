@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { JSX, ReactNode } from 'react'
+import { DEFAULT_AVATAR } from '../../shared/avatars'
 import { ATTACHMENT_LIMITS, MAX_PANES } from '../../shared/ipc'
 import { leaf, neighbor } from '../../shared/layout'
 import type { Side } from '../../shared/layout'
@@ -677,7 +678,7 @@ export default function Chat(): JSX.Element {
   )
 
   return (
-    <AvatarContext.Provider value={settings?.values.avatar ?? 'robo'}>
+    <AvatarContext.Provider value={settings?.values.avatar ?? DEFAULT_AVATAR}>
       <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
         {dragging && (
           <div className="drop-overlay" aria-hidden>

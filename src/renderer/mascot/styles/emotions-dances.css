@@ -4,7 +4,7 @@
 
 /*
  * As danças do kit, na camada .groove (por fora das emoções). O fantasminha dança com os braços;
- * o robô, com a antena. O "girar" é um giro desenhado: ele fica de lado (fino), de costas (o rosto
+ * o fogo e a geleca, com a luz de cima. O "girar" é um giro desenhado: ele fica de lado (fino), de costas (o rosto
  * some) e volta, uma vez por compasso.
  */
 .stage[data-dance] .groove {
@@ -66,7 +66,7 @@
   }
 }
 
-/* Mãos para o alto: quica com os braços lá em cima, socando o ar; a antena estica junto. */
+/* Mãos para o alto: quica com os braços lá em cima, socando o ar; a luz de cima estica junto. */
 .stage[data-dance='roof'] .groove {
   --up: -5px;
   animation-name: feel-bounce;
@@ -171,7 +171,7 @@
   animation: arm-up calc(var(--beat) * 4) ease-in-out infinite;
 }
 
-/* Acenar: quica de leve, acenando com um braço (no robô, com a antena). */
+/* Acenar: quica de leve, acenando com um braço (no fogo e na geleca, com a luz de cima). */
 .stage[data-dance='wave'] .groove {
   --up: -5px;
   --hit: 0.06;

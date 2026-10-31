@@ -446,7 +446,7 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
 - [ ] **Reações:** clique uma, duas e três vezes; pare o cursor em cima dele; arraste um arquivo
       para cima dele e solte.
 - [ ] **Ilha:** ligue a **Ilha no topo**: a cápsula mostra o fantasminha.
-- [ ] **Volta igual:** feche e abra o Wisp: continua fantasminha. Volte para o robô pelas
+- [ ] **Volta igual:** feche e abra o Wisp: continua fantasminha. Volte para o fogo-fátuo pelas
       configurações (**Mascote e sons → Avatar**).
 
 ## Primeiros passos e diagnóstico (Fase 20)
@@ -850,3 +850,17 @@ Com **Ilha no topo** ligada:
       primeiro) e, de novo, recolhe. No Windows, com a ilha com o teclado, **Esc** fecha o diff ou
       recolhe, e **Ctrl+←** e **Ctrl+→** (fora da caixa) trocam de pílula. O atalho muda em
       Configurações → Atalhos e sistema → **Perguntar pela ilha**.
+
+## O fogo-fátuo e a geleca (Fase 39)
+
+- [ ] **Padrão:** num usuário novo (ou com `"avatar": "robo"` no `config.json`), o mascote é o
+      fogo-fátuo: a chama azul com a faísca em cima, tremulando de leve; o ícone do menu de apps e o
+      da bandeja são a chama. Nenhum aviso de valor inválido nas configurações.
+- [ ] **Trabalhando:** peça algo longo: a chama tremula mais depressa.
+- [ ] **Geleca:** botão direito → **Avatar** → **Geleca**: o corpinho verde-água respirando, com a
+      bolha em cima. Peça um comando que pede permissão: ela fica âmbar, com o "?" logo acima.
+- [ ] **Em cima da cabeça:** com a geleca, clique três vezes (as estrelas rodam em cima dela, não
+      no ar), pare o cursor em cima (os corações) e espere o cochilo (os "z").
+- [ ] **Emoções:** em **Configurações → Mascote e sons**, veja algumas emoções e danças da galeria
+      nos três avatares: os olhos e a boca escuros, os sinais no ar perto da cabeça.
+- [ ] **Menos movimento:** ligado, a chama e a geleca ficam paradas.

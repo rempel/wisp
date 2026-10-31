@@ -3,8 +3,10 @@
 
 /* ---- Reações ---------------------------------------------------------- */
 
-/* Segunda cutucada: os LEDs ficam bravos e vermelhos, ele bufa e aparece a veia de bravo. */
+/* Segunda cutucada: os olhos ficam bravos e vermelhos (e a luz de cima), ele bufa e aparece a
+   veia de bravo. */
 .react-annoyed {
+  --ink: #be123c;
   --led-0: #fff1f2;
   --led-1: #fecdd3;
   --led-2: #fb7185;
@@ -223,7 +225,7 @@
   }
 }
 
-/* Saudação, quando o app abre: aparece num pulo, acena com a antena, sorri e diz oi. */
+/* Saudação, quando o app abre: aparece num pulo, acena com a luz de cima, sorri e diz oi. */
 .react-greet .react {
   animation: greet-pop 0.7s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
@@ -315,7 +317,7 @@
   transform-origin: 85% 100%;
 }
 
-/* O rabinho do balão, apontando para a gota. */
+/* O rabinho do balão, apontando para o Wisp. */
 .bubble::after {
   content: '';
   position: absolute;
@@ -351,7 +353,7 @@
   }
 }
 
-/* Lembrete: toca como um despertador, com um sininho e o LED da antena piscando âmbar. */
+/* Lembrete: toca como um despertador, com um sininho e a luz de cima piscando âmbar. */
 .react-remind {
   --led-halo: #fbbf24;
 }
@@ -471,7 +473,7 @@
 
 /* ---- Arquivo solto no mascote ---------------------------------------- */
 
-/* Um arquivo passando por cima: os olhos arregalam, ele estica e a antena fica em pé. */
+/* Um arquivo passando por cima: os olhos arregalam, ele estica e a luz de cima fica em pé. */
 .drop-over .react {
   transform: scale(0.97, 1.04);
 }
@@ -488,7 +490,7 @@
   animation-duration: 0.9s;
 }
 
-/* Soltou: o arquivo voa para dentro da gota, que engole com um gole e brilha. */
+/* Soltou: o arquivo voa para dentro do Wisp, que engole com um gole e brilha. */
 .absorb {
   position: absolute;
   left: 57px;

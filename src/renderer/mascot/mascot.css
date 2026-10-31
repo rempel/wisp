@@ -1,5 +1,5 @@
 /*
- * Wisp: uma gotinha robô de luz. Tudo em SVG + CSS, sem assets externos.
+ * Wisp: um fogo-fátuo (ou a geleca, ou o fantasminha). Tudo em SVG + CSS, sem assets externos.
  *
  * Todas as animações contínuas usam só transform e opacity em camadas HTML. O compositor as
  * desenha sem acordar a thread principal da página e sem redesenhar o SVG. Quando ele cochila,

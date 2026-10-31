@@ -1,7 +1,7 @@
 /*
  * As emoções, os sinais e as danças dos avatares (Fase 27), do ClaudeAnimationBase (o kit de
  * animação do Clawd, de John Heibel, licença MIT). A tabela fica em src/shared/emotions.ts; aqui,
- * o desenho e o movimento de cada coisa, para o robô e para o fantasminha.
+ * o desenho e o movimento de cada coisa, para todos os avatares.
  *
  * O palco diz o que mostrar: data-eyes, data-mouth, data-tint, data-feel (a emoção do corpo),
  * data-emote (o sinal no ar) e data-dance; e as forças vêm em variáveis (--tk, a cor; --blush;
@@ -19,15 +19,17 @@
 }
 
 /*
- * O kit pinta um personagem laranja; no robô, ciano, o dourado misturado de leve vira verde e o
- * vermelho vira marrom. Ali as cores quentes entram mais forte, para chegarem ao que querem dizer.
+ * O kit pinta um personagem laranja; no fogo e na geleca, ciano, o dourado misturado de leve vira
+ * verde e o vermelho vira marrom. Ali as cores quentes entram mais forte, para chegarem ao que
+ * querem dizer.
  */
-.avatar-robo[data-tint='gold'] {
+.avatar-fogo[data-tint='gold'],
+.avatar-geleca[data-tint='gold'] {
   --tk-boost: 2.5;
 }
 
-.avatar-robo[data-tint='flush'],
-.avatar-robo[data-tint='rosy'] {
+.avatar-fogo:is([data-tint='flush'], [data-tint='rosy']),
+.avatar-geleca:is([data-tint='flush'], [data-tint='rosy']) {
   --tk-boost: 1.5;
 }
 
@@ -59,18 +61,10 @@
 
 /* ---- Os olhos do kit -------------------------------------------------- */
 
-/*
- * O olhar da emoção (tímido olha para baixo, pensando olha para cima). No robô, com uma boca no
- * visor, os olhos sobem um pouco para caber os dois.
- */
+/* O olhar da emoção (tímido olha para baixo, pensando olha para cima). */
 .look {
-  --face-up: 0px;
-  transform: translate(calc(var(--lx, 0) * 3.4px), calc(var(--ly, 0) * 2px + var(--face-up)));
+  transform: translate(calc(var(--lx, 0) * 3.4px), calc(var(--ly, 0) * 2px));
   transition: transform 0.3s ease-out;
-}
-
-.avatar-robo[data-mouth] .look {
-  --face-up: -2.4px;
 }
 
 .eye-glyph-set {
@@ -98,14 +92,10 @@
   opacity: 1;
 }
 
-.avatar-robo .eye-glyph-set {
-  filter: url(#wisp-led-glow);
-}
-
 .eye-glyph-set .line,
 .eye-glyph-set .lid {
   fill: none;
-  stroke: var(--led-1);
+  stroke: var(--ink);
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -129,21 +119,19 @@
   opacity: 0.9;
 }
 
-/* Brilhando: no robô, o LED vira um anel aceso com dois brilhos; no fantasminha, o olho escuro. */
+/* Brilhando: o olho escuro com dois brilhos. */
 .shine-ball {
-  fill: rgb(var(--glow) / 0.3);
-  stroke: var(--led-1);
-  stroke-width: 1.3;
+  fill: var(--ink);
 }
 
 .glint {
-  fill: var(--led-0);
+  fill: #fff;
 }
 
 .sclera {
-  fill: rgb(var(--glow) / 0.12);
-  stroke: var(--led-1);
-  stroke-width: 1.3;
+  fill: #fff;
+  stroke: var(--ink);
+  stroke-width: 1.2;
 }
 
 .star-eye {
@@ -164,19 +152,19 @@
 }
 
 .heart-eye {
-  fill: #fb7185;
+  fill: #e2476e;
 }
 
 .shades-glass {
   fill: #1e1b2e;
-  stroke: #94a3b8;
+  stroke: #0f172a;
   stroke-width: 1;
   stroke-linejoin: round;
 }
 
 .shades-rim {
   fill: none;
-  stroke: #94a3b8;
+  stroke: #0f172a;
   stroke-width: 1.2;
   stroke-linecap: round;
 }
@@ -187,44 +175,6 @@
   stroke-width: 0.8;
   stroke-linecap: round;
   opacity: 0.8;
-}
-
-/* No fantasminha, os olhos são escuros no corpo claro: sem o brilho dos LEDs. */
-.avatar-fantasma .eye-glyph-set {
-  filter: none;
-}
-
-.avatar-fantasma .eyes .led {
-  fill: var(--ghost-eye);
-}
-
-.avatar-fantasma .eye-glyph-set .line,
-.avatar-fantasma .eye-glyph-set .lid {
-  stroke: var(--ghost-eye);
-}
-
-.avatar-fantasma .shine-ball {
-  fill: var(--ghost-eye);
-  stroke: none;
-}
-
-.avatar-fantasma .glint {
-  fill: #fff;
-}
-
-.avatar-fantasma .sclera {
-  fill: #fff;
-  stroke: var(--ghost-eye);
-  stroke-width: 1.2;
-}
-
-.avatar-fantasma .heart-eye {
-  fill: #e2476e;
-}
-
-.avatar-fantasma .shades-glass,
-.avatar-fantasma .shades-rim {
-  stroke: #0f172a;
 }
 
 /* Olhos de estrela piscam; olhos de coração batem (a mesma especificidade do "não pisca" do
@@ -267,13 +217,14 @@
   transform-origin: 64px 86.8px;
 }
 
-.avatar-robo .mouth svg {
-  filter: url(#wisp-led-glow);
+/* A boca fica no corpo, um pouco abaixo dos olhos (--mouth-y, de cada avatar), escura como eles. */
+.mouth {
+  transform: translateY(var(--mouth-y, 2.4px));
 }
 
 .mouth .line {
   fill: none;
-  stroke: var(--led-1);
+  stroke: var(--ink);
   stroke-width: 1.5;
   stroke-linecap: round;
   stroke-linejoin: round;
@@ -284,53 +235,26 @@
 }
 
 .mouth .fill {
-  fill: var(--visor-1);
-  stroke: var(--led-1);
+  fill: var(--mouth-fill);
+  stroke: var(--ink);
   stroke-width: 1.3;
   stroke-linejoin: round;
 }
 
 .mouth .tongue {
-  fill: #fb7185;
+  fill: #f472b6;
 }
 
 .mouth .teeth {
-  fill: rgb(var(--glow) / 0.28);
-  stroke: var(--led-1);
+  fill: #fff;
+  stroke: var(--ink);
   stroke-width: 1.1;
 }
 
 .mouth .teeth-line {
   fill: none;
-  stroke: var(--led-1);
+  stroke: var(--ink);
   stroke-width: 0.6;
-}
-
-/* No fantasminha a boca fica no corpo, um pouco mais abaixo, escura como os olhos. */
-.avatar-fantasma .mouth {
-  transform: translateY(3.4px);
-}
-
-.avatar-fantasma .mouth .line,
-.avatar-fantasma .mouth .fill,
-.avatar-fantasma .mouth .teeth {
-  stroke: var(--ghost-eye);
-}
-
-.avatar-fantasma .mouth .fill {
-  fill: #4a1f2a;
-}
-
-.avatar-fantasma .mouth .teeth {
-  fill: #fff;
-}
-
-.avatar-fantasma .mouth .teeth-line {
-  stroke: var(--ghost-eye);
-}
-
-.avatar-fantasma .mouth .tongue {
-  fill: #f472b6;
 }
 
 /* O choro: a boca treme. */

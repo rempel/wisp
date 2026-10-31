@@ -21,6 +21,7 @@ import type { SelfUpdater } from './self-update'
 import type { ShortcutStatus } from './shortcut'
 import type { UpdateChecker } from './updates'
 import { whisperSetup } from './whisper'
+import { DEFAULT_AVATAR } from '../shared/avatars'
 import { IPC } from '../shared/ipc'
 import type { DiagnosticAction, DiagnosticsSnapshot, PanelView, PhoneResult } from '../shared/ipc'
 import { t } from '../shared/i18n'
@@ -86,7 +87,7 @@ function features(): string[] {
     [config.provider === 'openrouter', 'OpenRouter'],
     [config.demo, t('demonstração')],
     [config.updateCheck, t('aviso de versão')],
-    [config.avatar !== 'robo', `avatar ${config.avatar}`]
+    [config.avatar !== DEFAULT_AVATAR, `avatar ${config.avatar}`]
   ]
   return on.filter(([enabled]) => enabled).map(([, name]) => name)
 }

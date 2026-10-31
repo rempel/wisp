@@ -3,12 +3,13 @@ import type { Accessory } from '../../shared/ipc'
 
 /**
  * Os acessórios por data, desenhados no mesmo espaço (128 × 128) do mascote. O gorro de Natal
- * fica na ponta da gota, no lugar da antena; os óculos de sol, na testa, sem tapar os olhos.
+ * fica no alto da cabeça, no lugar da luz de cima; os óculos de sol, na testa, sem tapar os olhos.
+ * A geleca, mais baixa, os desce pelo CSS (styles/avatars.css).
  */
 export function AccessoryArt({ kind }: { kind: Accessory }): JSX.Element {
   if (kind === 'christmas') {
     return (
-      <div className="accessory" aria-hidden>
+      <div className="accessory accessory-christmas" aria-hidden>
         <svg className="layer" viewBox="0 0 128 128">
           <defs>
             <linearGradient id="wisp-hat" x1="0" y1="0" x2="0.6" y2="1">
@@ -29,7 +30,7 @@ export function AccessoryArt({ kind }: { kind: Accessory }): JSX.Element {
     )
   }
   return (
-    <div className="accessory" aria-hidden>
+    <div className="accessory accessory-summer" aria-hidden>
       <svg className="layer" viewBox="0 0 128 128">
         <defs>
           <linearGradient id="wisp-lens" x1="0" y1="0" x2="0.3" y2="1">

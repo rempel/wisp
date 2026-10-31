@@ -6,7 +6,7 @@ import { MOUTHS } from '../../shared/emotions'
  * desenhados, apagados; o data-eyes e o data-mouth do palco dizem qual aparece (styles/body.css
  * e styles/emotions-face.css). Assim a troca é só de opacidade, sem refazer o SVG. Os olhos são
  * desenhados em volta do esquerdo (55,5; 80) e espelhados para o direito; a boca, em volta de
- * (64; 86,8), logo abaixo dos olhos no visor do robô (no fantasminha, o CSS desce um pouco).
+ * (64; 86,8), logo abaixo dos olhos (o CSS de cada avatar acerta a altura).
  */
 
 /** O olho esquerdo, e o mesmo desenho espelhado no direito. */

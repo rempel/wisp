@@ -140,7 +140,7 @@ src/
 │  ├─ fold.ts        # buscar sem acentos nem maiúsculas (e onde cada letra estava)
 │  ├─ layout.ts      # a grade dos painéis: dividir, tirar, arrastar uma aba, proporções
 │  ├─ vad.ts         # detector de voz por energia, com 500 ms de folga antes da fala
-│  ├─ avatars.ts     # os avatares: os nomes e os contornos (a gota e o fantasminha)
+│  ├─ avatars.ts     # os avatares: os nomes e os contornos (o fogo-fátuo, a geleca, o fantasminha)
 │  ├─ emotions.ts    # as emoções, os sinais e as danças do kit (a tabela) e o susto da troca
 │  ├─ commands.ts    # o que um comando do terminal faz, em uma linha (o card e a notificação)
 │  ├─ prompts.ts     # prompts salvos e tarefas: as variáveis e os horários (os próximos e os passados)
@@ -197,8 +197,9 @@ CONTRIBUTING.md        # o guia de contribuição
   move a janela seguindo a posição global do cursor. Usar as coordenadas dos eventos da página
   faria o mascote tremer, porque elas são relativas a uma janela que está se movendo.
 - **Animações:** tudo é `transform` e `opacity` em camadas HTML, que o compositor anima sem
-  redesenhar o SVG. O corpo é desenhado uma vez só; antena, LED da antena e olhos são camadas
-  separadas que se movem por cima dele.
+  redesenhar o SVG. O corpo é desenhado uma vez só; a luz de cima e os olhos são camadas
+  separadas que se movem por cima dele. A chama do fogo-fátuo tremula e a geleca respira com um
+  `transform` na camada inteira do corpo (Fase 39), pausado no cochilo.
 - **Claude Code:** cada conversa é um processo `claude -p` de longa duração, com
   `--input-format stream-json --output-format stream-json --verbose --include-partial-messages`.
   As mensagens entram pelo stdin, uma linha JSON cada, e a resposta chega em eventos pelo

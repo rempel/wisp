@@ -218,7 +218,7 @@ export function deployLauncher(target: LauncherTarget, withMenuEntry: boolean): 
     'Name=Wisp',
     'GenericName=Assistente',
     'GenericName[pt_BR]=Assistente',
-    'Comment=Uma gotinha de luz com o Claude Code',
+    'Comment=Um fogo-fátuo com o Claude Code',
     `Exec=${desktopExec()}`,
     `Icon=${target.icon}`,
     'Terminal=false',

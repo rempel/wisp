@@ -1,5 +1,11 @@
 import type { JSX } from 'react'
-import { DROP_PATH, GHOST_PATH } from '../../shared/avatars'
+import {
+  AVATAR_PATHS,
+  BLOB_PATH,
+  FLAME_CORE_PATH,
+  FLAME_PATH,
+  GHOST_PATH
+} from '../../shared/avatars'
 import type { AvatarName } from '../../shared/avatars'
 
 /**
@@ -35,28 +41,34 @@ export function Body({ avatar }: { avatar: AvatarName }): JSX.Element {
       </>
     )
   }
+  if (avatar === 'geleca') {
+    return (
+      <svg className="layer" viewBox="0 0 128 128">
+        <ellipse className="jelly-puddle" cx="64" cy="102.6" rx="31" ry="3.2" />
+        <path className="shell" d={BLOB_PATH} />
+        <ellipse className="shell" cx="94" cy="102.4" rx="3.2" ry="2.1" />
+        <path className="gloss" d="M 43 76 Q 47 63 58 59" />
+        <circle className="gloss-dot" cx="42" cy="81" r="1.5" />
+        <circle className="jelly-bubble" cx="80" cy="94" r="2.1" />
+        <circle className="jelly-bubble" cx="85.5" cy="88" r="1.3" />
+        <circle className="jelly-bubble" cx="47" cy="95" r="1.5" />
+      </svg>
+    )
+  }
+  // O fogo-fátuo: a chama, o miolo claro (onde fica o rosto) e um brilho na ponta da esquerda.
   return (
     <svg className="layer" viewBox="0 0 128 128">
-      <path className="shell" d={DROP_PATH} />
-      <path className="gloss" d="M 47 60 Q 50 52 57 49" />
-      <circle className="gloss-dot" cx="45.6" cy="65" r="1.3" />
-      <path className="seam" d="M 45.5 63 Q 64 67.5 82.5 63" />
-      <path className="seam-light" d="M 45.5 64.2 Q 64 68.7 82.5 64.2" />
-      <rect className="visor" x="45" y="70" width="38" height="20" rx="10" />
-      <path className="visor-glare" d="M 50 73 L 57 73" />
-      <circle className="bolt" cx="39.4" cy="80" r="3.6" />
-      <circle className="bolt-cap" cx="39.4" cy="80" r="1.6" />
-      <circle className="bolt" cx="88.6" cy="80" r="3.6" />
-      <circle className="bolt-cap" cx="88.6" cy="80" r="1.6" />
-      <rect className="collar" x="60.5" y="29" width="7" height="3.6" rx="1.6" />
-      <rect className="collar-light" x="61.3" y="29.6" width="5.4" height="1.1" rx="0.5" />
+      <path className="shell" d={FLAME_PATH} />
+      <path className="flame-core" d={FLAME_CORE_PATH} />
+      <path className="gloss" d="M 46.5 66 Q 47.5 59 51 54" />
     </svg>
   )
 }
 
 /** As linhas de desânimo na testa de cada avatar (a sombra das emoções tristes). */
 const GLOOM_LINES: Record<AvatarName, string> = {
-  robo: 'M 59 47 L 59 56 M 64 44 L 64 57 M 69 47 L 69 56',
+  fogo: 'M 57 52 L 57 61 M 64 48 L 64 62 M 71 52 L 71 61',
+  geleca: 'M 56 62 L 56 70 M 64 59 L 64 71 M 72 62 L 72 70',
   fantasma: 'M 56 46 L 56 57 M 64 44 L 64 59 M 72 46 L 72 57'
 }
 
@@ -67,7 +79,7 @@ const GLOOM_LINES: Record<AvatarName, string> = {
 export function Gloom({ avatar }: { avatar: AvatarName }): JSX.Element {
   return (
     <svg className="layer" viewBox="0 0 128 128">
-      <path className="gloom-shade" d={avatar === 'fantasma' ? GHOST_PATH : DROP_PATH} />
+      <path className="gloom-shade" d={AVATAR_PATHS[avatar]} />
       <path className="gloom-lines" d={GLOOM_LINES[avatar]} />
     </svg>
   )

@@ -2,18 +2,21 @@
    olhos e os bits em órbita. */
 
 :root {
-  /* Casco (gradiente do núcleo para a borda) */
-  --shell-0: #ccfbf1;
-  --shell-1: #5eead4;
-  --shell-2: #22d3ee;
-  --shell-3: #0ea5c6;
-  /* Partes de metal: contorno, juntas, parafusos, haste da antena */
+  /*
+   * As cores do fogo-fátuo, o avatar padrão (Fase 39); as da geleca e do fantasminha ficam no
+   * avatars.css. O corpo (gradiente do miolo para a borda):
+   */
+  --shell-0: #f0fdff;
+  --shell-1: #67e8f9;
+  --shell-2: #06b6d4;
+  --shell-3: #0e7490;
+  /* O contorno */
   --metal: #0e7490;
-  --metal-dark: #155e75;
-  --metal-light: #67e8f9;
-  /* Visor e LEDs (olhos e lâmpada da antena) */
-  --visor-0: #10303d;
-  --visor-1: #061219;
+  /* Os olhos e a boca, escuros no corpo claro, e as bochechas */
+  --ink: #06303b;
+  --mouth-fill: #3b1d26;
+  --blush-color: #f9a8d4;
+  /* A luz de cima (a faísca, a bolha, a chama do fantasminha) */
   --led-0: #f0fdff;
   --led-1: #a5f3fc;
   --led-2: #22d3ee;
@@ -109,7 +112,7 @@ body {
 .groove,
 .react,
 .wisp {
-  /* Base da gota: pulos, tremidas e o "boop" amassam e esticam a partir daqui. */
+  /* A base do corpo: pulos, tremidas e o "boop" amassam e esticam a partir daqui. */
   transform-origin: 64px 104px;
 }
 
@@ -197,14 +200,6 @@ body {
   transition: stop-color 0.3s;
 }
 
-.visor-0 {
-  stop-color: var(--visor-0);
-}
-
-.visor-1 {
-  stop-color: var(--visor-1);
-}
-
 .led-0 {
   stop-color: var(--led-0);
 }
@@ -249,49 +244,14 @@ body {
   opacity: 0.7;
 }
 
-/* Junta do casco: uma linha escura com um fio de luz logo abaixo, como um sulco. */
-.seam {
-  fill: none;
-  stroke: var(--metal);
-  stroke-opacity: 0.55;
-  stroke-width: 0.9;
+/* O miolo claro da chama (o fogo-fátuo), com a cor das emoções como o resto do corpo. */
+.flame-core {
+  fill: color-mix(in oklab, var(--shell-0), var(--tint-0, #fff) var(--tk-mix));
+  opacity: 0.8;
+  transition: fill 0.3s;
 }
 
-.seam-light {
-  fill: none;
-  stroke: #ecfeff;
-  stroke-opacity: 0.45;
-  stroke-width: 0.7;
-}
-
-.visor {
-  fill: url(#wisp-visor);
-  stroke: var(--metal-dark);
-  stroke-width: 1;
-}
-
-.visor-glare {
-  stroke: #fff;
-  stroke-opacity: 0.16;
-  stroke-width: 1.4;
-  stroke-linecap: round;
-}
-
-.bolt,
-.collar {
-  fill: var(--metal);
-}
-
-.bolt-cap {
-  fill: var(--metal-light);
-}
-
-.collar-light {
-  fill: var(--metal-light);
-  opacity: 0.7;
-}
-
-/* ---- Antena ----------------------------------------------------------- */
+/* ---- A luz de cima ------------------------------------------------------- */
 
 /* A pose (caída no cochilo, em pé no susto) volta com uma molinha. */
 .antenna-pose {
@@ -299,7 +259,7 @@ body {
   transition: transform 0.6s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
-/* Balança devagar a partir da base, presa no encaixe da ponta da gota. */
+/* Balança devagar, como se presa no alto da cabeça. */
 .antenna {
   transform-origin: 64px 31px;
   animation: sway 3.6s ease-in-out -0.9s infinite;
@@ -320,13 +280,7 @@ body {
   }
 }
 
-.antenna-rod {
-  stroke: var(--metal);
-  stroke-width: 1.8;
-  stroke-linecap: round;
-}
-
-/* A lâmpada da antena "respira", como o LED de um aparelho em repouso. */
+/* A luz "respira", como o LED de um aparelho em repouso. */
 .antenna-glow {
   animation: led-pulse 2.4s ease-in-out infinite;
 }
@@ -348,8 +302,14 @@ body {
 
 /* ---- Olhos ------------------------------------------------------------ */
 
-.eye-leds {
-  filter: url(#wisp-led-glow);
+.eyes .led {
+  fill: var(--ink);
+}
+
+/* O brilhinho dos olhos abertos. */
+.eye-glint {
+  fill: #fff;
+  opacity: 0.9;
 }
 
 /* De vez em quando os olhos dão uma olhada para um lado e para o outro. */
@@ -394,7 +354,7 @@ body {
   }
 }
 
-/* Piscar: o LED encolhe até virar um traço. Uma piscada e, mais adiante, uma dupla. */
+/* Piscar: o olho encolhe até virar um traço. Uma piscada e, mais adiante, uma dupla. */
 .eyes-blink {
   transform-origin: 64px 80px;
   animation: blink 6.5s infinite;

@@ -1,6 +1,6 @@
 import { useContext, useId } from 'react'
 import type { JSX, SVGProps } from 'react'
-import { DROP_PATH, GHOST_PATH } from '../../shared/avatars'
+import { BLOB_PATH, FLAME_CORE_PATH, FLAME_PATH, GHOST_PATH } from '../../shared/avatars'
 import type { MascotState } from '../../shared/ipc'
 import { AvatarContext } from './avatar-context'
 
@@ -311,7 +311,7 @@ export const ErrorIcon = (): JSX.Element => (
  * Os olhos do avatar em cada humor: "^ ^" feliz, "x x" no erro, fechados no cochilo, os
  * retângulos no resto.
  */
-function Eyes({ mood, color = '#a5f3fc' }: { mood: MascotState; color?: string }): JSX.Element {
+function Eyes({ mood, color }: { mood: MascotState; color: string }): JSX.Element {
   const stroke = {
     fill: 'none',
     stroke: color,
@@ -337,8 +337,8 @@ function Eyes({ mood, color = '#a5f3fc' }: { mood: MascotState; color?: string }
   if (mood === 'error') {
     return (
       <g className="avatar-eyes">
-        <path d="M52.5 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#fda4af" />
-        <path d="M70 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#fda4af" />
+        <path d="M52.5 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#be123c" />
+        <path d="M70 76.5 l5 7 m0 -7 l-5 7" {...stroke} stroke="#be123c" />
       </g>
     )
   }
@@ -351,7 +351,7 @@ function Eyes({ mood, color = '#a5f3fc' }: { mood: MascotState; color?: string }
 }
 
 /**
- * O Wisp em miniatura: o mesmo avatar do mascote (a gotinha robô ou o fantasminha). Com `mood`,
+ * O Wisp em miniatura: o mesmo avatar do mascote (o fogo-fátuo, a geleca ou o fantasminha). Com `mood`,
  * acompanha o humor do mascote: olhos, a luz de cima e um pouco de movimento (styles/base.css).
  */
 export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotState }): JSX.Element {
@@ -361,7 +361,7 @@ export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotSta
   if (avatar === 'fantasma') {
     return (
       <svg
-        className={`avatar avatar-${mood} avatar-ghost`}
+        className={`avatar avatar-${mood} avatar-fantasma`}
         viewBox="33 9 62 97"
         width={size * (62 / 97)}
         height={size}
@@ -380,28 +380,48 @@ export function Avatar({ size, mood = 'idle' }: { size: number; mood?: MascotSta
       </svg>
     )
   }
+  if (avatar === 'geleca') {
+    return (
+      <svg
+        className={`avatar avatar-${mood} avatar-geleca`}
+        viewBox="27 36 74 70"
+        width={size * (74 / 70)}
+        height={size}
+        aria-hidden
+      >
+        <defs>
+          <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0.4" y2="1">
+            <stop offset="0" stopColor="#ccfbf1" />
+            <stop offset="0.55" stopColor="#5eead4" />
+            <stop offset="1" stopColor="#14b8a6" />
+          </linearGradient>
+        </defs>
+        <circle className="avatar-tip" cx="64" cy="44" r="3.8" fill="#99f6e4" />
+        <path d={BLOB_PATH} fill={`url(#${id}-shell)`} stroke="#0f766e" strokeWidth="1.5" />
+        <Eyes mood={mood} color="#053b36" />
+      </svg>
+    )
+  }
+  // O fogo-fátuo: a chama com o miolo claro e a faísca em cima.
   return (
     <svg
-      className={`avatar avatar-${mood}`}
+      className={`avatar avatar-${mood} avatar-fogo`}
       viewBox="33 9 62 97"
       width={size * (62 / 97)}
       height={size}
       aria-hidden
     >
       <defs>
-        <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0.4" y2="1">
-          <stop offset="0" stopColor="#99f6e4" />
-          <stop offset="0.5" stopColor="#5eead4" />
-          <stop offset="1" stopColor="#22d3ee" />
+        <linearGradient id={`${id}-shell`} x1="0" y1="0" x2="0.3" y2="1">
+          <stop offset="0" stopColor="#0e7490" />
+          <stop offset="0.45" stopColor="#22d3ee" />
+          <stop offset="1" stopColor="#67e8f9" />
         </linearGradient>
       </defs>
-      <line x1="64" y1="31" x2="64" y2="17.5" stroke="#0e7490" strokeWidth="2.4" />
-      <circle className="avatar-tip" cx="64" cy="15" r="4.2" fill="#67e8f9" />
-      <path d={DROP_PATH} fill={`url(#${id}-shell)`} stroke="#0e7490" strokeWidth="1.5" />
-      <rect x="45" y="70" width="38" height="20" rx="10" fill="#0b1e26" />
-      <Eyes mood={mood} />
-      <circle cx="39.4" cy="80" r="3.6" fill="#0e7490" />
-      <circle cx="88.6" cy="80" r="3.6" fill="#0e7490" />
+      <circle className="avatar-tip" cx="64" cy="14" r="3.4" fill="#67e8f9" />
+      <path d={FLAME_PATH} fill={`url(#${id}-shell)`} stroke="#0e7490" strokeWidth="1.5" />
+      <path d={FLAME_CORE_PATH} fill="#f0fdff" opacity="0.85" />
+      <Eyes mood={mood} color="#06303b" />
     </svg>
   )
 }
