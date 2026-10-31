@@ -1,0 +1,275 @@
+/* A ilha aberta, parte 2 (Fase 38): o texto chegando, o diff de um passo, o Perguntar com os
+   arquivos soltos, o uso do plano e as linhas do GitHub e da agenda. As cores são as do island.css
+   (as variáveis --island-*, na própria .island). */
+
+/* O texto que está chegando, enquanto o Claude responde. */
+.island-card .reply.live {
+  color: var(--island-text);
+  opacity: 0.85;
+}
+
+/* Um passo com +N −M abre o diff dele. */
+.step .label.diff-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  text-decoration: underline dotted rgb(103 232 249 / 0.4);
+  text-underline-offset: 3px;
+}
+
+.step .label.diff-link:hover {
+  color: var(--island-accent);
+}
+
+.island-card.diff {
+  gap: 6px;
+}
+
+.island-card.diff .card-head strong {
+  max-width: none;
+  flex: 1;
+}
+
+.diff-lines {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 6px 8px;
+  overflow: auto;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.35);
+  font:
+    11.5px/1.45 ui-monospace,
+    'Cascadia Mono',
+    Consolas,
+    monospace;
+  white-space: pre;
+}
+
+.diff-lines .line {
+  display: block;
+  width: max-content;
+  min-width: 100%;
+}
+
+.diff-lines .kind-add {
+  color: #86efac;
+  background: rgb(134 239 172 / 0.08);
+}
+
+.diff-lines .kind-del {
+  color: #fca5a5;
+  background: rgb(252 165 165 / 0.08);
+}
+
+.diff-lines .kind-hunk,
+.diff-lines .kind-more {
+  color: var(--island-muted);
+}
+
+/* Perguntar: os arquivos soltos, a caixa e a resposta embaixo. */
+.island-card.ask-card {
+  gap: 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  max-width: 200px;
+  height: 22px;
+  padding: 0 2px 0 6px;
+  border: 1px solid var(--island-line);
+  border-radius: 11px;
+  font-size: 11.5px;
+}
+
+.chip img {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: cover;
+}
+
+.chip-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.chip-x {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  line-height: 1;
+}
+
+.chip-x:hover {
+  background: rgb(255 255 255 / 0.1);
+}
+
+.ask-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.ask-row.no-keyboard {
+  align-items: center;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+}
+
+.ask-row.no-keyboard .island-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ask-input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 80px;
+  box-sizing: border-box;
+  padding: 7px 10px;
+  border: 1px solid var(--island-line);
+  border-radius: 12px;
+  background: rgb(0 0 0 / 0.3);
+  color: var(--island-text);
+  font: inherit;
+  font-size: 13px;
+  resize: none;
+  outline: none;
+}
+
+.ask-input:focus {
+  border-color: rgb(103 232 249 / 0.5);
+}
+
+.ask-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.island-card.ask-card > .island-card.task {
+  flex: 1;
+  min-height: 0;
+  border-color: transparent;
+  background: rgb(255 255 255 / 0.03);
+}
+
+/* O uso do plano. */
+.usage-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12.5px;
+}
+
+.usage-row > span:first-child {
+  flex: none;
+  width: 52px;
+}
+
+.usage-bar {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.1);
+  overflow: hidden;
+}
+
+.usage-bar i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: 3px;
+  background: var(--island-ok);
+}
+
+.island-card.usage.limited .usage-bar i {
+  background: var(--island-bad);
+}
+
+.usage-row b {
+  flex: none;
+  width: 36px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+/* As linhas do GitHub e da agenda. */
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.rows .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 24px;
+  padding: 0 6px;
+  border: 0;
+  border-radius: 8px;
+  background: none;
+  font-size: 12.5px;
+  text-align: left;
+}
+
+.island .rows button.row:hover {
+  background: rgb(255 255 255 / 0.06);
+}
+
+.row-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row .ci {
+  flex: none;
+  width: 14px;
+  text-align: center;
+}
+
+.row .ci.success {
+  color: #86efac;
+}
+
+.row .ci.failure {
+  color: #fca5a5;
+}
+
+.row .ci.pending {
+  color: var(--island-warn);
+}
+
+.row .time {
+  flex: none;
+  min-width: 44px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pill.extra .pill-title {
+  color: var(--island-text);
+}

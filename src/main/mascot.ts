@@ -18,6 +18,7 @@ import type {
   DroppedFiles,
   Gaze,
   IslandAction,
+  IslandTab,
   MascotIsland,
   MascotReaction,
   MascotView,
@@ -404,6 +405,9 @@ function createMascotWindow(): BrowserWindow {
     handlers?.moved()
   })
   win.once('show', () => island?.applyShape())
+  // O teclado na ilha (o Perguntar, no Windows): escrevendo, ela não recolhe sozinha.
+  win.on('focus', () => island?.setTyping(true))
+  win.on('blur', () => island?.setTyping(false))
   win.on('closed', () => {
     stopDrag()
     mascotWin = null
@@ -561,7 +565,14 @@ function newIsland(): IslandController {
     },
     content: () => handlers?.islandContent() ?? EMPTY_ISLAND,
     status: islandText,
-    autoOpen: () => handlers?.islandAutoOpen() ?? false
+    autoOpen: () => handlers?.islandAutoOpen() ?? false,
+    keyboard: (on) => {
+      // Só no Windows e no macOS o Electron deixa a janela trocar de "sem foco" para "com foco".
+      if (!mascotWin || process.platform === 'linux') return
+      mascotWin.setFocusable(on)
+      if (on) mascotWin.focus()
+      else mascotWin.blur()
+    }
   })
 }
 
@@ -633,6 +644,19 @@ export function openIsland(): boolean {
 /** Recolhe a ilha (o painel abriu por ela). */
 export function closeIsland(): void {
   island?.close()
+}
+
+/** A ilha está aberta (os cartões à vista). */
+export function islandIsOpen(): boolean {
+  return island?.current === 'open'
+}
+
+/** Abre a ilha numa tela (o Perguntar, por um atalho ou por arquivos soltos nela). */
+export function showIslandTab(tab: IslandTab): boolean {
+  if (!island) return false
+  island.open('click')
+  island.setTab(tab)
+  return true
 }
 
 /** A cápsula na tela, para o painel abrir logo abaixo dela (null: fora da ilha). */

@@ -755,6 +755,15 @@ export function setupChat({
       conversation.send(text, [], previewOf, voice)
       return conversation.id
     },
+    askQuiet(text, files, { voice = false } = {}) {
+      let conversation = focusedConversation()
+      if (!conversation.canSend || conversation.busy) {
+        if (tabs.full) return null
+        conversation = tabs.addChat()
+      }
+      conversation.showUser(text, voice, files.map(previewOf))
+      return conversation.send(text, files, previewOf, voice) ? conversation.id : null
+    },
     compose,
     runTask(task) {
       if (tabs.full) {

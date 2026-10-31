@@ -2188,5 +2188,45 @@ export const EN: Record<string, string> = {
   'Volume dos sons': 'Sound volume',
   'mais {n} esperando': '{n} more waiting',
   'pensando…': 'thinking…',
-  terminal: 'terminal'
+  terminal: 'terminal',
+  '5 horas': '5 hours',
+  'A resposta aparece aqui. Solte arquivos na ilha para mandá-los junto.':
+    'The answer shows up here. Drop files on the island to send them along.',
+  'Aqui a ilha não recebe o teclado: fale, ou escreva no painel.':
+    "The island can't take the keyboard here: speak, or write in the panel.",
+  'Baixado e conferido: reinicie para usar a versão nova.':
+    'Downloaded and verified: restart to use the new version.',
+  'Baixando o Wisp {version}': 'Downloading Wisp {version}',
+  'Com a ilha ligada: abre a ilha na caixa de perguntar (no Linux, ela não recebe o teclado: fale ou escreva no painel).':
+    "With the island on: opens the island on the ask box (on Linux it can't take the keyboard: speak or write in the panel).",
+  'Escrever no painel': 'Write in the panel',
+  'Ficou de fora': 'Left out',
+  'Já há abas demais abertas: feche uma no painel.':
+    'Too many tabs are open: close one in the panel.',
+  Mandar: 'Send',
+  'Não atualizei': "Didn't update",
+  'Não mandei': "Didn't send",
+  'O Wisp baixa, confere a assinatura e instala. As conversas continuam.':
+    'Wisp downloads it, checks the signature and installs it. Your conversations stay.',
+  'O Wisp {version} saiu': 'Wisp {version} is out',
+  Pergunta: 'Question',
+  'Perguntar ao Wisp pela ilha': 'Ask Wisp from the island',
+  'Perguntar pela ilha': 'Ask from the island',
+  'Pergunte ao Claude… (os arquivos soltos na ilha vão junto)':
+    'Ask Claude… (files dropped on the island go along)',
+  Plano: 'Plan',
+  'Plano do Claude': 'Claude plan',
+  'Veja o que mudou e baixe no GitHub.': 'See what changed and download it on GitHub.',
+  'Ver o que mudou': 'See what changed',
+  'Wisp {version}': 'Wisp {version}',
+  'no limite': 'at the limit',
+  novo: 'new',
+  'o dia todo': 'all day',
+  'pedem mudanças': 'changes requested',
+  'próximas 24 horas': 'next 24 hours',
+  'revisar · {author}': 'review · {author}',
+  'volta {when}': 'resets {when}',
+  '{n} PRs': '{n} PRs',
+  '{n} com CI falhando': '{n} with failing CI',
+  '… e mais (veja no painel)': '… and more (see the panel)'
 }

@@ -83,6 +83,13 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   barrinha da contagem), abrir ao passar o mouse e, no Linux, as capas da internet. No Windows, o
   mascote volta a dançar com a música, e a ilha mostra o que toca.
 
+- **A ilha, parte 2** (Fase 38): o **Perguntar** na ilha (no Windows, a caixa de texto; no Linux,
+  falar ou escrever no painel), com a resposta aparecendo nela sem abrir o painel; arquivos soltos
+  na ilha vão junto com a pergunta; um clique num passo com +N −M abre o diff dele na ilha; as
+  pílulas do **Plano** (5 horas e semana), do **GitHub** (os seus PRs e as revisões pedidas), da
+  **Agenda** e da versão nova, com **Atualizar**; e o atalho **Ctrl+Alt+K**, que abre a ilha no
+  Perguntar (com o Esc e o Ctrl+← e → dentro dela, no Windows).
+
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.

@@ -411,6 +411,18 @@ export function SettingsView({
               onCommit={(paletteShortcut) => save({ paletteShortcut })}
             />
           </Row>
+          <Row
+            label={t('Perguntar pela ilha')}
+            hint={t(
+              'Com a ilha ligada: abre a ilha na caixa de perguntar (no Linux, ela não recebe o teclado: fale ou escreva no painel).'
+            )}
+            error={errors.islandShortcut}
+          >
+            <ShortcutInput
+              value={values.islandShortcut}
+              onCommit={(islandShortcut) => save({ islandShortcut })}
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(

@@ -9,6 +9,7 @@ import type {
   AgendaItem,
   ChatEvent,
   DroppedFiles,
+  OutgoingAttachment,
   MascotState,
   NoticeLevel,
   PanelView,
@@ -30,6 +31,11 @@ export interface Chat {
    * respondia a anterior (a falada fica na caixa).
    */
   ask(text: string, options?: { voice?: boolean }): string | null
+  /**
+   * Manda uma mensagem pela ilha (Fase 38), com os arquivos soltos nela, sem abrir o painel: na
+   * aba em foco, ou numa nova se ela estiver respondendo. Devolve a conversa, ou null se não deu.
+   */
+  askQuiet(text: string, files: OutgoingAttachment[], options?: { voice?: boolean }): string | null
   /** Põe um texto ditado na caixa de mensagem da aba em foco, para revisar e enviar. */
   compose(text: string): void
   /**

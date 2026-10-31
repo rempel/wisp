@@ -23,7 +23,9 @@ import {
   alertDetail,
   firstParagraph,
   IslandFeed,
-  islandQuestions
+  islandGithub,
+  islandQuestions,
+  liveText
 } from '../src/main/island-feed'
 import {
   CLOSE_MS,
@@ -661,4 +663,209 @@ test('a música no Linux: o que toca, os botões e os avisos do player', { skip 
   // Os avisos do player (o Seeked, o PropertiesChanged) chegam como 'changed'.
   for (let i = 0; i < 50 && changes < 6; i++) await new Promise((r) => setTimeout(r, 20))
   assert.ok(changes >= 6, `só ${changes} avisos`)
+})
+
+// ---- Fase 38: perguntar, o diff e as pílulas ---------------------------------------------------
+
+test('o texto chegando aparece ao vivo, e some quando a resposta acaba', () => {
+  const { feed: f } = feed()
+  events(f, 'a', [
+    { type: 'busy', busy: true },
+    { type: 'text', blockId: 'b1', delta: '## Olhando\n\no **arquivo** agora' }
+  ])
+  assert.equal(f.tasks()[0].live, 'Olhando o arquivo agora')
+  events(f, 'a', [{ type: 'turn-end', outcome: 'done' }])
+  assert.equal(f.tasks()[0].live, undefined)
+  assert.equal(liveText('x'.repeat(300)).length, 200)
+  assert.ok(liveText('a'.repeat(250) + ' fim').endsWith(' fim'))
+})
+
+test('o uso do plano vem da última resposta (de 0 a 1)', () => {
+  const { feed: f } = feed()
+  assert.equal(f.usage(), null)
+  f.onEvent(
+    {
+      type: 'usage',
+      usage: { session: { used: 0.42, resetsAt: 99 }, week: null, limited: false, at: 1 }
+    },
+    'a'
+  )
+  assert.deepEqual(f.usage(), {
+    session: { used: 0.42, resetsAt: 99 },
+    week: null,
+    limited: false
+  })
+})
+
+test('o diff de um passo: o da conversa e o de uma sessão do terminal', () => {
+  const hunks = [{ oldStart: 3, newStart: 3, lines: [' a', '-b', '+c', '+d'] }]
+  const session: ExternalSession = {
+    id: 's1',
+    cwd: '/p',
+    project: 'p',
+    state: 'working',
+    startedAt: 0,
+    updatedAt: 999_000,
+    steps: [
+      {
+        id: 'e1',
+        tool: 'Edit',
+        input: { file_path: '/p/x.ts' },
+        status: 'done',
+        at: 0,
+        diff: { added: 2, removed: 1, hunks, truncated: false }
+      }
+    ],
+    requests: [],
+    alive: true
+  }
+  const { feed: f } = feed([session])
+  events(f, 'a', [
+    { type: 'tool-input', id: 't1', name: 'Write', input: { file_path: '/p/novo.ts' } },
+    {
+      type: 'tool-result',
+      id: 't1',
+      isError: false,
+      output: '',
+      diff: { added: 2, removed: 1, hunks, truncated: false }
+    }
+  ])
+  const mine = f.diffOf('c:a', 't1')
+  assert.equal(mine?.label, 'Escrever novo.ts')
+  assert.deepEqual(
+    mine?.lines.map((line) => `${line.kind}${line.text}`),
+    ['@@@ −3 +3 @@', ' a', '-b', '+c', '+d']
+  )
+  assert.equal(f.diffOf('s:s1', 'e1')?.label, 'Editar x.ts')
+  assert.equal(f.diffOf('c:a', 'nenhum'), null)
+  assert.equal(f.diffOf('s:outra', 'e1'), null)
+  // Um turno novo esquece os diffs de antes.
+  f.onEvent({ type: 'user', text: 'oi', attachments: [] } as unknown as ChatEvent, 'a')
+  assert.equal(f.diffOf('c:a', 't1'), null)
+})
+
+test('o GitHub na ilha: os PRs e as revisões, sem o resto da leitura', () => {
+  assert.equal(islandGithub(null), null)
+  const github = islandGithub({
+    login: 'eu',
+    at: 1,
+    mine: [
+      {
+        repo: 'eu/app',
+        number: 7,
+        title: 'PR',
+        url: 'https://github.com/eu/app/pull/7',
+        draft: false,
+        head: 'a1',
+        ci: 'failure',
+        decision: null,
+        reviews: [{ author: 'ana', state: 'COMMENTED', at: 'x' }]
+      }
+    ],
+    reviewRequests: [
+      {
+        repo: 't/api',
+        number: 9,
+        title: 'R',
+        url: 'https://github.com/t/api/pull/9',
+        author: 'ana'
+      }
+    ]
+  })
+  assert.deepEqual(github?.mine[0], {
+    repo: 'eu/app',
+    number: 7,
+    title: 'PR',
+    url: 'https://github.com/eu/app/pull/7',
+    ci: 'failure',
+    decision: null
+  })
+  assert.equal(github?.reviews[0].author, 'ana')
+})
+
+test('os botões da Fase 38: perguntar, o diff, o GitHub (só github.com) e o atualizar', () => {
+  assert.deepEqual(parseIslandAction({ type: 'tab', tab: 'ask' }), { type: 'tab', tab: 'ask' })
+  assert.deepEqual(parseIslandAction({ type: 'ask', text: 'oi' }), { type: 'ask', text: 'oi' })
+  assert.equal(parseIslandAction({ type: 'ask', text: 'x'.repeat(20_001) }), null)
+  assert.deepEqual(parseIslandAction({ type: 'unattach', index: 2 }), {
+    type: 'unattach',
+    index: 2
+  })
+  assert.equal(parseIslandAction({ type: 'unattach', index: -1 }), null)
+  assert.deepEqual(parseIslandAction({ type: 'diff', task: 'c:a', step: null }), {
+    type: 'diff',
+    task: 'c:a',
+    step: null
+  })
+  assert.equal(parseIslandAction({ type: 'diff', task: 'c:a', step: 'x y' }), null)
+  assert.deepEqual(
+    parseIslandAction({ type: 'open-url', url: 'https://github.com/eu/app/pull/7' }),
+    {
+      type: 'open-url',
+      url: 'https://github.com/eu/app/pull/7'
+    }
+  )
+  for (const url of [
+    'https://evil.com/x',
+    'http://github.com/eu',
+    'https://github.com.evil.com/x',
+    'file:///etc/passwd',
+    'https://github.com/eu/app?x=1'
+  ]) {
+    assert.equal(parseIslandAction({ type: 'open-url', url }), null, url)
+  }
+  for (const type of ['voice', 'update', 'restart'] as const) {
+    assert.deepEqual(parseIslandAction({ type }), { type })
+  }
+})
+
+test('o Perguntar pede o teclado (onde dá), e escrevendo ela não recolhe sozinha', (t) => {
+  t.mock.timers.enable({ apis: ['setTimeout', 'Date'] })
+  const keyboard: boolean[] = []
+  const state = {
+    content: { tasks: [], alerts: [], music: null, settings: SETTINGS, keyboard: true }
+  }
+  const island = new IslandController({
+    shape: () => {},
+    send: () => {},
+    content: () => state.content,
+    status: () => ({ title: 'Wisp', detail: '', tone: 'calm' }),
+    autoOpen: () => true,
+    keyboard: (on) => keyboard.push(on)
+  })
+  island.open('click')
+  island.setTab('home')
+  assert.deepEqual(keyboard, [], 'o Início sozinho não pega o teclado')
+  island.setTab('ask')
+  assert.deepEqual(keyboard, [true])
+  // De volta ao Início, ela fica com o teclado (o Esc e as setas), até recolher.
+  island.setTab('home')
+  assert.deepEqual(keyboard, [true])
+  island.setTyping(true)
+  island.hover(false)
+  t.mock.timers.tick(60_000)
+  assert.equal(island.current, 'open')
+  // O foco saiu (você clicou em outra janela): ela volta a recolher sozinha.
+  island.setTyping(false)
+  t.mock.timers.tick(10_000)
+  assert.equal(island.current, 'compact')
+  assert.deepEqual(keyboard, [true, false])
+  // Onde a janela não pega o teclado (o Linux), o Perguntar não o pede.
+  state.content = { ...state.content, keyboard: false }
+  island.open('click')
+  island.setTab('ask')
+  assert.deepEqual(keyboard, [true, false])
+})
+
+test('as pílulas novas entram no foco quando existem', () => {
+  const { island, state, last } = controller()
+  state.content.usage = { session: { used: 0.4, resetsAt: null }, week: null, limited: false }
+  state.content.agenda = [{ title: 'R', start: 1, end: 2, allDay: false, location: '' }]
+  island.refresh()
+  assert.equal(last()?.focus, 'usage')
+  island.setFocus('agenda')
+  assert.equal(last()?.focus, 'agenda')
+  island.setFocus('github')
+  // Sem leitura do GitHub, não há a pílula: o foco volta para o primeiro.
+  assert.equal(last()?.focus, 'usage')
 })

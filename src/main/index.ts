@@ -1,6 +1,5 @@
 // O idioma antes de tudo: os textos guardados em constantes já saem nele (Fase 25).
 import './locale-init'
-import { spawn } from 'child_process'
 import { app, ipcMain, nativeTheme, powerMonitor, screen, session, shell } from 'electron'
 import type { Point } from 'electron'
 import { basename, join } from 'path'
@@ -42,7 +41,10 @@ import {
   getMascotBounds,
   getMascotWindow,
   getVisibleMascotBounds,
+  closeIsland,
+  islandIsOpen,
   islandMessage,
+  showIslandTab,
   isMascotVisible,
   playMascotSound,
   pulseMascot,
@@ -84,8 +86,7 @@ import { TaskScheduler } from './scheduler'
 import type { ScheduledTask } from '../shared/prompts'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
-import { releaseKey, SelfUpdater, updateTarget } from './self-update'
-import { UpdateChecker } from './updates'
+import { setupUpdates } from './updates-setup'
 import type { Phone } from './phone-ipc'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
@@ -427,6 +428,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     runQuick: quick.run,
     deliver: (text, source) => {
       if (!chat) return null
+      // Pelo botão de falar da ilha (Fase 38): vai pela ilha, sem abrir o painel.
+      if (source === 'island') return island?.askByVoice(text) ?? null
       // Pelo botão do painel (ou com voiceReview), o texto fica na caixa para revisar.
       if (source === 'panel' || getConfig().voiceReview) {
         chat.compose(text)
@@ -672,61 +675,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     settings.notify()
     menu?.refresh()
   })
-  // Atualizar com um clique (Fase 31): o AppImage e, no Windows (Fase 36), o instalador; só com a
-  // chave que confere a assinatura.
-  const updatePlan = updateTarget(kind, app.isPackaged)
-  const publicKey = releaseKey(app.isPackaged)
-  const downloadBase = app.isPackaged ? '' : (process.env.WISP_TEST_DOWNLOAD_BASE ?? '')
-  const selfUpdate =
-    updatePlan && publicKey
-      ? new SelfUpdater({
-          ...updatePlan,
-          publicKey,
-          rewrite: downloadBase
-            ? (url) => url.replace(/^https:\/\/github\.com/, downloadBase)
-            : undefined,
-          relaunch: (path) => {
-            if (updatePlan.format === 'installer') {
-              // O instalador (conferido) instala por cima em silêncio e abre o Wisp novo; este fecha
-              // para ele trocar os arquivos.
-              spawn(path, ['--updated', '/S', '--force-run'], {
-                detached: true,
-                stdio: 'ignore'
-              }).unref()
-            } else {
-              app.relaunch({
-                execPath: path,
-                args: process.argv.slice(1).filter((arg) => !parseCommand([arg]))
-              })
-            }
-            app.quit()
-          }
-        })
-      : null
-  // O aviso de versão nova (Fase 20), desligado por padrão: uma conferência por dia no GitHub.
-  const updates = new UpdateChecker({
-    current: app.getVersion(),
-    enabled: () => getConfig().updateCheck,
-    stateFile: join(DATA_DIR, 'versao.json'),
-    notify: (release) =>
-      selfUpdate
-        ? notify(
-            t('Wisp {version} disponível', { version: release.version }),
-            selfUpdate.format === 'installer'
-              ? t(
-                  'Clique para atualizar: o Wisp baixa o instalador, confere a assinatura e instala.'
-                )
-              : t('Clique para atualizar: o Wisp baixa, confere a assinatura e troca o AppImage.'),
-            () => chat?.showView('diagnostics')
-          )
-        : notify(
-            t('Wisp {version} disponível', { version: release.version }),
-            t('Clique para ver o que mudou e baixar. As configurações e as conversas continuam.'),
-            () => void shell.openExternal(release.url)
-          )
+  // Atualizar com um clique (Fase 31 e 36) e o aviso de versão nova (Fase 20).
+  const { updates, selfUpdate } = setupUpdates({
+    kind,
+    notify,
+    showDiagnostics: () => chat?.showView('diagnostics')
   })
-  updates.schedule()
-  onConfigChange(() => updates.schedule())
   // O diagnóstico e os primeiros passos (Fase 20).
   const diagnostics = setupDiagnostics({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -800,7 +754,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     media: () => media,
     sounds,
     activity: () => presence.activity(),
-    configChanged: notifyConfigChange
+    configChanged: notifyConfigChange,
+    voice: () => voice,
+    github: () => github.watcher.snapshot(),
+    agenda: () => (calendar.agenda.enabled ? calendar.agenda : null),
+    updates,
+    selfUpdate
   })
   setupMascot({
     click: () => {
@@ -811,6 +770,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     activity: () => presence.activity(),
     drop: (dropped) => {
       presence.activity()
+      // Na ilha aberta, os arquivos vão com a próxima pergunta dela (Fase 38).
+      if (island?.takeDrop(dropped)) return
       chat?.attach(dropped)
     },
     menu: () => {
@@ -878,8 +839,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
   let boundShortcuts: string | undefined
   const bindShortcuts = async (): Promise<void> => {
-    const { shortcut, voiceShortcut, paletteShortcut } = getConfig()
-    const key = JSON.stringify([shortcut, voiceShortcut, paletteShortcut])
+    const { shortcut, voiceShortcut, paletteShortcut, compact } = getConfig()
+    // O da ilha (Fase 38) só vale com ela ligada.
+    const islandShortcut = compact ? getConfig().islandShortcut : null
+    const key = JSON.stringify([shortcut, voiceShortcut, paletteShortcut, islandShortcut])
     if (key === boundShortcuts) return
     boundShortcuts = key
     shortcuts = await setupShortcuts([
@@ -906,6 +869,16 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         press: () => {
           presence.activity()
           chat?.showView('palette')
+        }
+      },
+      {
+        id: 'island',
+        accelerator: islandShortcut,
+        description: t('Perguntar ao Wisp pela ilha'),
+        press: () => {
+          presence.activity()
+          if (islandIsOpen()) closeIsland()
+          else showIslandTab('ask')
         }
       }
     ])

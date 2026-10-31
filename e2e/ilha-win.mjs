@@ -222,6 +222,58 @@ if (!card) {
 player.kill()
 await act({ type: 'close' })
 
+console.log('== Perguntar pela ilha, com o teclado (Fase 38)')
+await act({ type: 'tab', tab: 'ask' })
+check(
+  'Q1 no Windows, a ilha pega o teclado: a caixa de perguntar com o foco',
+  !!(await waitFor(
+    () =>
+      ev(
+        `document.hasFocus() && document.activeElement?.classList.contains('ask-input') ? true : null`
+      ),
+    5000
+  ))
+)
+await mascot.send('Input.insertText', { text: 'testa [edit] oi' })
+for (const type of ['keyDown', 'keyUp']) {
+  await mascot.send('Input.dispatchKeyEvent', {
+    type,
+    key: 'Enter',
+    code: 'Enter',
+    windowsVirtualKeyCode: 13
+  })
+}
+const answered = await waitFor(async () => {
+  const value = await text('.island-card.ask-card')
+  return /Tudo certo por aqui/.test(value ?? '') ? value : null
+}, 15000)
+check(
+  'Q2 o Enter manda, e a resposta aparece na ilha com o passo da edição',
+  !!answered && /Editar app\.ts/.test(answered),
+  answered ?? (await text('.island-card.ask-card'))
+)
+await shoot('windows-perguntar')
+await act({ type: 'tab', tab: 'home' })
+check(
+  'Q3 de volta ao Início, ela continua com o teclado (o Esc e as setas)',
+  !!(await waitFor(
+    () => ev(`document.hasFocus() && !document.querySelector('.ask-input') ? true : null`),
+    3000
+  ))
+)
+for (const type of ['keyDown', 'keyUp']) {
+  await mascot.send('Input.dispatchKeyEvent', {
+    type,
+    key: 'Escape',
+    code: 'Escape',
+    windowsVirtualKeyCode: 27
+  })
+}
+check(
+  'Q4 o Esc recolhe a ilha (e ela devolve o teclado)',
+  !!(await waitFor(async () => ((await mode()) !== 'open' ? true : null), 4000))
+)
+
 console.log('== Um pedido de permissão')
 wisp(home, '--show')
 const chat = await connect('/chat/')

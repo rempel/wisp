@@ -84,7 +84,7 @@ export interface VoiceTestResult {
 export interface VoiceStatus {
   state: 'idle' | 'listening' | 'transcribing' | 'speaking'
   /** De onde veio a escuta: o botão do painel, o atalho ou o teste das configurações. */
-  source?: 'panel' | 'shortcut' | 'test'
+  source?: 'panel' | 'shortcut' | 'test' | 'island'
   /** Segurando o atalho (a escuta acaba quando ele for solto). */
   holding?: boolean
   /** Já ouviu fala nesta escuta. */
