@@ -149,7 +149,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro) e 36 (o que faltava no Windows):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows) e 37 (a ilha que abre):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -278,8 +278,10 @@ irm https://claude.ai/install.ps1 | iex
   escuta, que acaba no silêncio depois da fala (ou num segundo aperto): segurar para falar ainda
   não dá no Windows.
 - **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
-  sistema; o mascote dança com o que viu tocando da última vez que o Claude olhou (o Wisp não
-  fica escutando os players). O "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
+  sistema (a barrinha de volume da ilha também). Desde a Fase 37, um PowerShell fica acompanhando
+  o controle de mídia do Windows (lê a lista de players a cada 4 s, ou 1,5 s com a ilha aberta, e
+  recebe os botões dela): o mascote dança com a música e a ilha mostra o que toca, com a capa que
+  o player dá ao Windows. O "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
   menu do mascote). O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
   (`& "$env:LOCALAPPDATA\Programs\Wisp\Wisp.exe" --ask "oi"`).
 - **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
@@ -966,9 +968,35 @@ Em **Configurações → Integrações**:
 ### A ilha
 
 Em **Configurações → Mascote e sons** (ou no botão direito do mascote), **Ilha no topo** troca o
-mascote flutuante por uma cápsula no centro do topo da tela, com o Wisp em miniatura e uma linha de
-estado. Ela abre com o cursor, sozinha (pulsando) quando o Claude precisa de você, e por alguns
-segundos numa resposta pronta, num lembrete ou num alerta. O clique abre o painel logo abaixo.
+mascote flutuante por uma cápsula no centro do topo da tela, com o Wisp em miniatura, uma linha de
+estado e uma bolinha para cada coisa ativa (o que trabalha, o que espera você, a música tocando).
+Com o cursor em cima, ela espia: a linha de estado cresce. Ela também espia sozinha numa resposta
+pronta, num lembrete ou num alerta.
+
+**O clique abre a ilha** (Fase 37, inspirada na ilha do [Coucou](https://github.com/Louis-CFM/coucou)):
+
+- **Início:** à esquerda, o cartão do que está em foco; à direita, as pílulas do resto (um clique
+  troca o foco).
+  - Uma **conversa** do Wisp ou uma **sessão** do Claude Code no terminal mostra o estado e os
+    últimos passos ao vivo ("Editar app.ts +12 −3", "Rodar npm test"); quando acaba, o começo da
+    resposta. O **↗** abre a conversa no painel, ou traz o terminal da sessão para a frente.
+  - A **música** mostra a capa, a faixa, o artista e o player, a barra de progresso (um clique ou
+    arraste pula para o ponto), anterior, tocar e pausar, próxima, aleatório, repetir (a lista ou a
+    música) e o volume. A pílula da música tem tocar e próxima.
+- **Um pedido de permissão** abre a ilha sozinho (com o painel fora da frente; com ele à vista, o
+  card já está lá e a ilha só espia), com o comando ou o arquivo em jogo e **Negar**, **Permitir**
+  e **Sempre** (o mesmo "sempre" do card). Os botões valem um instante depois do cartão aparecer.
+  O pedido segura a ilha aberta até a resposta. **Uma pergunta** do Claude mostra as opções (uma ou
+  várias) e **Responder**. O plano e a confiança numa pasta vão para o painel (**Ver no painel**).
+- **⌃** recolhe a ilha sem responder: o pedido continua esperando (no painel e na cápsula), e abrir
+  a ilha de novo o mostra.
+- **Ajustes:** os sons e o volume deles, depois de quanto tempo ela recolhe (10, 15 ou 30 s sem o
+  cursor, com uma barrinha da contagem), **Abrir ao passar o mouse** (o cursor abre a ilha inteira,
+  e ela recolhe logo que ele sai, a não ser que você clique dentro) e, no Linux, **Capas das
+  músicas pela internet** (desligado: o Wisp não acessa a rede para isso; as capas locais e as do
+  Windows aparecem sempre).
+- No cabeçalho, **Abrir o painel** abre o painel logo abaixo da ilha, e o alto-falante liga e
+  desliga os sons.
 
 ### Paleta de comandos
 
@@ -1145,6 +1173,9 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "piperModel": "~/.local/share/wisp/voz/pt_BR-faber-medium.onnx",
   "demo": false,
   "compact": false,
+  "islandAutoClose": 15,
+  "islandHoverOpen": false,
+  "islandCovers": false,
   "github": false,
   "calendar": false,
   "calendarFiles": [],
@@ -1314,10 +1345,13 @@ nova, se a da frente já tiver uma), `--palette` abre a paleta de comandos e `--
 sobrescreve um desses arquivos se ele não for dele (eles levam a linha `X-Wisp-Generated=true`).
 
 `compact` liga a ilha: no lugar do mascote flutuante, uma cápsula no centro do topo do monitor
-principal, com o Wisp em miniatura e uma linha de estado. Ela abre com o cursor, sozinha (e
-pulsando) com um pedido de permissão ou um erro, com a voz e por alguns segundos numa resposta
-pronta, num lembrete ou num alerta. O clique abre o painel logo abaixo. Desligada, o mascote volta
-para o `mascotPosition`.
+principal, com o Wisp em miniatura e uma linha de estado. Ela espia com o cursor, com a voz e por
+alguns segundos numa resposta pronta, num lembrete ou num alerta; abre com o clique ou sozinha com
+um pedido de permissão (veja [A ilha](#a-ilha)). Desligada, o mascote volta para o
+`mascotPosition`. `islandAutoClose` é quantos segundos a ilha aberta espera, com o cursor fora,
+para recolher (10, 15 ou 30); `islandHoverOpen` faz o cursor abrir a ilha inteira; e
+`islandCovers` deixa a ilha mostrar as capas que os players dão pela internet (como as do Spotify
+no Linux; desligado por padrão).
 
 `provider` é por onde as conversas novas vão: `"subscription"` (o seu Claude Code, com a
 assinatura) ou `"openrouter"` (experimental; veja [OpenRouter](#openrouter-experimental)). Cada
@@ -1474,7 +1508,7 @@ em **O que vai no relatório**).
 | Sintoma                                      | O que fazer                                                                                                                                                                     |
 | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | Fecha na hora com `No usable sandbox!`       | Do código: `npm run setup:apparmor` (veja [Compilar](#4-ubuntu-2404-ou-mais-novo-o-apparmor)); o AppImage: o perfil de [AppImage](#appimage-qualquer-distribuição)              |
-| O mascote virou uma cápsula no topo          | É a ilha: passe o cursor nela; para desligar, **Ilha no topo** no menu do mascote ou nas configurações                                                                          |
+| O mascote virou uma cápsula no topo          | É a ilha: o cursor a faz espiar e o clique a abre; para desligar, **Ilha no topo** no menu do mascote ou nas configurações                                                      |
 | Não tem o botão de maximizar do KDE          | O painel não usa a moldura do sistema: o maximizar fica no cabeçalho, ao lado do **x**                                                                                          |
 | O painel não volta para perto do mascote     | Você o moveu ou redimensionou: ele reabre onde ficou. Use **Voltar para perto do mascote** no cabeçalho                                                                         |
 | Não consigo dividir mais                     | São até 8 painéis; tire um (o **x** no topo dele) ou feche uma aba                                                                                                              |

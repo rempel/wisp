@@ -230,7 +230,8 @@ jobs:
   # O Wisp no Windows (Fase 33), num Windows de verdade: os testes de unidade que valem lá, o
   # roteiro de ponta a ponta do essencial (abrir, conversar, o hook do Bash, o card, o modo
   # terminal, o diagnóstico, com os prints), as integrações do Windows (Fase 35: as janelas, o
-  # terminal, os apps, a música e o volume), o atualizar com um clique (Fase 36) e o instalador.
+  # terminal, os apps, a música e o volume), o atualizar com um clique (Fase 36), a ilha que abre
+  # (Fase 37) e o instalador.
   windows:
     name: Windows (testes, ponta a ponta e instalador)
     runs-on: windows-latest
@@ -245,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows paleta busca conversa diagnostics notificacoes editor
+        run: npm test -- windows paleta busca conversa diagnostics notificacoes editor island
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}
@@ -273,6 +274,12 @@ jobs:
         if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/atualizar-win.mjs
+      - name: Ponta a ponta (a ilha que abre, com a música do Windows)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/ilha-win.mjs
+        env:
+          WISP_E2E_SHOTS: ${{ runner.temp }}/telas
       - name: Os prints do Wisp no Windows
         if: always()
         continue-on-error: true

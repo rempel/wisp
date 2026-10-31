@@ -89,6 +89,7 @@ import { UpdateChecker } from './updates'
 import type { Phone } from './phone-ipc'
 import { Presence } from './presence'
 import { ExternalSessions } from './sessions'
+import { IslandWiring } from './island-wiring'
 import { setupSessionsIpc } from './sessions-ipc'
 import { setupSettings } from './settings-ipc'
 import { setupSkillsIpc } from './skills-ipc'
@@ -198,6 +199,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // dança do mascote. Conecta mais abaixo; até lá, as ferramentas respondem que não há D-Bus.
   let media: MediaPlayers | null = null
   let music = false
+
+  // A ilha aberta (Fase 37): as conversas e sessões ativas, os pedidos que esperam e a música.
+  let externalSessions: ExternalSessions | null = null
+  let island: IslandWiring | null = null
 
   // O servidor MCP precisa do chat para os pedidos de permissão, e o chat precisa do arquivo de
   // configuração do servidor; os pedidos só chegam depois que os dois existem.
@@ -343,6 +348,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       presence.activity()
       activity.onChatEvent(event, conversation)
       mood.onEvent(event, conversation)
+      island?.onChatEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       phone?.onChatEvent(event)
       if (event.type === 'permission-request') {
@@ -352,7 +358,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       const sound = soundForEvent(event)
       if (sound) sounds.play(sound)
     },
-    onClose: (conversation) => mood.forget(conversation),
+    onClose: (conversation) => {
+      mood.forget(conversation)
+      island?.forget(conversation)
+    },
     onPanel: (change) => {
       presence.activity()
       sounds.play(change === 'open' ? 'abrir' : 'fechar')
@@ -361,6 +370,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     onAttention: (attended) => {
       if (attended) desktopApprovals.panelShown()
       else desktopApprovals.panelHidden()
+      // O painel saiu da frente com um pedido esperando: a ilha abre com ele.
+      island?.changed()
     },
     onActivity: () => presence.activity()
   })
@@ -476,6 +487,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sounds.check()
     updateBrowser()
     setCompact(getConfig().compact)
+    island?.musicChanged()
+    island?.changed()
     github.update()
     calendar.update()
   })
@@ -524,6 +537,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     onChange: () => {
       mood.setExternalRequests(sessions.pendingCount())
       chat?.notifySessions()
+      island?.changed()
     },
     onAttention: (kind) => {
       presence.activity()
@@ -536,6 +550,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       }
     }
   })
+  externalSessions = sessions
   let hooks: HookServer | null = null
   let listening: { ok: boolean; problem?: string } = { ok: false, problem: 'abrindo…' }
   // No Windows (Fase 35), um pipe nomeado no lugar do socket.
@@ -779,6 +794,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     },
     quit: () => app.quit()
   })
+  island = new IslandWiring({
+    chat: () => chat,
+    sessions: () => externalSessions,
+    media: () => media,
+    sounds,
+    activity: () => presence.activity(),
+    configChanged: notifyConfigChange
+  })
   setupMascot({
     click: () => {
       presence.activity()
@@ -802,12 +825,17 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       if (voice) setMascotVoice(voice.current)
     },
     moved: () => presence.start(),
-    voice: (event) => voice?.handle(event)
+    voice: (event) => voice?.handle(event),
+    ...island.handlers()
   })
   sounds.watch()
-  void (IS_WINDOWS ? Promise.resolve(new WindowsMedia()) : Media.connect()).then((connected) => {
+  void (
+    IS_WINDOWS ? Promise.resolve(new WindowsMedia()) : Media.connect(() => getConfig().islandCovers)
+  ).then((connected) => {
     media = connected
     if (!media) return
+    media.on('changed', () => island?.musicChanged())
+    island?.musicChanged()
     const dance = (playing: boolean): void => {
       music = playing
       setMascotView({ state: mood.state, look: chat?.side() ?? 'left', music })

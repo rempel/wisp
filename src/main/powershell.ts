@@ -2,9 +2,11 @@
 // que o Windows só mostra pelas APIs dele. Cada script é fixo, escrito no código do Wisp; o que
 // muda (a janela, a ação, o passo do volume) vai por variáveis de ambiente, nunca pelo texto do
 // script. Roda o PowerShell que vem com o Windows, pelo caminho completo (nunca um achado na pasta
-// atual), sem perfil, sem janela e só quando pedem: nada fica aberto esperando.
+// atual), sem perfil, sem janela e só quando pedem; o único que fica aberto é o que acompanha a
+// música (Fase 37), e ele fecha junto com o Wisp.
 
 import { spawn } from 'child_process'
+import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { join } from 'path'
 
 /** O $PSHOME do PowerShell do sistema. */
@@ -93,6 +95,25 @@ export function runPowerShell(
     })
     child.on('close', (code) => done(code ?? -1))
   })
+}
+
+/**
+ * Um script fixo que fica rodando (o que acompanha a música, Fase 37), com a entrada e a saída
+ * abertas: os comandos entram como dados, uma linha por vez.
+ */
+export function startPowerShell(
+  script: string,
+  vars: Record<string, string> = {}
+): ChildProcessWithoutNullStreams {
+  return spawn(
+    POWERSHELL,
+    ['-NoLogo', '-NoProfile', '-NonInteractive', '-Command', PRELUDE + script],
+    {
+      stdio: 'pipe',
+      windowsHide: true,
+      env: scriptEnv(vars)
+    }
+  )
 }
 
 /** A saída JSON de um script (o ConvertTo-Json do fim dele); null se ele falhou. */

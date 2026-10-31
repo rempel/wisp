@@ -143,6 +143,15 @@ export interface WispConfig {
    * uma cápsula no centro do topo da tela, que abre com o cursor ou quando tem algo a mostrar.
    */
   compact: boolean
+  /** A ilha aberta recolhe depois disto (segundos) sem o cursor nela (Fase 37): 10, 15 ou 30. */
+  islandAutoClose: number
+  /** Passar o cursor na ilha a abre inteira, sem o clique. */
+  islandHoverOpen: boolean
+  /**
+   * A ilha mostra as capas que os players dão pela internet (a do Spotify no Linux). Desligado: só
+   * as capas locais (no Windows, elas vêm do próprio sistema).
+   */
+  islandCovers: boolean
   /** Alertas do GitHub (CI e revisões dos seus PRs), pelo `gh` já logado. Desligado por padrão. */
   github: boolean
   /** Agenda: os próximos compromissos (Evolution Data Server e .ics). Desligada por padrão. */
@@ -230,6 +239,9 @@ function defaults(): WispConfig {
       : '~/.local/share/wisp/voz/pt_BR-faber-medium.onnx',
     demo: false,
     compact: false,
+    islandAutoClose: 15,
+    islandHoverOpen: false,
+    islandCovers: false,
     github: false,
     calendar: false,
     calendarFiles: [],
@@ -342,6 +354,9 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   piperModel: z.string().min(1).max(500),
   demo: z.boolean(),
   compact: z.boolean(),
+  islandAutoClose: z.union([z.literal(10), z.literal(15), z.literal(30)]),
+  islandHoverOpen: z.boolean(),
+  islandCovers: z.boolean(),
   github: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),

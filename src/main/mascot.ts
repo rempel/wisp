@@ -5,7 +5,9 @@ import { basename, isAbsolute } from 'path'
 import { isThumbnail } from './attachments'
 import { getConfig, updateConfig } from './config'
 import type { Point } from './config'
-import { ISLAND_ANIMATION_MS, islandBounds, islandRect, islandShape } from './island'
+import { islandBounds, islandRect } from './island'
+import { IslandController, parseIslandAction } from './island-state'
+import type { IslandContent, IslandStatus, PeekReason } from './island-state'
 import { loadPage, PRELOAD, reloadOnCrash } from './page'
 import { ATTACHMENT_LIMITS, IPC, SOUND_NAMES } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
@@ -15,6 +17,7 @@ import type {
   DroppedFile,
   DroppedFiles,
   Gaze,
+  IslandAction,
   MascotIsland,
   MascotReaction,
   MascotView,
@@ -28,10 +31,6 @@ import { t } from '../shared/i18n'
 const MASCOT_SIZE = 128
 const EDGE_MARGIN = 16
 const DRAG_TICK_MS = 16
-/** Na ilha: o cursor saiu de cima, e ela recolhe depois disto (ms). */
-const HOVER_CLOSE_MS = 700
-/** Na ilha: o que a abria acabou (o pedido foi respondido) (ms). */
-const CLOSE_MS = 400
 /** Na ilha: quanto ela fica aberta numa resposta pronta e na saudação (ms). */
 const MOMENT_MS: Record<'happy' | 'greet', number> = { happy: 3000, greet: 2600 }
 
@@ -74,6 +73,14 @@ export interface MascotHandlers {
   moved(): void
   /** O que a captura de voz (que roda na página do mascote) contou, já conferido. */
   voice(event: VoiceCaptureEvent): void
+  /** O que a ilha aberta mostra (Fase 37). */
+  islandContent(): IslandContent
+  /** Um pedido novo pode abrir a ilha sozinho (o painel não está à vista). */
+  islandAutoOpen(): boolean
+  /** Um botão da ilha que não é dela: responder um pedido, a música, abrir o painel. */
+  island(action: IslandAction): void
+  /** A ilha abriu ou recolheu (aberta, a música é acompanhada mais de perto). */
+  islandOpen(open: boolean): void
 }
 
 /** Cria a janela do mascote e liga o arraste, os cliques e o resto do que vem da página. */
@@ -98,8 +105,13 @@ export function setupMascot(options: MascotHandlers): void {
   })
   ipcMain.on(IPC.mascotHover, (event, inside: unknown) => {
     if (!fromMascot(event) || typeof inside !== 'boolean') return
-    holdIsland('hover', inside)
+    island?.hover(inside)
     options.hover(inside)
+  })
+  ipcMain.on(IPC.islandAction, (event, sent: unknown) => {
+    if (!fromMascot(event)) return
+    const action = parseIslandAction(sent)
+    if (action) onIslandAction(action)
   })
   ipcMain.on(IPC.mascotActivity, (event) => {
     if (fromMascot(event)) options.activity()
@@ -391,16 +403,11 @@ function createMascotWindow(): BrowserWindow {
     maybeGreet()
     handlers?.moved()
   })
-  win.once('show', () => {
-    if (island) win.setShape([islandShape(island.expanded)])
-  })
+  win.once('show', () => island?.applyShape())
   win.on('closed', () => {
     stopDrag()
     mascotWin = null
-    if (island) {
-      clearTimeout(island.timer ?? undefined)
-      clearTimeout(island.moment ?? undefined)
-    }
+    island?.dispose()
   })
   // Sem o renderer ninguém avisa o fim do arraste; sem isso o mascote seguiria o cursor.
   win.webContents.on('render-process-gone', () => stopDrag())
@@ -528,35 +535,53 @@ function onDragEnd(event: IpcMainEvent): void {
 //
 // Com o modo compacto ligado (config.compact), o mascote vira uma cápsula no centro do topo da
 // tela, com o Wisp inteiro em miniatura e uma linha de estado. A janela é uma faixa de tamanho
-// fixo; a forma dela (setShape, XShape no X11) fica só na cápsula, recolhida ou aberta, e o resto
-// da faixa deixa os cliques passarem. Ela abre enquanto houver um motivo (o cursor em cima, um
-// pedido de permissão ou um erro, a voz, um momento como uma resposta pronta ou um lembrete) e
-// recolhe sem nenhum.
+// fixo; a forma dela (setShape, XShape no X11) fica só na cápsula (recolhida, espiando ou aberta),
+// e o resto da faixa deixa os cliques passarem. Quando ela espia e abre é o island-state.ts; o que
+// ela mostra aberta (as conversas, os pedidos, a música) vem do index.ts (Fase 37).
 
-type IslandReason = 'hover' | 'attention' | 'voice' | 'moment'
-
-interface Island {
-  expanded: boolean
-  reasons: Set<IslandReason>
-  timer: NodeJS.Timeout | null
-  moment: NodeJS.Timeout | null
-  /** Uma mensagem curta, enquanto o momento dura (um lembrete, um alerta). */
-  message: { title: string; detail: string } | null
-}
-
-let island: Island | null = null
+let island: IslandController | null = null
+let islandWasOpen = false
+/** Uma mensagem curta, enquanto o momento dura (um lembrete, um alerta). */
+let islandNotice: { title: string; detail: string } | null = null
 /** Em que pé está a voz (a ilha diz "ouvindo…"). */
 let voiceState: VoiceStatus['state'] = 'idle'
 /** A linha de baixo quando nada acontece: o próximo compromisso, por exemplo. */
 let islandNote = ''
 
-function newIsland(): Island {
-  return { expanded: false, reasons: new Set(), timer: null, moment: null, message: null }
+function newIsland(): IslandController {
+  return new IslandController({
+    shape: (area) => mascotWin?.setShape([area]),
+    send: (view) => {
+      const open = view?.mode === 'open'
+      if (open !== islandWasOpen) {
+        islandWasOpen = open
+        handlers?.islandOpen(open)
+      }
+      mascotWin?.webContents.send(IPC.mascotIsland, view)
+    },
+    content: () => handlers?.islandContent() ?? EMPTY_ISLAND,
+    status: islandText,
+    autoOpen: () => handlers?.islandAutoOpen() ?? false
+  })
+}
+
+const EMPTY_ISLAND: IslandContent = {
+  tasks: [],
+  alerts: [],
+  music: null,
+  settings: {
+    sound: true,
+    volume: 1,
+    autoClose: 15,
+    hoverOpen: false,
+    covers: false,
+    coversOption: false
+  }
 }
 
 /** O texto da ilha: a mensagem do momento, a voz, ou o estado do mascote. */
-function islandText(): { title: string; detail: string; tone: MascotIslandTone } {
-  if (island?.message) return { ...island.message, tone: 'alert' }
+function islandText(): IslandStatus {
+  if (islandNotice) return { ...islandNotice, tone: 'alert' }
   if (voiceState === 'listening')
     return { title: 'ouvindo…', detail: t('pode falar'), tone: 'busy' }
   if (voiceState === 'transcribing') {
@@ -585,19 +610,34 @@ function islandText(): { title: string; detail: string; tone: MascotIslandTone }
   }
 }
 
-type MascotIslandTone = NonNullable<MascotIsland>['tone']
-
 function islandView(): MascotIsland {
-  return island ? { expanded: island.expanded, ...islandText() } : null
+  return island ? island.view() : null
 }
 
 function sendIsland(): void {
-  if (island) mascotWin?.webContents.send(IPC.mascotIsland, islandView())
+  island?.refresh()
+}
+
+/** O que a ilha mostra mudou (as conversas, um pedido, a música, os ajustes). */
+export function refreshIsland(): void {
+  sendIsland()
+}
+
+/** Abre a ilha (um atalho, um pedido que você quer ver); false fora da ilha. */
+export function openIsland(): boolean {
+  if (!island) return false
+  island.open('click')
+  return true
+}
+
+/** Recolhe a ilha (o painel abriu por ela). */
+export function closeIsland(): void {
+  island?.close()
 }
 
 /** A cápsula na tela, para o painel abrir logo abaixo dela (null: fora da ilha). */
 export function getIslandRect(): Rectangle | null {
-  return island && mascotWin ? islandRect(mascotWin.getBounds(), true) : null
+  return island && mascotWin ? islandRect(mascotWin.getBounds(), 'peek') : null
 }
 
 /** Liga ou desliga a ilha (o config.json, o menu, a tela de configurações). */
@@ -606,12 +646,12 @@ export function setCompact(enabled: boolean): void {
   if (enabled) {
     island = newIsland()
     mascotWin.setBounds(islandBounds(screen.getPrimaryDisplay().workArea))
-    mascotWin.setShape([islandShape(false)])
-    openFor(MOMENT_MS.greet)
+    island.applyShape()
+    island.moment(MOMENT_MS.greet)
   } else {
-    clearTimeout(island?.timer ?? undefined)
-    clearTimeout(island?.moment ?? undefined)
+    island?.dispose()
     island = null
+    islandNotice = null
     mascotWin.setShape([{ x: 0, y: 0, width: MASCOT_SIZE, height: MASCOT_SIZE }])
     // De volta ao lugar onde o mascote flutuava antes.
     mascotWin.setBounds({
@@ -631,60 +671,46 @@ export function setIslandNote(note: string): void {
   sendIsland()
 }
 
-/** Uma mensagem curta na ilha, aberta e pulsando por um tempo (um lembrete, um alerta). */
+/** Uma mensagem curta na ilha, espiando e pulsando por um tempo (um lembrete, um alerta). */
 export function islandMessage(title: string, detail: string, ms = 5000): void {
   if (!island) return
-  island.message = { title: title.slice(0, 80), detail: detail.slice(0, 160) }
-  openFor(ms, () => {
-    if (island) island.message = null
+  islandNotice = { title: title.slice(0, 80), detail: detail.slice(0, 160) }
+  island.moment(ms, () => {
+    islandNotice = null
   })
 }
 
-/** Um motivo para a ilha ficar aberta começou ou acabou. Sem motivo nenhum, ela recolhe. */
-export function holdIsland(reason: IslandReason, on: boolean): void {
+/** Um motivo para a ilha espiar começou ou acabou. Sem motivo nenhum, ela recolhe. */
+export function holdIsland(reason: PeekReason, on: boolean): void {
+  island?.hold(reason, on)
+}
+
+/** Espia por um momento (uma resposta pronta, a saudação). */
+function openFor(ms: number): void {
+  island?.moment(ms)
+}
+
+/** Um botão da ilha: o que é da ilha fica aqui; o resto (responder, a música) vai para o index. */
+function onIslandAction(action: IslandAction): void {
   if (!island) return
-  if (on) {
-    island.reasons.add(reason)
-    expand()
-  } else if (island.reasons.delete(reason) && island.reasons.size === 0) {
-    closeLater(reason === 'hover' ? HOVER_CLOSE_MS : CLOSE_MS)
+  switch (action.type) {
+    case 'open':
+      return island.open('click')
+    case 'close':
+      return island.close()
+    case 'touch':
+      return island.touch()
+    case 'tab':
+      return island.setTab(action.tab)
+    case 'focus':
+      return island.setFocus(action.id)
+    case 'decide':
+    case 'answer':
+    case 'alert-panel':
+      // Respondido, a ilha que abriu só pelo pedido pode recolher.
+      return handlers?.island(action)
+    default:
+      island.touch()
+      handlers?.island(action)
   }
-}
-
-/** Abre por um momento (uma resposta pronta, a saudação), e recolhe se nada mais a segurar. */
-function openFor(ms: number, done?: () => void): void {
-  if (!island) return
-  clearTimeout(island.moment ?? undefined)
-  holdIsland('moment', true)
-  sendIsland()
-  island.moment = setTimeout(() => {
-    done?.()
-    holdIsland('moment', false)
-    sendIsland()
-  }, ms)
-}
-
-function expand(): void {
-  if (!island || !mascotWin) return
-  clearTimeout(island.timer ?? undefined)
-  island.timer = null
-  if (island.expanded) return
-  island.expanded = true
-  // A forma cresce antes da cápsula, senão ela apareceria cortada.
-  mascotWin.setShape([islandShape(true)])
-  sendIsland()
-}
-
-function closeLater(ms: number): void {
-  if (!island) return
-  clearTimeout(island.timer ?? undefined)
-  island.timer = setTimeout(() => {
-    if (!island || !mascotWin || island.reasons.size > 0) return
-    island.expanded = false
-    sendIsland()
-    // A forma encolhe só depois da animação.
-    island.timer = setTimeout(() => {
-      if (island && !island.expanded) mascotWin?.setShape([islandShape(false)])
-    }, ISLAND_ANIMATION_MS + 40)
-  }, ms)
 }

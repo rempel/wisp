@@ -6,7 +6,7 @@ import { firstLine, runPowerShell } from './powershell'
 
 // As interfaces COM do Core Audio (só os métodos usados; os outros ocupam o lugar na tabela).
 // Numa linha só e sem aspas simples: vai dentro de uma string do PowerShell.
-const NATIVE =
+export const NATIVE =
   'using System; using System.Runtime.InteropServices; namespace Wisp { ' +
   '[Guid("5CDF2C82-841E-4546-9722-0CF74078229A"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)] ' +
   'interface IAudioEndpointVolume { int f(); int g(); int h(); int i(); ' +

@@ -53,6 +53,16 @@ export interface Chat {
     decision: 'allow' | 'deny',
     how: 'phone' | 'expired' | 'notification'
   ): boolean
+  /**
+   * A resposta a um pedido que veio da ilha (Fase 37): Permitir, Negar, Sempre, ou as respostas
+   * de uma pergunta. Devolve false se o pedido já não esperava.
+   */
+  answerIsland(
+    id: string,
+    answer: { decision: 'allow' | 'deny' | 'allow-always' } | { answers: Record<string, string> }
+  ): boolean
+  /** Abre o painel numa conversa (a aba dela, à vista). */
+  showConversation(id: string): void
   /** O título da aba de uma conversa (para o resumo de quando a tela estava bloqueada). */
   conversationTitle(id: string): string
   /** O painel está à vista. */
