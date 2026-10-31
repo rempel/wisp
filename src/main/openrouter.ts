@@ -99,7 +99,8 @@ export function seedTerminalConfig(cwd: string, configDir = OPENROUTER_CONFIG_DI
  * As skills pessoais (as de ~/.claude/skills) valem também pela OpenRouter: a pasta de
  * configuração de lá ganha um link para elas. Só as skills: o login, o histórico e o resto da
  * configuração da assinatura continuam separados. Uma pasta "skills" de verdade, criada ali à
- * mão, fica como está.
+ * mão, fica como está. No Windows, o link é uma junction: um link simbólico pediria o modo de
+ * desenvolvedor ou o administrador (EPERM).
  */
 export function linkPersonalSkills(
   personal = join(claudeConfigDir(), 'skills'),
@@ -114,7 +115,7 @@ export function linkPersonalSkills(
   }
   if (!existsSync(personal)) return
   try {
-    symlinkSync(personal, link, 'dir')
+    symlinkSync(personal, link, process.platform === 'win32' ? 'junction' : 'dir')
   } catch (err) {
     console.warn('[wisp] não consegui ligar as skills pessoais à OpenRouter:', err)
   }

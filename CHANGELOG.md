@@ -124,6 +124,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   Wisp acompanha o controle de mídia do Windows.
 - No Windows, um hook do Claude Code que terminava depois de o Claude Code sair podia deixar
   aberta uma caixa "Error" do Electron; agora ele só sai.
+- No Windows, as skills pessoais não entravam nas conversas pela OpenRouter: o link para elas
+  pedia o modo de desenvolvedor ou o administrador (EPERM). Agora é uma junction.
 - No modo terminal, uma mensagem mandada pelo `wisp --ask` ou pela voz a um Claude Code que
   acabou de subir podia ficar na caixa sem enviar (o Enter chegava antes de ele ligar o modo cru
   do terminal, como uma quebra de linha): agora a colagem espera ele mostrar alguma coisa.
