@@ -52,7 +52,7 @@ const before = await waitFor(async () => {
   return value.mouth ? null : value
 }, 6000)
 check(
-  'E1 parado, o rosto de sempre: os LEDs, sem boca, sem emoção',
+  'E1 parado, o rosto de sempre: os olhos abertos, sem boca, sem emoção',
   before.eyes === 'normal' && !before.mouth && !before.feel && !before.emote,
   JSON.stringify(before)
 )
