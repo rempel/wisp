@@ -303,7 +303,11 @@ function MusicCard({ music }: { music: IslandMusic }): JSX.Element {
   const send = (action: Extract<IslandAction, { type: 'music' }>['action']) => () =>
     act({ type: 'music', action })
   return (
-    <section className={`island-card music${playing ? ' playing' : ''}`} data-player={music.id}>
+    <section
+      className={`island-card music${playing ? ' playing' : ''}`}
+      data-player={music.id}
+      data-status={music.status}
+    >
       <div className="art">
         {music.art ? <img src={music.art} alt="" /> : <NoteIcon size={26} />}
       </div>

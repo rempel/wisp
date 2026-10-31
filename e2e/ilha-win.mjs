@@ -90,7 +90,7 @@ console.log('== O PowerShell que acompanha a música')
 const watcher = await waitFor(() => {
   const found = powershell(
     'Get-CimInstance Win32_Process -Filter "Name = \'powershell.exe\'" | ' +
-      "Where-Object { $_.CommandLine -like '*GlobalSystemMediaTransportControlsSessionManager*' -and $_.CommandLine -like '*ReadLineAsync*' } | " +
+      "Where-Object { $_.ProcessId -ne $PID -and $_.CommandLine -like '*GlobalSystemMediaTransportControlsSessionManager*' -and $_.CommandLine -like '*ReadLineAsync*' } | " +
       'ForEach-Object { "$($_.ProcessId) $([math]::Round($_.WorkingSetSize / 1MB))" }'
   ).stdout.trim()
   return found || null
@@ -188,18 +188,36 @@ if (!card) {
     /Wisp e Banda/.test(card),
     card
   )
-  check(
-    'M2 tocando, o mascote dança no Windows',
-    !!(await waitFor(() => ev(`!!document.querySelector('.stage.music')`), 10000))
-  )
-  await ev(`document.querySelector('.island-card.music button[aria-label="Pausar"]')?.click()`)
-  check(
-    'M3 pausar pela ilha (pelo PowerShell que acompanha a música)',
-    !!(await waitFor(
-      () => ev(`!!document.querySelector('.island-card.music button[aria-label="Tocar"]')`),
-      10000
-    ))
-  )
+  // O que o próprio Windows diz do player (o CI pode não ter aparelho de som para tocar).
+  const raw = () =>
+    powershell(
+      'Add-Type -AssemblyName System.Runtime.WindowsRuntime; ' +
+        "$asTask = @([System.WindowsRuntimeSystemExtensions].GetMethods() | Where-Object { $_.Name -eq 'AsTask' -and " +
+        "$_.GetParameters().Count -eq 1 -and $_.GetParameters()[0].ParameterType.Name -eq 'IAsyncOperation`1' })[0]; " +
+        '$null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]; ' +
+        '$t = $asTask.MakeGenericMethod([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]).Invoke($null, ' +
+        '@([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync())); [void]$t.Wait(-1); ' +
+        'foreach ($s in $t.Result.GetSessions()) { "$($s.SourceAppUserModelId)=$($s.GetPlaybackInfo().PlaybackStatus)" }'
+    ).stdout.trim()
+  const status = () => ev(`document.querySelector('.island-card.music')?.dataset.status ?? null`)
+  await sleep(2000)
+  const windows = raw()
+  console.log(`  o player, pelo Windows: ${windows || '(nada)'}; na ilha: ${await status()}`)
+  if (!/=Playing/.test(windows)) {
+    console.log(
+      '  pulado: o player do CI não tocou (sem aparelho de som): a dança e o pausar ficam de fora'
+    )
+    check('M2 a ilha mostra o player parado, como o Windows', (await status()) !== 'Playing')
+  } else {
+    check(
+      'M2 tocando, a ilha diz que toca e o mascote dança no Windows',
+      (await status()) === 'Playing' &&
+        !!(await waitFor(() => ev(`!!document.querySelector('.stage.music')`), 10000))
+    )
+    await ev(`document.querySelector('.island-card.music button[aria-label="Pausar"]')?.click()`)
+    const paused = await waitFor(async () => ((await status()) === 'Paused' ? true : null), 10000)
+    check('M3 pausar pela ilha (pelo PowerShell que acompanha a música)', !!paused, `${raw()}`)
+  }
 }
 player.kill()
 await act({ type: 'close' })
