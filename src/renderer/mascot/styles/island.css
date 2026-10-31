@@ -594,6 +594,20 @@
   overflow-y: auto;
 }
 
+/* Com pílulas demais, uma barrinha fina (o scrollbar-width do Chromium venceria esta, com setas). */
+.island-pills::-webkit-scrollbar {
+  width: 4px;
+}
+
+.island-pills::-webkit-scrollbar-button {
+  display: none;
+}
+
+.island-pills::-webkit-scrollbar-thumb {
+  border-radius: 2px;
+  background: var(--island-line);
+}
+
 .pill {
   display: flex;
   align-items: center;

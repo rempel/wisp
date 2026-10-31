@@ -21,7 +21,7 @@ import { t } from '../shared/i18n'
 // Por voz dá para negar um pedido de permissão, nunca aprovar: o "sim" de alguém na sala, ou
 // de um vídeo tocando, não pode liberar nada.
 
-export type VoiceSource = 'panel' | 'shortcut' | 'test'
+export type VoiceSource = 'panel' | 'shortcut' | 'test' | 'island'
 
 /** Uma transcrição que passa disto (ms) é lenta: vale um modelo menor. */
 const SLOW_MS = 8000
@@ -144,6 +144,12 @@ export class Voice {
   togglePanel(): void {
     if (this.state === 'listening') return this.finish()
     if (this.state !== 'transcribing') this.start('panel', 'auto')
+  }
+
+  /** O botão de falar da ilha (Fase 38): o que for dito vai pela ilha, sem abrir o painel. */
+  toggleIsland(): void {
+    if (this.state === 'listening') return this.finish()
+    if (this.state !== 'transcribing') this.start('island', 'auto')
   }
 
   /**

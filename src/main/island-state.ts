@@ -5,16 +5,30 @@
 // barrinha da contagem). Um pedido esperando segura a ilha aberta até a resposta, a não ser que você
 // a recolha (o pedido continua esperando, no painel e na cápsula).
 
-import { ISLAND_AUTO_CLOSE, islandOpenHeight, MUSIC_ID } from '../shared/ipc-island'
+import {
+  AGENDA_ID,
+  GITHUB_ID,
+  ISLAND_AUTO_CLOSE,
+  islandOpenHeight,
+  MUSIC_ID,
+  UPDATE_ID,
+  USAGE_ID
+} from '../shared/ipc-island'
 import type {
   IslandAction,
   IslandAlert,
+  IslandAttachment,
+  IslandDiff,
+  IslandEvent,
+  IslandGithub,
   IslandMode,
   IslandMusic,
   IslandMusicAction,
   IslandSettings,
   IslandTab,
   IslandTask,
+  IslandUpdate,
+  IslandUsage,
   MascotIsland
 } from '../shared/ipc-island'
 import { ISLAND_ANIMATION_MS, islandShape } from './island'
@@ -33,6 +47,16 @@ export interface IslandContent {
   alerts: IslandAlert[]
   music: IslandMusic | null
   settings: IslandSettings
+  /** Fase 38: o diff aberto, os arquivos soltos, a conversa da última pergunta e as pílulas. */
+  diff?: IslandDiff | null
+  attachments?: IslandAttachment[]
+  asked?: string | null
+  usage?: IslandUsage | null
+  github?: IslandGithub | null
+  agenda?: IslandEvent[]
+  update?: IslandUpdate | null
+  /** A janela pode receber o teclado (no Windows e no macOS). */
+  keyboard?: boolean
 }
 
 /** A linha de estado da cápsula. */
@@ -51,6 +75,8 @@ export interface IslandDeps {
   status(): IslandStatus
   /** Um pedido novo pode abrir a ilha sozinho (com o painel à vista, o card já está lá). */
   autoOpen(): boolean
+  /** A ilha quer (ou não quer mais) o teclado: o Perguntar aberto (Fase 38). */
+  keyboard?(on: boolean): void
   now?(): number
 }
 
@@ -76,6 +102,11 @@ export class IslandController {
   private shapeTimer: Timer | null = null
   private momentTimer: Timer | null = null
   private height = 0
+  /** O teclado está na ilha (escrevendo no Perguntar): ela não recolhe sozinha. */
+  private typing = false
+  private wantsKeyboard = false
+  /** A ilha pegou o teclado (no Perguntar) e fica com ele até recolher. */
+  private holdsKeyboard = false
   private readonly now: () => number
 
   constructor(private readonly deps: IslandDeps) {
@@ -91,7 +122,7 @@ export class IslandController {
     const content = this.deps.content()
     const alert = this.visibleAlert(content.alerts)
     const status = this.deps.status()
-    const focus = this.focusIn(content.tasks, content.music)
+    const focus = this.focusIn(content)
     return {
       mode: this.mode,
       ...status,
@@ -103,7 +134,15 @@ export class IslandController {
       focus,
       closesAt: this.closesAt,
       closeMs: this.closeMs,
-      settings: content.settings
+      settings: content.settings,
+      diff: content.diff ?? null,
+      attachments: content.attachments ?? [],
+      keyboard: content.keyboard ?? false,
+      asked: content.asked ?? null,
+      usage: content.usage ?? null,
+      github: content.github ?? null,
+      agenda: content.agenda ?? [],
+      update: content.update ?? null
     }
   }
 
@@ -247,7 +286,7 @@ export class IslandController {
   }
 
   private pinned(): boolean {
-    return this.visibleAlert(this.deps.content().alerts) !== null
+    return this.typing || this.visibleAlert(this.deps.content().alerts) !== null
   }
 
   /** O pedido que a ilha mostra: o mais antigo que você não recolheu (aberta: qualquer um). */
@@ -255,14 +294,39 @@ export class IslandController {
     return alerts.find((alert) => !this.folded.has(alert.id)) ?? null
   }
 
-  private focusIn(tasks: IslandTask[], music: IslandMusic | null): string | null {
-    const ids = [...tasks.map((task) => task.id), ...(music ? [MUSIC_ID] : [])]
+  private focusIn(content: IslandContent): string | null {
+    const { tasks, music } = content
+    const ids = [...tasks.map((task) => task.id), ...pillIds(content)]
     if (this.focus && ids.includes(this.focus)) return this.focus
     // Sem escolha: o que pede você, o que trabalha, a música tocando, o resto.
     const busy = tasks.find((task) => task.state === 'waiting' || task.state === 'working')
     if (busy) return busy.id
     if (music?.status === 'Playing') return MUSIC_ID
     return ids[0] ?? null
+  }
+
+  /** O teclado entrou na ilha (a janela ganhou o foco) ou saiu. */
+  setTyping(on: boolean): void {
+    this.typing = on
+    if (on) this.cancelClose()
+    else if (this.mode === 'open' && !this.inside && !this.pinned()) {
+      this.scheduleClose(this.deps.content().settings.autoClose * 1000)
+    }
+    this.push()
+  }
+
+  /**
+   * O Perguntar aberto pede o teclado, e a ilha fica com ele até recolher (o Esc e o Ctrl+← e →
+   * valem no Início também); recolhida, ela o devolve.
+   */
+  private syncKeyboard(): void {
+    if (this.mode !== 'open') this.holdsKeyboard = false
+    else if (this.tab === 'ask') this.holdsKeyboard = true
+    const want = this.holdsKeyboard && (this.deps.content().keyboard ?? false)
+    if (want === this.wantsKeyboard) return
+    this.wantsKeyboard = want
+    this.deps.keyboard?.(want)
+    if (!want) this.typing = false
   }
 
   private openHeight(): number {
@@ -292,6 +356,7 @@ export class IslandController {
   }
 
   private push(): void {
+    this.syncKeyboard()
     const view = this.view()
     // A ilha aberta muda de altura com o que mostra (uma pergunta pede mais).
     if (this.mode === 'open' && view) {
@@ -398,8 +463,30 @@ export function parseIslandAction(value: unknown): IslandAction | null {
     case 'more-settings':
       return { type: action.type }
     case 'tab':
-      return action.tab === 'home' || action.tab === 'settings'
+      return action.tab === 'home' || action.tab === 'ask' || action.tab === 'settings'
         ? { type: 'tab', tab: action.tab }
+        : null
+    case 'ask':
+      return typeof action.text === 'string' && action.text.length <= 20_000
+        ? { type: 'ask', text: action.text }
+        : null
+    case 'unattach':
+      return Number.isInteger(action.index) && (action.index as number) >= 0
+        ? { type: 'unattach', index: action.index as number }
+        : null
+    case 'voice':
+    case 'update':
+    case 'restart':
+      return { type: action.type }
+    case 'diff':
+      if (!isId(action.task) || (action.step !== null && !isId(action.step))) return null
+      return { type: 'diff', task: action.task, step: action.step as string | null }
+    case 'open-url':
+      // Só os endereços do GitHub (os PRs e as revisões que a ilha mostra).
+      return typeof action.url === 'string' &&
+        action.url.length < 500 &&
+        /^https:\/\/github\.com\/[\w.\-/]+$/.test(action.url)
+        ? { type: 'open-url', url: action.url }
         : null
     case 'focus':
     case 'show':
@@ -445,4 +532,17 @@ export function parseIslandAction(value: unknown): IslandAction | null {
     default:
       return null
   }
+}
+
+/** As pílulas que não são conversas: a música, a versão nova, o plano, o GitHub e a agenda. */
+export function pillIds(content: IslandContent): string[] {
+  const ids: string[] = []
+  if (content.music) ids.push(MUSIC_ID)
+  if (content.update) ids.push(UPDATE_ID)
+  if (content.usage) ids.push(USAGE_ID)
+  if (content.github && (content.github.mine.length || content.github.reviews.length)) {
+    ids.push(GITHUB_ID)
+  }
+  if (content.agenda?.length) ids.push(AGENDA_ID)
+  return ids
 }

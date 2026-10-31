@@ -3,12 +3,19 @@
 // e os pedidos que esperam resposta. Acompanha os eventos das conversas (como o humor do mascote);
 // as sessões vêm prontas do rastreador dos hooks.
 
+import type { GithubSnapshot } from './github'
 import { summarize } from './phone'
 import { QUESTION_TOOL } from './questions'
 import type {
   ChatEvent,
   ExternalSession,
+  FileDiff,
   IslandAlert,
+  IslandDiff,
+  IslandDiffLine,
+  IslandGithub,
+  IslandUsage,
+  PlanUsage,
   IslandQuestion,
   IslandStep,
   IslandTask,
@@ -45,12 +52,48 @@ interface Tracked {
   state: IslandTaskState
   busy: boolean
   steps: IslandStep[]
+  /** Os diffs dos passos (Fase 38: um clique num passo abre o dele). */
+  diffs: Map<string, FileDiff>
   /** O bloco de texto em andamento e o último completo. */
   block: string | null
   text: string
   reply?: string
   pending: Pending[]
   updatedAt: number
+}
+
+/** Quantas linhas de um diff a ilha mostra. */
+const MAX_DIFF_LINES = 400
+
+/** O fim do texto que está chegando, numa linha (o que a ilha mostra enquanto o Claude responde). */
+export function liveText(text: string, max = 200): string {
+  const line = text
+    .replace(/[#*_`>]+/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+  return line.length > max ? `…${line.slice(line.length - max + 1).trimStart()}` : line
+}
+
+/** Um diff do Claude Code como a ilha mostra: as linhas dos trechos, até MAX_DIFF_LINES. */
+export function islandDiff(task: string, step: string, label: string, diff: FileDiff): IslandDiff {
+  const lines: IslandDiffLine[] = []
+  let truncated = diff.truncated
+  for (const hunk of diff.hunks) {
+    if (lines.length >= MAX_DIFF_LINES) {
+      truncated = true
+      break
+    }
+    lines.push({ kind: '@', text: `@@ −${hunk.oldStart} +${hunk.newStart} @@` })
+    for (const line of hunk.lines) {
+      if (lines.length >= MAX_DIFF_LINES) {
+        truncated = true
+        break
+      }
+      const kind = line[0] === '+' || line[0] === '-' ? line[0] : ' '
+      lines.push({ kind, text: line.slice(1, 400) })
+    }
+  }
+  return { task, step, label, added: diff.added, removed: diff.removed, lines, truncated }
 }
 
 /** O começo de uma resposta: o primeiro parágrafo, numa linha. */
@@ -212,6 +255,8 @@ export interface IslandFeedOptions {
 /** Acompanha as conversas e junta o que a ilha mostra. */
 export class IslandFeed {
   private readonly conversations = new Map<string, Tracked>()
+  /** O uso do plano mais novo que uma conversa trouxe. */
+  private lastUsage: PlanUsage | null = null
   private readonly now: () => number
 
   constructor(private readonly options: IslandFeedOptions) {
@@ -227,6 +272,7 @@ export class IslandFeed {
         state: 'idle',
         busy: false,
         steps: [],
+        diffs: new Map(),
         block: null,
         text: '',
         pending: [],
@@ -238,6 +284,7 @@ export class IslandFeed {
       case 'user':
         // Um turno novo: os passos e a resposta de antes saem.
         tracked.steps = []
+        tracked.diffs.clear()
         tracked.text = ''
         tracked.block = null
         delete tracked.reply
@@ -262,9 +309,17 @@ export class IslandFeed {
         if (event.diff) {
           step.added = event.diff.added
           step.removed = event.diff.removed
+          tracked.diffs.set(step.id, event.diff)
+          // Só os dos passos que a ilha ainda mostra.
+          for (const id of tracked.diffs.keys()) {
+            if (!tracked.steps.some((item) => item.id === id)) tracked.diffs.delete(id)
+          }
         }
         break
       }
+      case 'usage':
+        this.lastUsage = event.usage
+        return
       case 'text':
         if (tracked.block !== event.blockId) {
           tracked.block = event.blockId
@@ -327,6 +382,7 @@ export class IslandFeed {
         state: tracked.state,
         steps: tracked.steps.map((step) => ({ ...step })),
         ...(tracked.reply ? { reply: tracked.reply } : {}),
+        ...(active && tracked.text.trim() ? { live: liveText(tracked.text) } : {}),
         updatedAt: tracked.updatedAt
       })
     }
@@ -375,8 +431,55 @@ export class IslandFeed {
     return alerts.sort((a, b) => a[0] - b[0]).map(([, alert]) => alert)
   }
 
+  /** O uso do plano do Claude, como a última resposta trouxe (null antes da primeira). */
+  usage(): IslandUsage | null {
+    const usage = this.lastUsage
+    if (!usage || (!usage.session && !usage.week)) return null
+    return { session: usage.session, week: usage.week, limited: usage.limited }
+  }
+
+  /** O diff de um passo (de uma conversa ou de uma sessão), como a ilha mostra. */
+  diffOf(task: string, step: string): IslandDiff | null {
+    let diff: FileDiff | undefined
+    let label = ''
+    if (task.startsWith('c:')) {
+      const tracked = this.conversations.get(task.slice(2))
+      diff = tracked?.diffs.get(step)
+      label = tracked?.steps.find((item) => item.id === step)?.label ?? ''
+    } else if (task.startsWith('s:')) {
+      const session = this.options.sessions().find((item) => item.id === task.slice(2))
+      const found = session?.steps.find((item) => item.id === step)
+      diff = found?.diff
+      label = found ? stepLabel(found.tool, found.input) : ''
+    }
+    return diff ? islandDiff(task, step, label, diff) : null
+  }
+
   /** A conversa ou sessão dona de um pedido ("c:…" ou "s:…"); null se ele não espera mais. */
   ownerOf(requestId: string): string | null {
     return this.alerts().find((alert) => alert.id === requestId)?.task ?? null
+  }
+}
+
+/** O que a ilha mostra do GitHub: os seus PRs e as revisões pedidas, sem o resto da leitura. */
+export function islandGithub(snapshot: GithubSnapshot | null): IslandGithub | null {
+  if (!snapshot) return null
+  return {
+    login: snapshot.login,
+    mine: snapshot.mine.slice(0, 8).map((pr) => ({
+      repo: pr.repo,
+      number: pr.number,
+      title: pr.title,
+      url: pr.url,
+      ci: pr.ci,
+      decision: pr.decision
+    })),
+    reviews: snapshot.reviewRequests.slice(0, 8).map((request) => ({
+      repo: request.repo,
+      number: request.number,
+      title: request.title,
+      url: request.url,
+      author: request.author
+    }))
   }
 }

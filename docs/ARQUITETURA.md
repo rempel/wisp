@@ -91,7 +91,7 @@ src/
 │  ├─ file-view.ts   # ler um arquivo para o visualizador do painel (limites, sem segredos)
 │  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida, espiando ou aberta)
 │  ├─ island-state.ts # quando a ilha espia, abre e recolhe, e os botões que vêm da página
-│  ├─ island-feed.ts # o que a ilha mostra: as conversas, as sessões e os pedidos
+│  ├─ island-feed.ts # o que a ilha mostra: as conversas, as sessões, os pedidos, o diff e o uso
 │  ├─ island-wiring.ts # a ilha ligada ao resto: o conteúdo, a música e o que os botões fazem
 │  ├─ now-playing.ts # a música da ilha: o player do MPRIS, a capa como data URL
 │  ├─ media-win-watch.ts # no Windows: o PowerShell que acompanha a música e recebe os botões
@@ -104,6 +104,7 @@ src/
 │  ├─ diagnostics.ts # as conferências (Claude Code, atalho, bandeja, voz...) e o relatório
 │  ├─ diagnostics-ipc.ts # junta os fatos, a tela de diagnóstico e os primeiros passos
 │  ├─ updates.ts     # o aviso de versão nova (as versões do Wisp no GitHub, uma vez por dia)
+│  ├─ updates-setup.ts # o aviso e o Atualizar ligados ao resto (o painel, a ilha, o reinício)
 │  ├─ self-update.ts # o Atualizar do AppImage: baixar, conferir a assinatura e trocar o arquivo
 │  ├─ release-key.ts # a chave pública que confere os AppImage (gerada por scripts/release-key.mjs)
 │  ├─ portable.ts    # levar o Wisp junto: exportar, ler, a prévia e importar
@@ -151,9 +152,10 @@ src/
    │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
    │                 # (os sinais no ar), sounds.ts (WebAudio), voice.ts e voice-worklet.ts
    │                 # (microfone e fala); o mascot.css liga as folhas de styles/, na ordem:
-   │                 # body, states, reactions e extras (as animações), island (a ilha),
-   │                 # avatars (as cores de cada avatar) e as emotions-* (rostos, sinais, corpo
-   │                 # e danças); Island.tsx desenha a ilha (a cápsula e os cartões)
+   │                 # body, states, reactions e extras (as animações), island e island-cards
+   │                 # (a ilha), avatars (as cores de cada avatar) e as emotions-* (rostos,
+   │                 # sinais, corpo e danças); Island.tsx desenha a ilha (a cápsula, as abas e
+   │                 # as pílulas) e island/ os cartões (cards.tsx), os ícones e as contas
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa,
    │                 # com a edição da última mensagem e o rascunho), FindBar.tsx (o Ctrl+F),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
@@ -645,7 +647,16 @@ CONTRIBUTING.md        # o guia de contribuição
   conversa, ou o `answer` das sessões), com o aviso "Permitido pela ilha." na conversa. O painel,
   com a âncora na cápsula espiando, abre logo abaixo dela, centralizado. A entrada e a saída do
   cursor vêm dos eventos do navegador (o `onPointerLeave` do React se perde depois que a barra da
-  música captura o ponteiro).
+  música captura o ponteiro). Na Fase 38, o Perguntar manda pelo `askQuiet` do chat (a conversa da
+  aba em foco, ou uma aba nova se ela estiver ocupada), sem mostrar o painel; o `island-feed.ts`
+  guarda o diff de cada passo (até 400 linhas), o fim do texto que está chegando (mandado de 400 em
+  400 ms, só com a ilha aberta) e o último `rate_limit_event` (o uso do plano). O GitHub vem do
+  vigia dos alertas, a agenda das próximas 24 horas é relida a cada pouco com a ilha aberta, e a
+  versão nova vem do `updates-setup.ts`. O teclado: a janela da ilha não é focável; no Perguntar
+  (no Windows e no macOS, onde o `setFocusable` existe), o main a torna focável e dá o foco, e ela
+  fica com ele até recolher (o `blur` devolve). Com o foco nela (`focus`/`blur` da janela), ela
+  não recolhe sozinha. No Linux o `setFocusable` não existe, e o Perguntar oferece a voz e o
+  painel. Um arquivo solto com a ilha aberta vai para ela (`takeDrop`), não para o painel.
 - **Grade e janela:** a grade é uma árvore (`shared/layout.ts`): cada folha é um painel e guarda o
   id da aba que mostra; cada divisão põe os filhos em linha ou em coluna, com as proporções (que
   somam 1, com um mínimo de 8%). O main guarda a árvore, muda-a com funções puras (dividir, tirar,

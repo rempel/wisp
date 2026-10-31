@@ -820,3 +820,33 @@ Com **Ilha no topo** ligada (no menu do mascote ou em Configurações → Mascot
       logo que ele sai, se você não clicar dentro); o tempo para recolher muda para 10 ou 30 s; no
       Linux, **Capas das músicas pela internet** mostra a capa do Spotify.
 - [ ] **O painel:** o botão do painel no cabeçalho da ilha abre o painel logo abaixo dela.
+
+## A ilha, parte 2 (Fase 38)
+
+Com **Ilha no topo** ligada:
+
+- [ ] **Perguntar no Windows:** abra a ilha e vá a **Perguntar**: a caixa de texto já tem o
+      cursor. Escreva algo e **Enter**: o painel não abre, a pergunta vai para a conversa da aba em
+      foco (ou uma nova, se ela estiver trabalhando) e a resposta aparece embaixo, com os passos e o
+      texto chegando. Com o cursor fora e o foco na caixa, ela não recolhe; clicando em outra
+      janela, ela volta a recolher sozinha.
+- [ ] **Perguntar no Linux:** o Perguntar diz que a ilha não recebe o teclado e oferece **Falar**
+      (a voz vai como pergunta, e a resposta aparece na ilha) e **Escrever no painel**.
+- [ ] **Soltar:** com a ilha aberta, solte um arquivo nela: ela vai para o Perguntar com o arquivo
+      (o × tira). Pergunte: o arquivo vai junto (no painel, a mensagem mostra o anexo). Solte outro
+      e use **Escrever no painel**: ele aparece na caixa do painel. Com a ilha recolhida, soltar no
+      mascote anexa no painel, como antes.
+- [ ] **O diff:** numa conversa que editou um arquivo, um clique no passo "Editar … +N −M" abre o
+      diff na ilha, com as linhas que entraram e saíram; o **‹** volta.
+- [ ] **Plano:** depois de uma resposta, a pílula **Plano** mostra o uso de 5 horas; o cartão mostra
+      as 5 horas e a semana, com quando voltam.
+- [ ] **GitHub e agenda:** com os alertas do GitHub ligados, a pílula **GitHub** mostra os seus PRs
+      (com o CI) e as revisões pedidas; um clique abre o PR no navegador. Com a agenda ligada e um
+      compromisso nas próximas 24 horas, a pílula **Agenda** mostra a hora e o cartão o lugar.
+- [ ] **Versão nova:** com o aviso de versão ligado e uma versão nova no GitHub, a pílula aparece;
+      no AppImage e no Windows instalado, **Atualizar** baixa e confere, e **Reiniciar o Wisp**
+      instala; rodando do código, só o link do release.
+- [ ] **Atalhos:** **Ctrl+Alt+K** abre a ilha no Perguntar (com um pedido esperando, ele aparece
+      primeiro) e, de novo, recolhe. No Windows, com a ilha com o teclado, **Esc** fecha o diff ou
+      recolhe, e **Ctrl+←** e **Ctrl+→** (fora da caixa) trocam de pílula. O atalho muda em
+      Configurações → Atalhos e sistema → **Perguntar pela ilha**.

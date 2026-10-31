@@ -68,6 +68,7 @@ export interface Settings {
   language: 'auto' | 'pt' | 'en'
   shortcut: string | null
   paletteShortcut: string | null
+  islandShortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
   browserAutomation: boolean
@@ -114,6 +115,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'language',
   'shortcut',
   'paletteShortcut',
+  'islandShortcut',
   'voiceShortcut',
   'clipboardChip',
   'browserAutomation',

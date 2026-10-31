@@ -998,6 +998,30 @@ pronta, num lembrete ou num alerta.
 - No cabeçalho, **Abrir o painel** abre o painel logo abaixo da ilha, e o alto-falante liga e
   desliga os sons.
 
+**A ilha, parte 2** (Fase 38):
+
+- **Perguntar:** a terceira tela da ilha. No Windows (e no macOS), uma caixa de texto: o **Enter**
+  manda (o Shift+Enter quebra a linha) para a conversa da aba em foco do painel, ou para uma nova se
+  ela estiver ocupada, sem abrir o painel; a resposta aparece embaixo, com os passos ao vivo e o
+  texto chegando. O microfone fala com o Wisp pela ilha (a voz vai como pergunta, do mesmo jeito).
+  No Linux, a janela da ilha não recebe o teclado: o Perguntar oferece **Falar** e **Escrever no
+  painel**.
+- **Soltar arquivos:** um arquivo solto na ilha aberta abre o Perguntar com ele, para ir junto com a
+  próxima pergunta (o × tira); **Escrever no painel** leva os soltos para a caixa do painel. Com a
+  ilha recolhida, soltar no mascote anexa no painel, como antes.
+- **O diff na ilha:** um clique num passo com +N −M ("Editar app.ts +2 −1") abre o diff dele na
+  própria ilha, com as linhas que entraram e saíram; o **‹** volta.
+- **Mais pílulas:** **Plano** (o uso do plano do Claude, na janela de 5 horas e na da semana, com
+  quando volta; vem das respostas do Claude Code), **GitHub** (com os alertas do GitHub ligados: os
+  seus PRs abertos com o CI e a revisão, e os que pedem a sua; um clique abre no navegador),
+  **Agenda** (com a agenda ligada: os compromissos das próximas 24 horas) e a **versão nova** do
+  Wisp (com o aviso de versão ligado), com **Atualizar** e **Reiniciar o Wisp** onde o Wisp se
+  atualiza sozinho, ou o link do release.
+- **Atalhos:** **Ctrl+Alt+K** abre a ilha no Perguntar de qualquer lugar e recolhe de novo
+  (`islandShortcut`; um pedido esperando aparece primeiro). Com a ilha com o teclado (no Windows,
+  depois do Perguntar), **Esc** fecha o diff ou recolhe, e **Ctrl+←** e **Ctrl+→** trocam de
+  pílula (na caixa de texto, elas andam pelas palavras).
+
 ### Paleta de comandos
 
 **Ctrl+P** no painel (no modo terminal, **Ctrl+Shift+P**) ou **Ctrl+Alt+P** de qualquer lugar abre
@@ -1035,6 +1059,8 @@ na bandeja e no botão direito do mascote.
 | Qualquer lugar | Ctrl+Alt+W                      | Abre e fecha o painel (`shortcut` no `config.json`)           |
 | Qualquer lugar | Ctrl+Alt+Espaço                 | Segure e fale; um toque ouve até você parar (`voiceShortcut`) |
 | Qualquer lugar | Ctrl+Alt+P                      | Abre a paleta de comandos (`paletteShortcut`)                 |
+| Qualquer lugar | Ctrl+Alt+K                      | Abre a ilha no Perguntar, e recolhe (`islandShortcut`)        |
+| Ilha aberta    | Esc / Ctrl+← e Ctrl+→           | Recolhe (ou fecha o diff) / troca de pílula (Windows)         |
 | Caixa de texto | Enter / Shift+Enter             | Envia / quebra a linha                                        |
 | Caixa de texto | Shift+Tab                       | Passa para o próximo modo de permissão                        |
 | Caixa de texto | `/`                             | Os comandos com barra (setas escolhem, Tab completa)          |
@@ -1176,6 +1202,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "islandAutoClose": 15,
   "islandHoverOpen": false,
   "islandCovers": false,
+  "islandShortcut": "Ctrl+Alt+K",
   "github": false,
   "calendar": false,
   "calendarFiles": [],
@@ -1351,7 +1378,8 @@ um pedido de permissão (veja [A ilha](#a-ilha)). Desligada, o mascote volta par
 `mascotPosition`. `islandAutoClose` é quantos segundos a ilha aberta espera, com o cursor fora,
 para recolher (10, 15 ou 30); `islandHoverOpen` faz o cursor abrir a ilha inteira; e
 `islandCovers` deixa a ilha mostrar as capas que os players dão pela internet (como as do Spotify
-no Linux; desligado por padrão).
+no Linux; desligado por padrão). `islandShortcut` é o atalho global que abre a ilha no Perguntar
+(`null` desliga; só vale com a ilha ligada).
 
 `provider` é por onde as conversas novas vão: `"subscription"` (o seu Claude Code, com a
 assinatura) ou `"openrouter"` (experimental; veja [OpenRouter](#openrouter-experimental)). Cada

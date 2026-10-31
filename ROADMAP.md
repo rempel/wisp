@@ -1507,7 +1507,8 @@ Notas da entrega:
 
 ### Fase 38: a ilha, parte 2
 
-**Status:** planejada.
+**Status:** pronta (testes: `test/island.test.ts`; `e2e/ilha2.mjs`, no job do Linux, e o Perguntar
+com o teclado no `e2e/ilha-win.mjs`, no job **Windows** do CI).
 
 - **Perguntar pela ilha (M):** a caixa de mensagem na ilha (a conversa da aba em foco ou uma nova),
   com a resposta aparecendo nela e "continuar no painel".
@@ -1517,6 +1518,36 @@ Notas da entrega:
 - **Atalhos (P):** trocar de pílula, ir ao pedido que espera e abrir e recolher a ilha pelo
   teclado.
 - **A versão nova na ilha (P):** o aviso com o **Atualizar**.
+
+**Aceite:** uma pergunta pela ilha vai para a conversa e a resposta aparece nela, sem abrir o
+painel, com os arquivos soltos junto; o diff de um passo abre na ilha; as pílulas do plano, do
+GitHub, da agenda e da versão nova aparecem quando há o que mostrar; o atalho abre a ilha no
+Perguntar.
+
+Notas da entrega:
+
+- o teclado: a janela do mascote não é focável (para não roubar o foco de quem está digitando). O
+  `setFocusable` do Electron só existe no Windows e no macOS: lá, o Perguntar torna a janela
+  focável e dá o foco à caixa, e a ilha fica com ele até recolher (o Esc e o Ctrl+← e → valem no
+  Início também); com o foco nela, ela não recolhe sozinha. No Linux (X11 e Wayland), a ilha não
+  recebe o teclado, e o Perguntar oferece **Falar** (a voz vai como pergunta pela ilha, sem abrir
+  o painel) e **Escrever no painel** (com os arquivos soltos);
+- "Soltar" não virou uma aba: soltar um arquivo na ilha aberta já a leva ao Perguntar com o
+  arquivo. Com ela recolhida, soltar no mascote anexa no painel, como antes;
+- "ir ao pedido que espera": o pedido já toma o cartão da ilha aberta, então o atalho que abre a
+  ilha (Ctrl+Alt+K, `islandShortcut`) leva a ele. O Ctrl+Alt+Espaço do começo do plano já era o da
+  voz;
+- a pergunta pela ilha vai pelo mesmo caminho do painel (o mesmo modo de permissão, os mesmos
+  cards): se ela pedir algo, o pedido aparece na ilha. Com a aba em foco trabalhando, ela vai para
+  uma aba nova;
+- o texto chegando vai para a ilha só com ela aberta, de 400 em 400 ms; o diff de cada passo fica
+  guardado (até 400 linhas) para o clique;
+- o uso do plano vem do `rate_limit_event` do Claude Code (`utilization` de 0 a 1, nas janelas de
+  5 horas e de 7 dias), sem nenhuma chamada a mais;
+- o `index.ts` passou de 1.000 linhas com a ligação da versão nova: ela foi para o
+  `updates-setup.ts`; a `Island.tsx` e o `island.css`, para `island/` e `island-cards.css`;
+- o print do Perguntar saiu vazio no primeiro e2e: a classe `ask` do cartão era a mesma do "?" do
+  mascote, que o CSS dele esconde. O cartão virou `ask-card`.
 
 ## Ideias avaliadas e deixadas de fora
 

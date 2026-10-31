@@ -329,8 +329,8 @@ export class Conversation {
     return this.send(text, files, preview)
   }
 
-  /** Mostra na página uma mensagem que não veio da caixa (o --ask, a voz). */
-  showUser(text: string, voice: boolean): void {
+  /** Mostra na página uma mensagem que não veio da caixa (o --ask, a voz, a ilha). */
+  showUser(text: string, voice: boolean, attachments: AttachmentPreview[] = []): void {
     // No terminal, a mensagem aparece nele, e o hook dela a leva ao histórico.
     if (this.viewMode === 'terminal') return
     const queued = this.session.isBusy()
@@ -339,7 +339,7 @@ export class Conversation {
       {
         type: 'user',
         text,
-        attachments: [],
+        attachments,
         ...(voice ? { voice } : {}),
         ...(queued ? { queued } : {})
       },

@@ -8,8 +8,8 @@
  */
 export type IslandMode = 'compact' | 'peek' | 'open'
 
-/** A tela da ilha aberta. */
-export type IslandTab = 'home' | 'settings'
+/** A tela da ilha aberta: o Início, Perguntar (Fase 38) e os Ajustes. */
+export type IslandTab = 'home' | 'ask' | 'settings'
 
 /** Em que pé está uma conversa ou sessão. */
 export type IslandTaskState = 'working' | 'waiting' | 'done' | 'error' | 'idle'
@@ -34,6 +34,8 @@ export interface IslandTask {
   steps: IslandStep[]
   /** O começo da última resposta, quando o turno acabou. */
   reply?: string
+  /** O fim do texto que está chegando agora (Fase 38), enquanto o Claude responde. */
+  live?: string
   updatedAt: number
 }
 
@@ -100,6 +102,76 @@ export interface IslandAlert {
   armedAt: number
 }
 
+/** Uma linha de um diff: '+' entrou, '-' saiu, ' ' ficou, '@' o começo de um trecho. */
+export interface IslandDiffLine {
+  kind: '+' | '-' | ' ' | '@'
+  text: string
+}
+
+/** O diff de um passo (Fase 38), aberto com um clique nele. */
+export interface IslandDiff {
+  task: string
+  step: string
+  label: string
+  added: number
+  removed: number
+  lines: IslandDiffLine[]
+  /** Linhas demais: só o começo. */
+  truncated: boolean
+}
+
+/** Um arquivo solto na ilha, para ir com a próxima pergunta. */
+export interface IslandAttachment {
+  name: string
+  size: number
+  thumbnail?: string
+}
+
+/** O uso do plano do Claude (a janela de 5 horas e a da semana), em porcentagem. */
+export interface IslandUsage {
+  session: { used: number; resetsAt: number | null } | null
+  week: { used: number; resetsAt: number | null } | null
+  limited: boolean
+}
+
+/** Os seus PRs abertos e os que pedem a sua revisão (os alertas do GitHub). */
+export interface IslandGithub {
+  login: string
+  mine: {
+    repo: string
+    number: number
+    title: string
+    url: string
+    ci: 'success' | 'failure' | 'pending' | 'none'
+    decision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null
+  }[]
+  reviews: { repo: string; number: number; title: string; url: string; author: string }[]
+}
+
+/** Um compromisso da agenda. */
+export interface IslandEvent {
+  title: string
+  start: number
+  end: number
+  allDay: boolean
+  location: string
+}
+
+/** A versão nova do Wisp, com o Atualizar (quando dá para atualizar por aqui). */
+export interface IslandUpdate {
+  version: string
+  /** O Wisp atualiza sozinho (com a assinatura); sem isso, só o link do release. */
+  canInstall: boolean
+  /** Já baixada e conferida: falta reiniciar. */
+  ready: boolean
+}
+
+/** Os ids das pílulas que não são conversas nem a música. */
+export const USAGE_ID = 'usage'
+export const GITHUB_ID = 'github'
+export const AGENDA_ID = 'agenda'
+export const UPDATE_ID = 'update'
+
 /** Os ajustes da ilha (a tela Ajustes dela). */
 export interface IslandSettings {
   sound: boolean
@@ -140,6 +212,19 @@ export type IslandAction =
   | { type: 'focus'; id: string }
   /** Abre o painel (e recolhe a ilha). */
   | { type: 'panel' }
+  /** Manda uma mensagem pela ilha (Fase 38), com os arquivos soltos nela. */
+  | { type: 'ask'; text: string }
+  /** Tira um arquivo solto da próxima pergunta. */
+  | { type: 'unattach'; index: number }
+  /** Fala com o Wisp pela ilha (a voz). */
+  | { type: 'voice' }
+  /** Abre o diff de um passo, ou fecha (step null). */
+  | { type: 'diff'; task: string; step: string | null }
+  /** Abre um PR ou uma revisão do GitHub no navegador. */
+  | { type: 'open-url'; url: string }
+  /** Baixa e confere a versão nova; ou reinicia nela. */
+  | { type: 'update' }
+  | { type: 'restart' }
   /** Abre uma conversa no painel, ou traz o terminal de uma sessão para a frente. */
   | { type: 'show'; task: string }
   | { type: 'decide'; id: string; decision: 'allow' | 'deny' | 'allow-always' }
@@ -166,6 +251,18 @@ export type MascotIsland = {
   alerts: number
   /** O que o cartão da esquerda mostra: o id de uma tarefa, "music", ou null (o primeiro). */
   focus: string | null
+  /** O diff aberto (Fase 38). */
+  diff: IslandDiff | null
+  /** Os arquivos soltos na ilha, para a próxima pergunta. */
+  attachments: IslandAttachment[]
+  /** A ilha recebe o teclado (no Windows e no macOS): a caixa do Perguntar funciona. */
+  keyboard: boolean
+  /** A conversa da última pergunta pela ilha (a resposta dela aparece no Perguntar). */
+  asked: string | null
+  usage: IslandUsage | null
+  github: IslandGithub | null
+  agenda: IslandEvent[]
+  update: IslandUpdate | null
   /** Quando a ilha aberta recolhe (ms Unix), para a barrinha; null: não vai recolher. */
   closesAt: number | null
   /** Quanto dura a contagem toda (ms), para a barrinha. */
@@ -184,6 +281,8 @@ export const ISLAND_OPEN_MAX = 320
 
 /** A altura da ilha aberta para o que ela mostra (as perguntas pedem mais). */
 export function islandOpenHeight(island: NonNullable<MascotIsland>): number {
+  // O diff e o Perguntar (com a resposta embaixo) ocupam a altura toda.
+  if (!island.alert && (island.diff || island.tab === 'ask')) return ISLAND_OPEN_MAX - 40
   const questions = island.alert?.kind === 'question' ? (island.alert.questions ?? []) : []
   if (!questions.length) return ISLAND_OPEN_HEIGHT
   // Uma linha de título e uma de opções (elas quebram de 3 em 3) por pergunta.
