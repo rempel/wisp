@@ -29,6 +29,7 @@ import {
 } from '../../shared/emotions'
 import type { Dance, Emotion, MascotAct } from '../../shared/emotions'
 import { t } from '../../shared/i18n'
+import { IslandView } from './Island'
 
 /** Movimento (px) a partir do qual o gesto deixa de ser clique e vira arraste. */
 const DRAG_THRESHOLD = 5
@@ -886,32 +887,13 @@ export default function Mascot(): JSX.Element {
   )
 
   if (!island) return stageElement
-  // A ilha: a cápsula no topo da tela, com o mascote em miniatura e a linha de estado. O clique
-  // abre o painel; o mascote dentro dela só se mostra (não se arrasta nem leva cutucadas).
+  // A ilha: a cápsula no topo da tela, com o mascote em miniatura, a linha de estado e, aberta, os
+  // cartões (Fase 37). O mascote dentro dela só se mostra (não se arrasta nem leva cutucadas).
   return (
-    <div
-      className={`island tone-${island.tone}${island.expanded ? ' expanded' : ''}`}
-      role="button"
-      aria-label={`Wisp: ${island.title}`}
-      onClick={() => window.wisp.mascot.click()}
-      onPointerEnter={() => window.wisp.mascot.hover(true)}
-      onPointerLeave={() => window.wisp.mascot.hover(false)}
-      onContextMenu={(e) => {
-        e.preventDefault()
-        window.wisp.mascot.menu()
-      }}
-      onDragEnter={onDragEnter}
-      onDragOver={onDragOver}
-      onDragLeave={onDragLeave}
-      onDrop={onDrop}
-    >
-      <div className="island-mascot">
-        <div className="island-scale">{stageElement}</div>
-      </div>
-      <div className="island-text">
-        <strong>{island.title}</strong>
-        {island.detail && <span>{island.detail}</span>}
-      </div>
-    </div>
+    <IslandView
+      island={island}
+      stage={stageElement}
+      drop={{ onDragEnter, onDragOver, onDragLeave, onDrop }}
+    />
   )
 }

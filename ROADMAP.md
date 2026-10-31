@@ -1452,6 +1452,72 @@ Notas da entrega:
   o hook do Bash são o próprio Wisp.exe. Agora eles só saem, sem caixa (e o relay do Linux
   também sai quieto); o `e2e/integracoes.mjs` confere que nenhuma caixa "Error" ficou aberta.
 
+### Fase 37: a ilha que abre (como a do Coucou)
+
+**Status:** pronta (testes: `test/island.test.ts`; `e2e/island.mjs`, com um player de mentira
+pelo MPRIS, no job do Linux, e `e2e/ilha-win.mjs`, no job **Windows** do CI).
+
+Veio do teste no Windows: a ilha era só a linha de estado, e a música não aparecia nela. A
+referência é a ilha do [Coucou](https://github.com/Louis-CFM/coucou) (o app de Windows e Linux),
+que abre num painel com os cartões e os botões. O Wisp traz o que ela tem para a ilha dele, com o
+mascote, o visual e o código dele: o código do Coucou é MIT, mas o Mochi, os sons e as imagens têm
+direitos reservados.
+
+- **A ilha que abre (M):** o clique abre a ilha (640 px), com Início e Ajustes; ela recolhe sozinha
+  depois do tempo dos ajustes sem o cursor, com uma barrinha da contagem; e pode abrir só de passar
+  o mouse.
+- **As conversas e as sessões (M):** o cartão em foco com os últimos passos ao vivo (com +N −M nas
+  edições) e o começo da resposta; as pílulas do resto; abrir no painel ou trazer o terminal.
+- **Os pedidos na ilha (M):** um pedido de permissão abre a ilha sozinho, com Negar, Permitir e
+  Sempre; as perguntas do Claude com as opções; recolher sem responder.
+- **A música na ilha (M):** a capa, a faixa, a barra que pula, anterior, tocar, próxima,
+  aleatório, repetir e volume. No Windows, um PowerShell acompanha o controle de mídia (o mascote
+  volta a dançar lá).
+
+**Aceite:** com a ilha ligada, o clique a abre; uma conversa trabalhando aparece com os passos; um
+pedido abre a ilha e se responde nela; a música tocando aparece com a capa e responde aos botões,
+no Linux e no Windows.
+
+Notas da entrega:
+
+- quando ela espia, abre e recolhe ficou num controlador sem janela (`island-state.ts`), testado
+  com o relógio de mentira do `node:test`; o que ela mostra vem do `island-feed.ts` (os eventos
+  das conversas e as sessões dos hooks) e o que os botões fazem, do `island-wiring.ts`. Os botões
+  voltam por um canal só (`island:action`), conferidos um a um: um botão que a ilha não tem não
+  passa;
+- um pedido que chega com o painel à vista não abre a ilha (o card já está lá); quando o painel
+  sai da frente, ela abre com ele. Os botões do cartão valem 600 ms depois de ele aparecer (como
+  as notificações). Recolhida pelo ⌃, ela não abre de novo sozinha pelo mesmo pedido; aberta por
+  você, mostra ele de novo;
+- a música no Linux: o MPRIS dá a posição, o tamanho da faixa, a capa (`mpris:artUrl`), o
+  aleatório, o repetir e o volume; a barra pula pelo `SetPosition`, e o `Seeked` e o
+  `PropertiesChanged` avisam a ilha na hora. A capa vira data URL no main (a página do mascote não
+  carrega nada de fora); uma da internet (a do Spotify) só com a opção ligada, só imagem e até
+  1,5 MB;
+- a música no Windows: o Windows não avisa um script do PowerShell sem um laço esperando os
+  eventos, então um PowerShell fica aberto lendo a lista de players a cada 4 s (1,5 s com a ilha
+  aberta) e escreve só quando ela muda, com a capa que o player dá ao Windows (lida só quando a
+  faixa muda). Os botões entram pela entrada dele, uma linha JSON por comando (dados, nunca
+  código), sem abrir um PowerShell a cada clique. Ele fecha junto com o Wisp. O roteiro do CI mede
+  a memória e a CPU dele parado, e toca um som pelo MediaPlayer do Windows para ver o player na
+  ilha (quando o Windows do CI deixa);
+- o CI do Linux achou que o `onPointerLeave` do React se perdia depois que a barra da música
+  capturava o ponteiro, e a ilha não recolhia: a entrada e a saída do cursor vêm dos eventos do
+  navegador.
+
+### Fase 38: a ilha, parte 2
+
+**Status:** planejada.
+
+- **Perguntar pela ilha (M):** a caixa de mensagem na ilha (a conversa da aba em foco ou uma nova),
+  com a resposta aparecendo nela e "continuar no painel".
+- **Soltar arquivos (P):** uma aba para soltar arquivos, que vão para uma conversa com a pergunta.
+- **O diff na ilha (P):** um clique num passo com +N −M abre o diff dele na própria ilha.
+- **Mais pílulas (M):** o GitHub (os PRs e o CI), o uso do plano (5 horas e semana) e a agenda.
+- **Atalhos (P):** trocar de pílula, ir ao pedido que espera e abrir e recolher a ilha pelo
+  teclado.
+- **A versão nova na ilha (P):** o aviso com o **Atualizar**.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
@@ -1460,8 +1526,11 @@ Notas da entrega:
 - **Integrações de negócio** (Stripe, n8n, Vercel, Resend, Cal.com e outras). São nicho. Se fizerem
   falta, servidores MCP de terceiros podem ser adicionados ao Wisp em vez de código próprio. GitHub
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
-- **Monitor de vários agentes** (Codex, Gemini CLI e outros), o letreiro de diffs e a contagem de
-  linhas. São coisa de painel de agentes de código.
+- **Monitor de vários agentes** (Codex, Gemini CLI e outros). É coisa de painel de agentes de
+  código. Os passos com a contagem de linhas entraram na ilha (Fase 37), só para o Claude Code.
+- **Da ilha do Coucou** (Fase 37), o que não é da ilha ou não cabe no Wisp: o ditado e o gravador
+  de chamadas, o « OK Coucou », o WhatsApp, os apps de celular (o Wisp aprova pelo celular pelo
+  ntfy) e as integrações de negócio.
 - **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18.
 
 ## Princípios que ficam

@@ -790,3 +790,33 @@ Num Windows 10 ou 11 com o Claude Code (o instalador oficial, no PowerShell) e o
 - [ ] **Atualizar:** numa versão com o `.sig` no release e o aviso de versão ligado, o diagnóstico
       mostra **Atualizar**; o clique baixa o instalador e diz "baixado e conferido"; **Reiniciar o
       Wisp** fecha o Wisp, instala em silêncio e abre a versão nova, com as conversas.
+
+## A ilha que abre (Fase 37)
+
+Com **Ilha no topo** ligada (no menu do mascote ou em Configurações → Mascote e sons):
+
+- [ ] **Abrir:** o cursor na cápsula a faz espiar; o clique a abre, com **Início** e **Ajustes**.
+      Tire o cursor: a barrinha de baixo encolhe e, depois do tempo dos ajustes (15 s), ela
+      recolhe. Com o cursor de volta antes disso, ela fica.
+- [ ] **A música:** toque algo no Spotify (ou num navegador) e abra a ilha: o cartão mostra a capa,
+      a faixa, o artista e o tempo. Pausar, próxima, anterior, aleatório e repetir funcionam; um
+      clique no meio da barra pula para o meio da faixa; a barrinha de volume muda o volume (no
+      Windows, o do sistema). A cápsula recolhida mostra uma notinha enquanto toca, e o mascote
+      dança (no Windows também).
+- [ ] **Uma conversa:** peça algo que edite um arquivo e esconda o painel: a ilha mostra a conversa
+      com os passos ("Editar app.ts +3 −1") e, no fim, o começo da resposta. O **↗** abre a
+      conversa no painel.
+- [ ] **Uma sessão do terminal:** com os hooks da aba Sessões, rode o Claude Code num terminal: a
+      sessão aparece como pílula, com os passos; o **↗** traz o terminal para a frente.
+- [ ] **Um pedido:** com o painel escondido, peça um comando: a ilha abre sozinha com o comando,
+      **Negar**, **Permitir** e **Sempre**. **Permitir** libera o Claude, a conversa diz "Permitido
+      pela ilha." e a ilha recolhe. Com o painel à vista, a ilha só espia (o card está lá); ao
+      esconder o painel, ela abre com o pedido.
+- [ ] **Recolher sem responder:** num pedido, o **⌃** recolhe a ilha; o pedido continua no painel;
+      abrir a ilha de novo o mostra.
+- [ ] **Uma pergunta:** quando o Claude perguntar algo com opções (AskUserQuestion), a ilha mostra
+      as opções; escolha e **Responder**.
+- [ ] **Ajustes:** **Abrir ao passar o mouse** faz o cursor abrir a ilha inteira (e ela recolhe
+      logo que ele sai, se você não clicar dentro); o tempo para recolher muda para 10 ou 30 s; no
+      Linux, **Capas das músicas pela internet** mostra a capa do Spotify.
+- [ ] **O painel:** o botão do painel no cabeçalho da ilha abre o painel logo abaixo dela.

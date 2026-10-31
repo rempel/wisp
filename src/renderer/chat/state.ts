@@ -15,6 +15,9 @@ import type {
   TerminalStatus
 } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
+import { field, fileName, quote, stepLabel, toolLabel } from '../../shared/steps'
+
+export { stepLabel, toolLabel }
 
 export type { AttachmentPreview }
 
@@ -438,11 +441,6 @@ function replaceItem(state: ChatState, current: Item, next: Item): ChatState {
   return { ...state, items: state.items.map((item) => (item === current ? next : item)) }
 }
 
-/** Nome curto da ferramenta: "mcp__desktop__open_url" vira "open_url". */
-export function toolLabel(name: string): string {
-  return name.replace(/^mcp__[^_]+(?:_[^_]+)*__/, '')
-}
-
 /** O card de permissão (ou pergunta) esperando resposta, se houver. */
 function pendingRequest(state: ChatState): Extract<Item, { kind: 'permission' }> | undefined {
   return state.items.find(
@@ -455,17 +453,6 @@ function pendingRequest(state: ChatState): Extract<Item, { kind: 'permission' }>
 export function awaitingPermission(state: ChatState): boolean {
   return pendingRequest(state) !== undefined
 }
-
-const field = (input: unknown, key: string): string => {
-  const value = (input as Record<string, unknown> | null)?.[key]
-  return typeof value === 'string' ? value : ''
-}
-
-/** O nome do arquivo no fim de um caminho. */
-const fileName = (path: string): string => path.split('/').filter(Boolean).pop() ?? path
-
-const quote = (text: string): string =>
-  `“${text.length > 24 ? `${text.slice(0, 23).trimEnd()}…` : text}”`
 
 /** O que uma ferramenta em andamento está fazendo, em português ("lendo package.json…"). */
 export function toolActivity(name: string, input: unknown): string {
@@ -561,66 +548,6 @@ export function toolActivity(name: string, input: unknown): string {
       return name.startsWith('mcp__playwright__')
         ? t('usando o navegador…')
         : t('usando {v1}…', { v1: toolLabel(name) })
-  }
-}
-
-const clip = (text: string, max: number): string =>
-  text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
-
-/** Um passo de uma sessão do terminal, numa linha: "Editar app.ts", "Rodar npm test". */
-export function stepLabel(name: string, input: unknown): string {
-  const file = fileName(field(input, 'file_path'))
-  switch (name) {
-    case 'Read':
-      return file ? t('Ler {file}', { file }) : t('Ler um arquivo')
-    case 'Write':
-      return file ? t('Escrever {file}', { file }) : t('Escrever um arquivo')
-    case 'Edit':
-    case 'MultiEdit':
-      return file ? t('Editar {file}', { file }) : t('Editar um arquivo')
-    case 'NotebookEdit':
-      return t('Editar um notebook')
-    case 'Bash': {
-      const command = field(input, 'command').split('\n')[0]
-      return command ? t('Rodar {v1}', { v1: clip(command, 60) }) : t('Rodar um comando')
-    }
-    case 'Glob':
-      return field(input, 'pattern')
-        ? t('Procurar {v1}', { v1: clip(field(input, 'pattern'), 40) })
-        : t('Procurar arquivos')
-    case 'Grep': {
-      const pattern = field(input, 'pattern')
-      return pattern ? t('Buscar {v1}', { v1: quote(pattern) }) : t('Buscar nos arquivos')
-    }
-    case 'WebSearch': {
-      const query = field(input, 'query')
-      return query ? t('Pesquisar {v1}', { v1: quote(query) }) : t('Pesquisar na web')
-    }
-    case 'WebFetch':
-      try {
-        return t('Abrir {host}', { host: new URL(field(input, 'url')).host })
-      } catch {
-        return t('Abrir uma página')
-      }
-    case 'Task':
-    case 'Agent': {
-      const description = field(input, 'description')
-      return description
-        ? t('Delegar: {v1}', { v1: clip(description, 50) })
-        : t('Delegar uma tarefa')
-    }
-    case 'TodoWrite':
-      return t('Atualizar as tarefas')
-    case 'Skill': {
-      const skill = field(input, 'skill')
-      return skill ? t('Usar a skill {v1}', { v1: clip(skill, 50) }) : t('Usar uma skill')
-    }
-    case 'AskUserQuestion':
-      return t('Perguntar')
-    case 'mcp__desktop__express':
-      return t('Mostrar uma emoção no mascote')
-    default:
-      return toolLabel(name)
   }
 }
 

@@ -2151,5 +2151,42 @@ export const EN: Record<string, string> = {
   'Clique para atualizar: o Wisp baixa o instalador, confere a assinatura e instala.':
     'Click to update: Wisp downloads the installer, checks the signature and installs it.',
   'A versão {version} não tem o instalador assinado: baixe pela página da versão.':
-    'Version {version} has no signed installer: download it from the release page.'
+    'Version {version} has no signed installer: download it from the release page.',
+  'Abrir ao passar o mouse': 'Open on hover',
+  'Abrir no painel': 'Open in the panel',
+  Ajustes: 'Settings',
+  Aleatório: 'Shuffle',
+  'As conversas, as sessões do terminal e a música aparecem aqui.':
+    'Your conversations, terminal sessions and music show up here.',
+  'Capas das músicas pela internet (como as do Spotify)':
+    "Album covers from the internet (like Spotify's)",
+  Início: 'Home',
+  'Libera {v1} nesta conversa.': 'Allows {v1} in this conversation.',
+  'Mais configurações…': 'More settings…',
+  'Negado pela ilha.': 'Denied from the island.',
+  'Não achei o terminal': "Couldn't find the terminal",
+  'O Claude quer trabalhar numa pasta nova': 'Claude wants to work in a new folder',
+  'O Claude tem uma pergunta': 'Claude has a question',
+  Pausar: 'Pause',
+  'Permitido pela ilha.': 'Allowed from the island.',
+  'Posição na música': 'Track position',
+  Próxima: 'Next',
+  Recolher: 'Fold',
+  'Recolher depois de': 'Fold after',
+  'Repetindo a lista': 'Repeating the playlist',
+  'Repetindo a música': 'Repeating the track',
+  Repetir: 'Repeat',
+  'Responda no painel.': 'Answer in the panel.',
+  'Responder no painel': 'Answer in the panel',
+  Sempre: 'Always',
+  Tocar: 'Play',
+  'Tudo calmo por aqui.': 'All quiet here.',
+  'Veja no painel antes de responder.': 'Check it in the panel before answering.',
+  'Ver no painel': 'See in the panel',
+  'Volume do player': 'Player volume',
+  'Volume do sistema': 'System volume',
+  'Volume dos sons': 'Sound volume',
+  'mais {n} esperando': '{n} more waiting',
+  'pensando…': 'thinking…',
+  terminal: 'terminal'
 }

@@ -1,0 +1,862 @@
+/* ---- A ilha ------------------------------------------------------------- */
+
+/*
+ * O modo compacto: uma cápsula escura no centro do topo da tela, com o Wisp inteiro em miniatura e
+ * uma linha de estado. Espiando (o cursor em cima, um pedido), ela cresce; aberta (Fase 37), mostra
+ * os cartões. As medidas (recolhida 236×38, espiando 340×84, aberta 640 de largura) e a duração são
+ * as do island.ts, que recorta a janela do mesmo tamanho.
+ */
+.island {
+  --island-bg: #0b1418;
+  --island-card: rgb(255 255 255 / 0.045);
+  --island-line: rgb(103 232 249 / 0.14);
+  --island-text: #e6fbff;
+  --island-muted: #8fb6c0;
+  --island-accent: #67e8f9;
+  --island-ok: #5eead4;
+  --island-warn: #fcd34d;
+  --island-bad: #f87171;
+
+  position: absolute;
+  top: 0;
+  left: 50%;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  width: 236px;
+  height: 38px;
+  padding: 0 12px 0 6px;
+  border-radius: 0 0 19px 19px;
+  background: var(--island-bg);
+  box-shadow: inset 0 -1px 0 rgb(103 232 249 / 0.18);
+  color: var(--island-text);
+  font:
+    13px/1.25 system-ui,
+    sans-serif;
+  cursor: pointer;
+  transform: translateX(-50%);
+  transition:
+    width 220ms cubic-bezier(0.3, 0.8, 0.3, 1),
+    height 220ms cubic-bezier(0.3, 0.8, 0.3, 1),
+    border-radius 220ms cubic-bezier(0.3, 0.8, 0.3, 1);
+  overflow: hidden;
+}
+
+.island.mode-peek {
+  width: 340px;
+  height: 84px;
+  padding: 0 18px 0 10px;
+  border-radius: 0 0 26px 26px;
+}
+
+.island.mode-open {
+  flex-direction: column;
+  align-items: stretch;
+  width: 640px;
+  padding: 0;
+  border-radius: 0 0 24px 24px;
+  cursor: default;
+}
+
+.island-mascot {
+  position: relative;
+  flex: none;
+  width: 30px;
+  height: 34px;
+  transition:
+    width 220ms ease,
+    height 220ms ease;
+}
+
+.island.mode-peek .island-mascot {
+  width: 60px;
+  height: 72px;
+}
+
+/* O mascote de sempre, só que pequeno: só se mostra (o clique é da cápsula). */
+.island-scale {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 128px;
+  height: 128px;
+  transform: translate(-50%, -52%) scale(0.3);
+  transition: transform 220ms ease;
+}
+
+.island.mode-peek .island-scale {
+  transform: translate(-50%, -50%) scale(0.6);
+}
+
+.island .stage {
+  pointer-events: none;
+}
+
+.island-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.island-text strong,
+.island-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-text strong {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.island-text span {
+  display: none;
+  color: #9ec9d3;
+  font-size: 12px;
+}
+
+.island.mode-peek .island-text strong {
+  font-size: 14.5px;
+}
+
+.island.mode-peek .island-text span {
+  display: block;
+}
+
+/* As bolinhas da cápsula: o que espera, o que trabalha, o que acabou, a música tocando. */
+.island-dots {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 4px;
+}
+
+.island .dot {
+  display: inline-block;
+  flex: none;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--island-muted);
+}
+
+.island .dot.state-working {
+  background: var(--island-accent);
+  animation: island-breathe 1.6s ease-in-out infinite;
+}
+
+.island .dot.state-waiting {
+  background: var(--island-warn);
+}
+
+.island .dot.state-done {
+  background: var(--island-ok);
+}
+
+.island .dot.state-error {
+  background: var(--island-bad);
+}
+
+.island .dot.music {
+  display: inline-grid;
+  width: 14px;
+  height: 14px;
+  place-items: center;
+  background: none;
+  color: var(--island-ok);
+}
+
+@keyframes island-breathe {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* O tom da linha: ocupado, pedindo atenção (pulsa), feliz. */
+.island.tone-busy .island-text strong {
+  color: #a5f3fc;
+}
+
+.island.tone-happy .island-text strong {
+  color: var(--island-ok);
+}
+
+.island.tone-alert:not(.mode-open) {
+  animation: island-pulse 1.6s ease-in-out infinite;
+}
+
+.island.tone-alert .island-text strong {
+  color: var(--island-warn);
+}
+
+@keyframes island-pulse {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 -1px 0 rgb(252 211 77 / 0.35),
+      0 0 0 0 rgb(252 211 77 / 0);
+  }
+  50% {
+    box-shadow:
+      inset 0 -1px 0 rgb(252 211 77 / 0.6),
+      0 2px 14px 0 rgb(252 211 77 / 0.35);
+  }
+}
+
+/* ---- A ilha aberta ---- */
+
+.island-open {
+  position: relative;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  animation: island-in 200ms ease-out;
+}
+
+@keyframes island-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.island button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.island button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.island-head {
+  display: flex;
+  flex: none;
+  align-items: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 12px;
+}
+
+.island-tabs {
+  display: flex;
+  gap: 4px;
+}
+
+.island-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 24px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  color: var(--island-muted);
+  font-size: 12px;
+}
+
+.island-tab[aria-selected='true'] {
+  background: rgb(103 232 249 / 0.12);
+  color: var(--island-text);
+}
+
+.island-status {
+  flex: 1;
+  overflow: hidden;
+  color: var(--island-muted);
+  font-size: 12px;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.island-actions {
+  display: flex;
+  gap: 2px;
+}
+
+.island button.icon {
+  display: inline-grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--island-muted);
+}
+
+.island button.icon:hover:not(:disabled),
+.island-tab:hover {
+  background: rgb(255 255 255 / 0.08);
+  color: var(--island-text);
+}
+
+.island-body {
+  display: flex;
+  flex: 1;
+  gap: 10px;
+  min-height: 0;
+  padding: 0 12px 12px;
+}
+
+.island-open .island-mascot {
+  width: 72px;
+  height: auto;
+  align-self: stretch;
+}
+
+.island-open .island-scale {
+  transform: translate(-50%, -50%) scale(0.56);
+}
+
+.island-main {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+}
+
+.island-card {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1px solid var(--island-line);
+  border-radius: 16px;
+  background: var(--island-card);
+  overflow: hidden;
+}
+
+.island .muted {
+  color: var(--island-muted);
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+}
+
+.card-head strong {
+  flex: none;
+  max-width: 45%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-head .muted {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.card-head .count {
+  flex: none;
+  padding: 1px 8px;
+  border-radius: 10px;
+  background: rgb(252 211 77 / 0.14);
+  color: var(--island-warn);
+  font-size: 11px;
+}
+
+/* Os passos: o último em andamento, os de antes feitos. */
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 12.5px;
+}
+
+.step {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+  color: var(--island-muted);
+}
+
+.step.running {
+  color: var(--island-text);
+}
+
+.step .mark {
+  flex: none;
+  width: 10px;
+  color: var(--island-ok);
+  text-align: center;
+}
+
+.step.running .mark {
+  color: var(--island-accent);
+}
+
+.step.error .mark {
+  color: var(--island-bad);
+}
+
+.step .label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.step .counts b {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.counts .add {
+  color: #86efac;
+}
+
+.counts .del {
+  color: #fca5a5;
+}
+
+.island-card .reply {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: 12.5px;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+/* A música: a capa, o título, a barra e os controles. */
+.island-card.music {
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+
+.music .art {
+  display: grid;
+  flex: none;
+  width: 76px;
+  height: 76px;
+  place-items: center;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(94 234 212 / 0.25), rgb(34 211 238 / 0.08));
+  color: var(--island-ok);
+  overflow: hidden;
+}
+
+.music .art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.music-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.music-title {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.music-title strong,
+.music-title span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.music-title span {
+  font-size: 12px;
+}
+
+.music-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--island-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+}
+
+.music-progress .time {
+  flex: none;
+  min-width: 32px;
+}
+
+.music-progress .time:last-child {
+  text-align: right;
+}
+
+.music-progress .bar {
+  position: relative;
+  flex: 1;
+  height: 14px;
+  touch-action: none;
+}
+
+.music-progress .bar::before,
+.music-progress .fill {
+  position: absolute;
+  top: 5px;
+  left: 0;
+  height: 4px;
+  border-radius: 2px;
+  content: '';
+}
+
+.music-progress .bar::before {
+  right: 0;
+  background: rgb(255 255 255 / 0.12);
+}
+
+.music-progress .fill {
+  background: var(--island-ok);
+}
+
+.music-progress .knob {
+  position: absolute;
+  top: 2px;
+  width: 10px;
+  height: 10px;
+  margin-left: -5px;
+  border-radius: 50%;
+  background: var(--island-text);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+
+.music-progress .bar.seekable {
+  cursor: pointer;
+}
+
+.music-progress .bar.seekable:hover .knob {
+  opacity: 1;
+}
+
+.music-controls {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.music-controls .icon.play {
+  width: 32px;
+  height: 32px;
+  background: var(--island-text);
+  color: var(--island-bg);
+}
+
+.music-controls .icon.play:hover:not(:disabled) {
+  background: #fff;
+  color: var(--island-bg);
+}
+
+.island button.icon.toggle.on {
+  color: var(--island-ok);
+}
+
+.island input.volume {
+  flex: 1;
+  min-width: 60px;
+  max-width: 120px;
+  margin-left: auto;
+  accent-color: var(--island-ok);
+}
+
+/* As pílulas: as outras conversas e sessões, e a música. */
+.island-pills {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  gap: 4px;
+  width: 190px;
+  overflow-y: auto;
+}
+
+.pill {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 28px;
+  padding: 0 10px;
+  border: 1px solid transparent;
+  border-radius: 14px;
+  background: var(--island-card);
+  font-size: 12px;
+  text-align: left;
+}
+
+.island button.pill:hover,
+.pill.music:hover {
+  border-color: var(--island-line);
+}
+
+.pill.on {
+  border-color: rgb(103 232 249 / 0.35);
+}
+
+.pill-title {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pill-state {
+  flex: none;
+  color: var(--island-muted);
+  font-size: 11px;
+}
+
+.pill.music {
+  padding: 0 4px 0 10px;
+}
+
+.pill.music .pill-main {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--island-ok);
+  text-align: left;
+}
+
+.pill.music .pill-title {
+  color: var(--island-text);
+}
+
+.pill .mini {
+  display: inline-grid;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+}
+
+.pill .mini:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.1);
+}
+
+/* Os botões dos cartões. */
+.island-button {
+  height: 28px;
+  padding: 0 14px;
+  border: 1px solid var(--island-line);
+  border-radius: 14px;
+  background: rgb(255 255 255 / 0.06);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+
+.island-button:hover:not(:disabled) {
+  background: rgb(255 255 255 / 0.12);
+}
+
+.island-button.primary {
+  border-color: transparent;
+  background: var(--island-text);
+  color: var(--island-bg) !important;
+}
+
+.island-button.primary:hover:not(:disabled) {
+  background: #fff;
+}
+
+.island-button.deny:hover:not(:disabled) {
+  border-color: rgb(248 113 113 / 0.5);
+  color: #fecaca;
+}
+
+.island button.link {
+  margin-left: auto;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--island-muted);
+  font-size: 12px;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* O pedido: quem pede, o que está em jogo, os botões. */
+.island-card.alert {
+  border-color: rgb(252 211 77 / 0.35);
+  background:
+    radial-gradient(120% 140% at 0% 100%, rgb(252 211 77 / 0.09), transparent 60%),
+    var(--island-card);
+}
+
+.alert-detail {
+  margin: 0;
+  max-height: 3.2em;
+  padding: 6px 10px;
+  border-radius: 10px;
+  background: rgb(0 0 0 / 0.35);
+  font:
+    12px/1.35 ui-monospace,
+    'Cascadia Mono',
+    Consolas,
+    monospace;
+  white-space: pre-wrap;
+  word-break: break-all;
+  overflow: hidden;
+}
+
+.alert-buttons {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: auto;
+}
+
+.questions {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+}
+
+.question {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.question-text {
+  font-size: 12.5px;
+}
+
+.question-text b {
+  color: var(--island-warn);
+  font-weight: 600;
+}
+
+.options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.option {
+  max-width: 32%;
+  height: 24px;
+  padding: 0 10px;
+  overflow: hidden;
+  border: 1px solid var(--island-line);
+  border-radius: 12px;
+  background: none;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.option.on {
+  border-color: transparent;
+  background: var(--island-warn);
+  color: var(--island-bg) !important;
+}
+
+/* Os ajustes. */
+.island-card.settings {
+  gap: 4px;
+  font-size: 12.5px;
+}
+
+.island-card.settings .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 24px;
+}
+
+.island-card.settings input[type='checkbox'] {
+  accent-color: var(--island-ok);
+}
+
+.segments {
+  display: inline-flex;
+  padding: 2px;
+  border-radius: 12px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.segments button {
+  height: 20px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 10px;
+  background: none;
+  font-size: 11.5px;
+}
+
+.segments button.on {
+  background: rgb(103 232 249 / 0.2);
+}
+
+.island-card.empty {
+  align-items: flex-start;
+  justify-content: center;
+}
+
+/* A barrinha de quando ela recolhe sozinha. */
+.island-countdown {
+  position: absolute;
+  right: 24px;
+  bottom: 4px;
+  left: 24px;
+  height: 2px;
+  border-radius: 1px;
+  background: rgb(103 232 249 / 0.45);
+  transform-origin: left center;
+  animation: island-countdown linear forwards;
+}
+
+@keyframes island-countdown {
+  to {
+    transform: scaleX(0);
+  }
+}
+
+:root.reduce-motion {
+  .island,
+  .island-mascot,
+  .island-scale {
+    transition: none;
+  }
+
+  .island.tone-alert,
+  .island .dot.state-working,
+  .island-open {
+    animation: none;
+  }
+}

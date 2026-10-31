@@ -74,6 +74,15 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   do Wisp no modo terminal; e o **Atualizar** com um clique, que baixa o instalador novo, confere a
   assinatura e instala ao reiniciar.
 
+- **A ilha que abre** (Fase 37, inspirada na do [Coucou](https://github.com/Louis-CFM/coucou)): o
+  clique na cápsula do topo abre a ilha. No **Início**, a conversa ou sessão do terminal em foco
+  com os passos ao vivo (+N −M nas edições) e o começo da resposta, a música com a capa, a barra de
+  progresso e os controles (anterior, tocar, próxima, aleatório, repetir, volume), e as pílulas do
+  resto. Um pedido de permissão abre a ilha sozinho, com **Negar**, **Permitir** e **Sempre**; uma
+  pergunta do Claude mostra as opções. Os **Ajustes** dela: os sons, o tempo para recolher (com a
+  barrinha da contagem), abrir ao passar o mouse e, no Linux, as capas da internet. No Windows, o
+  mascote volta a dançar com a música, e a ilha mostra o que toca.
+
 ### Mudou
 
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
@@ -85,8 +94,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - Dependências atualizadas pelo `npm audit fix`: o Electron 44.9.3 (era o 44.7.0) e, no servidor
   MCP e no build, body-parser, fast-uri, ip-address, qs, undici e zod.
 - O `config.json` ganhou `language` (`"auto"`, `"pt"` ou `"en"`), `prompts`, `scheduledTasks`,
-  `dance` (a dança de quando toca música), `enabledMcpServers`, `paletteShortcut` e
-  `quietWithDnd`.
+  `dance` (a dança de quando toca música), `enabledMcpServers`, `paletteShortcut`,
+  `quietWithDnd`, `islandAutoClose`, `islandHoverOpen` e `islandCovers`.
+- Na ilha, o clique abre a ilha (antes, abria o painel); o painel abre pelo botão dela.
 - O mascote ganhou boca: falando, ela abre e fecha (antes, os olhos piscavam no ritmo); pedindo
   permissão, os olhos brilham.
 - O CLAUDE.md do workspace pede ao Claude que responda no idioma da interface.
@@ -97,6 +107,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- No Windows, o mascote só dançava com a música que o Claude tivesse olhado por último: agora o
+  Wisp acompanha o controle de mídia do Windows.
 - No Windows, um hook do Claude Code que terminava depois de o Claude Code sair podia deixar
   aberta uma caixa "Error" do Electron; agora ele só sai.
 - No modo terminal, uma mensagem mandada pelo `wisp --ask` ou pela voz a um Claude Code que

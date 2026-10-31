@@ -89,7 +89,12 @@ src/
 │  ├─ platform.ts    # IS_WINDOWS e IS_LINUX
 │  ├─ win.ts         # no Windows: achar o claude, o atalho .cmd do npm sem shell, o taskkill
 │  ├─ file-view.ts   # ler um arquivo para o visualizador do painel (limites, sem segredos)
-│  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida ou aberta)
+│  ├─ island.ts      # a ilha: onde a janela fica e a cápsula (recolhida, espiando ou aberta)
+│  ├─ island-state.ts # quando a ilha espia, abre e recolhe, e os botões que vêm da página
+│  ├─ island-feed.ts # o que a ilha mostra: as conversas, as sessões e os pedidos
+│  ├─ island-wiring.ts # a ilha ligada ao resto: o conteúdo, a música e o que os botões fazem
+│  ├─ now-playing.ts # a música da ilha: o player do MPRIS, a capa como data URL
+│  ├─ media-win-watch.ts # no Windows: o PowerShell que acompanha a música e recebe os botões
 │  ├─ folders.ts     # conversas numa pasta: o que o .claude dela faz sozinho e a confiança
 │  ├─ skills.ts      # as skills: listar (pessoais e de plugins), instalar de uma pasta
 │  ├─ pick.ts        # escolher uma pasta pelo diálogo do sistema
@@ -125,7 +130,9 @@ src/
 ├─ shared/
 │  ├─ ipc.ts         # canais de IPC e o tipo da API do preload
 │  ├─ ipc-chat.ts    # a conversa: eventos, anexos, permissões, modelos, abas e a janela
-│  ├─ ipc-mascot.ts  # o mascote e a voz: estado, ilha, sons, captura do microfone
+│  ├─ ipc-mascot.ts  # o mascote e a voz: estado, sons, captura do microfone
+│  ├─ ipc-island.ts  # a ilha: o que ela mostra (tarefas, pedidos, música, ajustes) e os botões
+│  ├─ steps.ts       # os passos numa linha ("Editar app.ts"), do painel e da ilha
 │  ├─ ipc-sessions.ts # as sessões do terminal e os hooks
 │  ├─ ipc-settings.ts # as configurações, o diagnóstico, o celular, as skills e a agenda
 │  ├─ diff.ts        # diff das edições (do Claude Code ou calculado) e contagem +N −M
@@ -144,8 +151,9 @@ src/
    │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
    │                 # (os sinais no ar), sounds.ts (WebAudio), voice.ts e voice-worklet.ts
    │                 # (microfone e fala); o mascot.css liga as folhas de styles/, na ordem:
-   │                 # body, states, reactions e extras (as animações), avatars (as cores de
-   │                 # cada avatar) e as emotions-* (rostos, sinais, corpo e danças)
+   │                 # body, states, reactions e extras (as animações), island (a ilha),
+   │                 # avatars (as cores de cada avatar) e as emotions-* (rostos, sinais, corpo
+   │                 # e danças); Island.tsx desenha a ilha (a cápsula e os cartões)
    ├─ chat/          # Chat.tsx (abas e painéis), Grid.tsx (a grade), Pane.tsx (uma conversa,
    │                 # com a edição da última mensagem e o rascunho), FindBar.tsx (o Ctrl+F),
    │                 # TerminalView.tsx (o xterm.js do modo terminal), Markdown, cards, anexos,
@@ -619,15 +627,25 @@ CONTRIBUTING.md        # o guia de contribuição
   formatação, build e unidade; os de ponta a ponta num X virtual; e monta os pacotes no Ubuntu
   22.04, confere o .deb e abre o AppImage (`scripts/smoke-packages.sh`). Numa tag `v*`, os
   pacotes vão para um release.
-- **Ilha:** a janela do mascote (340×110) vai para o centro do topo da área útil do monitor
+- **Ilha:** a janela do mascote (680×340) vai para o centro do topo da área útil do monitor
   principal, e o main recorta a forma dela (`setShape`, a extensão XShape do X11) na cápsula:
-  200×38 recolhida, 320×84 aberta. Fora da cápsula, a janela não desenha nem pega cliques. Para
-  abrir, a forma cresce antes da animação (220 ms); para recolher, encolhe depois. O
-  `mascot.ts` guarda os motivos para ficar aberta (o cursor, um pedido de permissão ou um erro, a
-  voz, um momento como "pronto!" ou um lembrete) e, sem nenhum, recolhe depois de um tempo. O
-  texto (título, detalhe e tom) também sai do main, do estado do mascote, da voz e do próximo
-  compromisso, e a página só desenha. O painel, com a âncora no topo da tela, abre logo abaixo
-  dela, centralizado.
+  236×38 recolhida, 340×84 espiando, 640 de largura aberta (188 de altura, ou mais com perguntas,
+  até 320). Fora da cápsula, a janela não desenha nem pega cliques. Para crescer, a forma muda
+  antes da animação (220 ms); para encolher, depois. O `island-state.ts` decide o modo: os motivos
+  para espiar (o cursor, um pedido de permissão ou um erro, a voz, um momento como "pronto!" ou um
+  lembrete); aberta (o clique, um pedido novo com o painel fora da frente, ou o cursor com "abrir
+  ao passar o mouse"), ela fica enquanto o cursor está nela e recolhe depois do tempo dos ajustes
+  (o `closesAt` vai para a página, que desenha a barrinha); um pedido esperando a segura aberta,
+  a não ser que você a recolha. O texto (título, detalhe e tom) sai do main, do estado do mascote,
+  da voz e do próximo compromisso. O que ela mostra aberta (Fase 37) vem do `island-feed.ts`, que
+  acompanha os eventos das conversas (os passos com o diff, o começo da resposta, os pedidos) e lê
+  as sessões dos hooks, e da música (`MediaPlayers.nowPlaying()`, lida de novo a cada aviso do
+  player). Os botões voltam por um canal só (`island:action`), conferidos pelo
+  `parseIslandAction`; responder um pedido vai pelo mesmo caminho do painel (o `answer` da
+  conversa, ou o `answer` das sessões), com o aviso "Permitido pela ilha." na conversa. O painel,
+  com a âncora na cápsula espiando, abre logo abaixo dela, centralizado. A entrada e a saída do
+  cursor vêm dos eventos do navegador (o `onPointerLeave` do React se perde depois que a barra da
+  música captura o ponteiro).
 - **Grade e janela:** a grade é uma árvore (`shared/layout.ts`): cada folha é um painel e guarda o
   id da aba que mostra; cada divisão põe os filhos em linha ou em coluna, com as proporções (que
   somam 1, com um mínimo de 8%). O main guarda a árvore, muda-a com funções puras (dividir, tirar,
@@ -898,8 +916,14 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
       isso, o Windows só pisca a janela na barra);
     - **a música** (`media-win.ts`): o `GlobalSystemMediaTransportControlsSessionManager`
       (WinRT, esperado pelo `AsTask`), com o nome do app pelo `Get-StartApps`. A escolha do
-      player é a mesma do MPRIS (`choosePlayers`, no `media.ts`). O Wisp não fica escutando as
-      sessões: o mascote dança com o que viu na última consulta;
+      player é a mesma do MPRIS (`choosePlayers`, no `media.ts`). Desde a Fase 37, um PowerShell
+      fica aberto (`media-win-watch.ts`) lendo as sessões a cada 4 s (1,5 s com a ilha aberta) e
+      escrevendo uma linha JSON quando elas mudam, com a posição, o aleatório, o repetir e a capa
+      (a miniatura que o player dá ao Windows, lida só quando a faixa muda); os botões da ilha
+      entram pela entrada dele, uma linha JSON por comando (o id do player, a ação e um número,
+      nunca código). Ele lê a entrada por um `StreamReader` sobre a stream crua (o `[Console]::In`
+      do PowerShell 5.1 leria de forma síncrona) e fecha quando ela acaba, com o Wisp. O mascote
+      dança com o que ele vê;
     - **o volume** (`volume-win.ts`): o `IAudioEndpointVolume` do aparelho de saída padrão
       (Core Audio, por COM). Os players do Windows não mostram o volume deles, e o
       `media_volume` muda o do sistema;

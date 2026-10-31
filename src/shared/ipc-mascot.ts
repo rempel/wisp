@@ -29,17 +29,6 @@ export interface Gaze {
 export type MascotReaction = 'greet' | 'remind'
 
 /**
- * A ilha (o modo compacto), para a página do mascote: aberta ou recolhida, o texto e o tom (calmo,
- * ocupado, pedindo atenção, feliz). null: fora da ilha, o mascote flutuando.
- */
-export type MascotIsland = {
-  expanded: boolean
-  title: string
-  detail: string
-  tone: 'calm' | 'busy' | 'alert' | 'happy'
-} | null
-
-/**
  * Como a escuta termina: 'hold', quando o atalho for solto (o silêncio longo só por garantia);
  * 'auto', no silêncio depois da fala; 'test', depois de 3 s, com todo o áudio (o teste de voz).
  */

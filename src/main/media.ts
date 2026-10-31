@@ -1,6 +1,8 @@
 import { EventEmitter } from 'events'
 import { DBusConnection, plain, Variant } from './dbus'
 import type { Signal } from './dbus'
+import { artUrlOf, coverData, CoverCache, LOOP_STATUS, mprisMusic, trackIdOf } from './now-playing'
+import type { IslandMusic, IslandMusicAction } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 // Os players de música e vídeo, pelo MPRIS (D-Bus): o que está tocando, tocar, pausar, pular e
@@ -61,7 +63,15 @@ export interface MediaPlayers {
   players(): Promise<PlayerInfo[]>
   control(action: MediaAction, target?: string): Promise<string>
   volume(level: number | undefined, delta: number | undefined, target?: string): Promise<string>
+  /** O player em foco, para a ilha (Fase 37): o que toca, o último que tocou, o primeiro. */
+  nowPlaying(): Promise<IslandMusic | null>
+  /** Um botão da ilha no player em foco. */
+  musicAction(action: IslandMusicAction): Promise<void>
+  /** A ilha abriu ou fechou: aberta, o Wisp acompanha a música mais de perto. */
+  setWatching(on: boolean): void
+  /** 'playing': algum player começou ou parou de tocar; 'changed': algo do player mudou. */
   on(event: 'playing', listener: (playing: boolean) => void): unknown
+  on(event: 'changed', listener: () => void): unknown
   dispose(): void
 }
 
@@ -130,18 +140,112 @@ export class Media extends EventEmitter implements MediaPlayers {
   /** O último player que começou a tocar: o "player atual" quando nenhum está tocando. */
   private lastActive: string | null = null
   private wasPlaying = false
+  private readonly covers: CoverCache
 
-  private constructor(private readonly bus: DBusConnection) {
+  private constructor(
+    private readonly bus: DBusConnection,
+    remoteCovers: () => boolean
+  ) {
     super()
+    this.covers = new CoverCache((url) => coverData(url, remoteCovers()))
   }
 
-  /** Conecta no barramento de sessão e começa a acompanhar os players; null sem D-Bus. */
-  static async connect(): Promise<Media | null> {
+  /**
+   * Conecta no barramento de sessão e começa a acompanhar os players; null sem D-Bus. As capas
+   * da internet só com `remoteCovers` (a opção da ilha).
+   */
+  static async connect(remoteCovers: () => boolean = () => false): Promise<Media | null> {
     const bus = await DBusConnection.session()
     if (!bus) return null
-    const media = new Media(bus)
+    const media = new Media(bus, remoteCovers)
     await media.watch()
     return media
+  }
+
+  setWatching(): void {
+    // No Linux, os sinais do barramento já dizem tudo na hora: nada muda com a ilha aberta.
+  }
+
+  async nowPlaying(): Promise<IslandMusic | null> {
+    const name = await this.focusName().catch(() => null)
+    if (!name) return null
+    try {
+      const [root, player] = await Promise.all([
+        this.bus.getAllProperties(name, PATH, ROOT).catch(() => ({}) as Record<string, unknown>),
+        this.bus.getAllProperties(name, PATH, PLAYER)
+      ])
+      const identity =
+        typeof root.Identity === 'string' && root.Identity
+          ? root.Identity
+          : name.slice(PREFIX.length)
+      const music = mprisMusic(name, identity, player)
+      const art = await this.covers.get(artUrlOf(player))
+      return art ? { ...music, art } : music
+    } catch {
+      return null
+    }
+  }
+
+  async musicAction(action: IslandMusicAction): Promise<void> {
+    const name = await this.focusName()
+    if (!name) return
+    const call = (member: string, signature?: string, body?: unknown[]): Promise<unknown> =>
+      this.bus.call({
+        destination: name,
+        path: PATH,
+        interface: PLAYER,
+        member,
+        ...(signature ? { signature, body } : {}),
+        timeout: CALL_TIMEOUT_MS
+      })
+    const set = (property: string, value: Variant): Promise<unknown> =>
+      this.bus.call({
+        destination: name,
+        path: PATH,
+        interface: 'org.freedesktop.DBus.Properties',
+        member: 'Set',
+        signature: 'ssv',
+        body: [PLAYER, property, value],
+        timeout: CALL_TIMEOUT_MS
+      })
+    switch (action.type) {
+      case 'toggle':
+        await call('PlayPause')
+        break
+      case 'next':
+        await call('Next')
+        break
+      case 'previous':
+        await call('Previous')
+        break
+      case 'seek': {
+        // O SetPosition pede o id da faixa (para não pular na faixa errada) e microssegundos.
+        const player = await this.bus.getAllProperties(name, PATH, PLAYER)
+        const track = trackIdOf(player)
+        if (!track) return
+        await call('SetPosition', 'ox', [track, Math.round(action.ms * 1000)])
+        break
+      }
+      case 'shuffle':
+        await set('Shuffle', new Variant('b', action.on))
+        break
+      case 'repeat':
+        await set('LoopStatus', new Variant('s', LOOP_STATUS[action.mode]))
+        break
+      case 'volume':
+        await set('Volume', new Variant('d', action.level))
+        break
+    }
+  }
+
+  /** O player em foco: o que toca, o último que tocou, o primeiro. */
+  private async focusName(): Promise<string | null> {
+    const names = await this.playerNames()
+    if (!names.length) return null
+    const playing = names.find((name) => this.statuses.get(name) === 'Playing')
+    if (playing) return playing
+    if (this.lastActive && names.includes(this.lastActive)) return this.lastActive
+    return names[0]
   }
 
   /** Algum player está tocando. */
@@ -262,6 +366,10 @@ export class Media extends EventEmitter implements MediaPlayers {
       { path: PATH, interface: 'org.freedesktop.DBus.Properties', member: 'PropertiesChanged' },
       (signal) => this.onPropertiesChanged(signal)
     )
+    // Pular para outro ponto da faixa não muda propriedade nenhuma: vem pelo Seeked.
+    await this.bus.subscribe({ path: PATH, interface: PLAYER, member: 'Seeked' }, (signal) => {
+      if (this.owners.has(signal.sender)) this.emit('changed')
+    })
     for (const name of await this.playerNames().catch(() => [])) {
       await this.track(name)
     }
@@ -291,10 +399,14 @@ export class Media extends EventEmitter implements MediaPlayers {
     if (!name.startsWith(PREFIX)) return
     for (const [owner, player] of this.owners) if (player === name) this.owners.delete(owner)
     if (newOwner) {
-      void this.track(name).then(() => this.notify())
+      void this.track(name).then(() => {
+        this.notify()
+        this.emit('changed')
+      })
     } else {
       this.statuses.delete(name)
       this.notify()
+      this.emit('changed')
     }
   }
 
@@ -310,6 +422,8 @@ export class Media extends EventEmitter implements MediaPlayers {
     } else if (invalidated?.includes('PlaybackStatus')) {
       void this.track(name).then(() => this.notify())
     }
+    // A faixa, o aleatório, o volume… a ilha lê o player de novo.
+    this.emit('changed')
   }
 
   private setStatus(name: string, status: string): void {

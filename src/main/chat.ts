@@ -820,6 +820,24 @@ export function setupChat({
       }
       return ok
     },
+    answerIsland(id, answer) {
+      const owner = conversations().find((conversation) => conversation.owns(id))
+      if (!owner) return false
+      if ('answers' in answer) return owner.answerQuestion(id, answer.answers)
+      const ok = owner.answer(id, answer.decision)
+      if (ok) {
+        owner.notice(
+          'info',
+          answer.decision === 'deny' ? t('Negado pela ilha.') : t('Permitido pela ilha.')
+        )
+      }
+      return ok
+    },
+    showConversation(id) {
+      tabs.show(id)
+      if (!win) win = createWindow()
+      else show(win)
+    },
     conversationTitle(id) {
       const conversation = conversationById(id)
       return conversation ? (conversation.title ?? conversation.project ?? t('Nova conversa')) : ''

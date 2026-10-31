@@ -51,6 +51,7 @@ const api: WispApi = {
     onAvatar: (listener) => subscribe<[AvatarName]>(IPC.mascotAvatar, listener),
     onMotion: (listener) => subscribe<[boolean]>(IPC.mascotMotion, listener),
     onIsland: (listener) => subscribe<[MascotIsland]>(IPC.mascotIsland, listener),
+    island: (action) => ipcRenderer.send(IPC.islandAction, action),
     onSound: (listener) => subscribe<[SoundName, number]>(IPC.mascotSound, listener),
     // Os bytes chegam como Uint8Array (o Buffer do main); a página quer o ArrayBuffer.
     onCustomSound: (listener) =>

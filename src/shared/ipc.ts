@@ -30,7 +30,6 @@ import type {
   Accessory,
   DroppedFiles,
   Gaze,
-  MascotIsland,
   MascotReaction,
   MascotState,
   MascotView,
@@ -41,6 +40,7 @@ import type {
   VoiceStatus,
   VoiceTestResult
 } from './ipc-mascot'
+import type { IslandAction, MascotIsland } from './ipc-island'
 import type { HookPreview, HooksAction, SessionAnswer, SessionsSnapshot } from './ipc-sessions'
 import type {
   AgendaItem,
@@ -68,6 +68,7 @@ import type {
 
 export * from './ipc-chat'
 export * from './ipc-mascot'
+export * from './ipc-island'
 export * from './ipc-sessions'
 export * from './ipc-settings'
 
@@ -110,6 +111,8 @@ export const IPC = {
   /** main → mascote: menos movimento, mesmo com o sistema animando (Fase 22). Arg: boolean. */
   mascotMotion: 'mascot:motion',
   mascotIsland: 'mascot:island',
+  /** Um botão da ilha aberta (Fase 37). */
+  islandAction: 'island:action',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
   summaryShow: 'summary:show',
@@ -390,8 +393,13 @@ export interface WispApi {
     onAvatar(listener: (avatar: AvatarName) => void): () => void
     /** Menos movimento pedido nas configurações (o do sistema vale sempre). */
     onMotion(listener: (reduce: boolean) => void): () => void
-    /** A ilha: aberta ou recolhida, o texto e o tom (null: fora da ilha). */
+    /**
+     * A ilha (null: fora dela): recolhida, espiando ou aberta, a linha de estado e, aberta, as
+     * conversas, o pedido que espera e a música (Fase 37).
+     */
     onIsland(listener: (island: MascotIsland) => void): () => void
+    /** Um botão da ilha. */
+    island(action: IslandAction): void
     /** Tocar um som com este volume (o main já conferiu se os sons estão ligados). */
     onSound(listener: (name: SoundName, volume: number) => void): () => void
     /** Um som da pasta do usuário chegou (bytes) ou saiu (null). */
