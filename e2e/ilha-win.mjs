@@ -223,6 +223,12 @@ player.kill()
 await act({ type: 'close' })
 
 console.log('== Perguntar pela ilha, com o teclado (Fase 38)')
+await sleep(500)
+await act({ type: 'open' })
+await waitFor(async () => ((await mode()) === 'open' ? true : null), 4000)
+// No Início, a ilha não pega o teclado (ela não rouba o foco de quem está digitando). Só
+// anotado: um comando de entrada do DevTools pode dar o foco à página por conta própria.
+console.log(`  aberta no Início, a página com o foco: ${await ev(`document.hasFocus()`)}`)
 await act({ type: 'tab', tab: 'ask' })
 check(
   'Q1 no Windows, a ilha pega o teclado: a caixa de perguntar com o foco',
