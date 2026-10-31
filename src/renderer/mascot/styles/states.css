@@ -20,9 +20,9 @@
 }
 
 /*
- * Os desenhos dos olhos, no lugar dos LEDs: ^ ^ (feliz, carinho), x x (erro), fechados (cochilo),
- * > < (cutucada), bravos e espirais (tonto). Com outro desenho, eles param de piscar e de olhar
- * para os lados.
+ * Os desenhos dos olhos, no lugar dos abertos: ^ ^ (feliz, carinho), x x (erro), fechados
+ * (cochilo), > < (cutucada), bravos e espirais (tonto). Com outro desenho, eles param de piscar e
+ * de olhar para os lados.
  */
 .eye-leds,
 .eye-glyph,
@@ -32,16 +32,14 @@
 
 .eye-glyph {
   fill: none;
-  stroke: var(--led-1);
+  stroke: var(--ink);
   stroke-width: 2.4;
   stroke-linecap: round;
   stroke-linejoin: round;
-  filter: url(#wisp-led-glow);
   opacity: 0;
 }
 
 .eye-angry {
-  filter: url(#wisp-led-glow);
   opacity: 0;
 }
 
@@ -72,20 +70,20 @@
   opacity: 1;
 }
 
-/* Só os LEDs abertos olham para os lados; piscam também os arregalados (data-blink). */
+/* Só os olhos abertos olham para os lados; piscam também os arregalados (data-blink). */
 .stage:not([data-eyes='normal']) .eyes,
 .stage:not([data-blink]) .eyes-blink {
   animation: none;
 }
 
-/* Bochechas de LED, no carinho. */
+/* As bochechas, no carinho. */
 .blush {
   opacity: 0;
   transition: opacity 0.4s;
 }
 
 .blush ellipse {
-  fill: #fb7185;
+  fill: var(--blush-color);
   fill-opacity: 0.8;
   filter: url(#wisp-led-glow);
 }
@@ -165,7 +163,7 @@
   }
 }
 
-/* Trabalhando: os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido. */
+/* Trabalhando: os bits orbitam mais rápido, a luz de cima se estica e pisca rápido. */
 .state-working .s1 {
   --dur: 1.7s;
 }
@@ -336,7 +334,7 @@
 /* ---- Cochilo ---------------------------------------------------------- */
 
 /*
- * Nada acontece há um tempo e o cursor está longe. O flutuar, o brilho e a antena congelam onde
+ * Nada acontece há um tempo e o cursor está longe. O flutuar, o brilho e a luz de cima congelam onde
  * estavam (pausados, para continuarem de lá quando ele acordar), os bits somem, a cabeça pende,
  * as luzes baixam e os olhos fecham devagar. Parado assim, o compositor não tem o que desenhar.
  * Os "z" sobem por um minuto; depois fica um só, parado.
@@ -344,7 +342,8 @@
 .state-sleeping .float,
 .state-sleeping .glow,
 .state-sleeping .antenna,
-.state-sleeping .antenna-glow {
+.state-sleeping .antenna-glow,
+.state-sleeping .body {
   animation-play-state: paused;
 }
 
@@ -391,7 +390,7 @@
   transition: opacity 2s ease-in 1s;
 }
 
-/* Os LEDs dos olhos apagam devagar e viram dois traços. */
+/* Os olhos se fecham devagar e viram dois traços. */
 .state-sleeping .eye-leds {
   transition: opacity 1.4s ease-in 0.6s;
 }
@@ -459,7 +458,7 @@
   }
 }
 
-/* Acordou: um susto, os olhos abrem de uma vez e a antena volta com a molinha. */
+/* Acordou: um susto, os olhos abrem de uma vez e a luz de cima volta com a molinha. */
 .react-wake .react {
   animation: startle 0.7s ease-out;
 }

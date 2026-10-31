@@ -1498,7 +1498,6 @@ export const EN: Record<string, string> = {
   'o acesso ao microfone foi negado': 'access to the microphone was denied',
   'não achei um microfone': "I couldn't find a microphone",
   'o microfone está ocupado ou não respondeu': "the microphone is busy or didn't answer",
-  'Robô (a gotinha)': 'Robot (the droplet)',
   Fantasminha: 'Little ghost',
   ' (só lê)': ' (read only)',
   'Instala pacotes (baixa da internet e roda os scripts de instalação deles).':
@@ -2228,5 +2227,7 @@ export const EN: Record<string, string> = {
   'volta {when}': 'resets {when}',
   '{n} PRs': '{n} PRs',
   '{n} com CI falhando': '{n} with failing CI',
-  '… e mais (veja no painel)': '… and more (see the panel)'
+  '… e mais (veja no painel)': '… and more (see the panel)',
+  'Fogo-fátuo': "Will-o'-the-wisp",
+  Geleca: 'Jelly'
 }

@@ -1549,6 +1549,41 @@ Notas da entrega:
 - o print do Perguntar saiu vazio no primeiro e2e: a classe `ask` do cartão era a mesma do "?" do
   mascote, que o CSS dele esconde. O cartão virou `ask-card`.
 
+### Fase 39: o fogo-fátuo
+
+**Status:** pronta (testes: `test/avatar.test.ts`; `e2e/avatar.mjs`, com os prints de cada um).
+
+A gotinha robô cansou. Das quatro direções desenhadas (fogo-fátuo, fumacinha, orbe de luz e
+geleca), o **fogo-fátuo** virou o avatar padrão: o _will-o'-the-wisp_ do nome vira o personagem. A
+**geleca** entrou como mais uma escolha, ao lado do fantasminha, e a gotinha saiu.
+
+- **O fogo-fátuo (M):** a chaminha azul de três pontas com o miolo claro, os olhos escuros e uma
+  faísca flutuando acima da ponta; a chama tremula, mais depressa quando ele trabalha.
+- **A geleca (P):** o corpinho gelatinoso verde-água que respira amassando, com bolhas dentro, a
+  pocinha embaixo e uma bolha de luz em cima.
+- **Os ícones (P):** o do app, o dos pacotes e o da bandeja viram a chama.
+
+**Aceite:** quem abre o Wisp pela primeira vez vê o fogo-fátuo; quem usava a gotinha também (sem
+aviso de valor inválido); a geleca e o fantasminha se escolhem no menu e nas configurações; os
+estados, as reações, as emoções, as danças e a ilha valem para os três.
+
+Notas da entrega:
+
+- os três têm os olhos e a boca escuros no corpo claro, como o fantasminha já tinha. O que era do
+  robô (o visor, os parafusos, a junta, a haste da antena e os olhos de LED com brilho) saiu, e as
+  regras do fantasminha para os olhos e a boca viraram a base (`--ink`, `--mouth-fill`,
+  `--mouth-y`);
+- a "antena" virou a luz de cima de cada um (a faísca, a bolha, a chama do fantasminha): continua
+  fazendo as vezes dos braços do kit nas emoções e nas danças, e as ondas da voz saem dela;
+- a chama tremula e a geleca respira só com `transform` na camada do corpo, pausados no cochilo e
+  parados com **Menos movimento**; o rosto, perto da base, quase não sai do lugar;
+- a geleca é mais baixa: a luz de cima, as estrelas da tontura, os "z", a veia de bravo, o "oi!",
+  os corações, o "?" e os acessórios descem com ela pelo `translate` do CSS (que se soma às
+  animações de `transform`), e os sinais no ar têm as posições dela;
+- um `config.json` com `"avatar": "robo"` abre no fogo-fátuo, sem o aviso de valor inválido, e
+  fica com `"fogo"` na próxima gravação;
+- o `CLAUDE.md` do Wisp (a persona) diz que ele é um fogo-fátuo.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

@@ -13,7 +13,7 @@ import { CONFIG_DIR, DATA_DIR } from './paths'
 import { IS_WINDOWS } from './platform'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
-import { AVATARS } from '../shared/avatars'
+import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
 import { DANCES } from '../shared/emotions'
 import type { Dance } from '../shared/emotions'
 import type { AvatarName } from '../shared/avatars'
@@ -71,7 +71,7 @@ export interface WispConfig {
   sleepAfterMinutes: number
   /** Acessórios por data: "auto" segue o calendário, "none" desliga; ou um fixo. */
   accessory: AccessorySetting
-  /** O avatar do Wisp: "robo" (a gotinha) ou "fantasma" (o fantasminha). */
+  /** O avatar do Wisp: "fogo" (o fogo-fátuo), "geleca" ou "fantasma" (o fantasminha). */
   avatar: AvatarName
   /** A dança de quando toca música (Fase 27): uma das do kit, ou "mix" (de tudo um pouco). */
   dance: Dance
@@ -209,7 +209,7 @@ function defaults(): WispConfig {
     volume: 0.5,
     sleepAfterMinutes: 3,
     accessory: 'auto',
-    avatar: 'robo',
+    avatar: DEFAULT_AVATAR,
     dance: 'mix',
     theme: 'system',
     highContrast: false,
@@ -479,6 +479,9 @@ export function loadConfig(): WispConfig {
   }
 
   fileData = json as Record<string, unknown>
+  // A gotinha robô saiu na Fase 39: quem a usava passa para o fogo-fátuo, sem o aviso de um valor
+  // inválido (e o arquivo fica com o novo na próxima gravação).
+  if (fileData.avatar === 'robo') fileData.avatar = DEFAULT_AVATAR
   fieldProblems = []
   config = ConfigSchema.parse(fileData) as unknown as WispConfig
   setProblems(fieldProblems)

@@ -90,8 +90,14 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   **Agenda** e da versão nova, com **Atualizar**; e o atalho **Ctrl+Alt+K**, que abre a ilha no
   Perguntar (com o Esc e o Ctrl+← e → dentro dela, no Windows).
 
+- **O fogo-fátuo** (Fase 39): o avatar padrão agora é uma chaminha azul que tremula, com uma faísca
+  em cima (o _will-o'-the-wisp_ do nome); a **geleca**, um corpinho gelatinoso que respira
+  amassando, entrou como mais uma escolha, ao lado do fantasminha. Os ícones do app e da bandeja
+  viraram a chama.
+
 ### Mudou
 
+- A gotinha robô saiu: quem a usava abre no fogo-fátuo.
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
 - Manutenção (Fase 28): o código ficou em módulos menores (nenhum arquivo do `src/` passa de 1.000
   linhas, menos o dicionário em inglês), sem mudar o que o app faz; o CSS do painel e o do mascote

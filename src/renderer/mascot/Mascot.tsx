@@ -10,6 +10,7 @@ import type {
 } from '../../shared/ipc'
 import { reducedMotion, setAppearance } from '../common/appearance'
 import { makeThumbnail } from '../common/thumbnail'
+import { DEFAULT_AVATAR } from '../../shared/avatars'
 import type { AvatarName } from '../../shared/avatars'
 import { AccessoryArt } from './Accessory'
 import { Body, Gloom } from './Bodies'
@@ -37,7 +38,7 @@ const DRAG_THRESHOLD = 5
 const QUICK_CLICK_MS = 600
 /** Com o cursor em cima do mascote por este tempo (ms), vira carinho. */
 const PET_MS = 2000
-/** O arquivo solto voa para dentro da gota; o painel abre depois do gole (ms). */
+/** O arquivo solto voa para dentro do Wisp; o painel abre depois do gole (ms). */
 const ABSORB_SEND_MS = 650
 
 /** O brilho extra que pisca a cada pedaço de texto da resposta. */
@@ -176,7 +177,7 @@ export default function Mascot(): JSX.Element {
   const [dropOver, setDropOver] = useState(false)
   const [absorbing, setAbsorbing] = useState<{ x: number; y: number; key: number } | null>(null)
   const [accessory, setAccessory] = useState<Accessory | null>(null)
-  const [avatar, setAvatar] = useState<AvatarName>('robo')
+  const [avatar, setAvatar] = useState<AvatarName>(DEFAULT_AVATAR)
   const [voice, setVoice] = useState<VoiceStatus>({ state: 'idle' })
   const [island, setIsland] = useState<MascotIsland>(null)
   // As emoções e as danças (Fase 27): a pedida (pelo Claude, na galeria), a dança da música e o
@@ -217,7 +218,7 @@ export default function Mascot(): JSX.Element {
   // o acessório do dia e os sons.
   useEffect(() => {
     const offState = window.wisp.mascot.onState((next) => {
-      // Acordou: um susto, os olhos abrem e a antena se endireita.
+      // Acordou: um susto, os olhos abrem e a luz de cima se endireita.
       if (viewRef.current.state === 'sleeping' && next.state !== 'sleeping') react('wake')
       // O carinho é só quando nada mais está acontecendo.
       if (next.state !== 'idle' && reactionRef.current === 'petting') react(null)
@@ -276,7 +277,7 @@ export default function Mascot(): JSX.Element {
       player.current.setCustom(name, data)
     })
     // A voz: o microfone abre só quando o main pede, e o volume do que ele ouve mexe nas ondas
-    // da antena (direto no estilo, sem render).
+    // da luz de cima (direto no estilo, sem render).
     const capture = new VoiceCapture(
       (event) => window.wisp.mascot.voiceEvent(event),
       (level) => stage.current?.style.setProperty('--vl', String(level ?? 0))
@@ -461,7 +462,7 @@ export default function Mascot(): JSX.Element {
     if (reactionRef.current === 'petting') react(null)
   }
 
-  // ---- Arquivo solto: a gota absorve e o painel abre com ele anexado --------
+  // ---- Arquivo solto: o Wisp absorve e o painel abre com ele anexado --------
 
   function onDragEnter(e: DragEvent<HTMLDivElement>): void {
     if (!hasFiles(e)) return
@@ -501,7 +502,7 @@ export default function Mascot(): JSX.Element {
       react('absorb')
       sound('absorver')
     }
-    // As miniaturas ficam prontas enquanto a gota engole; o painel abre depois do gole.
+    // As miniaturas ficam prontas enquanto o Wisp engole; o painel abre depois do gole.
     const thumbnails = Promise.all(files.map((file) => makeThumbnail(file)))
     const swallow = new Promise((resolve) =>
       window.setTimeout(resolve, files.length ? ABSORB_SEND_MS : 0)
@@ -589,10 +590,6 @@ export default function Mascot(): JSX.Element {
             <stop className="shell-2" offset="0.85" />
             <stop className="shell-3" offset="1" />
           </radialGradient>
-          <linearGradient id="wisp-visor" x1="0" y1="0" x2="0" y2="1">
-            <stop className="visor-0" offset="0" />
-            <stop className="visor-1" offset="1" />
-          </linearGradient>
           <radialGradient id="wisp-led" cx="0.5" cy="0.5" r="0.5">
             <stop className="led-0" offset="0" />
             <stop className="led-1" offset="0.55" />
@@ -641,15 +638,11 @@ export default function Mascot(): JSX.Element {
                       <div className="pulse" ref={pulse} />
                       <Sparks layer="back" />
 
-                      {/* Antena: balança a partir da base, escondida atrás do encaixe na ponta. A pose
-                (caída no cochilo, em pé no susto) fica por fora do balanço. */}
+                      {/* A luz de cima (a faísca do fogo, a bolha da geleca, a chama do fantasminha):
+                balança e flutua. A pose (caída no cochilo, em pé no susto) fica por fora. */}
                       <div className="antenna-pose" aria-hidden>
                         <div className="antenna">
                           <svg className="layer" viewBox="0 0 128 128">
-                            {/* No fantasminha, a luz flutua sozinha, sem a haste. */}
-                            {avatar === 'robo' && (
-                              <line className="antenna-rod" x1="64" y1="31" x2="64" y2="17.5" />
-                            )}
                             <circle className="led" cx="64" cy="15" r="3.3" />
                           </svg>
                           <div className="antenna-glow">
@@ -657,7 +650,7 @@ export default function Mascot(): JSX.Element {
                               <circle className="led-halo" cx="64" cy="15" r="5.5" />
                             </svg>
                           </div>
-                          {/* Ondas de rádio saindo da antena, enquanto ele ouve: crescem com a voz. */}
+                          {/* Ondas saindo da luz de cima, enquanto ele ouve: crescem com a voz. */}
                           <div className="waves">
                             <div className="wave w1">
                               <svg className="layer" viewBox="0 0 128 128">
@@ -673,8 +666,7 @@ export default function Mascot(): JSX.Element {
                         </div>
                       </div>
 
-                      {/* Corpo: casco, junta, visor, parafusos e encaixe da antena. É estático, então é
-                desenhado uma vez só. */}
+                      {/* O corpo de cada avatar (Bodies.tsx). É estático, então é desenhado uma vez só. */}
                       <div className="body" aria-hidden>
                         <Body avatar={avatar} />
                       </div>
@@ -684,7 +676,7 @@ export default function Mascot(): JSX.Element {
                         <Gloom avatar={avatar} />
                       </div>
 
-                      {/* Bochechas de LED, no carinho. */}
+                      {/* As bochechas, no carinho. */}
                       <div className="blush" aria-hidden>
                         <svg className="layer" viewBox="0 0 128 128">
                           <ellipse cx="51.5" cy="87" rx="2.8" ry="1.4" />
@@ -692,7 +684,7 @@ export default function Mascot(): JSX.Element {
                         </svg>
                       </div>
 
-                      {/* Olhos de LED. De fora para dentro: o olhar do estado (de lado, varrendo), o que
+                      {/* Os olhos. De fora para dentro: o olhar do estado (de lado, varrendo), o que
                 segue o cursor, o da emoção (parado e o que mexe), o das reações (arregalado) e a
                 piscada. */}
                       <div className="eyes" aria-hidden>
@@ -719,6 +711,8 @@ export default function Mascot(): JSX.Element {
                                         height="10"
                                         rx="3"
                                       />
+                                      <circle className="eye-glint" cx="56.8" cy="77.4" r="1.2" />
+                                      <circle className="eye-glint" cx="73.8" cy="77.4" r="1.2" />
                                     </g>
                                     <g className="eye-glyph eye-happy">
                                       <path d="M 52 82.5 L 55.5 77.5 L 59 82.5" />
@@ -759,7 +753,7 @@ export default function Mascot(): JSX.Element {
                         </div>
                       </div>
 
-                      {/* A boca (Fase 27): no visor, logo abaixo dos olhos; sem emoção, nenhuma. */}
+                      {/* A boca (Fase 27): logo abaixo dos olhos; sem emoção, nenhuma. */}
                       <div className="mouth" aria-hidden>
                         <div className="mouth-move">
                           <Mouths />
@@ -833,7 +827,7 @@ export default function Mascot(): JSX.Element {
                       {t('oi!')}
                     </div>
 
-                    {/* O arquivo solto voando para dentro da gota. */}
+                    {/* O arquivo solto voando para dentro do Wisp. */}
                     {absorbing && (
                       <div
                         key={absorbing.key}

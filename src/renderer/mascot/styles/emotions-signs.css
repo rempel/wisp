@@ -22,6 +22,15 @@
   --steam-y: 45px;
 }
 
+/* A geleca é mais baixa e mais larga: tudo desce, e o vapor sai mais para os lados. */
+.avatar-geleca {
+  --emote-x: 96px;
+  --emote-y: 58px;
+  --emote-top: 30px;
+  --bulb-y: 38px;
+  --steam-y: 60px;
+}
+
 .emote {
   position: absolute;
   left: var(--emote-x);
@@ -381,6 +390,15 @@
   --px: 21px;
 }
 
+.avatar-geleca .puff {
+  --px: -28px;
+}
+
+.avatar-geleca .puff.p3,
+.avatar-geleca .puff.p4 {
+  --px: 28px;
+}
+
 @keyframes puff {
   0% {
     opacity: 0.95;
@@ -408,7 +426,7 @@
   }
 }
 
-/* A lâmpada da ideia acende no lugar da luz de cima, com a antena parada e reta. */
+/* A lâmpada da ideia acende no lugar da luz de cima, com ela parada e reta. */
 .stage[data-emote='bulb'] .antenna .led {
   opacity: 0;
 }

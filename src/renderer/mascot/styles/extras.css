@@ -2,7 +2,7 @@
 
 /* ---- Acessórios por data --------------------------------------------- */
 
-/* O gorro fica no lugar da antena. */
+/* O gorro fica no lugar da luz de cima. */
 .acc-christmas .antenna-pose {
   display: none;
 }
@@ -50,7 +50,7 @@
 /* ---- Voz -------------------------------------------------------------- */
 
 /*
- * Ouvindo: a lâmpada da antena fica vermelha, como a de um gravador, e ondas saem dela, maiores
+ * Ouvindo: a luz de cima fica vermelha, como a de um gravador, e ondas saem dela, maiores
  * quanto mais alto se fala (--vl, de 0 a 1, vem da captura a cada 100 ms). Os olhos olham para
  * cima, atentos. Transcrevendo, a lâmpada pisca âmbar e os bits correm, como quem pensa.
  */
@@ -188,6 +188,7 @@
   .glow,
   .antenna,
   .antenna-glow,
+  .body,
   .eyes,
   .eyes-blink,
   .wisp.boop,

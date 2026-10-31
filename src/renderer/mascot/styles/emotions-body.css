@@ -5,8 +5,8 @@
 /*
  * Cada emoção tem uma pose (a camada .pose, que assenta com a molinha), um movimento no ritmo
  * (a .feel), os bracinhos do fantasminha (de pé, eles levantam: 0 é como estão desenhados) e a
- * antena do robô (a luz do fantasminha), que no robô faz as vezes dos braços do kit: cai na
- * tristeza, fica em pé no susto, pende para o lado na dúvida.
+ * luz de cima, que no fogo e na geleca faz as vezes dos braços do kit: cai na tristeza, fica em
+ * pé no susto, pende para o lado na dúvida.
  */
 .arm-l,
 .arm-l .arm-move {
@@ -295,7 +295,7 @@
   transform: rotate(12deg);
 }
 
-/* Triste: amassado, pendendo devagar, a antena caída, debaixo da nuvem de chuva. */
+/* Triste: amassado, pendendo devagar, a luz de cima caída, debaixo da nuvem de chuva. */
 .stage[data-feel='sad'] {
   --al: -45deg;
   --ar: -45deg;
@@ -548,7 +548,7 @@
   transform: scaleY(1.06);
 }
 
-/* Com sono: respira devagar e pende, os braços caídos, a antena tombando. */
+/* Com sono: respira devagar e pende, os braços caídos, a luz de cima tombando. */
 .stage[data-feel='sleepy'] {
   --al: -44deg;
   --ar: -44deg;

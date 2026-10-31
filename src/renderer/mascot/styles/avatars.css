@@ -1,8 +1,134 @@
 /*
- * As cores e os ajustes de cada avatar (Fase 19), por cima do body.css e do states.css. O robô é
- * o padrão de lá; aqui ficam os outros. As cores de repouso vão num :where (sem peso), para as dos estados
- * (pedindo permissão, erro…) continuarem valendo por cima delas.
+ * Os ajustes de cada avatar (Fase 19; o fogo-fátuo e a geleca, Fase 39), por cima do body.css e
+ * do states.css. As cores do fogo-fátuo, o padrão, ficam no body.css; aqui, os jeitos dele e as
+ * cores dos outros. As cores de repouso vão num :where (sem peso), para as dos estados (pedindo
+ * permissão, erro…) continuarem valendo por cima delas. Os três têm os olhos e a boca escuros
+ * (--ink) no corpo claro.
  */
+
+/* ---- Fogo-fátuo ------------------------------------------------------- */
+
+/*
+ * A chama tremula: estica e entorta de leve a partir da base (o rosto, perto da base, quase não
+ * sai do lugar). Só transform, numa camada; trabalhando, mais depressa; no cochilo, pausa.
+ */
+.avatar-fogo .body {
+  transform-origin: 64px 104px;
+  animation: flicker 1.8s ease-in-out infinite;
+}
+
+.avatar-fogo.state-working .body {
+  animation-duration: 0.7s;
+}
+
+@keyframes flicker {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: scale(1.01, 1.035) skewX(-1.2deg);
+  }
+  65% {
+    transform: scale(0.995, 0.985) skewX(1deg);
+  }
+}
+
+/* A luz de cima é uma faísca solta acima da ponta da chama: menor, flutuando como ela. */
+.avatar-fogo .antenna .led {
+  r: 2.6px;
+}
+
+.avatar-fogo .led-halo {
+  r: 4.6px;
+}
+
+:where(.avatar-fogo) .antenna {
+  animation-name: wisp-flame;
+  animation-duration: 3.2s;
+}
+
+/* ---- Geleca ----------------------------------------------------------- */
+
+:where(.avatar-geleca) {
+  --shell-0: #f0fdfa;
+  --shell-1: #5eead4;
+  --shell-2: #14b8a6;
+  --shell-3: #0f766e;
+  --metal: #0f766e;
+  --led-0: #f0fdfa;
+  --led-1: #99f6e4;
+  --led-2: #2dd4bf;
+  --led-halo: #5eead4;
+  --glow-core: 153 246 228;
+  --glow: 45 212 191;
+  --highlight: #ffffff;
+  --spark: #ccfbf1;
+  --ink: #053b36;
+}
+
+.avatar-geleca .shell {
+  stroke-opacity: 0.45;
+}
+
+/* A pocinha embaixo e as bolhas presas dentro. */
+.jelly-puddle {
+  fill: rgb(var(--glow) / 0.28);
+}
+
+.jelly-bubble {
+  fill: #fff;
+  opacity: 0.55;
+}
+
+/* Respira amassando, devagar, a partir do chão. */
+.avatar-geleca .body {
+  transform-origin: 64px 102px;
+  animation: jelly 3.2s ease-in-out infinite;
+}
+
+.avatar-geleca.state-working .body {
+  animation-duration: 1.1s;
+}
+
+@keyframes jelly {
+  0%,
+  100% {
+    transform: none;
+  }
+  50% {
+    transform: scale(1.025, 0.975);
+  }
+}
+
+/* A luz de cima é uma bolha flutuando logo acima dela (a geleca é mais baixa que os outros). */
+.avatar-geleca .antenna-pose {
+  top: 26px;
+  bottom: -26px;
+}
+
+.avatar-geleca .antenna .led {
+  r: 2.8px;
+}
+
+:where(.avatar-geleca) .antenna {
+  animation-name: wisp-flame;
+  animation-duration: 4.6s;
+}
+
+/* O que fica em cima da cabeça (as estrelas da tontura, os "z", a veia de bravo, o "oi!", os
+   corações, o "?" do pedido e os acessórios) desce junto com ela. */
+.avatar-geleca :is(.stars, .zzz, .anger, .bubble, .hearts, .ask) {
+  translate: 0 22px;
+}
+
+.avatar-geleca .accessory-christmas {
+  translate: 0 17px;
+}
+
+.avatar-geleca .accessory-summer {
+  translate: 0 11px;
+}
 
 /* ---- Fantasminha ------------------------------------------------------ */
 
@@ -12,8 +138,6 @@
   --shell-2: #e4e0ff;
   --shell-3: #b9b0f5;
   --metal: #8b7fe8;
-  --metal-dark: #6d5fd6;
-  --metal-light: #ede9fe;
   --led-0: #f5fbff;
   --led-1: #c4f1ff;
   --led-2: #7dd3fc;
@@ -22,13 +146,9 @@
   --glow: 167 160 250;
   --highlight: #ffffff;
   --spark: #ede9fe;
-  /* Os olhos são escuros, direto no corpo claro (no robô, LEDs num visor escuro). */
-  --ghost-eye: #2e1065;
-}
-
-/* Bravo, os olhos ficam vermelhos, como os LEDs do robô. */
-.avatar-fantasma.react-annoyed {
-  --ghost-eye: #be123c;
+  --ink: #2e1065;
+  --mouth-fill: #4a1f2a;
+  --mouth-y: 3.4px;
 }
 
 .avatar-fantasma .shell {
@@ -43,27 +163,7 @@
   stroke-linejoin: round;
 }
 
-.avatar-fantasma .eye-leds .led,
-.avatar-fantasma .eye-angry .led {
-  fill: var(--ghost-eye);
-}
-
-.avatar-fantasma .eye-glyph {
-  stroke: var(--ghost-eye);
-}
-
-/* Sem o brilho dos LEDs: num olho escuro, ele só borraria. */
-.avatar-fantasma .eye-leds,
-.avatar-fantasma .eye-glyph,
-.avatar-fantasma .eye-angry {
-  filter: none;
-}
-
-.avatar-fantasma .blush ellipse {
-  fill: #f9a8d4;
-}
-
-/* A luz de cima (a "antena" do robô) é a chama de um fogo-fátuo: flutua mais perto da cabeça. */
+/* A luz de cima é a chama de um fogo-fátuo: flutua mais perto da cabeça. */
 .avatar-fantasma .antenna-pose {
   top: 12px;
   bottom: -12px;

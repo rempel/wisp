@@ -2,7 +2,7 @@
 
 > _A little light on your desktop._
 
-O Wisp é um assistente de mesa para Linux: uma gotinha robô que flutua na tela, conversa com você e
+O Wisp é um assistente de mesa para Linux: um fogo-fátuo que flutua na tela, conversa com você e
 faz coisas no seu computador, sempre pedindo licença antes. Quem pensa e age por trás dele é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code), da Anthropic, o mesmo que você usa no
 terminal, com a sua assinatura. O Wisp é o corpo: o mascote, o painel de conversa, os cards de
@@ -118,9 +118,8 @@ tudo com o mascote reagindo.
 reage a cliques e a carinho e usa gorro no Natal. Tem 31 emoções (rosto, cor, um sinal no ar e um
 jeito de mexer), trocadas com um susto de desenho animado, e 12 danças, trazidas do
 [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase); o Claude mostra uma
-quando combina com a conversa. Dá para escolher o avatar: a **gotinha robô** ou
-o **fantasminha**. Quem preferir pode trocá-lo pela **ilha**, uma
-cápsula no centro do topo da tela.
+quando combina com a conversa. Dá para escolher o avatar: o **fogo-fátuo**, a **geleca** ou o
+**fantasminha**. Quem preferir pode trocá-lo pela **ilha**, uma cápsula no centro do topo da tela.
 
 **Outros jeitos de usar:** a [OpenRouter](#openrouter-experimental) como provedor (experimental),
 para usar outros modelos pelo Claude Code, e um **modo demonstração**, com respostas gravadas, para
@@ -505,8 +504,8 @@ e eles voltam em **Configurações → Avançado → Primeiros passos**.
 
 1. **Faça o login no Claude Code** (só na primeira vez): rode `claude` num terminal e siga o login
    com a sua assinatura. O Wisp usa esse mesmo login.
-2. **Abra o Wisp** pelo menu de apps (ou `wisp`, ou `npm run dev`). A gotinha aparece no canto
-   inferior direito da tela, com um "oi!". Dá para arrastá-la para onde quiser; ela lembra.
+2. **Abra o Wisp** pelo menu de apps (ou `wisp`, ou `npm run dev`). O mascote aparece no canto
+   inferior direito da tela, com um "oi!". Dá para arrastá-lo para onde quiser; ele lembra.
 3. **Clique no mascote** para abrir o painel e pergunte qualquer coisa. Enter envia; Shift+Enter
    quebra a linha.
 4. **Peça uma ação**, como "abre o Firefox" ou "roda `ls` na minha pasta pessoal": aparece um card com
@@ -1083,33 +1082,34 @@ na bandeja e no botão direito do mascote.
 
 ## O mascote
 
-O Wisp é uma **gotinha robô**: casco ciano-turquesa brilhante (`#5EEAD4` → `#22D3EE`) com
-contorno, junta e parafusos, um visor escuro com dois olhos de LED, uma antena com uma lâmpada
-de LED na ponta e "bits" quadradinhos em órbita, tudo com um glow suave. Ele acompanha a conversa:
+O Wisp é um **fogo-fátuo** (o _will-o'-the-wisp_ do nome): uma chaminha azul de três pontas
+(`#67E8F9` → `#06B6D4`), com o miolo claro onde ficam os olhos escuros, uma faísca flutuando acima
+da ponta e "bits" em órbita, tudo com um glow suave. A chama tremula de leve (mais depressa quando
+ele trabalha). Ele acompanha a conversa:
 
 | Estado            | Como fica                                                                                             |
 | ----------------- | ----------------------------------------------------------------------------------------------------- |
-| Ocioso            | Flutua, a antena balança, o LED respira, os olhos piscam e olham em volta                             |
+| Ocioso            | Flutua, a chama tremula, a faísca respira, os olhos piscam e olham em volta                           |
 | Falando           | O brilho pulsa no ritmo do texto e a boca abre e fecha                                                |
-| Trabalhando       | Os bits orbitam mais rápido, a antena se estica e o LED dela pisca rápido                             |
+| Trabalhando       | A chama tremula mais rápido, os bits orbitam mais rápido e a faísca pisca                             |
 | Pedindo permissão | Âmbar (`#FBBF24`), olhos brilhando virados para o painel, boquinha de gato e um "?" do lado do painel |
 | Feliz             | Dá dois pulinhos, os olhos viram `^ ^` e solta bits (por uns 2 s, no fim de uma resposta)             |
 | Erro              | Fica coral (`#F87171`), treme e os olhos viram `x x` (por uns 5 s)                                    |
-| Cochilando        | A cabeça pende, os LEDs apagam, os olhos viram traços e uns "z" sobem; depois, tudo para              |
+| Cochilando        | A cabeça pende, a faísca apaga, os olhos viram traços e uns "z" sobem; depois, tudo para              |
 
 E reage a quem mexe com ele:
 
 | Reação        | Quando                                        | Como fica                                                        |
 | ------------- | --------------------------------------------- | ---------------------------------------------------------------- |
 | Cutucada      | Um clique (o mesmo que abre e fecha o painel) | Amassa e aperta os olhos (`> <`)                                 |
-| Bravo         | Segundo clique rápido                         | LEDs vermelhos e inclinados, bufa e mostra uma veia de bravo     |
+| Bravo         | Segundo clique rápido                         | Olhos vermelhos e inclinados, bufa e mostra uma veia de bravo    |
 | Tonto         | Terceiro clique rápido em diante              | Olhos em espiral, estrelinhas rodando e um balanço               |
-| Carinho       | Cursor parado em cima dele por 2 s            | Olhos `^ ^`, bochechas de LED, coraçõezinhos e um aconchego      |
-| Saudação      | O app abriu                                   | Aparece num pulo, acena com a antena, sorri e diz "oi!"          |
-| Susto         | Acordou                                       | Pula, os olhos abrem de uma vez e a antena volta com uma molinha |
-| Olhos atentos | Um arquivo arrastado por cima                 | Arregala os olhos e estica, com a antena em pé                   |
-| Gole          | Soltou o arquivo                              | O arquivo voa para dentro da gota, que engole e brilha           |
-| Lembrete      | Chegou a hora de um lembrete                  | LED âmbar, um sininho tocando ao lado e um chacoalhão de alarme  |
+| Carinho       | Cursor parado em cima dele por 2 s            | Olhos `^ ^`, bochechas rosadas, coraçõezinhos e um aconchego     |
+| Saudação      | O app abriu                                   | Aparece num pulo, acena com a faísca, sorri e diz "oi!"          |
+| Susto         | Acordou                                       | Pula, os olhos abrem de uma vez e a faísca volta com uma molinha |
+| Olhos atentos | Um arquivo arrastado por cima                 | Arregala os olhos e estica, com a faísca em pé                   |
+| Gole          | Soltou o arquivo                              | O arquivo voa para dentro dele, que engole e brilha              |
+| Lembrete      | Chegou a hora de um lembrete                  | Faísca âmbar, um sininho tocando ao lado e um chacoalhão         |
 | Dança         | Um player de música está tocando              | Dança no ritmo (a escolhida nas configurações), com notas        |
 
 As cores ficam em variáveis no topo de `src/renderer/mascot/styles/body.css`, então cada estado só
@@ -1117,22 +1117,22 @@ precisa trocá-las. O desenho dos olhos vem do atributo `data-eyes`, que junta o
 do momento.
 
 **Emoções e danças.** As ações do [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase)
-(o kit de animação do Clawd, de John Heibel, licença MIT) valem para os dois avatares. São **31
+(o kit de animação do Clawd, de John Heibel, licença MIT) valem para os três avatares. São **31
 emoções** (feliz, animado, rindo, apaixonado, tímido, orgulhoso, convencido, aliviado, triste,
 chorando, bravo, furioso, com medo, surpreso, confuso, pensando, com uma ideia, decidido, com sono,
 entediado, nervoso, desconfiado, com nojo, tonto, descolado, deslumbrado, nocauteado, brincalhão,
 aprontando, esperançoso e o neutro), cada uma com:
 
 - **rosto:** 24 desenhos de olhos (de coração, de estrela, em espiral, chorando, de óculos
-  escuros…) e 16 bocas (sorriso, gargalhada, dentes cerrados, língua de fora, bocejo…), em LED no
-  visor do robô e escuros no corpo do fantasminha;
+  escuros…) e 16 bocas (sorriso, gargalhada, dentes cerrados, língua de fora, bocejo…), escuros
+  no corpo claro;
 - **cor:** o casco puxa para a cor da emoção (azulado na tristeza, vermelho na fúria, dourado no
   orgulho, verde no nojo), com sombra na testa nas tristes e bochechas acesas nas fofas;
 - **sinal no ar:** 18 deles, pintados (um "!", um "?", gota de suor, reticências, uma lâmpada que
   acende no lugar da luz de cima, uma nuvem de chuva, vapor saindo da cabeça, notas, corações…);
 - **corpo:** uma pose e um jeito de mexer no ritmo (quica de alegria, pende de tristeza, treme de
-  raiva, pula de um lado para o outro brincando), com os bracinhos do fantasminha e a antena do
-  robô fazendo as vezes dos braços do Clawd.
+  raiva, pula de um lado para o outro brincando), com os bracinhos do fantasminha e a luz de cima
+  do fogo e da geleca fazendo as vezes dos braços do Clawd.
 
 A troca é atuada, como no kit: os olhos apertam e o corpo encolhe um instante antes, o rosto troca
 com os olhos fechados, e vem um susto do tamanho da emoção nova, que balança e assenta. As **12
@@ -1150,16 +1150,17 @@ Tudo isso é SVG e CSS, como o resto do mascote: o que se mexe sem parar usa só
 `opacity`, e nada dele roda no cochilo. Com **Menos movimento**, o rosto e a cor mudam, mas o
 corpo e os sinais ficam parados.
 
-**Avatares.** No botão direito do mascote (ou na bandeja), **Avatar** troca a gotinha robô pelo
-**fantasminha**: um fantasma branco-lavanda, com olhos escuros, bracinhos e a luz da antena
-flutuando sozinha em cima da cabeça, como um fogo-fátuo (o _wisp_ do nome). Ele tem os mesmos
-estados e reações (fica âmbar pedindo permissão, coral no erro, cochila, dança, usa o gorro), e
-a ilha e o avatar do painel acompanham. A troca vale na hora e também fica em **Configurações →
-Mascote e sons**.
+**Avatares.** No botão direito do mascote (ou na bandeja), **Avatar** troca o fogo-fátuo pela
+**geleca**, um corpinho gelatinoso verde-água que respira amassando, com bolhas presas dentro, uma
+pocinha embaixo e uma bolha de luz flutuando em cima; ou pelo **fantasminha**, um fantasma
+branco-lavanda, com bracinhos e uma chama flutuando em cima da cabeça. Todos têm os mesmos estados e
+reações (ficam âmbar pedindo permissão, coral no erro, cochilam, dançam, usam o gorro), e a ilha e o
+avatar do painel acompanham. A troca vale na hora e também fica em **Configurações → Mascote e
+sons**. A gotinha robô, o avatar até a versão anterior, saiu: quem a usava abre no fogo-fátuo.
 
 Para criar outro avatar: o corpo vai em `src/renderer/mascot/Bodies.tsx` (no mesmo espaço de
-128 × 128, com os olhos no lugar dos do robô), as cores de repouso em `styles/avatars.css`, num
-`:where(.avatar-nome)` (para os estados continuarem pintando por cima), e o nome em
+128 × 128, com os olhos no lugar dos outros), as cores de repouso em `styles/avatars.css`, num
+`:where(.avatar-nome)` (para os estados continuarem pintando por cima), e o nome e o contorno em
 `src/shared/avatars.ts`.
 
 ## Configuração
@@ -1180,7 +1181,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "volume": 0.5,
   "sleepAfterMinutes": 3,
   "accessory": "auto",
-  "avatar": "robo",
+  "avatar": "fogo",
   "dance": "mix",
   "shortcut": "Ctrl+Alt+W",
   "paletteShortcut": "Ctrl+Alt+P",
@@ -1296,7 +1297,8 @@ que entram nas conversas do Wisp; os outros ficam de fora (veja
 mudam esse campo. `volume` vai de 0 a 1. `sleepAfterMinutes` são os minutos sem nada acontecer
 (e com o cursor longe) até o mascote cochilar; `0` desliga o cochilo. `accessory` é `"auto"`
 (gorro de 1º de dezembro a 6 de janeiro, óculos no verão), `"none"`, `"christmas"` ou `"summer"`.
-`avatar` é `"robo"` (a gotinha) ou `"fantasma"` (o fantasminha). `dance` é a dança de quando toca
+`avatar` é `"fogo"` (o fogo-fátuo, o padrão), `"geleca"` ou `"fantasma"` (o fantasminha); o
+`"robo"` de antes (a gotinha) vira `"fogo"`. `dance` é a dança de quando toca
 música: `"mix"` (de tudo um pouco, o padrão), `"bounce"`, `"hop"`, `"roof"`, `"sway"`, `"spin"`,
 `"wave"`, `"walk"`, `"run"`, `"idle"`, `"stomp"` ou `"shimmy"`.
 
@@ -1726,7 +1728,7 @@ O Wisp existe por causa do [Claude Code](https://docs.claude.com/en/docs/claude-
 O mascote e a ideia de um companheiro de mesa se inspiraram no Coucou (veja o [ROADMAP](ROADMAP.md)).
 As emoções, os sinais no ar, as danças e a troca atuada do mascote vêm do
 [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase), de John Heibel (licença
-MIT), redesenhados em SVG e CSS para a gotinha e o fantasminha.
+MIT), redesenhados em SVG e CSS para o fogo-fátuo, a geleca e o fantasminha.
 
 ## Licença
 
