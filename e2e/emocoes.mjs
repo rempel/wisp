@@ -91,7 +91,7 @@ const sadLook = await m(`(() => {
 })()`)
 check(
   'E4 a cor entra no casco, a sombra na testa, e o corpo pende devagar',
-  sadLook.plain === '#5eead4' &&
+  sadLook.plain === '#67e8f9' &&
     sadLook.stop !== idleStop &&
     Math.abs(Number(sadLook.gloom) - 0.35) < 0.01 &&
     sadLook.feel.includes('feel-sway'),
