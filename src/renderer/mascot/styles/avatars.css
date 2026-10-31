@@ -10,11 +10,16 @@
 
 /*
  * A chama tremula: estica e entorta de leve a partir da base (o rosto, perto da base, quase não
- * sai do lugar). Só transform, numa camada; trabalhando, mais depressa; no cochilo, pausa.
+ * sai do lugar). Só transform, numa camada; trabalhando, mais depressa; no cochilo, pausa. Sem o
+ * atalho "animation", que voltaria o animation-play-state para running e passaria por cima da
+ * pausa do cochilo (states.css), com a mesma força e antes desta folha.
  */
 .avatar-fogo .body {
   transform-origin: 64px 104px;
-  animation: flicker 1.8s ease-in-out infinite;
+  animation-name: flicker;
+  animation-duration: 1.8s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
 .avatar-fogo.state-working .body {
@@ -81,10 +86,13 @@
   opacity: 0.55;
 }
 
-/* Respira amassando, devagar, a partir do chão. */
+/* Respira amassando, devagar, a partir do chão (sem o atalho "animation", como a chama). */
 .avatar-geleca .body {
   transform-origin: 64px 102px;
-  animation: jelly 3.2s ease-in-out infinite;
+  animation-name: jelly;
+  animation-duration: 3.2s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
 .avatar-geleca.state-working .body {
