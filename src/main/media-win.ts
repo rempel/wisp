@@ -101,6 +101,9 @@ export class WindowsMedia extends EventEmitter implements MediaPlayers {
   /** O PowerShell que acompanha a música (Fase 37); sem ele, o Wisp pergunta a cada vez. */
   private readonly watcher: WindowsMediaWatcher
 
+  private restarts = 0
+  private disposed = false
+
   constructor(watcher = new WindowsMediaWatcher()) {
     super()
     this.watcher = watcher
@@ -111,18 +114,22 @@ export class WindowsMedia extends EventEmitter implements MediaPlayers {
     this.watcher.on('volume', () => this.emit('changed'))
     this.watcher.on('exit', () => {
       // Caiu (o Windows fechou o PowerShell, um erro): volta uma vez, sem insistir.
-      if (this.restarts++ < 1) setTimeout(() => this.watcher.start(), 5000)
+      if (!this.disposed && this.restarts++ < 1) setTimeout(() => this.watch(), 5000)
     })
-    this.watcher.start()
   }
 
-  private restarts = 0
+  /** Começa a acompanhar a música (o PowerShell que fica aberto). Devolve o próprio objeto. */
+  watch(): this {
+    if (!this.disposed) this.watcher.start()
+    return this
+  }
 
   get playing(): boolean {
     return [...this.statuses.values()].includes('Playing')
   }
 
   dispose(): void {
+    this.disposed = true
     this.watcher.dispose()
     this.removeAllListeners()
   }

@@ -483,6 +483,44 @@ test(
 )
 
 test(
+  'a música acompanhada (Fase 37): o PowerShell escreve a lista, aceita os comandos e fecha',
+  windowsOnly,
+  async () => {
+    const { WindowsMediaWatcher } = await import('../src/main/media-win-watch')
+    const watcher = new WindowsMediaWatcher()
+    const errors: string[] = []
+    const warn = console.warn
+    console.warn = (...args: unknown[]) => errors.push(args.join(' '))
+    try {
+      const first = new Promise<unknown>((resolve) => watcher.once('sessions', resolve))
+      const started = Date.now()
+      watcher.start()
+      const sessions = await Promise.race([
+        first,
+        new Promise((resolve) => setTimeout(() => resolve('passou de 30 s'), 30_000))
+      ])
+      console.log(`a primeira lista em ${Date.now() - started} ms: ${JSON.stringify(sessions)}`)
+      assert.ok(Array.isArray(sessions), `${String(sessions)}\n${errors.join('\n')}`)
+      // Um comando para um player que não existe, a pressa e o volume (sem aparelho de som no CI,
+      // o erro do Windows): ele continua lendo.
+      assert.ok(watcher.send({ id: 'nenhum.exe', acao: 'PlayPause' }))
+      assert.ok(watcher.send({ acao: 'Rapido', valor: true }))
+      assert.ok(watcher.send({ acao: 'Volume', valor: -1 }))
+      await new Promise((resolve) => setTimeout(resolve, 6000))
+      assert.ok(watcher.running, errors.join('\n'))
+      assert.doesNotMatch(
+        errors.join('\n'),
+        /ParserError|error CS\d|não é reconhecido|not recognized/i
+      )
+    } finally {
+      console.warn = warn
+      watcher.dispose()
+    }
+    assert.equal(watcher.running, false)
+  }
+)
+
+test(
   'a voz no Windows: o whisper-cli.exe e o piper.exe pelo nome, pelo caminho e na pasta da voz',
   windowsOnly,
   async () => {

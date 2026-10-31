@@ -830,7 +830,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   sounds.watch()
   void (
-    IS_WINDOWS ? Promise.resolve(new WindowsMedia()) : Media.connect(() => getConfig().islandCovers)
+    IS_WINDOWS
+      ? Promise.resolve(new WindowsMedia().watch())
+      : Media.connect(() => getConfig().islandCovers)
   ).then((connected) => {
     media = connected
     if (!media) return
