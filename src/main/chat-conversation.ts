@@ -2,6 +2,7 @@
 // persona do Wisp e o workspace dele), a demonstração, a OpenRouter e o arquivo do modo de
 // permissão; e os anexos de uma mensagem, como chegam da página.
 
+import { snapshotDirOf } from './turn-review'
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { basename, join } from 'path'
@@ -108,6 +109,7 @@ export function conversationFactory(
         allowedTools: [...SAFE_TOOLS, ...startup.extraAllowedTools],
         appendSystemPrompt: APPEND_SYSTEM_PROMPT,
         thumbnail: thumbnailOfBase64,
+        snapshotDir: snapshotDirOf(id),
         demo: () => (getConfig().demo ? DEMO : null),
         openrouter: {
           key: () => readSecret(OPENROUTER_SECRET),

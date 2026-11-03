@@ -11,6 +11,7 @@ import type {
   PermissionMode,
   PlanUsage,
   Provider,
+  ReviewFile,
   TaskInfo,
   TerminalStatus
 } from '../../shared/ipc'
@@ -60,6 +61,11 @@ export type Item =
       steps?: SubagentStep[]
     }
   | { kind: 'notice'; id: string; level: NoticeLevel; text: string }
+  /**
+   * O card do fim do turno (Fase 42): o que a resposta mudou nos arquivos. `stale`: outra
+   * mensagem já começou um turno, e as cópias de antes não existem mais.
+   */
+  | { kind: 'review'; id: string; turn: number; files: ReviewFile[]; stale: boolean }
   | {
       kind: 'permission'
       id: string
@@ -242,6 +248,14 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       return { ...state, model: { choice: event.choice, active: event.active } }
     case 'usage':
       return { ...state, usage: event.usage }
+    case 'turn-review':
+      return append(state, {
+        kind: 'review',
+        id: `review-${event.turn}-${state.items.length}`,
+        turn: event.turn,
+        files: event.files,
+        stale: false
+      })
     case 'user':
       return append(
         state,
@@ -319,7 +333,8 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       return append({ ...state, items }, notice(items, 'info', text))
     }
     case 'busy':
-      return { ...state, busy: event.busy }
+      // O Claude começando um turno novo: os cards de revisão de antes não desfazem mais (Fase 42).
+      return { ...(event.busy && !state.busy ? staleReviews(state) : state), busy: event.busy }
     case 'text': {
       const text = findItem(state, 'text', event.blockId)
       if (text) return replaceItem(state, text, { ...text, text: text.text + event.delta })
@@ -407,6 +422,16 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
       }
       return next
     }
+  }
+}
+
+function staleReviews(state: ChatState): ChatState {
+  if (!state.items.some((item) => item.kind === 'review' && !item.stale)) return state
+  return {
+    ...state,
+    items: state.items.map((item) =>
+      item.kind === 'review' && !item.stale ? { ...item, stale: true } : item
+    )
   }
 }
 

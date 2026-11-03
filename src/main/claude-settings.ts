@@ -2,6 +2,7 @@
 // segredos que sempre pedem aprovação, o hook que manda todo Bash para o card, o --settings do
 // modo terminal e as opções de uma conversa.
 
+import { EDIT_MATCHER, SNAPSHOT_ARG } from './turn-snapshot'
 import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode, Provider } from '../shared/ipc'
@@ -139,11 +140,36 @@ function bashHook(): Record<string, unknown> {
   return { type: 'command', command: BASH_HOOK }
 }
 
+/**
+ * O hook que guarda a cópia de antes de cada edição (Fase 42, turn-snapshot.ts): o relay do Wisp
+ * com --snapshot. No Windows, o próprio Wisp na forma exec; sem saber o executável, nada (o card
+ * do fim do turno mostra o que mudou, sem desfazer).
+ */
+function snapshotHook(relay = WRAPPER_PATH): Record<string, unknown> | null {
+  if (!IS_WINDOWS)
+    return { type: 'command', command: `${shellQuote(relay)} ${SNAPSHOT_ARG}`, timeout: 10 }
+  const self = selfCommandOf()
+  return self
+    ? {
+        type: 'command',
+        command: self.command,
+        args: [...self.args, RELAY_ARG, SNAPSHOT_ARG],
+        timeout: 10
+      }
+    : null
+}
+
 /** As configurações extras do chat (--settings). */
 export function sessionSettings(): string {
+  const snapshot = snapshotHook()
   return JSON.stringify({
     permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
-    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [bashHook()] }] }
+    hooks: {
+      PreToolUse: [
+        { matcher: 'Bash', hooks: [bashHook()] },
+        ...(snapshot ? [{ matcher: EDIT_MATCHER, hooks: [snapshot] }] : [])
+      ]
+    }
   })
 }
 
@@ -256,6 +282,8 @@ export interface ClaudeOptions {
   permissionMode: PermissionMode
   /** Onde gravar o modo atual, para o hook do Bash ler (em $XDG_RUNTIME_DIR, só do usuário). */
   modeFile?: string
+  /** A pasta das cópias de antes das edições (Fase 42), que o hook delas lê. */
+  snapshotDir?: string
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */

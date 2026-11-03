@@ -319,6 +319,14 @@ export function SettingsView({
             checked={values.clipboardChip}
             onChange={(clipboardChip) => void save({ clipboardChip })}
           />
+          <Toggle
+            label={t('Revisar no fim da resposta')}
+            hint={t(
+              'Depois de cada resposta que editou arquivos, um card com o que mudou em cada um e o Desfazer (as edições pelas ferramentas de edição; os comandos do Bash não entram).'
+            )}
+            checked={values.turnReview}
+            onChange={(turnReview) => void save({ turnReview })}
+          />
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>

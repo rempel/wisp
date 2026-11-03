@@ -33,6 +33,8 @@ src/
 │  ├─ screenshot.ts  # print da tela (portal no Wayland, Electron no X11) e miniaturas
 │  ├─ area-capture.ts # recortar uma área: a camada em tela cheia e o recorte (Fase 41)
 │  ├─ usage-alerts.ts # o aviso de 80% e 95% das janelas do plano (Fase 41)
+│  ├─ turn-snapshot.ts # o hook que guarda a cópia de antes de cada edição (Fase 42)
+│  ├─ turn-review.ts # o card do fim do turno: o que mudou e o desfazer (Fase 42)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X

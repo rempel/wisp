@@ -692,6 +692,7 @@ export function Pane({
               item={item}
               streaming={state.busy && item === last}
               onEdit={position === editIndex && !editing ? startEdit : undefined}
+              conversation={conversation}
             />
           )
         })}

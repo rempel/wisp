@@ -1675,6 +1675,39 @@ Notas da entrega:
   roda o `gh` pelos cards, como sempre). O título do PR vem do GitHub e vai no texto: você o vê
   antes de mandar. Os outros alertas abrem o PR no navegador, como antes.
 
+### Fase 42: revisar no fim da resposta
+
+**Status:** pronta (testes: `test/revisar.test.ts`; `e2e/revisar.mjs`, no job do Linux e no
+**Windows** do CI, com o Claude Code de mentira rodando os hooks do `--settings`).
+
+- **O card do fim da resposta (M):** os arquivos que a resposta mudou, com +N −M e o diff do
+  arquivo inteiro (de antes da resposta até agora), **Abrir** e **Desfazer**, um a um ou todos.
+- **As cópias de antes (M):** um hook `PreToolUse` nas ferramentas de edição guarda a cópia de
+  cada arquivo antes da primeira edição da resposta.
+
+**Aceite:** no modo Aceitar edições, uma resposta que edita três arquivos termina com o card dos
+três; **Desfazer** num deles volta só aquele ao que era; a mensagem seguinte deixa o card velho
+sem o desfazer.
+
+Notas da entrega:
+
+- as cópias: o hook roda o relay do Wisp com `--snapshot` (no Windows, o próprio Wisp na forma
+  exec), antes de o Claude Code editar, e guarda o arquivo numa pasta da conversa no cache (só do
+  usuário), sem falar com o Wisp nem decidir nada. Só a primeira cópia de cada arquivo vale (o
+  `.json` dela é criado com `wx`); um arquivo que não existia conta como "novo" (desfazer é
+  apagar); acima de 5 MB, fica sem cópia (o card mostra, sem o desfazer). A pasta sai inteira
+  quando o Wisp abre;
+- o turno: começa quando o Claude começa a trabalhar (o `busy`), que é quando as cópias da
+  resposta anterior saem; uma mensagem mandada no meio da resposta não muda o `busy`, e as cópias
+  ficam. A primeira versão contava o turno pela mensagem do usuário, mas o `--ask` e a caixa do
+  painel não passam por ali do mesmo jeito: o e2e pegou;
+- o desfazer: só com o card do último turno e com o arquivo ainda como o card mostrou (pela marca
+  do conteúdo); mudado depois, ele fica como está e o card diz. Os comandos do Bash (um `sed`, um
+  `rm`) não entram: só as ferramentas de edição passam pelo hook;
+- o diff do arquivo inteiro deixa de fora as linhas iguais do começo e do fim antes da conta, para
+  um arquivo grande com uma mudança no meio não virar "tudo saiu, tudo entrou";
+- o card não vai para o histórico: numa conversa reaberta, as cópias já não existem.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

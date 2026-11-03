@@ -6,6 +6,8 @@ import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { saveIncoming, savePasted } from './attachments'
 import { captureArea } from './area-capture'
+import { setupTurnReviews } from './turn-review'
+import type { TurnReviews } from './turn-review'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
@@ -112,6 +114,8 @@ export function setupChat({
   let viewOnReady: PanelView | null = null
   // Arquivos soltos no mascote antes de a página carregar.
   const pendingAttach: DroppedFiles[] = []
+  // O card do fim do turno (Fase 42): criado junto com os pedidos da página, mais abaixo.
+  let reviews: TurnReviews | null = null
   // O último uso do plano (vale para a conta toda), para mostrar de novo se a página recarregar.
   let lastUsage: [string, Extract<ChatEvent, { type: 'usage' }>] | null = null
   // Só lê, lista e apaga: cada conversa grava a sua com o próprio History.
@@ -135,6 +139,7 @@ export function setupChat({
       conversation.dispose()
       releaseMcpConfig?.(conversation.id)
       rmSync(modeFileOf(conversation.id), { force: true })
+      reviews?.forget(conversation.id)
       onClose?.(conversation.id)
     },
     changed() {
@@ -163,6 +168,8 @@ export function setupChat({
         onEvent?.(event, conversation.id)
       }
       toPage(conversation.id, event)
+      const review = live ? reviews?.onEvent(conversation.id, event) : null
+      if (review) toPage(conversation.id, review)
     },
     attention(conversation) {
       // O Claude fica parado esperando: com o painel escondido (ou ainda nem criado, num comando
@@ -313,6 +320,8 @@ export function setupChat({
     id: unknown
   ): Conversation | undefined =>
     fromChat(event) && typeof id === 'string' ? conversationById(id) : undefined
+  // O card do fim do turno, com o desfazer (Fase 42).
+  reviews = setupTurnReviews(fromChat, () => getConfig().turnReview)
 
   ipcMain.on(IPC.chatReady, (event) => {
     if (!fromChat(event) || !win) return

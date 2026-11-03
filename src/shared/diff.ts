@@ -243,3 +243,36 @@ export function changedLines(diff: FileDiff): number[] {
   }
   return lines
 }
+
+/**
+ * O diff de um arquivo inteiro (Fase 42): as linhas iguais do começo e do fim ficam de fora da
+ * conta (o arquivo grande com uma mudança no meio não cai no "tudo saiu, tudo entrou"), com três
+ * de contexto, e os trechos com os números das linhas.
+ */
+export function wholeFileDiff(before: string, after: string): FileDiff {
+  const a = splitLines(before)
+  const b = splitLines(after)
+  let start = 0
+  while (start < a.length && start < b.length && a[start] === b[start]) start++
+  let end = 0
+  while (
+    end < a.length - start &&
+    end < b.length - start &&
+    a[a.length - 1 - end] === b[b.length - 1 - end]
+  )
+    end++
+  const context = 3
+  const head = Math.max(0, start - context)
+  const middle = lineDiff(
+    a.slice(start, a.length - end).join('\n'),
+    b.slice(start, b.length - end).join('\n')
+  )
+  const lines = [
+    ...a.slice(head, start).map((line) => ` ${line}`),
+    ...middle.lines,
+    ...a
+      .slice(a.length - end, Math.min(a.length, a.length - end + context))
+      .map((line) => ` ${line}`)
+  ]
+  return buildDiff(compactHunks({ oldStart: head + 1, newStart: head + 1, lines }, context))
+}

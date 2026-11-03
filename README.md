@@ -84,6 +84,10 @@ Em resumo:
   retângulo; o recorte vai para a conversa em foco), o
   "usar o que você copiou", o histórico das conversas, a troca de modelo, a pílula do contexto com o
   **Compactar agora** e o uso do seu plano.
+- **Revisar no fim da resposta** (Fase 42, `turnReview`): depois de cada resposta que editou
+  arquivos, um card com cada arquivo (+N −M e o diff, de antes da resposta até agora), **Abrir** e
+  **Desfazer**, um a um ou todos. Junto com o **Aceitar edições**, dá para deixar o Claude editar
+  e revisar tudo de uma vez no fim.
 - Os modos de permissão do Claude Code (**Pedir**, **Aceitar edições**, **Planejar**,
   **Automático**), por conversa, e um **Permitir sempre** que entende comandos (`git status` não
   libera `git push`).
@@ -151,7 +155,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) e 42 (revisar no fim da resposta):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos

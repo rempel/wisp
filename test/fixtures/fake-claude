@@ -130,6 +130,39 @@ fs.appendFileSync(
       : {})
   }) + '\n'
 )
+/**
+ * Roda os hooks PreToolUse do --settings que valem para a ferramenta (o matcher é uma expressão),
+ * com o evento na entrada: a linha de shell pelo sh, a forma exec (command + args) direto.
+ */
+function preToolHooks(toolName, toolInput) {
+  let entries = []
+  try {
+    entries = JSON.parse(flag('--settings')).hooks.PreToolUse ?? []
+  } catch {
+    return
+  }
+  const { spawnSync } = require('node:child_process')
+  const input = JSON.stringify({
+    hook_event_name: 'PreToolUse',
+    tool_name: toolName,
+    tool_input: toolInput,
+    cwd: process.cwd()
+  })
+  for (const entry of entries) {
+    if (entry.matcher && !new RegExp(`^(?:${entry.matcher})$`).test(toolName)) continue
+    for (const hook of entry.hooks ?? []) {
+      const run = hook.args
+        ? spawnSync(hook.command, hook.args, { input, timeout: 15000 })
+        : spawnSync('/bin/sh', ['-c', hook.command], { input, timeout: 15000 })
+      fs.appendFileSync(
+        path.join(STATE, 'hooks.log'),
+        JSON.stringify({ tool: toolName, status: run.status, error: run.error?.message ?? null }) +
+          '\n'
+      )
+    }
+  }
+}
+
 const ALIASES = { haiku: 'claude-haiku-5-5', sonnet: 'claude-sonnet-5-5', opus: 'claude-opus-5-5' }
 const resolveModel = (m) => (m ? (ALIASES[m] ?? m) : 'claude-sonnet-5-5')
 let model = resolveModel(flag('--model'))
@@ -467,6 +500,8 @@ async function runTurn(text) {
   const editing = /\[edit(?: ([^\]]+))?\]/.exec(text)
   if (editing) {
     const file = editing[1] ?? '/home/u/projeto/src/app.ts'
+    // Os hooks PreToolUse do --settings rodam antes da edição, como no de verdade (Fase 42).
+    preToolHooks('Edit', { file_path: file, old_string: 'const b = 2', new_string: 'const b = 3' })
     if (editing[1] && fs.existsSync(file)) {
       const before = fs.readFileSync(file, 'utf8')
       fs.writeFileSync(file, before.replace('const b = 2', 'const b = 3\nconst c = 4'))
