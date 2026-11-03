@@ -71,7 +71,8 @@ export function pickArea(shot: ScreenImage): Promise<NativeImage | null> {
       movable: false,
       minimizable: false,
       maximizable: false,
-      fullscreenable: false,
+      // Em tela cheia: sem isso, o Windows encolhe a janela para fora da barra de tarefas.
+      fullscreen: true,
       skipTaskbar: true,
       alwaysOnTop: true,
       show: false,
