@@ -1336,8 +1336,8 @@ Notas da entrega:
 
 **Status:** pronta (testes: `test/windows.test.ts`, com os scripts do PowerShell rodando no
 Windows; `e2e/toast.mjs`, `e2e/integracoes.mjs` e o card do modo terminal no `e2e/essencial.mjs`,
-no job **Windows** do CI). Fica para depois o segurar para falar (no Windows, o atalho de voz liga
-a escuta, que acaba no silêncio).
+no job **Windows** do CI). Ficou para depois o segurar para falar (no Windows, o atalho de voz
+ligava a escuta, que acabava no silêncio), que veio na Fase 40.
 
 - **Os cards do modo terminal e a aba Sessões (M):** os hooks pelo `Wisp.exe` (forma exec), com o
   relay falando com o Wisp por um named pipe de nome sorteado, que só o seu usuário conhece.
@@ -1583,6 +1583,62 @@ Notas da entrega:
 - um `config.json` com `"avatar": "robo"` abre no fogo-fátuo, sem o aviso de valor inválido, e
   fica com `"fogo"` na próxima gravação;
 - o `CLAUDE.md` do Wisp (a persona) diz que ele é um fogo-fátuo.
+
+### Fase 40: o Windows sem lacunas
+
+**Status:** pronta (testes: `test/segurar.test.ts`, `test/agenda-endereco.test.ts`,
+`test/windows.test.ts`, `test/island.test.ts` e `test/paleta.test.ts`; os scripts do PowerShell e
+os dois shells da linha de status rodam no job **Windows** do CI, que também monta o instalador
+ARM64 e confere os binários com o `scripts/smoke-win-arm64.mjs`).
+
+Veio da revisão do roadmap: o que ainda era pior no Windows que no Linux.
+
+- **Segurar para falar (M):** o atalho de voz ouve enquanto está apertado, como no Linux.
+- **A agenda pelo endereço iCal (M):** o Google, o Outlook e o iCloud pelo endereço secreto da
+  agenda, no chaveiro. É a agenda do Windows, que não tem as agendas do GNOME, e vale no Linux.
+- **O "não perturbe" do Windows (P):** ligado, o Wisp fica quieto (sem notificações e sem sons).
+- **A linha de status no PowerShell (P):** a do Wisp também sem o Git Bash.
+- **O instalador ARM64 (M):** para os Windows com Snapdragon, com o Atualizar escolhendo o certo.
+- **A assinatura do instalador (P):** com um certificado nos segredos do CI, sai assinado.
+
+**Aceite:** no Windows, segurar o atalho de voz ouve até soltar; uma agenda do Google colada pelo
+endereço mostra o próximo compromisso no painel; com o "não perturbe" ligado, um card não toca
+som nem notifica; no modo terminal sem o Git Bash, a linha de status é a do Wisp; o instalador
+ARM64 sai no CI com os binários de ARM64.
+
+Notas da entrega:
+
+- segurar para falar: o `globalShortcut` só avisa o aperto. No primeiro aperto, o `keys-win.ts`
+  abre um PowerShell com o `GetAsyncKeyState`, que confere a tecla de 30 em 30 ms só entre o
+  aperto e o soltar (no resto do tempo espera a próxima linha da entrada, sem gastar CPU). Uma
+  tecla presa por mais de 2 minutos conta como solta. Se o script cair, a escuta em curso acaba e
+  o atalho volta ao toque (até o silêncio). A pontuação muda de lugar conforme o teclado: um
+  atalho com ela fica no toque;
+- a agenda: o endereço é um segredo (quem o tem lê a agenda), então vai para o chaveiro
+  (`calendar-link-<id>`), e o `config.json` guarda o id e o nome (`calendarLinks`); exportar (Fase 31) não o leva. Só https (o `webcal://` vira https), conferido ao guardar (precisa vir um
+  `BEGIN:VCALENDAR`; sem rede, guarda com o aviso). Cada agenda é baixada de 15 em 15 minutos no
+  máximo, com o ETag, até 5 MB, e a última que veio fica na memória para quando a rede falha. Nenhuma
+  mensagem, nem do registro, leva o endereço. O Outlook e o Google de empresa às vezes desligam a
+  publicação: aí o endereço não aparece nas opções da agenda;
+- o "não perturbe": o Windows não avisa um app quando ele muda, e consultar de tempos em tempos
+  gastaria CPU. O PowerShell da música (Fase 37) já fica aberto e acorda a cada 4 s: no mesmo
+  laço, ele lê o perfil do Assistente de Foco (o estado WNF que o Windows publica, pelo
+  `NtQueryWnfStateData`, que não é documentado) e a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` (o
+  botão "Não perturbe" do Windows 11), e escreve uma linha só quando muda. O CI conferiu o C# e a
+  chave; o Assistente de Foco de verdade fica para a validação;
+- a linha de status: o Claude Code a roda no Git Bash ou, sem ele, no PowerShell, que não executa
+  um caminho entre aspas. Com o caminho do Wisp só de letras, algarismos e `_ . : / -` (o comum),
+  a linha vai sem aspas e roda igual nos dois; o CI roda a mesma linha nos dois shells. Com um
+  espaço no caminho, fica entre aspas, só para o Git Bash, como antes;
+- o ARM64: o `node-pty` já traz o binário pronto para o Windows ARM64, e o
+  `scripts/electron-arm64.mjs` baixa o Electron de ARM64 também para o Windows (com o `tar` do
+  Windows pelo caminho completo: o do Git, antes no PATH do runner, não abre .zip). O afterPack
+  tira o `node-pty` da outra arquitetura. O Atualizar baixa o `-Setup-arm64.exe` num Windows
+  ARM64. Abrir o Wisp de ARM64 pede uma máquina ARM (está no roteiro de validação);
+- a assinatura: o electron-builder assina quando o `WIN_CSC_LINK` (o `.pfx` em base64) e o
+  `WIN_CSC_KEY_PASSWORD` existem; vazios, ele não tenta. O certificado é de quem publica;
+- ficou de fora o comando `wisp` no PATH: pôr a pasta do Wisp no PATH do usuário muda o ambiente
+  de todo programa, e o `Wisp.exe` já aceita as mesmas opções (`--ask`).
 
 ## Ideias avaliadas e deixadas de fora
 
