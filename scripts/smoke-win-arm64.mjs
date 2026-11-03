@@ -50,6 +50,7 @@ for (const [arch, dir, other] of [
     check(found === arch, `${path.slice(dist.length + 1)}: ${found}`)
   }
   check(!existsSync(join(prebuilds, `win32-${other}`)), `${dir} sem o node-pty de ${other}`)
+  check(!existsSync(join(app, 'resources', 'app', '.cache')), `${dir} sem a pasta .cache`)
   const installers = readdirSync(dist).filter((name) => name.endsWith(`-Setup-${arch}.exe`))
   check(installers.length === 1, `o instalador ${arch}: ${installers.join(', ') || 'nenhum'}`)
 }
