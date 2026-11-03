@@ -296,8 +296,8 @@ irm https://claude.ai/install.ps1 | iex
 - **Na aba Sessões, Trazer para a frente** (Fase 36) acha a janela do terminal da sessão (o
   Windows Terminal, o VS Code, o console) pelos processos e a traz para a frente. **O navegador do
   Claude** (`browserAutomation`) acha o Chrome ou o Edge sozinho, nas pastas de instalação. **No
-  modo terminal**, a linha de status é a do Wisp (com o Git Bash, que o Claude Code usa para
-  ela).
+  modo terminal**, a linha de status é a do Wisp, no Git Bash ou no PowerShell (Fase 40; no
+  PowerShell, só se o caminho do Wisp não tiver espaços, o que é o comum).
 - **Remover:** Configurações do Windows → **Aplicativos** → Wisp → **Desinstalar**. As pastas
   `%APPDATA%\Wisp` e `%LOCALAPPDATA%\Wisp` ficam; apague-as para tirar tudo.
 - **Do código, no Windows:** com o [Node](https://nodejs.org) 22 e o Git, `npm ci` e
