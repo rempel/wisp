@@ -38,6 +38,8 @@ src/
 │  ├─ worktrees.ts   # a conversa numa cópia do Git: criar, mudanças, juntar e descartar (Fase 43)
 │  ├─ worktrees-ipc.ts # a cópia pelo painel: a barra, o menu das pastas e a arrumação (Fase 43)
 │  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
+│  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
+│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X

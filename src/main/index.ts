@@ -97,6 +97,8 @@ import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
 import { captureArea } from './area-capture'
 import { usageAlertsFor } from './usage-alerts'
+import { createFocus } from './focus'
+import { explainSelection } from './selection'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
@@ -222,6 +224,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     flash: (state) => mood.flashExternal(state),
     sound: (name) => sounds.play(name)
   }
+  // O modo foco (Fase 45): o Wisp quieto por um bloco; o menu acompanha.
+  const focus = createFocus(signals, () => menu?.refresh())
 
   // O aviso do uso do plano (Fase 41): uma vez ao passar de 80% e de 95% de cada janela.
   const usageAlerts = usageAlertsFor(signals, () => chat?.open())
@@ -718,6 +722,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     openDiagnostics: () => chat?.showView('diagnostics'),
     openPalette: () => chat?.showView('palette'),
     quiet,
+    focusEndsAt: () => focus.endsAt(),
+    startFocus: (minutes) => focus.start(minutes),
+    stopFocus: () => focus.stop(),
     shortcutLabel: () => shortcutLabel('toggle'),
     voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {
@@ -797,6 +804,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   powerMonitor.on('resume', () => {
     reminders.resume()
     scheduler.resume()
+    focus.resume()
     github.watcher.refreshSoon()
     if (calendar.agenda.enabled) void calendar.agenda.refresh()
   })
@@ -824,13 +832,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     const { shortcut, voiceShortcut, paletteShortcut, compact } = getConfig()
     // O da ilha (Fase 38) só vale com ela ligada.
     const islandShortcut = compact ? getConfig().islandShortcut : null
-    const { areaShortcut } = getConfig()
+    const { areaShortcut, selectionShortcut } = getConfig()
     const key = JSON.stringify([
       shortcut,
       voiceShortcut,
       paletteShortcut,
       islandShortcut,
-      areaShortcut
+      areaShortcut,
+      selectionShortcut
     ])
     if (key === boundShortcuts) return
     boundShortcuts = key
@@ -879,6 +888,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
           void captureArea(() => chat?.capture() ?? Promise.resolve([])).then((dropped) => {
             if (dropped.files.length || dropped.problems.length) chat?.attach(dropped)
           })
+      },
+      {
+        // Explicar a seleção (Fase 45): o texto marcado vai para uma conversa nova, na caixa.
+        id: 'selection',
+        accelerator: selectionShortcut,
+        description: t('Explicar o texto selecionado com o Wisp'),
+        press: () => void explainSelection(chat, notify)
       }
     ])
     for (const [id, status] of shortcuts) {
@@ -918,6 +934,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     reminders.dispose()
     scheduler.dispose()
     triggers.dispose()
+    focus.dispose()
     releaseShortcuts()
     voice?.cancel()
     screenLock.dispose()

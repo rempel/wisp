@@ -444,6 +444,18 @@ export function SettingsView({
               onCommit={(areaShortcut) => save({ areaShortcut })}
             />
           </Row>
+          <Row
+            label={t('Explicar a seleção')}
+            hint={t(
+              'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).'
+            )}
+            error={errors.selectionShortcut}
+          >
+            <ShortcutInput
+              value={values.selectionShortcut}
+              onCommit={(selectionShortcut) => save({ selectionShortcut })}
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(

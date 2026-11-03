@@ -1769,6 +1769,33 @@ Notas da entrega:
   abrir: o painel aplica os eventos a cada quadro, e escondido ele não desenha. Numa tarefa com um
   card, o card abre o painel; sem card, a mensagem está lá quando você abrir.
 
+### Fase 45: explicar a seleção e o modo foco
+
+**Status:** pronta (testes: `test/foco.test.ts`; `e2e/selecao.mjs`, com o atalho de verdade pelo
+xdotool, no job do Linux do CI).
+
+- **Explicar a seleção (M):** um atalho (Ctrl+Alt+E) leva o texto marcado em qualquer programa
+  para uma conversa nova, com o pedido de explicar na caixa, para trocar e mandar.
+- **O modo foco (P):** um bloco de 25 ou 50 minutos, pelo menu, com o Wisp quieto; no fim, o
+  mascote comemora e uma notificação avisa.
+
+**Aceite:** marcar um parágrafo no navegador e apertar Ctrl+Alt+E abre a conversa com ele na
+caixa; com o foco ligado, um card não toca som nem notifica, e no fim do bloco o mascote comemora.
+
+Notas da entrega:
+
+- a seleção: no Linux, a seleção primária do X (o que está marcado, sem copiar), pelo
+  `clipboard.selection` do Electron (no Wayland, a do XWayland, que o GNOME e o KDE espelham). No
+  Windows, que não tem seleção primária, um PowerShell espera as teclas do atalho subirem (até
+  1,5 s; senão o Ctrl+C sairia Ctrl+Alt+C) e aperta Ctrl+C; o Wisp lê o texto novo e devolve a área
+  de transferência como estava (todos os formatos). Até 20 mil caracteres;
+- só o pedido de explicar vai na caixa: as outras ações (traduzir, corrigir, resumir) são trocar o
+  verbo antes de mandar. Os botões de ação ficaram de fora: no Linux, a ilha não recebe o teclado,
+  e o painel já é onde se escreve;
+- o foco é o mesmo "quieto" do "não perturbe" (Fase 32), somado a ele: sem notificações e sem sons,
+  e os cards esperam no painel (e vão para o celular, se ligado). O temporizador confere de minuto
+  em minuto, e a volta da suspensão confere na hora. Não sobrevive a fechar o Wisp.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

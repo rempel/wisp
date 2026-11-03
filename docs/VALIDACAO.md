@@ -939,3 +939,14 @@ Com **Ilha no topo** ligada:
       vez; bloquear e desbloquear de novo em seguida não roda outra (5 minutos).
 - [ ] **Rodar agora:** numa tarefa por evento, **Rodar agora** roda com "(rodada à mão, sem um
       evento)".
+
+## Explicar a seleção e o modo foco (Fase 45)
+
+- [ ] **Seleção no Linux:** marque um parágrafo no navegador (sem copiar) e aperte **Ctrl+Alt+E**:
+      o painel abre com "Explique… :" e o parágrafo na caixa, sem mandar.
+- [ ] **Seleção no Windows:** copie algo (uma imagem, por exemplo), marque um texto no Bloco de
+      Notas e aperte **Ctrl+Alt+E**: o texto vai para a caixa, e colar depois traz a imagem de antes.
+- [ ] **Nada marcado:** sem nada marcado, o atalho mostra a notificação "Nada selecionado".
+- [ ] **Foco:** botão direito no mascote → **Modo foco** → **25 minutos**: o menu passa a mostrar
+      "Parar o foco (até …)"; peça um comando: o card não toca som nem notifica.
+- [ ] **Fim do foco:** no fim do bloco, o mascote comemora e sai a notificação "Foco concluído".

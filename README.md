@@ -161,7 +161,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git) e 44 (tarefas por evento):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git), 44 (tarefas por evento) e 45 (explicar a seleção e o modo foco):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -903,6 +903,12 @@ então o login da assinatura nunca é tocado.
   nessa hora), `{data}` e `{hora}`; em inglês, `{folder}`, `{clipboard}`, `{date}` e `{time}` (as
   duas formas valem sempre). Um prompt com o nome de um comando do Claude Code passa na frente dele
   no menu do Wisp. A lista fica em **Configurações → Prompts salvos**.
+- **Explicar a seleção** (Fase 45, **Ctrl+Alt+E**, `selectionShortcut`): marque um texto em
+  qualquer programa e aperte o atalho: ele vai para uma conversa nova, com o pedido de explicar na
+  caixa (troque por "traduza", "corrija"… e mande). No Linux, vem da seleção primária (sem
+  copiar); no Windows, o Wisp aperta Ctrl+C por você e devolve a área de transferência como estava.
+- **Modo foco** (Fase 45): no menu do mascote ou da bandeja, **Modo foco** → 25 ou 50 minutos: o
+  Wisp fica quieto (sem notificações nem sons; os cards esperam no painel) e, no fim, comemora.
 - **Tarefas por evento** (Fase 44): no lugar do horário, o **Quando** da tarefa pode ser uma
   revisão num PR seu ou um CI seu que falhou (com os alertas do GitHub ligados), um arquivo novo
   numa pasta (os que já estavam lá não contam, e os que ainda baixam esperam) ou a tela
