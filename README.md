@@ -273,9 +273,9 @@ irm https://claude.ai/install.ps1 | iex
   navegadores, o player do Windows) e o volume do sistema. Tudo pelas funções do próprio Windows,
   sem o cmd: nada procura programas na pasta atual. O `editorCommand` `code` abre o `Code.exe`
   do VS Code (o `code.cmd` passaria pelo cmd; o mesmo para o Cursor, o VSCodium e o Windsurf).
-- **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). O atalho de voz liga a
-  escuta, que acaba no silêncio depois da fala (ou num segundo aperto): segurar para falar ainda
-  não dá no Windows.
+- **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). Segurar o atalho de voz
+  ouve enquanto ele estiver apertado (Fase 40), como no Linux; um toque rápido ouve até o silêncio
+  depois da fala.
 - **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
   sistema (a barrinha de volume da ilha também). Desde a Fase 37, um PowerShell fica acompanhando
   o controle de mídia do Windows (lê a lista de players a cada 4 s, ou 1,5 s com a ilha aberta, e
