@@ -100,6 +100,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   "não perturbe" do Windows deixa o Wisp quieto; a linha de status do Wisp também sem o Git Bash;
   e o instalador para Windows ARM64.
 
+- **Recortar, o aviso do plano e o CI que vira conversa** (Fase 41): recortar uma área da tela
+  para a conversa (pelo **+** ou com Ctrl+Alt+R); um aviso ao passar de 80% e de 95% das janelas
+  do plano; e o clique num CI vermelho ou num pedido de mudanças abre uma aba com o pedido de
+  investigar pronto.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

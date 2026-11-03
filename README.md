@@ -151,7 +151,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre) e 40 (o Windows sem lacunas):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -965,7 +965,8 @@ Em **Configurações → Integrações**:
 - **Alertas do GitHub:** pelo `gh` já logado (o Wisp não guarda token nenhum). A cada 3 minutos, ele
   confere os seus PRs abertos e os que pedem a sua revisão e avisa o que mudou: CI que falhou ou
   passou, aprovação, pedido de mudanças, comentário, pedido de revisão. O clique na notificação abre o
-  PR. Pergunte "como estão meus PRs?".
+  PR; num CI vermelho ou num pedido de mudanças (Fase 41), ele abre uma aba nova com o pedido de
+  investigar já na caixa (o PR, o link e como ler o log pelo `gh`), para você revisar e mandar. Pergunte "como estão meus PRs?".
 - **Agenda:** as agendas do GNOME (as ligadas no app Agenda, inclusive Google, Microsoft e Nextcloud
   pelas Contas Online), arquivos `.ics` ou pastas do vdirsyncer e, desde a Fase 40, o endereço
   iCal de uma agenda do Google, do Outlook ou do iCloud (é assim que a agenda chega no Windows). O

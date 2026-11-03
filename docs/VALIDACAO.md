@@ -881,3 +881,20 @@ Com **Ilha no topo** ligada:
       a linha de status embaixo é a do Wisp.
 - [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
       modo terminal abre o Claude Code.
+
+## Recortar, o aviso do plano e o CI que vira conversa (Fase 41)
+
+- [ ] **Recortar pelo +:** no painel, **+** → **Recortar uma área**: o painel some, a tela fica
+      escurecida com a dica no topo. Arraste um retângulo em volta de uma janela: o recorte aparece
+      nos anexos da caixa, só com aquela área.
+- [ ] **Recortar de qualquer lugar:** com o painel fechado, **Ctrl+Alt+R**: a mesma camada; o
+      recorte abre o painel com ele na caixa. Esc desiste sem anexar nada.
+- [ ] **Duas telas:** com o cursor na segunda tela, Ctrl+Alt+R: a camada aparece nela, com o
+      print dela.
+- [ ] **Wayland:** no GNOME com Wayland, o sistema pergunta da captura na primeira vez; depois, a
+      camada mostra o print e recorta igual.
+- [ ] **Aviso do plano:** num dia de uso pesado, ao passar de 80% da janela de 5 horas, sai uma
+      notificação com a hora em que ela reinicia. Abrir o Wisp de novo não repete o aviso.
+- [ ] **CI que vira conversa:** com os alertas do GitHub ligados, faça um PR com o CI quebrado:
+      a notificação diz "Clique para investigar"; o clique abre uma aba nova com o pedido na caixa,
+      sem mandar. Mande: o Claude pede para rodar o `gh` e explica o que quebrou.

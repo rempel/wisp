@@ -222,6 +222,29 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
   }
 }
 
+/**
+ * O pedido pronto para investigar um alerta ruim (Fase 41): o CI que falhou ou o pedido de
+ * mudanças, com o PR, o link e como o Claude lê o que aconteceu pelo gh. Vai para a caixa de
+ * uma aba nova, para você revisar e mandar. null para os outros alertas.
+ */
+export function investigatePrompt(alert: GithubAlert): string | null {
+  if (alert.kind === 'ci-failed') {
+    const { pr } = alert
+    return t(
+      'O CI do PR {repo}#{number} "{title}" falhou ({url}). Veja o que quebrou (`gh pr checks {number} --repo {repo}` e `gh run view --log-failed --repo {repo}` com o id da execução que falhou), explique a causa e proponha a correção.',
+      { repo: pr.repo, number: pr.number, title: pr.title, url: pr.url }
+    )
+  }
+  if (alert.kind === 'review' && alert.state === 'CHANGES_REQUESTED') {
+    const { pr } = alert
+    return t(
+      '{author} pediu mudanças no PR {repo}#{number} "{title}" ({url}). Leia a revisão (`gh pr view {number} --repo {repo} --comments`) e proponha o que mudar, um ponto por vez.',
+      { author: alert.author, repo: pr.repo, number: pr.number, title: pr.title, url: pr.url }
+    )
+  }
+  return null
+}
+
 /** A leitura em texto, para a ferramenta github_status (o Claude responde "como estão meus PRs?"). */
 export function describeSnapshot(snapshot: GithubSnapshot): string {
   const ci: Record<CiState, string> = {

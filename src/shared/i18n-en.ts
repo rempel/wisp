@@ -2284,5 +2284,10 @@ export const EN: Record<string, string> = {
     'You can continue with Sonnet or Haiku in the model pill, which use less.',
   'Aviso do uso do plano': 'Plan usage alert',
   'Avisa uma vez ao passar de 80% e de 95% da janela de 5 horas ou da semana do seu plano, com a hora em que ela reinicia.':
-    "Alerts once when passing 80% and 95% of your plan's 5-hour window or week, with the time it resets."
+    "Alerts once when passing 80% and 95% of your plan's 5-hour window or week, with the time it resets.",
+  'Clique para investigar numa conversa.': 'Click to investigate in a conversation.',
+  'O CI do PR {repo}#{number} "{title}" falhou ({url}). Veja o que quebrou (`gh pr checks {number} --repo {repo}` e `gh run view --log-failed --repo {repo}` com o id da execução que falhou), explique a causa e proponha a correção.':
+    'CI for PR {repo}#{number} "{title}" failed ({url}). See what broke (`gh pr checks {number} --repo {repo}` and `gh run view --log-failed --repo {repo}` with the id of the failed run), explain the cause and propose a fix.',
+  '{author} pediu mudanças no PR {repo}#{number} "{title}" ({url}). Leia a revisão (`gh pr view {number} --repo {repo} --comments`) e proponha o que mudar, um ponto por vez.':
+    '{author} requested changes on PR {repo}#{number} "{title}" ({url}). Read the review (`gh pr view {number} --repo {repo} --comments`) and propose what to change, one point at a time.'
 }

@@ -1640,6 +1640,41 @@ Notas da entrega:
 - ficou de fora o comando `wisp` no PATH: pôr a pasta do Wisp no PATH do usuário muda o ambiente
   de todo programa, e o `Wisp.exe` já aceita as mesmas opções (`--ask`).
 
+### Fase 41: recortar, o aviso do plano e o CI que vira conversa
+
+**Status:** pronta (testes: `test/recorte.test.ts`, `test/uso-plano.test.ts` e
+`test/github.test.ts`; `e2e/recorte.mjs`, no job do Linux e no **Windows** do CI).
+
+Das ideias novas, as que aproveitam o que o Wisp já tem.
+
+- **Recortar uma área (P):** pelo **+** da caixa ou de qualquer lugar (Ctrl+Alt+R), arrastar um
+  retângulo na tela; o recorte vai para a conversa em foco.
+- **O aviso do uso do plano (P):** ao passar de 80% e de 95% da janela de 5 horas ou da semana,
+  uma vez, com a hora do reinício e a sugestão de um modelo que gasta menos.
+- **O CI que vira conversa (P):** o clique num CI vermelho ou num pedido de mudanças abre uma aba
+  com o pedido de investigar pronto.
+
+**Aceite:** Ctrl+Alt+R, arrastar e soltar põe o recorte na caixa da conversa; com 81% da janela de
+5 horas, sai um aviso, e não sai outro até ela reiniciar; o clique no alerta de um CI vermelho
+abre uma aba com o PR e como ler o log, sem mandar nada.
+
+Notas da entrega:
+
+- o recorte é do próprio Wisp, sem programa de fora: o print de sempre (o painel sai da frente),
+  numa camada em tela cheia (a página `area`) na tela do cursor, com a imagem inteira, sem
+  distorcer. O retângulo volta em pixels da imagem e é conferido no main (dentro dela, de pelo
+  menos 4 pixels); Esc, o botão direito, um clique sem arrastar ou 2 minutos sem nada desistem.
+  No Wayland, o portal dá um print só (de todas as telas): a camada mostra ele inteiro. A
+  ferramenta de recorte do Windows (`ms-screenclip:`) ficou de fora: ela só devolve pela área de
+  transferência, e o Wisp teria de ficar olhando a área de transferência;
+- o aviso do plano: os números já vinham no `rate_limit_event` (Fase 38), a cada resposta. Uma
+  janela que reinicia (outra hora de reinício, ou o uso caindo) zera os degraus. O que foi avisado
+  fica em `aviso-do-plano.json`, para não repetir a cada vez que o Wisp abre. Com o limite já
+  atingido, o aviso do próprio painel basta;
+- o CI que vira conversa: o pedido vai para a caixa de uma aba nova, sem ser mandado (o Claude
+  roda o `gh` pelos cards, como sempre). O título do PR vem do GitHub e vai no texto: você o vê
+  antes de mandar. Os outros alertas abrem o PR no navegador, como antes.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
