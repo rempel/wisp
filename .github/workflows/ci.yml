@@ -246,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows segurar paleta busca conversa diagnostics notificacoes editor island
+        run: npm test -- windows segurar copias revisar paleta busca conversa diagnostics notificacoes editor island
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}
@@ -270,6 +270,10 @@ jobs:
         run: node e2e/integracoes.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Ponta a ponta (a conversa numa cópia do Git)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/copias.mjs
       - name: Ponta a ponta (revisar no fim da resposta)
         if: ${{ !cancelled() }}
         timeout-minutes: 10

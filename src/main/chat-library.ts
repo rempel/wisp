@@ -2,6 +2,7 @@
 // (listar, abrir numa aba, apagar, fixar), exportar em Markdown, abrir uma pasta ou um projeto
 // numa conversa nova e expandir um prompt salvo (Fase 26).
 
+import { setupWorktrees } from './worktrees-ipc'
 import { app, clipboard, ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { writeFileSync } from 'fs'
@@ -142,34 +143,49 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     open?.reset()
     return removed
   })
-  const projects = (): FolderChoice[] =>
-    listProjects(getConfig().projectRoots).map(({ nome, caminho }) => ({
+  // As cópias do Git (Fase 43): as guardadas, sem aba, entram na lista para reabrir.
+  const copies = setupWorktrees({ fromChat, tabs })
+  const projects = (): FolderChoice[] => [
+    ...listProjects(getConfig().projectRoots).map(({ nome, caminho }) => ({
       name: nome,
       display: tilde(caminho),
       path: caminho
-    }))
+    })),
+    ...copies.saved()
+  ]
   ipcMain.handle(IPC.tabsProjects, (event): FolderChoice[] => (fromChat(event) ? projects() : []))
-  ipcMain.handle(IPC.tabsOpenFolder, async (event, path: unknown): Promise<FolderResult> => {
-    if (!fromChat(event)) return { ok: false, message: t('pedido inválido') }
-    let chosen: string | null
-    if (typeof path === 'string') {
-      // Da página, só um projeto da lista; outra pasta, só escolhida no diálogo do sistema.
-      if (!projects().some((project) => project.path === path)) {
-        return { ok: false, message: t('Essa pasta não está nas suas pastas de projetos.') }
+  ipcMain.handle(
+    IPC.tabsOpenFolder,
+    async (event, path: unknown, worktree: unknown): Promise<FolderResult> => {
+      if (!fromChat(event)) return { ok: false, message: t('pedido inválido') }
+      let chosen: string | null
+      if (typeof path === 'string') {
+        // Da página, só um projeto da lista; outra pasta, só escolhida no diálogo do sistema.
+        if (!projects().some((project) => project.path === path)) {
+          return { ok: false, message: t('Essa pasta não está nas suas pastas de projetos.') }
+        }
+        chosen = path
+      } else {
+        chosen = await pickFolder(t('Abrir uma pasta numa conversa'), homedir(), win())
+        if (!chosen) return { ok: false }
       }
-      chosen = path
-    } else {
-      chosen = await pickFolder(t('Abrir uma pasta numa conversa'), homedir(), win())
-      if (!chosen) return { ok: false }
+      let folder = usableFolder(chosen)
+      if (!folder) return { ok: false, message: t('Não dá para abrir essa pasta numa conversa.') }
+      // Numa cópia (Fase 43): a worktree nova, num ramo só dela; uma cópia guardada abre como está.
+      if (worktree === true && copies.worktrees && !copies.worktrees.byDir(folder)) {
+        try {
+          folder = (await copies.worktrees.create(folder)).dir
+        } catch (err) {
+          return { ok: false, message: (err as Error).message }
+        }
+      }
+      const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
+      ctx.show()
+      // Se a pasta tiver hooks ou ferramentas liberadas, o card de confiança já aparece.
+      void conversation.checkFolder()
+      return { ok: true }
     }
-    const folder = usableFolder(chosen)
-    if (!folder) return { ok: false, message: t('Não dá para abrir essa pasta numa conversa.') }
-    const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
-    ctx.show()
-    // Se a pasta tiver hooks ou ferramentas liberadas, o card de confiança já aparece.
-    void conversation.checkFolder()
-    return { ok: true }
-  })
+  )
   ipcMain.handle(IPC.promptsList, (event) => (fromChat(event) ? getConfig().prompts : []))
   ipcMain.handle(
     IPC.promptsExpand,

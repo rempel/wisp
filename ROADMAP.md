@@ -1708,6 +1708,37 @@ Notas da entrega:
   um arquivo grande com uma mudança no meio não virar "tudo saiu, tudo entrou";
 - o card não vai para o histórico: numa conversa reaberta, as cópias já não existem.
 
+### Fase 43: a conversa numa cópia do Git
+
+**Status:** pronta (testes: `test/copias.test.ts`, com o git de verdade; `e2e/copias.mjs`, no job do
+Linux e no **Windows** do CI).
+
+- **Abrir numa cópia (M):** no menu das pastas, a conversa trabalha numa worktree do projeto, num
+  ramo só dela (`wisp/<id>`).
+- **A barra da cópia (P):** o ramo e o que mudou, relido no fim de cada resposta.
+- **Juntar e descartar (M):** as mudanças entram na pasta original, sem commit; descartar tira a
+  cópia e o ramo e fecha a aba.
+
+**Aceite:** duas conversas no mesmo projeto, cada uma numa cópia, editam o mesmo arquivo sem uma
+ver a mudança da outra; juntar uma leva a mudança dela para a pasta original; descartar a outra
+some com ela.
+
+Notas da entrega:
+
+- juntar é um patch (`git diff --cached --binary` da base até a cópia, com os arquivos novos pelo
+  `git add -A` no índice da cópia), conferido antes com `git apply --check` na pasta original: se
+  não entra limpo, nada muda lá, e o ramo fica para juntar à mão. Sem commit, nem na cópia nem na
+  original: o que entra fica para você revisar e commitar. A base passa a ser a árvore do que já
+  entrou (`git write-tree`), então juntar de novo leva só o que mudou depois;
+- descartar pede uma segunda confirmação na própria barra, tira a worktree (`git worktree remove
+--force`) e o ramo, e fecha a aba (a conversa fica no histórico);
+- as cópias ficam nos dados do Wisp (`copias/`, com a lista em `copias.json`). Ao abrir o Wisp,
+  uma cópia sem mudança e sem aba sai; uma com mudança entra no menu das pastas, para reabrir;
+- a pasta da cópia tem os hooks e as configurações do projeto: o card de confiança (Fase 15)
+  aparece para ela como para a original;
+- a página nunca manda um caminho: cada pedido vem com o id da conversa, e a cópia é a da pasta
+  dela.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

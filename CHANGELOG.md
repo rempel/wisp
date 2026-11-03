@@ -108,6 +108,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Revisar no fim da resposta** (Fase 42): um card com os arquivos que a resposta mudou, o diff de
   cada um e o **Desfazer**, um a um ou todos.
 
+- **A conversa numa cópia do Git** (Fase 43): abrir um projeto numa worktree, num ramo só da
+  conversa, e no fim juntar na pasta original (sem commit) ou descartar.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

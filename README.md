@@ -84,6 +84,12 @@ Em resumo:
   retângulo; o recorte vai para a conversa em foco), o
   "usar o que você copiou", o histórico das conversas, a troca de modelo, a pílula do contexto com o
   **Compactar agora** e o uso do seu plano.
+- **Numa cópia do Git** (Fase 43): no menu das pastas, **Numa cópia (worktree do Git)** abre o
+  projeto numa worktree, num ramo só da conversa (`wisp/…`), para duas tarefas no mesmo
+  repositório não pisarem uma na outra. A barra da cópia mostra o que mudou nela; **Juntar na
+  pasta original** leva as mudanças para lá (sem commit) e **Descartar** tira a cópia e o ramo.
+  As cópias ficam em `copias/`, nos dados do Wisp; uma sem mudança e sem aba sai quando o Wisp
+  abre, e uma com mudança aparece no menu das pastas para reabrir.
 - **Revisar no fim da resposta** (Fase 42, `turnReview`): depois de cada resposta que editou
   arquivos, um card com cada arquivo (+N −M e o diff, de antes da resposta até agora), **Abrir** e
   **Desfazer**, um a um ou todos. Junto com o **Aceitar edições**, dá para deixar o Claude editar
@@ -155,7 +161,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) e 42 (revisar no fim da resposta):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta) e 43 (a conversa numa cópia do Git):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
