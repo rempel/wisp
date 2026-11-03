@@ -26,11 +26,15 @@ export interface GithubAlerts {
   update(): void
   /** O retrato dos seus PRs em texto, para o Claude. */
   describe(): Promise<string>
+  /** Os alertas novos, para as tarefas por evento (Fase 44). */
+  onAlerts(listener: (alerts: GithubAlert[]) => void): void
 }
 
 export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAlerts {
   const { notify } = signals
+  const listeners: ((alerts: GithubAlert[]) => void)[] = []
   const alerted = (alerts: GithubAlert[]): void => {
+    for (const listener of listeners) listener(alerts)
     signals.activity()
     const first = describeAlert(alerts[0])
     islandMessage(first.title, first.body, 8000)
@@ -95,6 +99,7 @@ export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAl
   })
   return {
     watcher,
+    onAlerts: (listener) => void listeners.push(listener),
     update: () => {
       if (getConfig().github) watcher.start()
       else watcher.stop()

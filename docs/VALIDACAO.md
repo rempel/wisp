@@ -926,3 +926,16 @@ Com **Ilha no topo** ligada:
       mais o ramo.
 - [ ] **Guardada:** feche a aba de uma cópia com mudanças e abra o Wisp de novo: ela aparece no
       menu das pastas, para reabrir.
+
+## Tarefas por evento (Fase 44)
+
+- [ ] **Arquivo novo:** em **Configurações → Tarefas agendadas**, **Nova tarefa** com **Quando**
+      "Quando aparece um arquivo novo numa pasta", a pasta `~/Downloads` e o prompt "Diga o que é
+      {evento}". Baixe um PDF no navegador: quando o download termina, abre uma aba com o caminho.
+- [ ] **CI vermelho:** com os alertas do GitHub ligados, uma tarefa "Quando o CI de um PR seu
+      falha" com "Investigue {evento}": quebre o CI de um PR e espere o alerta: a aba abre com o
+      link do PR.
+- [ ] **Desbloquear:** uma tarefa "Ao desbloquear a tela": bloqueie e desbloqueie: ela roda uma
+      vez; bloquear e desbloquear de novo em seguida não roda outra (5 minutos).
+- [ ] **Rodar agora:** numa tarefa por evento, **Rodar agora** roda com "(rodada à mão, sem um
+      evento)".

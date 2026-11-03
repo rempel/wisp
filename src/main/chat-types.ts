@@ -43,7 +43,7 @@ export interface Chat {
    * config.json não vale aqui). Com você olhando o painel, a aba nova não toma o lugar da que está
    * à vista.
    */
-  runTask(task: ScheduledTask): TaskResult
+  runTask(task: ScheduledTask, event?: string): TaskResult
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
   /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */

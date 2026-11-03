@@ -28,6 +28,7 @@ import {
   MAX_TASKS,
   PROMPT_NAME,
   RESERVED_NAMES,
+  TASK_TRIGGERS,
   TIME,
   defaultPrompts
 } from '../shared/prompts'
@@ -419,6 +420,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
         id: z.string().regex(/^[\w-]{1,40}$/),
         name: z.string().trim().min(1).max(80),
         prompt: z.string().trim().min(1).max(MAX_PROMPT_TEXT),
+        trigger: z.enum(TASK_TRIGGERS).optional(),
+        watch: z.string().trim().min(1).max(500).nullable().optional(),
         time: z.string().regex(TIME),
         days: z.array(z.number().int().min(0).max(6)).max(7),
         folder: z.string().trim().min(1).max(500).nullable(),
