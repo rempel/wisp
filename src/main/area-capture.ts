@@ -71,8 +71,8 @@ export function pickArea(shot: ScreenImage): Promise<NativeImage | null> {
       movable: false,
       minimizable: false,
       maximizable: false,
-      // Em tela cheia: sem isso, o Windows encolhe a janela para fora da barra de tarefas.
-      fullscreen: true,
+      // Sem a borda de redimensionar do Windows (ela soma alguns pixels de cada lado).
+      thickFrame: false,
       skipTaskbar: true,
       alwaysOnTop: true,
       show: false,
@@ -113,6 +113,9 @@ export function pickArea(shot: ScreenImage): Promise<NativeImage | null> {
     })
     win.once('ready-to-show', () => {
       win.show()
+      // A tela inteira depois de aparecer: ao criar, o Windows encolhe a janela para fora da barra
+      // de tarefas (o CI mostrou 720 de 768 pixels).
+      win.setBounds(display.bounds)
       win.focus()
     })
     loadPage(win, 'area')

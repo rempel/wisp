@@ -82,14 +82,21 @@ export function setupWorktrees(options: WorktreesIpcOptions): {
     const worktree = of(event, id)
     if (!worktree || !worktrees)
       return { ok: false, message: t('Essa conversa não está numa cópia.') }
-    try {
-      await worktrees.discard(worktree)
-    } catch (err) {
-      return { ok: false, message: (err as Error).message }
-    }
-    // A pasta da conversa não existe mais: a aba fecha (a conversa fica no histórico).
+    // A aba fecha antes (a conversa fica no histórico): o Claude Code dela sai da pasta, que no
+    // Windows não sai do disco com um processo dentro. Depois, algumas tentativas.
     tabs.close(id as string)
-    return { ok: true, message: t('A cópia saiu.') }
+    let problem: Error | null = null
+    for (let attempt = 0; attempt < 10; attempt++) {
+      try {
+        await worktrees.discard(worktree)
+        return { ok: true, message: t('A cópia saiu.') }
+      } catch (err) {
+        problem = err as Error
+        await new Promise((resolve) => setTimeout(resolve, 500))
+      }
+    }
+    console.warn(`[wisp] cópia: não consegui tirar ${worktree.dir}: ${problem?.message}`)
+    return { ok: false, message: problem?.message ?? '' }
   })
 
   return {

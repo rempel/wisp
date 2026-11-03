@@ -5,7 +5,7 @@
 import { HOME } from './helpers/home'
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { join, resolve } from 'node:path'
 import { test } from 'node:test'
 import { TurnReviews } from '../src/main/turn-review'
 import {
@@ -40,8 +40,8 @@ test('o caminho da edição: das ferramentas de edição, relativo à pasta da s
     '/a/b.ts'
   )
   assert.equal(
-    editedPath({ tool_name: 'Write', tool_input: { file_path: 'src/c.ts' }, cwd: '/x' }),
-    '/x/src/c.ts'
+    editedPath({ tool_name: 'Write', tool_input: { file_path: 'src/c.ts' }, cwd: resolve('/x') }),
+    resolve('/x', 'src/c.ts')
   )
   assert.equal(
     editedPath({ tool_name: 'NotebookEdit', tool_input: { notebook_path: '/n.ipynb' } }),
