@@ -1739,6 +1739,36 @@ Notas da entrega:
 - a página nunca manda um caminho: cada pedido vem com o id da conversa, e a cópia é a da pasta
   dela.
 
+### Fase 44: tarefas por evento
+
+**Status:** pronta (testes: `test/gatilhos.test.ts`; `e2e/gatilhos.mjs`, no job do Linux e no
+**Windows** do CI).
+
+- **O gatilho da tarefa (M):** no lugar do horário, uma revisão num PR seu, um CI seu que falhou,
+  um arquivo novo numa pasta ou a tela desbloqueada.
+- **O `{evento}` (P):** o que aconteceu, no prompt: o PR com o link, os arquivos novos, a hora do
+  desbloqueio.
+
+**Aceite:** uma tarefa "quando aparece um arquivo novo em ~/Downloads" roda ao baixar um arquivo,
+numa aba com o nome dela e o caminho no prompt; uma "quando o CI falha" roda com o link do PR.
+
+Notas da entrega:
+
+- as tarefas continuam no `scheduledTasks`, com `trigger` (sem ele, o horário, como as de antes) e
+  `watch` (a pasta do arquivo novo). O agendador ignora as de um evento;
+- o GitHub: os mesmos alertas da Fase 13 (de 3 em 3 minutos, pelo `gh`); a revisão vale para
+  qualquer uma (aprovação, mudanças, comentário);
+- a pasta: o `fs.watch` dela, sem descer nas de dentro; o que já estava lá quando o Wisp abriu (ou
+  quando a tarefa entrou) não conta. Os arquivos que chegam juntos esperam 3 segundos e viram uma
+  rodada só; os que ainda baixam (`.part`, `.crdownload`, `.tmp`) entram quando ganham o nome final;
+- cada tarefa por evento roda no máximo uma vez a cada 5 minutos (um PR com dez comentários não
+  abre dez abas). **Rodar agora** roda com "(rodada à mão, sem um evento)" no `{evento}`;
+- o bloco das tarefas saiu do `index.ts` para o `tasks-setup.ts` (o `index.ts` estava perto das
+  1.000 linhas);
+- o e2e achou que, com o painel escondido, a aba nova da tarefa não aparece com a mensagem até ele
+  abrir: o painel aplica os eventos a cada quadro, e escondido ele não desenha. Numa tarefa com um
+  card, o card abre o painel; sem card, a mensagem está lá quando você abrir.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com

@@ -82,8 +82,7 @@ import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
 import { AwayTracker } from './away'
-import { TaskScheduler } from './scheduler'
-import type { ScheduledTask } from '../shared/prompts'
+import { setupTasks } from './tasks-setup'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
 import { setupUpdates } from './updates-setup'
@@ -107,7 +106,7 @@ import { setupWeekly } from './weekly'
 import { transcribe, whisperSetup } from './whisper'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type { TaskResult, VoiceTestResult } from '../shared/ipc'
+import type { VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 import { t } from '../shared/i18n'
 import { setSelfCommand } from './self-command'
@@ -605,31 +604,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       })
     }
   })
-  // As tarefas agendadas (Fase 26): cada uma numa aba nova, no modo Pedir; o card dela espera você
-  // (ou vai para o celular e para a notificação, como qualquer card).
-  const runTask = (task: ScheduledTask, late: boolean): TaskResult => {
-    const result: TaskResult = chat
-      ? chat.runTask(task)
-      : { ok: false, message: t('O Wisp ainda está abrindo.') }
-    if (result.ok) {
-      notify(
-        late
-          ? t('Tarefa agendada (atrasada): {name}', { name: task.name })
-          : t('Tarefa agendada: {name}', { name: task.name }),
-        t('Começou numa aba nova, no modo Pedir. O que precisar do seu clique espera no painel.'),
-        () => chat?.open()
-      )
-    } else {
-      notify(t('A tarefa “{name}” não rodou', { name: task.name }), result.message)
-    }
-    return result
-  }
-  const scheduler = new TaskScheduler({
-    tasks: () => getConfig().scheduledTasks,
-    run: (task, late) => void runTask(task, late),
-    file: join(DATA_DIR, 'tarefas.json')
+  // As tarefas (Fase 26 e 44): pelo horário ou por um evento, numa aba nova, no modo Pedir.
+  const { scheduler, triggers, runNow } = setupTasks({
+    chat: () => chat,
+    notify,
+    github,
+    screenLock
   })
-  onConfigChange(() => scheduler.refresh())
   // A OpenRouter e as skills nas configurações.
   const openrouter = setupOpenRouterIpc({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -667,13 +648,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
     dnd: () => dnd.state().active,
-    runTask: async (id) => {
-      const task = getConfig().scheduledTasks.find((item) => item.id === id)
-      if (!task) return { ok: false, message: t('Essa tarefa não existe mais.') }
-      let result: TaskResult = { ok: true }
-      scheduler.runNow(id, (ran) => (result = runTask(ran, false)))
-      return result
-    }
+    runTask: async (id) => runNow(id)
   })
   // O "não perturbe" do desktop mudou: a tela de configurações mostra (Fase 32).
   dnd.onChange(() => {
@@ -942,6 +917,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     media?.dispose()
     reminders.dispose()
     scheduler.dispose()
+    triggers.dispose()
     releaseShortcuts()
     voice?.cancel()
     screenLock.dispose()

@@ -161,7 +161,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta) e 43 (a conversa numa cópia do Git):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git) e 44 (tarefas por evento):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -903,6 +903,11 @@ então o login da assinatura nunca é tocado.
   nessa hora), `{data}` e `{hora}`; em inglês, `{folder}`, `{clipboard}`, `{date}` e `{time}` (as
   duas formas valem sempre). Um prompt com o nome de um comando do Claude Code passa na frente dele
   no menu do Wisp. A lista fica em **Configurações → Prompts salvos**.
+- **Tarefas por evento** (Fase 44): no lugar do horário, o **Quando** da tarefa pode ser uma
+  revisão num PR seu ou um CI seu que falhou (com os alertas do GitHub ligados), um arquivo novo
+  numa pasta (os que já estavam lá não contam, e os que ainda baixam esperam) ou a tela
+  desbloqueada. O `{evento}` do prompt diz o que aconteceu (o PR com o link, os arquivos novos).
+  Cada tarefa por evento roda no máximo uma vez a cada 5 minutos, também no modo Pedir.
 - **Tarefas agendadas:** um prompt que roda sozinho num horário e em dias da semana ("todo dia útil
   às 9h, o resumo dos PRs"), em **Configurações → Tarefas agendadas**. Na hora, ela abre uma aba
   com o nome dela, **sempre no modo Pedir** (mesmo que o padrão seja outro): o que mexer no

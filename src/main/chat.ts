@@ -779,7 +779,7 @@ export function setupChat({
       return conversation.send(text, files, previewOf, voice) ? conversation.id : null
     },
     compose,
-    runTask(task) {
+    runTask(task, event) {
       if (tabs.full) {
         return {
           ok: false,
@@ -804,7 +804,7 @@ export function setupChat({
       tabs.push(conversation)
       if (!(win?.isVisible() && win.isFocused())) tabs.showInFocused(conversation.id)
       tabs.changed()
-      const text = expandPrompt(task.prompt, promptValues(folder))
+      const text = expandPrompt(task.prompt, promptValues(folder, '', event ?? ''))
       conversation.showUser(text, false)
       conversation.send(text, [], previewOf)
       return { ok: true }

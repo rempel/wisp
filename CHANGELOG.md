@@ -111,6 +111,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **A conversa numa cópia do Git** (Fase 43): abrir um projeto numa worktree, num ramo só da
   conversa, e no fim juntar na pasta original (sem commit) ou descartar.
 
+- **Tarefas por evento** (Fase 44): uma tarefa pode rodar quando chega uma revisão num PR seu,
+  quando um CI seu falha, quando aparece um arquivo novo numa pasta ou ao desbloquear a tela, com o
+  `{evento}` no prompt.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

@@ -47,7 +47,7 @@ export interface LibraryContext {
 }
 
 /** O que preenche as variáveis de um prompt salvo (Fase 26). */
-export function promptValues(folder: string | null, copied = ''): PromptValues {
+export function promptValues(folder: string | null, copied = '', event = ''): PromptValues {
   const now = new Date()
   return {
     folder: folder ?? homedir(),
@@ -58,7 +58,8 @@ export function promptValues(folder: string | null, copied = ''): PromptValues {
       month: 'long',
       year: 'numeric'
     }),
-    time: now.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+    time: now.toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' }),
+    event
   }
 }
 

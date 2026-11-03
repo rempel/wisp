@@ -1792,8 +1792,6 @@ export const EN: Record<string, string> = {
   'O que pedir ao Claude…': 'What to ask Claude…',
   'Rodando numa aba nova, no modo Pedir.': 'Running in a new tab, in Ask mode.',
   'Tarefas agendadas': 'Scheduled tasks',
-  'Um prompt que roda sozinho num horário, numa aba nova, sempre no modo Pedir: o que mexer no computador espera o seu clique (ou vai para o celular, se ligado). Com o Wisp fechado na hora, ela roda quando ele abrir, até 2 horas depois. Valem {v1}, {v2} e {v3}; o que foi copiado, não.':
-    "A prompt that runs by itself at a set time, in a new tab, always in Ask mode: anything that touches the computer waits for your click (or goes to the phone, if on). If Wisp is closed at that time, it runs when Wisp opens, up to 2 hours later. {v1}, {v2} and {v3} work; what you copied doesn't.",
   'Nova tarefa': 'New task',
   'Nome da tarefa': 'Task name',
   Ligada: 'On',
@@ -2336,5 +2334,21 @@ export const EN: Record<string, string> = {
     "The copy's changes go into the original folder, without a commit",
   'Juntar na pasta original': 'Merge into the original folder',
   'Descartar de vez?': 'Discard for good?',
-  Descartar: 'Discard'
+  Descartar: 'Discard',
+  'Um arquivo novo em {dir}: {file}': 'A new file in {dir}: {file}',
+  '{count} arquivos novos em {dir}:\n{files}': '{count} new files in {dir}:\n{files}',
+  'Tarefa: {name}': 'Task: {name}',
+  'A tela foi desbloqueada às {time}.': 'The screen was unlocked at {time}.',
+  '(rodada à mão, sem um evento)': '(run by hand, without an event)',
+  'Um prompt que roda sozinho num horário ou quando algo acontece (uma revisão, um CI vermelho, um arquivo novo, a tela desbloqueada), numa aba nova, sempre no modo Pedir: o que mexer no computador espera o seu clique (ou vai para o celular, se ligado). Com o Wisp fechado na hora, a do horário roda quando ele abrir, até 2 horas depois; a de um evento roda no máximo uma vez a cada 5 minutos. Valem {v1}, {v2}, {v3} e {v4} (o que aconteceu); o que foi copiado, não.':
+    "A prompt that runs by itself at a time or when something happens (a review, a red CI, a new file, the screen unlocked), in a new tab, always in Ask mode: anything that changes the computer waits for your click (or goes to your phone, if on). With Wisp closed at the time, a timed one runs when it opens, up to 2 hours later; an event one runs at most once every 5 minutes. {v1}, {v2}, {v3} and {v4} (what happened) work; the clipboard doesn't.",
+  'No horário': 'At a time',
+  'Quando chega uma revisão num PR seu (GitHub)':
+    'When a review arrives on one of your PRs (GitHub)',
+  'Quando o CI de um PR seu falha (GitHub)': 'When the CI of one of your PRs fails (GitHub)',
+  'Quando aparece um arquivo novo numa pasta': 'When a new file shows up in a folder',
+  'Ao desbloquear a tela': 'When the screen is unlocked',
+  'Quando a tarefa roda': 'When the task runs',
+  'Pasta acompanhada': 'Watched folder',
+  'A pasta acompanhada: ~/Downloads': 'The watched folder: ~/Downloads'
 }
