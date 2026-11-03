@@ -546,6 +546,10 @@ test('o PowerShell que acompanha a música: as linhas e a sessão como a ilha mo
   assert.equal(parseWatchLine('não é json'), null)
   assert.deepEqual(parseWatchLine('{"volume":42}'), { volume: 42 })
   assert.equal(parseWatchLine('{"volume":420}'), null)
+  // O "não perturbe" do Windows, no mesmo script (Fase 40).
+  assert.deepEqual(parseWatchLine('{"dnd":true}'), { dnd: true })
+  assert.deepEqual(parseWatchLine('{"dnd":false}'), { dnd: false })
+  assert.equal(parseWatchLine('{"dnd":"sim"}'), null)
   const parsed = parseWatchLine(
     JSON.stringify([
       {

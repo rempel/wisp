@@ -792,7 +792,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   sounds.watch()
   void (
     IS_WINDOWS
-      ? Promise.resolve(new WindowsMedia().watch())
+      ? Promise.resolve(
+          new WindowsMedia().on('dnd', (on: boolean) => dnd.report(on, 'windows')).watch()
+        )
       : Media.connect(() => getConfig().islandCovers)
   ).then((connected) => {
     media = connected
