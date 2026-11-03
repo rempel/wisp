@@ -122,6 +122,8 @@ src/
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
 │  ├─ agenda.ts      # a agenda: as fontes juntas, o aviso antes e o próximo compromisso
+│  ├─ calendar-links.ts # as agendas por endereço iCal (Google, Outlook): baixar e guardar
+│  ├─ calendar-links-ipc.ts # guardar e apagar um endereço (no chaveiro) pela tela
 │  ├─ activity.ts    # o registro da semana (só contagens) e o resumo
 │  ├─ demo/
 │  │  ├─ player.ts   # o Claude Code gravado do modo demonstração (stream-json)
@@ -876,7 +878,13 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   conexão só fica aberta. O `ical.ts` lê os eventos (os do EDS e os dos arquivos) e abre as
   repetições na janela pedida, com as horas de parede convertidas pelo `Intl` no fuso de cada
   evento. O `agenda.ts` relê a janela de um dia atrás a oito à frente de 5 em 5 minutos, marca o
-  próximo aviso e manda ao painel o próximo compromisso das próximas 24 horas.
+  próximo aviso e manda ao painel o próximo compromisso das próximas 24 horas. As agendas por
+  endereço (Fase 40, `calendar-links.ts`): o endereço iCal fica no chaveiro
+  (`calendar-link-<id>`), e o `config.json`, com o id e o nome (`calendarLinks`); cada uma é
+  baixada de 15 em 15 minutos no máximo, só por https, com o `If-None-Match` do ETag e até 5 MB, e
+  a última que veio fica guardada na memória para quando a rede falha. Nenhuma mensagem leva o
+  endereço. O `calendar-links-ipc.ts` guarda (conferindo antes que vem um `BEGIN:VCALENDAR`) e
+  apaga; a página nunca recebe o endereço de volta. No Windows, o EDS nem é tentado.
 - **Resumo da semana:** o `activity.ts` ouve os eventos ao vivo das conversas (o histórico
   reaberto não conta), os lembretes e as mensagens das sessões do terminal (o hook
   `UserPromptSubmit`) e grava uma linha por coisa, com a hora. A semana vai de segunda a segunda

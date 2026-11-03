@@ -11,6 +11,8 @@ import { join } from 'path'
 import { z } from 'zod'
 import { CONFIG_DIR, DATA_DIR } from './paths'
 import { IS_WINDOWS } from './platform'
+import { MAX_LINKS } from './calendar-links'
+import type { CalendarLink } from './calendar-links'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
 import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
@@ -160,6 +162,11 @@ export interface WispConfig {
   calendar: boolean
   /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
   calendarFiles: string[]
+  /**
+   * As agendas por endereço iCal (Fase 40): só o id e o nome. O endereço fica no chaveiro do
+   * sistema (calendar-links.ts) e muda pela tela de configurações.
+   */
+  calendarLinks: CalendarLink[]
   /** Minutos antes de um compromisso para o Wisp avisar; 0 não avisa. */
   calendarAlertMinutes: number
   /** Guarda as contagens da semana (sem conteúdo) e mostra o resumo na segunda-feira. */
@@ -248,6 +255,7 @@ function defaults(): WispConfig {
     github: false,
     calendar: false,
     calendarFiles: [],
+    calendarLinks: [],
     calendarAlertMinutes: 10,
     weeklySummary: true,
     provider: 'subscription',
@@ -364,6 +372,12 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   github: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
+  calendarLinks: z
+    .array(
+      z.object({ id: z.string().regex(/^[0-9a-f]{8}$/), name: z.string().trim().min(1).max(80) })
+    )
+    .max(MAX_LINKS)
+    .refine((links) => new Set(links.map((link) => link.id)).size === links.length),
   calendarAlertMinutes: z.number().int().min(0).max(240),
   weeklySummary: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
@@ -522,6 +536,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),
   calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
+  calendarLinks: t('Até 10 agendas por endereço, cada uma com um id e um nome.'),
   calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).'),
   prompts: t(
     'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).'

@@ -165,19 +165,19 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 **Opcionais, para cada recurso:**
 
-| Recurso                      | Precisa de                                                                                                                                                                    |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Voz                          | Um microfone, o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) e um modelo (veja [Voz](#voz))                                                         |
-| Volume pela voz              | `wpctl` (PipeWire, pacote `wireplumber`) ou `pactl` (`pulseaudio-utils`)                                                                                                      |
-| O Wisp falando               | [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português                                                                                                       |
-| Atalho global no Wayland     | O portal `GlobalShortcuts` (GNOME 48+ ou KDE Plasma 5.27+); no X11, nada                                                                                                      |
-| Print da tela no Wayland     | O portal de captura (o GNOME e o KDE já têm)                                                                                                                                  |
-| Trazer janelas para a frente | KDE (X11 ou Wayland) ou qualquer desktop no X11; no GNOME com Wayland o sistema não deixa                                                                                     |
-| Aba Sessões                  | Claude Code 2.1 ou mais novo                                                                                                                                                  |
-| Navegador do Claude          | Google Chrome, Chromium, Brave, Edge ou Vivaldi instalado fora do Snap                                                                                                        |
-| Alertas do GitHub            | O [gh](https://cli.github.com) logado (`gh auth login`)                                                                                                                       |
-| Agenda                       | No GNOME, nada (o Evolution Data Server já vem; Google e Microsoft entram pelas Contas Online). Fora dele, arquivos `.ics` ou o [vdirsyncer](https://vdirsyncer.pimutils.org) |
-| OpenRouter (experimental)    | Uma chave de [openrouter.ai](https://openrouter.ai) e um chaveiro com o Secret Service (GNOME Keyring, KWallet 6 ou KeePassXC com a integração ligada)                        |
+| Recurso                      | Precisa de                                                                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Voz                          | Um microfone, o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) e um modelo (veja [Voz](#voz))                                                                                                   |
+| Volume pela voz              | `wpctl` (PipeWire, pacote `wireplumber`) ou `pactl` (`pulseaudio-utils`)                                                                                                                                                |
+| O Wisp falando               | [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português                                                                                                                                                 |
+| Atalho global no Wayland     | O portal `GlobalShortcuts` (GNOME 48+ ou KDE Plasma 5.27+); no X11, nada                                                                                                                                                |
+| Print da tela no Wayland     | O portal de captura (o GNOME e o KDE já têm)                                                                                                                                                                            |
+| Trazer janelas para a frente | KDE (X11 ou Wayland) ou qualquer desktop no X11; no GNOME com Wayland o sistema não deixa                                                                                                                               |
+| Aba Sessões                  | Claude Code 2.1 ou mais novo                                                                                                                                                                                            |
+| Navegador do Claude          | Google Chrome, Chromium, Brave, Edge ou Vivaldi instalado fora do Snap                                                                                                                                                  |
+| Alertas do GitHub            | O [gh](https://cli.github.com) logado (`gh auth login`)                                                                                                                                                                 |
+| Agenda                       | No GNOME, nada (o Evolution Data Server já vem; Google e Microsoft entram pelas Contas Online). Fora dele (e no Windows), o endereço iCal da agenda, arquivos `.ics` ou o [vdirsyncer](https://vdirsyncer.pimutils.org) |
+| OpenRouter (experimental)    | Uma chave de [openrouter.ai](https://openrouter.ai) e um chaveiro com o Secret Service (GNOME Keyring, KWallet 6 ou KeePassXC com a integração ligada)                                                                  |
 
 Para compilar do código, veja as dependências em [Compilar a partir do código](#compilar-a-partir-do-código).
 
@@ -276,6 +276,8 @@ irm https://claude.ai/install.ps1 | iex
 - **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). Segurar o atalho de voz
   ouve enquanto ele estiver apertado (Fase 40), como no Linux; um toque rápido ouve até o silêncio
   depois da fala.
+- **A agenda** (Fase 40): pelo endereço iCal do Google, do Outlook ou do iCloud (veja
+  [GitHub, agenda e resumo da semana](#github-agenda-e-resumo-da-semana)), ou por arquivos `.ics`.
 - **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
   sistema (a barrinha de volume da ilha também). Desde a Fase 37, um PowerShell fica acompanhando
   o controle de mídia do Windows (lê a lista de players a cada 4 s, ou 1,5 s com a ilha aberta, e
@@ -959,8 +961,15 @@ Em **Configurações → Integrações**:
   passou, aprovação, pedido de mudanças, comentário, pedido de revisão. O clique na notificação abre o
   PR. Pergunte "como estão meus PRs?".
 - **Agenda:** as agendas do GNOME (as ligadas no app Agenda, inclusive Google, Microsoft e Nextcloud
-  pelas Contas Online) e arquivos `.ics` ou pastas do vdirsyncer. O painel vazio mostra o próximo
-  compromisso, e o Wisp avisa alguns minutos antes. Pergunte "o que eu tenho amanhã?".
+  pelas Contas Online), arquivos `.ics` ou pastas do vdirsyncer e, desde a Fase 40, o endereço
+  iCal de uma agenda do Google, do Outlook ou do iCloud (é assim que a agenda chega no Windows). O
+  painel vazio mostra o próximo compromisso, e o Wisp avisa alguns minutos antes. Pergunte "o que
+  eu tenho amanhã?".
+  - **Pelo endereço:** em **Configurações → Integrações → Agenda**, cole o endereço secreto em
+    formato iCal (no Google: Configurações da agenda → Integrar agenda; no Outlook: Agenda →
+    Compartilhado → Publicar, o link ICS). O Wisp confere que ele traz uma agenda e o guarda no
+    chaveiro do sistema; o `config.json` fica só com o nome. Ele baixa cada agenda de 15 em 15
+    minutos no máximo, só por https.
 - **Resumo da semana:** só contagens (conversas, tempo do Claude, linhas editadas, aprovações), no
   topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?".
 
@@ -1207,6 +1216,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "github": false,
   "calendar": false,
   "calendarFiles": [],
+  "calendarLinks": [],
   "calendarAlertMinutes": 10,
   "weeklySummary": true,
   "provider": "subscription",
@@ -1413,7 +1423,10 @@ com o app fechado (até 12 horas) avisar quando ele abre. Para o GitHub Enterpri
 `calendar` liga a agenda, só leitura: as agendas do GNOME (pelo Evolution Data Server, as que
 estão ligadas e visíveis no app Agenda) e os arquivos de `calendarFiles`: arquivos `.ics` ou
 pastas com eles, como as do vdirsyncer (cada subpasta é uma agenda, com o nome do arquivo
-`displayname`). `calendarAlertMinutes` são os minutos de antecedência do aviso (`0` não avisa).
+`displayname`). `calendarLinks` são as agendas por endereço iCal (Fase 40), cada uma com `id` e
+`name`: o endereço fica no chaveiro do sistema e entra pela tela de configurações (no Windows, que
+não tem as agendas do GNOME, é o caminho para o Google e o Outlook). `calendarAlertMinutes` são os
+minutos de antecedência do aviso (`0` não avisa).
 Os compromissos de dia inteiro aparecem na lista, mas não avisam.
 
 `weeklySummary` guarda as contagens da semana em `~/.local/share/wisp/atividade.jsonl` (9

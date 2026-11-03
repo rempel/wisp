@@ -290,6 +290,26 @@
   outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
+.calendar-links {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0 0 6px;
+  padding: 0;
+  list-style: none;
+}
+
+.calendar-links li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.calendar-link-name {
+  flex: 0 0 30% !important;
+}
+
 .voice-test {
   margin: 4px 0 8px;
 }

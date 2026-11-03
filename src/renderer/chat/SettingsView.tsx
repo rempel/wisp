@@ -13,6 +13,7 @@ import { MODE_TEXT } from './modes'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
+import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
 import { PortableSection } from './PortableSection'
 import {
@@ -553,13 +554,14 @@ export function SettingsView({
           <Toggle
             label={t('Agenda')}
             hint={t(
-              'Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura.'
+              'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.'
             )}
             checked={values.calendar}
             onChange={(calendar) => void save({ calendar })}
           />
           {values.calendar && (
             <>
+              <CalendarLinks links={snapshot.calendarLinks} />
               <Row
                 label={t('Arquivos de agenda')}
                 hint={t(

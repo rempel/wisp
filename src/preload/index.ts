@@ -161,6 +161,10 @@ const api: WispApi = {
     setKey: (key) => ipcRenderer.invoke(IPC.openrouterSetKey, key),
     clearKey: () => ipcRenderer.invoke(IPC.openrouterClearKey)
   },
+  calendar: {
+    addLink: (url, name) => ipcRenderer.invoke(IPC.calendarAddLink, url, name),
+    removeLink: (id) => ipcRenderer.invoke(IPC.calendarRemoveLink, id)
+  },
   diagnostics: {
     run: () => ipcRenderer.invoke(IPC.diagnosticsRun),
     copy: () => ipcRenderer.send(IPC.diagnosticsCopy),

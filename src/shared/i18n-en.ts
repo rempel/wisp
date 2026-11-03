@@ -486,9 +486,6 @@ export const EN: Record<string, string> = {
   'Não consegui ler o GitHub agora.': "Couldn't read GitHub right now.",
   'O resumo da semana está desligado (Configurações → Integrações).':
     'The weekly summary is off (Settings → Integrations).',
-  'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ':
-    'The calendar is off. You can turn it on in Settings → Integrations (it reads the ',
-  'agendas do GNOME e arquivos .ics).': 'GNOME calendars and .ics files).',
   'Use a data no formato AAAA-MM-DD.': 'Use the date in the YYYY-MM-DD format.',
   'o Wisp ainda está abrindo': 'Wisp is still starting',
   'Não consegui: {message}.': "Couldn't: {message}.",
@@ -1204,8 +1201,6 @@ export const EN: Record<string, string> = {
   'CI e revisões dos seus PRs, e pedidos de revisão, a cada 3 minutos. Usa o gh (GitHub CLI) já logado: rode gh auth login antes.':
     'CI and reviews of your PRs, and review requests, every 3 minutes. It uses gh (GitHub CLI) already logged in: run gh auth login first.',
   Agenda: 'Calendar',
-  'Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura.':
-    'The next events from the GNOME calendars (including Google and Microsoft from Online Accounts) and from the files below. Read only.',
   'Arquivos de agenda': 'Calendar files',
   'Arquivos .ics ou pastas com eles (vdirsyncer, KOrganizer), um por linha. Opcional.':
     '.ics files or folders with them (vdirsyncer, KOrganizer), one per line. Optional.',
@@ -2229,5 +2224,46 @@ export const EN: Record<string, string> = {
   '{n} com CI falhando': '{n} with failing CI',
   '… e mais (veja no painel)': '… and more (see the panel)',
   'Fogo-fátuo': "Will-o'-the-wisp",
-  Geleca: 'Jelly'
+  Geleca: 'Jelly',
+  'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê os ':
+    'The calendar is off. You can turn it on in Settings → Integrations (it reads ',
+  'endereços iCal do Google e do Outlook, as agendas do GNOME e arquivos .ics).':
+    'Google and Outlook iCal addresses, GNOME calendars and .ics files).',
+  'Isso não parece um endereço de agenda (ele começa com https:// ou webcal://).':
+    "That doesn't look like a calendar address (it starts with https:// or webcal://).",
+  'Já são 10 agendas por endereço: apague uma antes.':
+    'There are already 10 calendars by address: delete one first.',
+  'O config.json está com um erro e o Wisp não grava nele assim.':
+    "config.json has an error and Wisp won't write to it like this.",
+  'Não guardei: {error}.': 'Not saved: {error}.',
+  'Wisp: agenda {name}': 'Wisp: calendar {name}',
+  'Guardada, mas não deu para conferir agora (sem rede).':
+    "Saved, but it couldn't be checked right now (no network).",
+  'Agenda "{name}" conferida e guardada.': 'Calendar "{name}" checked and saved.',
+  'Essa agenda não está mais na lista.': 'That calendar is no longer on the list.',
+  'Agenda "{name}" apagada.': 'Calendar "{name}" deleted.',
+  'O endereço da agenda "{name}" não está no chaveiro: guarde-o de novo.':
+    'The address of calendar "{name}" isn\'t in the keyring: save it again.',
+  'o servidor não mandou a agenda': "the server didn't send the calendar",
+  'A agenda "{name}" não atualizou: {why}': 'Calendar "{name}" didn\'t update: {why}',
+  'o servidor não respondeu': "the server didn't respond",
+  'sem conexão com o servidor da agenda': 'no connection to the calendar server',
+  'o endereço levou para fora do https': 'the address led outside https',
+  'o servidor recusou o endereço (ele mudou ou deixou de ser público?)':
+    'the server refused the address (did it change or stop being public?)',
+  'o servidor respondeu {status}': 'the server answered {status}',
+  'a agenda passa de 5 MB': 'the calendar is over 5 MB',
+  'o endereço não é de uma agenda iCal': "the address isn't an iCal calendar",
+  'Até 10 agendas por endereço, cada uma com um id e um nome.':
+    'Up to 10 calendars by address, each with an id and a name.',
+  'Agendas por endereço': 'Calendars by address',
+  'Agendas por endereço guardadas': 'Saved calendars by address',
+  'Apagar a agenda {name}': 'Delete calendar {name}',
+  'Nome (opcional)': 'Name (optional)',
+  'Nome da agenda': 'Calendar name',
+  'Endereço iCal da agenda': 'Calendar iCal address',
+  'O endereço secreto em formato iCal da agenda (no Google: Configurações da agenda → Integrar agenda; no Outlook: Agenda → Compartilhado → Publicar). Ele fica no chaveiro do sistema, nunca no config.json.':
+    "The calendar's secret address in iCal format (in Google: calendar Settings → Integrate calendar; in Outlook: Calendar → Shared → Publish). It stays in the system keyring, never in config.json.",
+  'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.':
+    'Upcoming events from iCal addresses (Google, Outlook, iCloud), GNOME calendars (on Linux, with Online Accounts) and the files below. Read-only.'
 }
