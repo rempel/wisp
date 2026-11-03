@@ -1,5 +1,6 @@
 // A agenda (Fase 13): os próximos compromissos, só leitura, das agendas do GNOME (Evolution Data
-// Server) e de arquivos .ics ou pastas com eles (vdirsyncer, o KOrganizer com um arquivo iCal).
+// Server), de arquivos .ics ou pastas com eles (vdirsyncer, o KOrganizer com um arquivo iCal) e,
+// desde a Fase 40, de endereços iCal (o Google, o Outlook: calendar-links.ts).
 // Opcional e desligada por padrão (config.calendar).
 //
 // De tempos em tempos (e quando a config muda), lê a janela de agora até alguns dias à frente;
@@ -29,6 +30,8 @@ export interface AgendaOptions {
   eds: () => Promise<Pick<EdsCalendars, 'events'> | null>
   /** Os arquivos e pastas do config.json (calendarFiles). */
   files: () => string[]
+  /** As agendas por endereço (Fase 40), já baixadas (ou a última que veio). */
+  links?: () => Promise<{ calendar: string; texts: string[]; error?: string }[]>
   /** Quantos minutos antes avisar (0: não avisa). */
   alertMinutes: () => number
   /** Hora de avisar este compromisso. `minutes`: quanto falta. */
@@ -154,7 +157,8 @@ export class Agenda {
         t('As agendas do GNOME não responderam: {message}', { message: (err as Error).message })
       )
     }
-    for (const item of readIcsSources(this.options.files())) {
+    const linked = this.options.links ? await this.options.links().catch(() => []) : []
+    for (const item of [...readIcsSources(this.options.files()), ...linked]) {
       if (item.error) problems.push(item.error)
       found.push(...occurrences(item.texts, from, to, item.calendar))
     }

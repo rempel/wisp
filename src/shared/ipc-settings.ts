@@ -163,6 +163,8 @@ export interface SettingsSnapshot {
   taskRuns: Record<string, number>
   /** O "não perturbe" do desktop agora (Fase 32); null se o desktop não diz. */
   dnd: boolean | null
+  /** As agendas por endereço (Fase 40), sem o endereço. */
+  calendarLinks: CalendarLinkInfo[]
 }
 
 /** O resultado de uma conferência do diagnóstico (Fase 20). */
@@ -241,6 +243,15 @@ export type SkillResult = { ok: true; message: string } | { ok: false; message: 
 /** Guardar ou conferir a chave: deu certo (com o nome que ela tem na OpenRouter) ou o motivo. */
 export type OpenRouterKeyResult =
   { ok: true; label: string | null; note?: string } | { ok: false; message: string }
+
+/** Guardar ou apagar uma agenda por endereço (Fase 40): deu certo (com um aviso) ou o motivo. */
+export type CalendarLinkResult = { ok: true; note?: string } | { ok: false; message: string }
+
+/** Uma agenda por endereço, como a tela de configurações mostra: o endereço fica no chaveiro. */
+export interface CalendarLinkInfo {
+  id: string
+  name: string
+}
 
 /** A mudança deu certo, ou o campo que estava errado e o motivo. */
 export type SettingsResult = { ok: true } | { ok: false; field: string; message: string }

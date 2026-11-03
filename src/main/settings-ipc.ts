@@ -71,7 +71,8 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
       locale: getLocale(),
       nextLocale: resolveLocale(config.language, systemTag()),
       taskRuns: options.taskRuns(),
-      dnd: options.dnd()
+      dnd: options.dnd(),
+      calendarLinks: config.calendarLinks.map(({ id, name }) => ({ id, name }))
     }
   }
   const notify = (): void => {

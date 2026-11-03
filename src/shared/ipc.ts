@@ -51,6 +51,7 @@ import type {
   McpPreview,
   McpSnapshot,
   OpenRouterKeyResult,
+  CalendarLinkResult,
   PanelView,
   PhonePairResult,
   PhoneResult,
@@ -167,6 +168,13 @@ export const IPC = {
   openrouterSetKey: 'openrouter:set-key',
   /** chat → main (invoke): apaga a chave do chaveiro. Devolve OpenRouterKeyResult. */
   openrouterClearKey: 'openrouter:clear-key',
+  /**
+   * chat → main (invoke): guarda uma agenda por endereço (Fase 40), conferida antes. Args:
+   * (endereço, nome ou ''). Devolve CalendarLinkResult.
+   */
+  calendarAddLink: 'calendar:add-link',
+  /** chat → main (invoke): apaga uma agenda por endereço, pelo id. Devolve CalendarLinkResult. */
+  calendarRemoveLink: 'calendar:remove-link',
   /**
    * chat → main (invoke): pareia um celular (Fase 18): sorteia os tópicos e os guarda no chaveiro.
    * Args: (servidor, ficha de acesso ou ''). Devolve PhonePairResult.
@@ -562,6 +570,11 @@ export interface WispApi {
     models(): Promise<OpenRouterModelInfo[] | { error: string }>
     setKey(key: string): Promise<OpenRouterKeyResult>
     clearKey(): Promise<OpenRouterKeyResult>
+  }
+  /** As agendas por endereço (Fase 40): o endereço vai para o chaveiro e nunca volta. */
+  calendar: {
+    addLink(url: string, name: string): Promise<CalendarLinkResult>
+    removeLink(id: string): Promise<CalendarLinkResult>
   }
   /** O diagnóstico e os primeiros passos (Fase 20). */
   diagnostics: {
