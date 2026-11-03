@@ -607,6 +607,14 @@ export function SettingsView({
             checked={values.weeklySummary}
             onChange={(weeklySummary) => void save({ weeklySummary })}
           />
+          <Toggle
+            label={t('Aviso do uso do plano')}
+            hint={t(
+              'Avisa uma vez ao passar de 80% e de 95% da janela de 5 horas ou da semana do seu plano, com a hora em que ela reinicia.'
+            )}
+            checked={values.usageAlerts}
+            onChange={(usageAlerts) => void save({ usageAlerts })}
+          />
         </Section>
 
         <Section title={t('Celular')}>

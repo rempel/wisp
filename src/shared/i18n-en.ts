@@ -2272,5 +2272,17 @@ export const EN: Record<string, string> = {
   'Arraste para recortar uma área. Esc desiste.': 'Drag to crop an area. Esc cancels.',
   'arraste um retângulo na tela; Esc desiste': 'drag a rectangle on the screen; Esc cancels',
   'De qualquer lugar: arraste um retângulo na tela, e o recorte vai para a conversa em foco.':
-    'From anywhere: drag a rectangle on the screen, and the crop goes to the focused conversation.'
+    'From anywhere: drag a rectangle on the screen, and the crop goes to the focused conversation.',
+  'às {time}': 'at {time}',
+  '{day}, {time}': 'on {day}, {time}',
+  '{percent}% da janela de 5 horas do plano': "{percent}% of the plan's 5-hour window",
+  '{percent}% da semana do plano': "{percent}% of the plan's week",
+  'Ela reinicia {reset}.': 'It resets {reset}.',
+  'Perto do limite: guarde o que falta para o mais importante.':
+    "Close to the limit: save what's left for what matters most.",
+  'Dá para seguir com o Sonnet ou o Haiku na pílula do modelo, que gastam menos.':
+    'You can continue with Sonnet or Haiku in the model pill, which use less.',
+  'Aviso do uso do plano': 'Plan usage alert',
+  'Avisa uma vez ao passar de 80% e de 95% da janela de 5 horas ou da semana do seu plano, com a hora em que ela reinicia.':
+    "Alerts once when passing 80% and 95% of your plan's 5-hour window or week, with the time it resets."
 }
