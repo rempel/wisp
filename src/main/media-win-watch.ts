@@ -9,7 +9,7 @@
 // escreve só quando ela muda. Parado e sem player nenhum, cada leitura é uma chamada só.
 //
 // No mesmo laço (Fase 40), o "não perturbe" do Windows, que o Windows também não avisa: ler é
-// barato (uma chave do registro e um estado do sistema), e escreve só quando ele muda.
+// barato (uma chave do registro), e escreve só quando ele muda.
 
 import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { EventEmitter } from 'events'
@@ -28,28 +28,16 @@ export const MANAGER =
   '$gerente = Esperar ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ' +
   '([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); '
 
-// O "não perturbe": o perfil do Assistente de Foco (o estado WNF do Windows que ele publica:
-// 0 desligado, 1 só prioridades, 2 só alarmes) e o botão "Não perturbe" do Windows 11, que
-// desliga as notificações na chave NOC_GLOBAL_SETTING_TOASTS_ENABLED. O C# compila uma vez só (e,
-// se falhar, não tenta de novo); numa linha e sem aspas simples, como o do volume.
-const WNF_NATIVE =
-  'using System; using System.Runtime.InteropServices; namespace Wisp { public static class Foco { ' +
-  '[DllImport("ntdll.dll")] static extern int NtQueryWnfStateData(ref ulong nome, IntPtr tipo, ' +
-  'IntPtr escopo, out uint marca, out int dado, ref uint tamanho); ' +
-  'public static int Perfil() { ulong nome = 0x0D83063EA3BF1C75; uint marca; int dado = 0; ' +
-  'uint tamanho = 4; return NtQueryWnfStateData(ref nome, IntPtr.Zero, IntPtr.Zero, out marca, ' +
-  'out dado, ref tamanho) == 0 ? dado : -1; } } }'
-
+// O "não perturbe": o botão "Não perturbe" do Windows 11 desliga as notificações do usuário na
+// chave NOC_GLOBAL_SETTING_TOASTS_ENABLED (0). O Assistente de Foco do Windows 10 guarda o estado
+// num lugar que o Windows não documenta, e o CI mostrou que ele lê "ligado" num Windows em que
+// ninguém o ligou: fica de fora (um falso "ligado" deixaria o Wisp mudo).
 /** A função `Quieto` do script: o "não perturbe" do Windows agora (true ou false). */
 export const QUIET =
-  '$foco = 0; ' +
-  'function Quieto { $perfil = -1; ' +
-  'if ($script:foco -eq 0) { try { ' +
-  `Add-Type -TypeDefinition '${WNF_NATIVE}'; $script:foco = 1 } catch { $script:foco = 2 } }; ` +
-  'if ($script:foco -eq 1) { try { $perfil = [Wisp.Foco]::Perfil() } catch {} }; ' +
+  'function Quieto { ' +
   "$avisos = [Microsoft.Win32.Registry]::GetValue('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings', " +
   "'NOC_GLOBAL_SETTING_TOASTS_ENABLED', $null); " +
-  '[bool](($perfil -gt 0) -or ($null -ne $avisos -and [int]$avisos -eq 0)) }; '
+  '[bool]($null -ne $avisos -and [int]$avisos -eq 0) }; '
 
 /** Uma sessão de mídia como o script escreve. */
 export interface WatchedSession {

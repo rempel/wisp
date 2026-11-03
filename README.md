@@ -286,8 +286,7 @@ irm https://claude.ai/install.ps1 | iex
   sistema (a barrinha de volume da ilha também). Desde a Fase 37, um PowerShell fica acompanhando
   o controle de mídia do Windows (lê a lista de players a cada 4 s, ou 1,5 s com a ilha aberta, e
   recebe os botões dela): o mascote dança com a música e a ilha mostra o que toca, com a capa que
-  o player dá ao Windows. Com o "não perturbe" do Windows (o botão do Windows 11 ou o Assistente de Foco)
-  ligado, o Wisp fica quieto como no Linux (Fase 40): sem notificações e sem sons, com os cards
+  o player dá ao Windows. Com o "Não perturbe" do Windows 11 ligado, o Wisp fica quieto como no Linux (Fase 40): sem notificações e sem sons, com os cards
   esperando no painel; o estado vem no mesmo PowerShell da música, que confere a cada 4 s. O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
   (`& "$env:LOCALAPPDATA\Programs\Wisp\Wisp.exe" --ask "oi"`).
 - **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
