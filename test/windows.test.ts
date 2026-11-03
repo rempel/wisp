@@ -493,6 +493,8 @@ test(
     console.warn = (...args: unknown[]) => errors.push(args.join(' '))
     try {
       const first = new Promise<unknown>((resolve) => watcher.once('sessions', resolve))
+      // O "não perturbe" vem na primeira volta do laço também (Fase 40).
+      const quiet = new Promise<unknown>((resolve) => watcher.once('dnd', resolve))
       const started = Date.now()
       watcher.start()
       const sessions = await Promise.race([
@@ -501,6 +503,12 @@ test(
       ])
       console.log(`a primeira lista em ${Date.now() - started} ms: ${JSON.stringify(sessions)}`)
       assert.ok(Array.isArray(sessions), `${String(sessions)}\n${errors.join('\n')}`)
+      const dnd = await Promise.race([
+        quiet,
+        new Promise((resolve) => setTimeout(() => resolve('passou de 10 s'), 10_000))
+      ])
+      console.log(`o não perturbe: ${String(dnd)}`)
+      assert.equal(typeof dnd, 'boolean', `${String(dnd)}\n${errors.join('\n')}`)
       // Um comando para um player que não existe, a pressa e o volume (sem aparelho de som no CI,
       // o erro do Windows): ele continua lendo.
       assert.ok(watcher.send({ id: 'nenhum.exe', acao: 'PlayPause' }))
@@ -719,5 +727,46 @@ test(
     if (!existsSync(bash)) return console.log('sem o Git Bash neste Windows')
     const sh = spawnSync(bash, ['-c', line], { encoding: 'utf8' })
     assert.deepEqual(JSON.parse(sh.stdout.trim()), expected, sh.stderr)
+  }
+)
+
+test(
+  'o não perturbe do Windows (Fase 40): o Assistente de Foco responde, e o botão do Windows 11 conta',
+  windowsOnly,
+  async () => {
+    const { runPowerShell } = await import('../src/main/powershell')
+    const { QUIET } = await import('../src/main/media-win-watch')
+    const key =
+      'HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings'
+    const name = 'NOC_GLOBAL_SETTING_TOASTS_ENABLED'
+    const ask = async (): Promise<{ quieto: boolean; foco: number }> => {
+      const result = await runPowerShell(
+        QUIET + 'ConvertTo-Json -InputObject @{ quieto = (Quieto); foco = $script:foco } -Compress'
+      )
+      assert.equal(result.code, 0, result.stderr)
+      return JSON.parse(result.stdout.trim()) as { quieto: boolean; foco: number }
+    }
+    // Guarda o valor de antes (o runner pode não ter) e põe de volta no fim.
+    const saved = await runPowerShell(
+      `$v = [Microsoft.Win32.Registry]::GetValue('${key}', '${name}', $null); ` +
+        "if ($null -eq $v) { 'nada' } else { [string]$v }"
+    )
+    const before = saved.stdout.trim()
+    try {
+      const normal = await ask()
+      console.log(`sem mexer: ${JSON.stringify(normal)} (a chave: ${before})`)
+      assert.equal(normal.foco, 1, 'o C# do Assistente de Foco compilou')
+      await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 0)`)
+      assert.equal((await ask()).quieto, true, 'com as notificações desligadas, quieto')
+      await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 1)`)
+      // O Windows do CI não liga o Assistente de Foco: com as notificações ligadas, não está quieto.
+      assert.equal((await ask()).quieto, false, 'com as notificações ligadas, não')
+    } finally {
+      await runPowerShell(
+        before === 'nada'
+          ? `$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings', $true); if ($k) { $k.DeleteValue('${name}', $false) }`
+          : `[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', ${Number(before)})`
+      )
+    }
   }
 )

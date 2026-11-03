@@ -150,6 +150,20 @@ test('não perturbe: sem nada no desktop que diga, nunca', { skip }, async () =>
   assert.deepEqual(dnd.state(), { active: null, source: null })
 })
 
+test('não perturbe: o do Windows chega pelo script da música (Fase 40)', () => {
+  const dnd = new DoNotDisturb()
+  const changes: boolean[] = []
+  dnd.onChange((active) => changes.push(active))
+  // A primeira leitura, desligado, não é uma mudança.
+  dnd.report(false, 'windows')
+  assert.deepEqual(dnd.state(), { active: false, source: 'windows' })
+  dnd.report(true, 'windows')
+  dnd.report(true, 'windows')
+  assert.equal(dnd.active(), true)
+  dnd.report(false, 'windows')
+  assert.deepEqual(changes, [true, false])
+})
+
 test('não perturbe: o do KDE, e as mudanças pelo sinal do dono do nome', { skip }, async () => {
   const server = await connect()
   assert.ok(await server.requestName('org.freedesktop.Notifications'))

@@ -7,7 +7,9 @@
 //   (org.freedesktop.Notifications), com o PropertiesChanged;
 // - GNOME: a chave show-banners de org.gnome.desktop.notifications (desligada é o "não
 //   perturbe"), pelo portal de configurações (org.freedesktop.portal.Settings), com o
-//   SettingChanged.
+//   SettingChanged;
+// - Windows (Fase 40): o PowerShell que acompanha a música lê o Assistente de Foco e o botão
+//   "Não perturbe" do Windows 11 no mesmo laço, e conta quando muda (report).
 //
 // Um desktop que não diz nada (null) nunca fica em "não perturbe".
 
@@ -23,7 +25,7 @@ const GNOME_NAMESPACE = 'org.gnome.desktop.notifications'
 const GNOME_KEY = 'show-banners'
 
 /** De onde vem o "não perturbe". */
-export type DndSource = 'kde' | 'gnome'
+export type DndSource = 'kde' | 'gnome' | 'windows'
 
 /** Quem tem o nome agora (o nome único): só os sinais dele contam. */
 async function ownerOf(bus: DBusConnection, name: string): Promise<string | null> {
@@ -73,6 +75,12 @@ export class DoNotDisturb {
 
   dispose(): void {
     for (const cleanup of this.cleanups.splice(0)) cleanup()
+  }
+
+  /** O estado que veio de fora do D-Bus (o do Windows, pelo script da música). */
+  report(active: boolean, source: DndSource): void {
+    this.source = source
+    this.set(active)
   }
 
   private set(active: boolean): void {

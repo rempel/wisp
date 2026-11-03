@@ -110,7 +110,7 @@ src/
 │  ├─ release-key.ts # a chave pública que confere os AppImage (gerada por scripts/release-key.mjs)
 │  ├─ portable.ts    # levar o Wisp junto: exportar, ler, a prévia e importar
 │  ├─ portable-ipc.ts # exportar e importar nas configurações (os diálogos e o backup)
-│  ├─ dnd.ts         # o "não perturbe" do desktop (KDE e GNOME, pelo D-Bus, por sinal)
+│  ├─ dnd.ts         # o "não perturbe" do desktop (KDE e GNOME pelo D-Bus; o Windows pela música)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
@@ -917,9 +917,14 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     árvore dela pelo `taskkill /pid … /t /f` (o do `%SystemRoot%\System32`, nunca um do PATH).
     No modo terminal, o node-pty recusa qualquer sinal: o Wisp fecha o ConPTY, e o `taskkill` na
     árvore se o Claude Code não sair em 3 s;
-  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o "não perturbe" do desktop, o
-    MPRIS, a agenda do Evolution), o comando `wisp` no PATH e o `.desktop`. O diagnóstico não
-    pede o que é do Linux;
+  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o MPRIS, a agenda do Evolution),
+    o comando `wisp` no PATH e o `.desktop`. O diagnóstico não pede o que é do Linux. O "não
+    perturbe" (Fase 40) vem no laço do PowerShell da música (`QUIET`, em `media-win-watch.ts`): o
+    perfil do Assistente de Foco pelo `NtQueryWnfStateData` (o estado WNF
+    `WNF_SHEL_QUIETHOURS_ACTIVE_PROFILE_CHANGED`, que não é documentado: o C# compila uma vez, e se
+    falhar fica só o registro) ou a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` em 0 (o botão "Não
+    perturbe" do Windows 11). O script escreve `{"dnd": …}` só quando muda, e o `dnd.ts` recebe
+    pelo `report`;
   - **o desktop pelo Claude (Fase 35):** o que no Linux vem do D-Bus, do X11 ou de programas do
     sistema, no Windows vem das APIs dele, por scripts fixos do PowerShell (`powershell.ts`: o
     `powershell.exe` do `%SystemRoot%`, sem perfil e sem janela, só quando pedem). O texto de cada
