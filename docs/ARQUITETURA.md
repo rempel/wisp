@@ -27,6 +27,7 @@ src/
 │  ├─ dbus-wire.ts   # o formato das mensagens do D-Bus: tipos, assinaturas, leitura e escrita
 │  ├─ portal.ts      # pedidos aos portais do desktop (xdg-desktop-portal)
 │  ├─ shortcut.ts    # atalho global: Electron no X11, portal GlobalShortcuts no Wayland
+│  ├─ keys-win.ts    # no Windows: o PowerShell que diz quando a tecla do atalho de voz é solta
 │  ├─ reminders.ts   # lembretes: arquivo, horários e o temporizador
 │  ├─ media.ts       # players de música pelo MPRIS (e quem está tocando, para a dança)
 │  ├─ screenshot.ts  # print da tela (portal no Wayland, Electron no X11) e miniaturas
@@ -952,9 +953,11 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
       2 minutos), que traz os apps da loja e os do sistema sem atalho, como a Calculadora; esses
       abrem pelo `shell:AppsFolder\<AppID>`;
     - **a voz:** o `programs.ts` acha o `whisper-cli.exe` e o `piper.exe` pelo nome, pelo caminho
-      do Windows e em `%LOCALAPPDATA%\Wisp\Voz`. O atalho de voz não sabe quando a tecla é solta
-      (o `globalShortcut` só avisa o aperto, e o X11 que o Linux consulta não existe): a escuta
-      acaba no silêncio, como num toque rápido no Linux;
+      do Windows e em `%LOCALAPPDATA%\Wisp\Voz`. O `globalShortcut` só avisa o aperto; para
+      segurar para falar (Fase 40), o `keys-win.ts` abre, no primeiro aperto, um PowerShell que
+      pergunta ao Windows (`GetAsyncKeyState`) se a tecla ainda está apertada, de 30 em 30 ms, só
+      entre o aperto e o soltar (no resto do tempo, ele espera a próxima linha da entrada). Se o
+      script cair, a escuta em curso acaba e o atalho volta ao toque (até o silêncio);
   - **os hooks (Fase 35):** o relay é o próprio Wisp com `--wisp-hook`, na forma exec (o `boot.ts`
     chama o `runRelay` do `hooks/relay.ts` antes de carregar o app; no Linux, o mesmo relay roda
     pelo script `wisp-hook`, com o Electron em modo Node). No lugar do socket, um pipe nomeado
