@@ -175,6 +175,8 @@ export interface WispConfig {
   weeklySummary: boolean
   /** Avisa ao passar de 80% e de 95% das janelas do plano (Fase 41). */
   usageAlerts: boolean
+  /** No fim de cada resposta que editou arquivos, o card com o que mudou e o desfazer (Fase 42). */
+  turnReview: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -264,6 +266,7 @@ function defaults(): WispConfig {
     calendarAlertMinutes: 10,
     weeklySummary: true,
     usageAlerts: true,
+    turnReview: true,
     provider: 'subscription',
     openrouterModel: null,
     phoneApprovals: false,
@@ -388,6 +391,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   calendarAlertMinutes: z.number().int().min(0).max(240),
   weeklySummary: z.boolean(),
   usageAlerts: z.boolean(),
+  turnReview: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
   phoneApprovals: z.boolean(),

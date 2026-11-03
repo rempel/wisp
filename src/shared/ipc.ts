@@ -23,6 +23,7 @@ import type {
   PermissionDecision,
   PermissionMode,
   Provider,
+  ReviewUndoResult,
   TabsState,
   WindowState
 } from './ipc-chat'
@@ -285,6 +286,11 @@ export const IPC = {
    * recorte. Devolve DroppedFiles (vazio se a pessoa desistiu).
    */
   chatCaptureArea: 'chat:capture-area',
+  /**
+   * chat → main (invoke): desfaz arquivos do card do fim do turno (Fase 42). Args: (conversa,
+   * turno, [{ path, hash }]). Devolve ReviewUndoResult.
+   */
+  chatReviewUndo: 'chat:review-undo',
   /** área → main (invoke): o print que a camada mostra. Devolve AreaImage ou null. */
   areaImage: 'area:image',
   /** área → main: o retângulo escolhido (AreaRect, em pixels da imagem), ou null para desistir. */
@@ -519,6 +525,12 @@ export interface WispApi {
     captureScreen(): Promise<DroppedFiles>
     /** Recorta uma área da tela (Fase 41) e devolve o recorte para anexar (vazio: desistiu). */
     captureArea(): Promise<DroppedFiles>
+    /** Desfaz arquivos do card do fim do turno (Fase 42). */
+    reviewUndo(
+      conversation: string,
+      turn: number,
+      files: { path: string; hash: string }[]
+    ): Promise<ReviewUndoResult>
     /** O que há de novo na área de transferência (null: nada a oferecer). */
     onClipboard(listener: (offer: ClipboardOffer | null) => void): () => void
     /** Usa o que foi copiado: o texto para a caixa ou um anexo. */

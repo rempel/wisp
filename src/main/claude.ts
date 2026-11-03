@@ -1,4 +1,5 @@
 import { spawn } from 'child_process'
+import { SNAPSHOT_ENV } from './turn-snapshot'
 import type { ChildProcess, ChildProcessWithoutNullStreams } from 'child_process'
 import type { Provider, PermissionMode } from '../shared/ipc'
 import {
@@ -534,6 +535,8 @@ export class ClaudeSession extends StreamReader {
       Object.assign(env, openrouterEnv(this.secret, this.model))
     }
     if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
+    // A pasta das cópias de antes das edições (Fase 42), que o hook delas lê.
+    if (this.options.snapshotDir) env[SNAPSHOT_ENV] = this.options.snapshotDir
     if (demo) {
       env.ELECTRON_RUN_AS_NODE = '1'
       env.WISP_DEMO_DIR = demo.recordings

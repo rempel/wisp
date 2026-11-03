@@ -898,3 +898,16 @@ Com **Ilha no topo** ligada:
 - [ ] **CI que vira conversa:** com os alertas do GitHub ligados, faça um PR com o CI quebrado:
       a notificação diz "Clique para investigar"; o clique abre uma aba nova com o pedido na caixa,
       sem mandar. Mande: o Claude pede para rodar o `gh` e explica o que quebrou.
+
+## Revisar no fim da resposta (Fase 42)
+
+- [ ] **O card:** num projeto com Git, no modo **Aceitar edições**, peça "renomeie a função X e
+      atualize quem a chama": no fim, o card "Esta resposta mudou N arquivos", cada um com +N −M.
+- [ ] **O diff:** clique num arquivo: o diff abre no editor, só em volta do que mudou.
+- [ ] **Desfazer um:** **Desfazer** num arquivo: `git diff` mostra que só ele voltou ao que era.
+- [ ] **Desfazer tudo:** numa resposta que criou um arquivo novo, **Desfazer tudo** apaga o novo e
+      volta os outros.
+- [ ] **Mudado depois:** edite à mão um arquivo do card e clique em **Desfazer**: ele fica como
+      está, e o card diz que mudou depois.
+- [ ] **A resposta seguinte:** mande outra mensagem: o card velho fica sem o desfazer, com a dica.
+- [ ] **Windows:** o mesmo no Windows (o hook vai pelo próprio Wisp).

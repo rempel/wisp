@@ -13,6 +13,7 @@
 // Windows (Fase 35), é o próprio Wisp.exe com --wisp-hook (o boot.ts chama o runRelay), e o
 // caminho até o Wisp é um pipe nomeado de nome sorteado, achado pelo arquivo do nome.
 
+import { runSnapshotHook, SNAPSHOT_ARG } from '../turn-snapshot'
 import { createHash } from 'crypto'
 import { lstatSync, readFileSync } from 'fs'
 import { connect } from 'net'
@@ -149,6 +150,14 @@ function hookOutput(reply: RelayReply, input: Record<string, unknown>): string |
 
 /** O relay: `argv` são os argumentos depois do programa (ou do --wisp-hook, no Windows). */
 export function runRelay(argv: string[]): void {
+  // A cópia de antes de uma edição (Fase 42): guarda e sai, sem falar com o Wisp nem decidir nada.
+  if (argv[0] === SNAPSHOT_ARG) {
+    try {
+      runSnapshotHook(readFileSync(0, 'utf8'), process.env)
+    } finally {
+      exit()
+    }
+  }
   // O modo terminal de uma aba: `--tab <ficha> <Evento>` ou `--status <ficha>`.
   const status = argv[0] === STATUS_ARG
   const tab = status || argv[0] === TAB_ARG ? argv[1] : null

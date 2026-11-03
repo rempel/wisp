@@ -234,3 +234,87 @@
   color: var(--ok);
   font-weight: 600;
 }
+
+/* O card do fim do turno (Fase 42): os arquivos que a resposta mudou, com o diff e o desfazer. */
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-head strong {
+  flex: 1;
+}
+
+.review-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-toggle:disabled {
+  cursor: default;
+}
+
+.review-name {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.review-dir {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-status {
+  color: var(--muted);
+}
+
+.review-status.created {
+  color: var(--ok);
+}
+
+.review-status.deleted {
+  color: var(--danger-solid);
+}
+
+.review-files li.reverted .review-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}

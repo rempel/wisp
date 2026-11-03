@@ -105,6 +105,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   do plano; e o clique num CI vermelho ou num pedido de mudanças abre uma aba com o pedido de
   investigar pronto.
 
+- **Revisar no fim da resposta** (Fase 42): um card com os arquivos que a resposta mudou, o diff de
+  cada um e o **Desfazer**, um a um ou todos.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

@@ -2289,5 +2289,25 @@ export const EN: Record<string, string> = {
   'O CI do PR {repo}#{number} "{title}" falhou ({url}). Veja o que quebrou (`gh pr checks {number} --repo {repo}` e `gh run view --log-failed --repo {repo}` com o id da execução que falhou), explique a causa e proponha a correção.':
     'CI for PR {repo}#{number} "{title}" failed ({url}). See what broke (`gh pr checks {number} --repo {repo}` and `gh run view --log-failed --repo {repo}` with the id of the failed run), explain the cause and propose a fix.',
   '{author} pediu mudanças no PR {repo}#{number} "{title}" ({url}). Leia a revisão (`gh pr view {number} --repo {repo} --comments`) e proponha o que mudar, um ponto por vez.':
-    '{author} requested changes on PR {repo}#{number} "{title}" ({url}). Read the review (`gh pr view {number} --repo {repo} --comments`) and propose what to change, one point at a time.'
+    '{author} requested changes on PR {repo}#{number} "{title}" ({url}). Read the review (`gh pr view {number} --repo {repo} --comments`) and propose what to change, one point at a time.',
+  'Essa resposta já passou: as cópias de antes dela não existem mais.':
+    'That reply is in the past: the copies from before it no longer exist.',
+  'Não consegui desfazer {path}: {message}': "I couldn't undo {path}: {message}",
+  '{path} mudou depois da resposta: ficou como está.':
+    '{path} changed after the reply: it was left as it is.',
+  'Não há a cópia de antes de {path}.': "There's no copy of {path} from before.",
+  mudou: 'changed',
+  apagado: 'deleted',
+  'O que esta resposta mudou': 'What this reply changed',
+  'Esta resposta mudou 1 arquivo': 'This reply changed 1 file',
+  'Esta resposta mudou {count} arquivos': 'This reply changed {count} files',
+  'Desfazer tudo': 'Undo all',
+  desfeito: 'undone',
+  'Desfazer {name}': 'Undo {name}',
+  Desfazer: 'Undo',
+  'Outra mensagem já começou: o desfazer vale só para a última resposta.':
+    'Another message has started: undo only works for the latest reply.',
+  'Revisar no fim da resposta': 'Review at the end of the reply',
+  'Depois de cada resposta que editou arquivos, um card com o que mudou em cada um e o Desfazer (as edições pelas ferramentas de edição; os comandos do Bash não entram).':
+    "After each reply that edited files, a card with what changed in each and Undo (edits made by the editing tools; Bash commands aren't included)."
 }

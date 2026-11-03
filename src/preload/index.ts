@@ -109,6 +109,8 @@ const api: WispApi = {
     activity: () => ipcRenderer.send(IPC.chatActivity),
     captureScreen: () => ipcRenderer.invoke(IPC.chatCapture),
     captureArea: () => ipcRenderer.invoke(IPC.chatCaptureArea),
+    reviewUndo: (conversation, turn, files) =>
+      ipcRenderer.invoke(IPC.chatReviewUndo, conversation, turn, files),
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
