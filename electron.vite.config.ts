@@ -28,7 +28,9 @@ export default defineConfig({
         // Uma página por janela.
         input: {
           mascot: resolve('src/renderer/mascot/index.html'),
-          chat: resolve('src/renderer/chat/index.html')
+          chat: resolve('src/renderer/chat/index.html'),
+          // A camada de recortar uma área da tela (Fase 41).
+          area: resolve('src/renderer/area/index.html')
         }
       }
     }

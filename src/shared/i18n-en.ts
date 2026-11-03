@@ -2265,5 +2265,12 @@ export const EN: Record<string, string> = {
   'O endereço secreto em formato iCal da agenda (no Google: Configurações da agenda → Integrar agenda; no Outlook: Agenda → Compartilhado → Publicar). Ele fica no chaveiro do sistema, nunca no config.json.':
     "The calendar's secret address in iCal format (in Google: calendar Settings → Integrate calendar; in Outlook: Calendar → Shared → Publish). It stays in the system keyring, never in config.json.",
   'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.':
-    'Upcoming events from iCal addresses (Google, Outlook, iCloud), GNOME calendars (on Linux, with Online Accounts) and the files below. Read-only.'
+    'Upcoming events from iCal addresses (Google, Outlook, iCloud), GNOME calendars (on Linux, with Online Accounts) and the files below. Read-only.',
+  'Recortar uma área': 'Crop an area',
+  'Não consegui recortar a tela: {reason}.': "I couldn't crop the screen: {reason}.",
+  'Recortar uma área da tela para o Wisp': 'Crop an area of the screen for Wisp',
+  'Arraste para recortar uma área. Esc desiste.': 'Drag to crop an area. Esc cancels.',
+  'arraste um retângulo na tela; Esc desiste': 'drag a rectangle on the screen; Esc cancels',
+  'De qualquer lugar: arraste um retângulo na tela, e o recorte vai para a conversa em foco.':
+    'From anywhere: drag a rectangle on the screen, and the crop goes to the focused conversation.'
 }

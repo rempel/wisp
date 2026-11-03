@@ -424,6 +424,18 @@ export function SettingsView({
               onCommit={(islandShortcut) => save({ islandShortcut })}
             />
           </Row>
+          <Row
+            label={t('Recortar uma área')}
+            hint={t(
+              'De qualquer lugar: arraste um retângulo na tela, e o recorte vai para a conversa em foco.'
+            )}
+            error={errors.areaShortcut}
+          >
+            <ShortcutInput
+              value={values.areaShortcut}
+              onCommit={(areaShortcut) => save({ areaShortcut })}
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(

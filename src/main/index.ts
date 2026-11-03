@@ -96,6 +96,7 @@ import { setupSettings } from './settings-ipc'
 import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
+import { captureArea } from './area-capture'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
@@ -844,7 +845,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     const { shortcut, voiceShortcut, paletteShortcut, compact } = getConfig()
     // O da ilha (Fase 38) só vale com ela ligada.
     const islandShortcut = compact ? getConfig().islandShortcut : null
-    const key = JSON.stringify([shortcut, voiceShortcut, paletteShortcut, islandShortcut])
+    const { areaShortcut } = getConfig()
+    const key = JSON.stringify([
+      shortcut,
+      voiceShortcut,
+      paletteShortcut,
+      islandShortcut,
+      areaShortcut
+    ])
     if (key === boundShortcuts) return
     boundShortcuts = key
     shortcuts = await setupShortcuts([
@@ -882,6 +890,16 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
           if (islandIsOpen()) closeIsland()
           else showIslandTab('ask')
         }
+      },
+      {
+        // Recortar uma área (Fase 41): o recorte vai para a caixa da conversa em foco.
+        id: 'area',
+        accelerator: areaShortcut,
+        description: t('Recortar uma área da tela para o Wisp'),
+        press: () =>
+          void captureArea(() => chat?.capture() ?? Promise.resolve([])).then((dropped) => {
+            if (dropped.files.length || dropped.problems.length) chat?.attach(dropped)
+          })
       }
     ])
     for (const [id, status] of shortcuts) {

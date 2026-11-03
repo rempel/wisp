@@ -31,6 +31,7 @@ src/
 │  ├─ reminders.ts   # lembretes: arquivo, horários e o temporizador
 │  ├─ media.ts       # players de música pelo MPRIS (e quem está tocando, para a dança)
 │  ├─ screenshot.ts  # print da tela (portal no Wayland, Electron no X11) e miniaturas
+│  ├─ area-capture.ts # recortar uma área: a camada em tela cheia e o recorte (Fase 41)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -151,6 +152,7 @@ src/
 │  ├─ i18n-en.ts     # o dicionário do inglês
 │  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
 └─ renderer/
+   ├─ area/          # a camada de recortar uma área (Fase 41): o print e o retângulo arrastado
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar), face.ts
    │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
    │                 # (os sinais no ar), sounds.ts (WebAudio), voice.ts e voice-worklet.ts

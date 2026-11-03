@@ -37,6 +37,10 @@ function subscribe<T extends unknown[]>(
 
 // API mínima exposta ao renderer: só funções específicas, nunca o ipcRenderer cru.
 const api: WispApi = {
+  area: {
+    image: () => ipcRenderer.invoke(IPC.areaImage),
+    done: (rect) => ipcRenderer.send(IPC.areaDone, rect)
+  },
   mascot: {
     dragStart: (offsetX, offsetY) => ipcRenderer.send(IPC.mascotDragStart, offsetX, offsetY),
     dragEnd: () => ipcRenderer.send(IPC.mascotDragEnd),
@@ -104,6 +108,7 @@ const api: WispApi = {
     onAttach: (listener) => subscribe<[DroppedFiles]>(IPC.chatAttach, listener),
     activity: () => ipcRenderer.send(IPC.chatActivity),
     captureScreen: () => ipcRenderer.invoke(IPC.chatCapture),
+    captureArea: () => ipcRenderer.invoke(IPC.chatCaptureArea),
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),

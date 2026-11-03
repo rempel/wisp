@@ -79,7 +79,9 @@ Em resumo:
 - Mandar mais instruções com o Claude trabalhando: a mensagem entra na próxima pausa, sem parar a
   resposta. Os passos dos subagentes aparecem no card do Agente, e os comandos com barra (`/`)
   trazem as skills e os comandos do Claude Code.
-- Anexos (arrastar, colar uma imagem, o **+**, soltar um arquivo no mascote), print da tela, o
+- Anexos (arrastar, colar uma imagem, o **+**, soltar um arquivo no mascote), print da tela,
+  **recortar uma área** (Fase 41: pelo **+** ou de qualquer lugar com **Ctrl+Alt+R**, arrastando um
+  retângulo; o recorte vai para a conversa em foco), o
   "usar o que você copiou", o histórico das conversas, a troca de modelo, a pílula do contexto com o
   **Compactar agora** e o uso do seu plano.
 - Os modos de permissão do Claude Code (**Pedir**, **Aceitar edições**, **Planejar**,
