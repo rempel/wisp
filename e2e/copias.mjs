@@ -97,6 +97,13 @@ check('C9 a barra diz o que entrou', /pasta original/.test(note ?? ''), note)
 
 console.log('== Descartar')
 const tabsBefore = await ev(`document.querySelectorAll('.tab').length`)
+await waitFor(
+  () =>
+    ev(
+      `[...document.querySelectorAll('.pane .worktree-bar button')].some((b) => b.textContent === 'Descartar' && !b.disabled)`
+    ),
+  10000
+)
 await ev(
   `[...document.querySelectorAll('.pane .worktree-bar button')].find((b) => b.textContent === 'Descartar').click()`
 )
