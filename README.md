@@ -155,13 +155,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
-- **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
-  (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
-  (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
-  agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
-  acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
-  perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git), 44 (tarefas por evento) e 45 (explicar a seleção e o modo foco):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+- **Validação:** as Fases 6 a 45 foram validadas com o uso, menos os pacotes de ARM64 (os do Linux,
+  Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
+  Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
