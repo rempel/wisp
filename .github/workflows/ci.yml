@@ -289,8 +289,26 @@ jobs:
           path: ${{ runner.temp }}/telas
           if-no-files-found: ignore
           retention-days: 3
+      # Com um certificado de assinatura de código nos segredos (Fase 40), o electron-builder
+      # assina o Wisp.exe e os instaladores (o SmartScreen deixa de avisar); sem ele, saem como
+      # antes, sem assinatura.
       - name: O instalador
         run: npx electron-builder --win nsis --publish never
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      # O instalador para Windows ARM64 (Fase 40): o Electron de ARM64 e o node-pty que já vem
+      # pronto para ele. Abrir pede uma máquina ARM; a conferência olha a arquitetura dos binários.
+      - name: O instalador ARM64
+        # O bash do Git: um comando que falha para o passo (o pwsh seguiria para o próximo).
+        shell: bash
+        run: |
+          node scripts/electron-arm64.mjs .cache/electron-win-arm64 win32
+          npx electron-builder --win nsis --arm64 -c.electronDist=.cache/electron-win-arm64 --publish never
+          node scripts/smoke-win-arm64.mjs
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
       - uses: actions/upload-artifact@v6
         continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
