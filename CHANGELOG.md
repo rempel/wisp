@@ -115,6 +115,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   quando um CI seu falha, quando aparece um arquivo novo numa pasta ou ao desbloquear a tela, com o
   `{evento}` no prompt.
 
+- **Explicar a seleção e o modo foco** (Fase 45): Ctrl+Alt+E leva o texto marcado em qualquer
+  programa para uma conversa; o modo foco deixa o Wisp quieto por 25 ou 50 minutos.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

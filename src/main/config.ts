@@ -111,6 +111,8 @@ export interface WispConfig {
   islandShortcut: string | null
   /** Atalho global que recorta uma área da tela para uma conversa (Fase 41); null desliga. */
   areaShortcut: string | null
+  /** Atalho global que leva o texto selecionado para uma conversa (Fase 45); null desliga. */
+  selectionShortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
   clipboardChip: boolean
   /**
@@ -237,6 +239,7 @@ function defaults(): WispConfig {
     paletteShortcut: 'Ctrl+Alt+P',
     islandShortcut: 'Ctrl+Alt+K',
     areaShortcut: 'Ctrl+Alt+R',
+    selectionShortcut: 'Ctrl+Alt+E',
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
@@ -361,6 +364,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   paletteShortcut: z.string().max(60).nullable(),
   islandShortcut: z.string().max(60).nullable(),
   areaShortcut: z.string().max(60).nullable(),
+  selectionShortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
   browserAutomation: z.boolean(),
@@ -548,6 +552,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   paletteShortcut: t('O atalho tem no máximo 60 caracteres.'),
   islandShortcut: t('O atalho tem no máximo 60 caracteres.'),
   areaShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  selectionShortcut: t('O atalho tem no máximo 60 caracteres.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),

@@ -2350,5 +2350,20 @@ export const EN: Record<string, string> = {
   'Ao desbloquear a tela': 'When the screen is unlocked',
   'Quando a tarefa roda': 'When the task runs',
   'Pasta acompanhada': 'Watched folder',
-  'A pasta acompanhada: ~/Downloads': 'The watched folder: ~/Downloads'
+  'A pasta acompanhada: ~/Downloads': 'The watched folder: ~/Downloads',
+  'Foco concluído': 'Focus done',
+  '{minutes} minutos. Hora de uma pausa: as notificações voltaram.':
+    '{minutes} minutes. Time for a break: notifications are back.',
+  'Explicar o texto selecionado com o Wisp': 'Explain the selected text with Wisp',
+  'Parar o foco (até {time})': 'Stop focus (until {time})',
+  'Modo foco': 'Focus mode',
+  '{minutes} minutos, sem notificações nem sons': '{minutes} minutes, no notifications or sounds',
+  'Explique, em poucas linhas e sem jargão, o que é isto:\n\n{text}':
+    'Explain, in a few lines and without jargon, what this is:\n\n{text}',
+  'Nada selecionado': 'Nothing selected',
+  'Marque um texto em qualquer programa e aperte o atalho de novo.':
+    'Select some text in any program and press the shortcut again.',
+  'Explicar a seleção': 'Explain the selection',
+  'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).':
+    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).'
 }
