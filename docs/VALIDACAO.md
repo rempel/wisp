@@ -551,8 +551,9 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       (`flatpak run io.github.rempel.Wisp`). Uma conversa com o Claude Code de verdade funciona,
       um card de comando roda o comando na máquina (fora do sandbox), e `wisp --toggle` abre e fecha
       o painel.
-- [ ] **ARM64:** num Raspberry Pi 4 ou 5 (ou outra máquina ARM64 com Ubuntu ou Debian), instale o
-      `.deb` de ARM64 do CI e abra: o mascote aparece, o painel conversa e o modo terminal abre.
+- [ ] **ARM64** (ainda não validado: falta uma máquina ARM): num Raspberry Pi 4 ou 5 (ou outra
+      máquina ARM64 com Ubuntu ou Debian), instale o `.deb` de ARM64 do CI e abra: o mascote
+      aparece, o painel conversa e o modo terminal abre.
 
 ## Prompts salvos e tarefas agendadas (Fase 26)
 
@@ -879,8 +880,8 @@ Com **Ilha no topo** ligada:
       comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal.
 - [ ] **Linha de status sem o Git Bash:** num Windows sem o Git para Windows, abra o modo terminal:
       a linha de status embaixo é a do Wisp.
-- [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
-      modo terminal abre o Claude Code.
+- [ ] **ARM64** (ainda não validado: falta uma máquina ARM): num Windows com Snapdragon, o
+      `Wisp-<versão>-Setup-arm64.exe` instala e abre; o modo terminal abre o Claude Code.
 
 ## Recortar, o aviso do plano e o CI que vira conversa (Fase 41)
 

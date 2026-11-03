@@ -320,7 +320,7 @@ O Wisp faz mais coisas no desktop, sempre por ferramentas MCP com o mesmo esquem
 **Ficou para depois:**
 
 - **Print de uma área:** o modo interativo do portal deixaria escolher uma janela ou uma área, mas
-  muda de cara em cada desktop. Por ora, é a tela inteira.
+  muda de cara em cada desktop. Veio na Fase 41, com o recorte do próprio Wisp.
 - **Janelas no GNOME com Wayland:** só com uma extensão do GNOME Shell, que teria de ser instalada
   à parte.
 - **Outros compositores Wayland** (Sway, Hyprland): têm IPC próprio para janelas; dá para somar
@@ -690,7 +690,7 @@ aparece e libera, e voltando ao chat a conversa está lá, inteira.
 
 ### Fase 18: aprovar pelo celular ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/celular.mjs`, com um ntfy
+**Status:** validada. Testes de ponta a ponta: `e2e/celular.mjs`, com um ntfy
 de mentira (tocar num botão é o que o app do ntfy faz: mandar o corpo dele para o endereço dele)
 e o chaveiro de mentira.
 
@@ -743,7 +743,7 @@ Seguem a mesma regra: uma por vez, com aceite e validação.
 
 ### Fase 19: avatares ✅
 
-**Status:** pronta, esperando validação. Veio do mesmo pedido da Fase 18: outro avatar, para
+**Status:** validada. Veio do mesmo pedido da Fase 18: outro avatar, para
 trocar ou escolher no menu. Testes de ponta a ponta: `e2e/avatar.mjs`.
 
 - **Um segundo mascote (M):** o fantasminha, com os mesmos estados e reações do robô (olhos,
@@ -768,7 +768,7 @@ painel na hora, e ele continua fantasminha depois de fechar e abrir o Wisp.
 
 ### Fase 20: primeira execução e diagnóstico ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/primeiros-passos.mjs`
+**Status:** validada. Testes de ponta a ponta: `e2e/primeiros-passos.mjs`
 (sem o Claude Code, com o de mentira sem login, e um GitHub de mentira com uma versão nova).
 
 - **Primeiros passos guiados (M):** na primeira vez, o painel confere o Claude Code (instalado,
@@ -794,7 +794,7 @@ o relatório do diagnóstico cola numa issue sem nada pessoal.
 
 ### Fase 21: conversa mais fluida ✅
 
-**Status:** pronta, esperando validação. Antes de implementar, a edição foi conferida no Claude
+**Status:** validada. Antes de implementar, a edição foi conferida no Claude
 Code de verdade (2.1), contra um servidor de mentira: o `--resume-session-at <uuid>` (a opção que
 o SDK do Claude Code usa) com o `--fork-session` volta a conversa até uma resposta numa cópia, e
 o modelo recebe só o que vem até ela. Testes de ponta a ponta: `e2e/conversa.mjs`.
@@ -824,7 +824,7 @@ contexto; o rascunho volta depois de fechar e abrir o Wisp.
 
 ### Fase 22: acessibilidade e aparência ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/acessibilidade.mjs` (a
+**Status:** validada. Testes de ponta a ponta: `e2e/acessibilidade.mjs` (a
 árvore de acessibilidade do Chromium, que é o que o Orca lê, e o fluxo só com o teclado).
 
 - **Leitor de tela (M):** os cards, as pílulas e os botões com nomes e papéis certos; a resposta
@@ -858,7 +858,7 @@ Notas da entrega:
 
 ### Fase 23: desempenho e consumo ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/consumo.mjs`, que também
+**Status:** validada. Testes de ponta a ponta: `e2e/consumo.mjs`, que também
 mede (os números vão para o resumo do job no CI).
 
 - **Abas paradas dormem (M):** o processo do Claude Code de uma aba sem uso há um tempo sai e
@@ -891,7 +891,7 @@ Notas da entrega:
 
 ### Fase 24: notificações e cards ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/notificacoes.mjs`, com um
+**Status:** validada. Testes de ponta a ponta: `e2e/notificacoes.mjs`, com um
 servidor de notificações de mentira (e uma proteção de tela de mentira) num D-Bus só do teste.
 
 - **Responder pela notificação do sistema (M):** o card que espera com o painel escondido
@@ -921,7 +921,7 @@ desbloquear a tela, o resumo lista o que passou.
 
 ### Fase 25: para a comunidade ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/ingles.mjs` (um sistema em
+**Status:** validada, menos os pacotes ARM64 (sem uma máquina ARM para abrir). Testes de ponta a ponta: `e2e/ingles.mjs` (um sistema em
 inglês, a troca de idioma nas configurações e o Wisp aberto de novo); os pacotes ARM64 e o Flatpak
 são montados e conferidos no CI.
 
@@ -956,7 +956,7 @@ teste dos pacotes.
 
 ### Fase 26: prompts salvos e tarefas agendadas ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/agendadas.mjs` (o menu da
+**Status:** validada. Testes de ponta a ponta: `e2e/agendadas.mjs` (o menu da
 barra com um prompt salvo e uma tarefa marcada para o minuto seguinte, com o painel fechado).
 
 - **Prompts salvos (M):** uma lista de pedidos prontos ("revisa o diff", "escreve o commit"),
@@ -982,7 +982,7 @@ o celular, se ligado).
 
 ### Fase 27: emoções e ações dos avatares ✅
 
-**Status:** pronta, esperando validação. Veio do pedido de trazer as animações do
+**Status:** validada. Veio do pedido de trazer as animações do
 [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase) (o kit de animação do
 Clawd, de John Heibel, licença MIT) para os nossos avatares. Testes de ponta a ponta:
 `e2e/emocoes.mjs`.
@@ -1027,7 +1027,7 @@ continua sem gastar CPU.
 
 ### Fase 28: manutenção e CI ✅
 
-**Status:** pronta, esperando validação. Testes de unidade: `test/manutencao.test.ts` (o aviso
+**Status:** validada. Testes de unidade: `test/manutencao.test.ts` (o aviso
 das dependências, o tamanho dos arquivos, as folhas de estilo e o CI). Os de ponta a ponta são os
 de sempre, sem mudar nenhum.
 
@@ -1073,7 +1073,7 @@ Notas da entrega:
 
 ### Fase 29: o histórico que acha ✅
 
-**Status:** pronta, esperando validação. Testes de ponta a ponta: `e2e/historico.mjs` (uma
+**Status:** validada. Testes de ponta a ponta: `e2e/historico.mjs` (uma
 conversa de 40 dias atrás, com 200 turnos, achada por uma palavra sem o acento e aberta na
 mensagem dela).
 
@@ -1104,7 +1104,7 @@ mensagem dela no painel.
 
 ### Fase 30: servidores MCP pelo Wisp ✅
 
-**Status:** pronta, esperando validação. Testes: `test/mcp.test.ts` e `e2e/mcp.mjs` (um servidor
+**Status:** validada. Testes: `test/mcp.test.ts` e `e2e/mcp.mjs` (um servidor
 posto pelas configurações entra na conversa nova, e a ferramenta dele pede pelo card).
 
 - **Listar e adicionar (M):** os servidores MCP do Claude Code (os do usuário e os do projeto),
@@ -1144,7 +1144,7 @@ ferramenta dele pede permissão pelo card.
 
 ### Fase 31: levar o Wisp junto ✅
 
-**Status:** pronta, esperando validação. Testes: `test/levar.test.ts` e `e2e/levar.mjs` (exportar
+**Status:** validada. Testes: `test/levar.test.ts` e `e2e/levar.mjs` (exportar
 de um HOME e importar noutro; o Atualizar com um GitHub de mentira, a assinatura errada e a
 certa, e o Reiniciar abrindo o arquivo novo). Falta uma coisa que é sua: gerar a chave que
 assina os AppImage (veja abaixo); sem ela, o botão Atualizar não aparece.
@@ -1190,7 +1190,7 @@ Notas da entrega:
 
 ### Fase 32: tudo a um atalho ✅
 
-**Status:** pronta, esperando validação. Testes: `test/paleta.test.ts` (a busca da paleta, o
+**Status:** validada. Testes: `test/paleta.test.ts` (a busca da paleta, o
 `--palette`, os sons e o "não perturbe" do KDE e do GNOME num D-Bus de teste), `e2e/paleta.mjs`
 (só pelo teclado: abrir uma conversa antiga, rodar um prompt salvo, trocar o modo; o atalho
 global de verdade, pelo xdotool) e `e2e/notificacoes.mjs` (com o "não perturbe", o card não vira
@@ -1227,7 +1227,7 @@ Notas da entrega:
 
 ### Fase 33: o essencial no Windows ✅
 
-**Status:** pronta, esperando validação num Windows de uso. Testes: `test/windows.test.ts` (achar o
+**Status:** validada (num Windows de uso). Testes: `test/windows.test.ts` (achar o
 `claude`, o atalho `.cmd` do npm sem shell, o script do Node, o `Path` e a resposta do hook do
 Bash), `test/diagnostics.test.ts` (o diagnóstico no Windows) e `e2e/essencial.mjs`, que roda no
 Linux junto com os outros e, no job **Windows** do CI, num Windows de verdade (abrir, conversar, o
@@ -1297,7 +1297,7 @@ Notas da entrega:
 
 ### Fase 34: o editor do VS Code (Monaco) ✅
 
-**Status:** pronta, esperando validação. Testes: `test/editor.test.ts` (os dois lados do diff com
+**Status:** validada. Testes: `test/editor.test.ts` (os dois lados do diff com
 os números das linhas, as linhas que a edição pôs, os arquivos de segredos e os limites de ler um
 arquivo, inclusive por um link) e `e2e/monaco.mjs` (o painel abre sem o Monaco; o diff de uma
 edição abre nele com o realce do TypeScript e os números do arquivo; o tema claro e o escuro; o
@@ -1334,7 +1334,7 @@ Notas da entrega:
 
 ### Fase 35: o Windows por inteiro
 
-**Status:** pronta (testes: `test/windows.test.ts`, com os scripts do PowerShell rodando no
+**Status:** validada (testes: `test/windows.test.ts`, com os scripts do PowerShell rodando no
 Windows; `e2e/toast.mjs`, `e2e/integracoes.mjs` e o card do modo terminal no `e2e/essencial.mjs`,
 no job **Windows** do CI). Ficou para depois o segurar para falar (no Windows, o atalho de voz
 ligava a escuta, que acabava no silêncio), que veio na Fase 40.
@@ -1411,7 +1411,7 @@ Notas da entrega:
 
 ### Fase 36: o que faltava no Windows
 
-**Status:** pronta (testes: `test/windows.test.ts`, `test/levar.test.ts`, `test/diagnostics.test.ts`;
+**Status:** validada (testes: `test/windows.test.ts`, `test/levar.test.ts`, `test/diagnostics.test.ts`;
 `e2e/essencial.mjs` (E7a), `e2e/integracoes.mjs` (I15) e `e2e/atualizar-win.mjs`, no job
 **Windows** do CI).
 
@@ -1454,7 +1454,7 @@ Notas da entrega:
 
 ### Fase 37: a ilha que abre (como a do Coucou)
 
-**Status:** pronta (testes: `test/island.test.ts`; `e2e/island.mjs`, com um player de mentira
+**Status:** validada (testes: `test/island.test.ts`; `e2e/island.mjs`, com um player de mentira
 pelo MPRIS, no job do Linux, e `e2e/ilha-win.mjs`, no job **Windows** do CI).
 
 Veio do teste no Windows: a ilha era só a linha de estado, e a música não aparecia nela. A
@@ -1507,7 +1507,7 @@ Notas da entrega:
 
 ### Fase 38: a ilha, parte 2
 
-**Status:** pronta (testes: `test/island.test.ts`; `e2e/ilha2.mjs`, no job do Linux, e o Perguntar
+**Status:** validada (testes: `test/island.test.ts`; `e2e/ilha2.mjs`, no job do Linux, e o Perguntar
 com o teclado no `e2e/ilha-win.mjs`, no job **Windows** do CI).
 
 - **Perguntar pela ilha (M):** a caixa de mensagem na ilha (a conversa da aba em foco ou uma nova),
@@ -1551,7 +1551,7 @@ Notas da entrega:
 
 ### Fase 39: o fogo-fátuo
 
-**Status:** pronta (testes: `test/avatar.test.ts`; `e2e/avatar.mjs`, com os prints de cada um).
+**Status:** validada (testes: `test/avatar.test.ts`; `e2e/avatar.mjs`, com os prints de cada um).
 
 A gotinha robô cansou. Das quatro direções desenhadas (fogo-fátuo, fumacinha, orbe de luz e
 geleca), o **fogo-fátuo** virou o avatar padrão: o _will-o'-the-wisp_ do nome vira o personagem. A
@@ -1586,10 +1586,11 @@ Notas da entrega:
 
 ### Fase 40: o Windows sem lacunas
 
-**Status:** pronta (testes: `test/segurar.test.ts`, `test/agenda-endereco.test.ts`,
-`test/windows.test.ts`, `test/island.test.ts` e `test/paleta.test.ts`; os scripts do PowerShell e
-os dois shells da linha de status rodam no job **Windows** do CI, que também monta o instalador
-ARM64 e confere os binários com o `scripts/smoke-win-arm64.mjs`).
+**Status:** validada, menos o instalador ARM64, que ainda não foi aberto numa máquina ARM. Testes:
+`test/segurar.test.ts`, `test/agenda-endereco.test.ts`, `test/windows.test.ts`, `test/island.test.ts`
+e `test/paleta.test.ts`; os scripts do PowerShell e os dois shells da linha de status rodam no job
+**Windows** do CI, que também monta o instalador ARM64 e confere os binários com o
+`scripts/smoke-win-arm64.mjs`.
 
 Veio da revisão do roadmap: o que ainda era pior no Windows que no Linux.
 
@@ -1642,7 +1643,7 @@ Notas da entrega:
 
 ### Fase 41: recortar, o aviso do plano e o CI que vira conversa
 
-**Status:** pronta (testes: `test/recorte.test.ts`, `test/uso-plano.test.ts` e
+**Status:** validada (testes: `test/recorte.test.ts`, `test/uso-plano.test.ts` e
 `test/github.test.ts`; `e2e/recorte.mjs`, no job do Linux e no **Windows** do CI).
 
 Das ideias novas, as que aproveitam o que o Wisp já tem.
@@ -1677,7 +1678,7 @@ Notas da entrega:
 
 ### Fase 42: revisar no fim da resposta
 
-**Status:** pronta (testes: `test/revisar.test.ts`; `e2e/revisar.mjs`, no job do Linux e no
+**Status:** validada (testes: `test/revisar.test.ts`; `e2e/revisar.mjs`, no job do Linux e no
 **Windows** do CI, com o Claude Code de mentira rodando os hooks do `--settings`).
 
 - **O card do fim da resposta (M):** os arquivos que a resposta mudou, com +N −M e o diff do
@@ -1710,7 +1711,7 @@ Notas da entrega:
 
 ### Fase 43: a conversa numa cópia do Git
 
-**Status:** pronta (testes: `test/copias.test.ts`, com o git de verdade; `e2e/copias.mjs`, no job do
+**Status:** validada (testes: `test/copias.test.ts`, com o git de verdade; `e2e/copias.mjs`, no job do
 Linux e no **Windows** do CI).
 
 - **Abrir numa cópia (M):** no menu das pastas, a conversa trabalha numa worktree do projeto, num
@@ -1741,7 +1742,7 @@ Notas da entrega:
 
 ### Fase 44: tarefas por evento
 
-**Status:** pronta (testes: `test/gatilhos.test.ts`; `e2e/gatilhos.mjs`, no job do Linux e no
+**Status:** validada (testes: `test/gatilhos.test.ts`; `e2e/gatilhos.mjs`, no job do Linux e no
 **Windows** do CI).
 
 - **O gatilho da tarefa (M):** no lugar do horário, uma revisão num PR seu, um CI seu que falhou,
@@ -1771,7 +1772,7 @@ Notas da entrega:
 
 ### Fase 45: explicar a seleção e o modo foco
 
-**Status:** pronta (testes: `test/foco.test.ts`; `e2e/selecao.mjs`, com o atalho de verdade pelo
+**Status:** validada (testes: `test/foco.test.ts`; `e2e/selecao.mjs`, com o atalho de verdade pelo
 xdotool, no job do Linux do CI).
 
 - **Explicar a seleção (M):** um atalho (Ctrl+Alt+E) leva o texto marcado em qualquer programa
