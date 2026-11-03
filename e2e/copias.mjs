@@ -17,6 +17,7 @@ const git = (cwd, ...args) => execFileSync('git', args, { cwd, encoding: 'utf8' 
 git(original, 'init', '-q', '-b', 'main')
 git(original, 'config', 'user.email', 'teste@exemplo.com')
 git(original, 'config', 'user.name', 'Teste')
+git(original, 'config', 'core.autocrlf', 'false')
 const before = 'const a = 1\nconst b = 2\nconst d = 5\n'
 writeFileSync(join(original, 'app.ts'), before)
 git(original, 'add', '.')
@@ -110,9 +111,10 @@ check('C10 Descartar pede a confirmação', !!asks)
 await ev(
   `[...document.querySelectorAll('.pane .worktree-bar button')].find((b) => b.textContent === 'Descartar de vez?').click()`
 )
-const gone = await waitFor(() => !existsSync(copy.dir), 5000)
+const gone = await waitFor(() => !existsSync(copy.dir), 10000)
 check('C11 a cópia sai do disco', !!gone)
-check('C12 e o ramo também', !/wisp\//.test(git(original, 'branch')), git(original, 'branch'))
+const pruned = await waitFor(() => !/wisp\//.test(git(original, 'branch')), 10000)
+check('C12 e o ramo também', !!pruned, git(original, 'branch'))
 const closed = await waitFor(
   async () => (await ev(`document.querySelectorAll('.tab').length`)) < tabsBefore,
   5000

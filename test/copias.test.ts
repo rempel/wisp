@@ -19,6 +19,8 @@ function repo(name: string): string {
   git(dir, 'init', '-q', '-b', 'main')
   git(dir, 'config', 'user.email', 'teste@exemplo.com')
   git(dir, 'config', 'user.name', 'Teste')
+  // O git do Windows do CI troca as quebras de linha (core.autocrlf): o teste compara o texto.
+  git(dir, 'config', 'core.autocrlf', 'false')
   writeFileSync(join(dir, 'app.ts'), 'const a = 1\nconst b = 2\n')
   git(dir, 'add', '.')
   git(dir, 'commit', '-q', '-m', 'início')
