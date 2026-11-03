@@ -202,15 +202,24 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
 }
 
 /**
+ * Um pedaço que o bash e o PowerShell leem igual sem aspas: letras (com acento), algarismos e
+ * `_ . : / -`, sem começar por `-`. Nada que um dos dois trate de outro jeito (o espaço, as aspas,
+ * o `$`, a crase, a vírgula do PowerShell, o `&`, o `;`, os parênteses e as chaves).
+ */
+const PLAIN_PART = /^[\p{L}\p{N}_.:/][\p{L}\p{N}_.:/-]*$/u
+
+/**
  * A linha de status no Windows (Fase 36). Ela só aceita uma linha de shell (sem a forma exec), e o
- * Claude Code a roda no bash do Git para Windows: o próprio Wisp entre aspas simples, com as
- * barras normais (que o bash do Git entende), e nada além da ficha da aba, que é hexadecimal. Sem
- * o Git Bash, o Claude Code usa o PowerShell, que não roda esta linha: a linha de status fica a
- * dele, como antes.
+ * Claude Code a roda no bash do Git para Windows ou, sem ele, no PowerShell: o próprio Wisp com as
+ * barras normais (que os dois entendem), e nada além da ficha da aba, que é hexadecimal. Sem
+ * espaço nem símbolo no caminho (o comum), a linha vai sem aspas e roda nos dois (Fase 40); com
+ * eles, entre aspas simples, que só o bash roda (no PowerShell, a linha de status fica a dele).
  */
 export function windowsStatusCommand(command: string, args: string[], tab: string): string {
-  const path = (part: string): string => shellQuote(part.replaceAll('\\', '/'))
-  return [path(command), ...args.map(path), RELAY_ARG, STATUS_ARG, tab].join(' ')
+  const parts = [command, ...args].map((part) => part.replaceAll('\\', '/'))
+  const plain = parts.every((part) => PLAIN_PART.test(part))
+  const path = (part: string): string => (plain ? part : shellQuote(part))
+  return [...parts.map(path), RELAY_ARG, STATUS_ARG, tab].join(' ')
 }
 
 /** Como subir o Claude Code interativo do modo terminal (num pty). */

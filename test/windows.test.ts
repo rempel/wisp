@@ -621,6 +621,18 @@ test('a linha de status no Windows: o próprio Wisp, numa linha do bash do Git, 
     ),
     `'C:/Users/João Silva/AppData/Local/Programs/Wisp/Wisp.exe' --wisp-hook --status ${token}`
   )
+  // Sem espaço nem símbolo no caminho: sem aspas, e a mesma linha roda no PowerShell (Fase 40).
+  assert.equal(
+    windowsStatusCommand('C:\\Users\\joão\\AppData\\Local\\Programs\\Wisp\\Wisp.exe', [], token),
+    `C:/Users/joão/AppData/Local/Programs/Wisp/Wisp.exe --wisp-hook --status ${token}`
+  )
+  assert.equal(
+    windowsStatusCommand('D:\\dev\\electron.exe', ['D:\\dev\\wisp'], token),
+    `D:/dev/electron.exe D:/dev/wisp --wisp-hook --status ${token}`
+  )
+  // Um símbolo que um dos shells leria de outro jeito volta para as aspas.
+  for (const odd of ['C:\\Program Files\\Wisp.exe', 'C:\\a,b\\Wisp.exe', 'C:\\$x\\Wisp.exe'])
+    assert.match(windowsStatusCommand(odd, [], token), /^'/, odd)
   // Rodando do código: o Electron e a pasta do app; um apóstrofo no caminho fica fechado.
   assert.equal(
     windowsStatusCommand('D:\\dev\\electron.exe', ["D:\\O'Neil\\wisp"], token),
@@ -680,5 +692,32 @@ test(
       }
       terminal.kill()
     }
+  }
+)
+
+test(
+  'a linha de status sem aspas roda igual no PowerShell e no bash do Git (Fase 40)',
+  windowsOnly,
+  async () => {
+    const { spawnSync } = await import('node:child_process')
+    const { existsSync } = await import('node:fs')
+    const { windowsStatusCommand } = await import('../src/main/claude-settings')
+    // No lugar do Wisp, o Node com um script que mostra os argumentos (na pasta do repositório,
+    // sem espaço: a do HOME temporário tem o "~" do nome curto do Windows).
+    const script = join(__dirname, 'eco-status.cjs')
+    writeFileSync(script, 'console.log(JSON.stringify(process.argv.slice(2)))\n')
+    const token = 'b'.repeat(32)
+    const line = windowsStatusCommand(process.execPath, [script], token)
+    console.log(`a linha: ${line}`)
+    assert.ok(!line.includes("'"), 'sem aspas')
+    const expected = ['--wisp-hook', '--status', token]
+    const ps = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', line], {
+      encoding: 'utf8'
+    })
+    assert.deepEqual(JSON.parse(ps.stdout.trim()), expected, ps.stderr)
+    const bash = join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
+    if (!existsSync(bash)) return console.log('sem o Git Bash neste Windows')
+    const sh = spawnSync(bash, ['-c', line], { encoding: 'utf8' })
+    assert.deepEqual(JSON.parse(sh.stdout.trim()), expected, sh.stderr)
   }
 )

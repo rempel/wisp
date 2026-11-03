@@ -986,8 +986,10 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     pelos pais dele (um snapshot dos processos, no mesmo script das janelas) até a primeira janela
     da barra de tarefas de um deles; um "pai" que nasceu depois do filho é um número reaproveitado
     e para o caminho. O navegador do Claude é procurado nas pastas dos instaladores (o Edge sempre
-    está). A linha de status do modo terminal é uma linha do bash do Git (a única forma que o
-    Claude Code aceita para ela), com o próprio Wisp entre aspas simples e só a ficha da aba. O
+    está). A linha de status do modo terminal é uma linha de shell (a única forma que o Claude Code
+    aceita para ela), que ele roda no bash do Git ou, sem ele, no PowerShell: com o caminho do Wisp
+    sem espaço nem símbolo, ela vai sem aspas e roda nos dois (Fase 40); senão, entre aspas
+    simples, só no bash. Leva só a ficha da aba. O
     **Atualizar** (o `self-update.ts`, com o formato `installer`) baixa o instalador do release e o
     `.sig` para `%LOCALAPPDATA%\Wisp\Cache\atualizacao`, confere a assinatura antes de dar o
     nome final, apaga os instaladores antigos da pasta e, no **Reiniciar**, roda o instalador com
