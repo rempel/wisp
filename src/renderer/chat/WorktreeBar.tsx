@@ -53,10 +53,11 @@ export function WorktreeBar({
           : await window.wisp.tabs.worktreeDiscard(conversation)
       setMessage({ ok: result.ok, text: result.message })
       setConfirm(false)
-      setStatus(await load())
     } finally {
       setWorking(false)
     }
+    // Relê o que mudou depois de religar os botões (o git pode demorar, no Windows mais).
+    setStatus(await load())
   }
 
   return (
