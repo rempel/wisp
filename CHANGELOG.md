@@ -95,6 +95,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   amassando, entrou como mais uma escolha, ao lado do fantasminha. Os ícones do app e da bandeja
   viraram a chama.
 
+- **O Windows sem lacunas** (Fase 40): segurar o atalho de voz ouve até soltar; a agenda pelo
+  endereço iCal do Google, do Outlook ou do iCloud (guardado no chaveiro; vale no Linux também); o
+  "não perturbe" do Windows deixa o Wisp quieto; a linha de status do Wisp também sem o Git Bash;
+  e o instalador para Windows ARM64.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

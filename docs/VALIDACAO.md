@@ -864,3 +864,21 @@ Com **Ilha no topo** ligada:
 - [ ] **Emoções:** em **Configurações → Mascote e sons**, veja algumas emoções e danças da galeria
       nos três avatares: os olhos e a boca escuros, os sinais no ar perto da cabeça.
 - [ ] **Menos movimento:** ligado, a chama e a geleca ficam paradas.
+
+## O Windows sem lacunas (Fase 40)
+
+- [ ] **Segurar para falar:** no Windows, segure **Ctrl+Alt+Espaço**, diga "abre a Calculadora" e
+      solte: a escuta acaba ao soltar (não no silêncio). Um toque rápido ainda ouve até o silêncio.
+- [ ] **Agenda pelo endereço:** no Google Agenda, em Configurações da agenda → Integrar agenda,
+      copie o **Endereço secreto em formato iCal**. Em **Configurações → Integrações**, ligue a
+      **Agenda** e cole em **Agendas por endereço**: aparece "conferida e guardada", e o painel
+      vazio mostra o próximo compromisso. Pergunte "o que eu tenho amanhã?". O endereço não aparece
+      no `config.json` nem no `wisp.log`.
+- [ ] **Apagar:** **Apagar** tira a agenda da lista, e os compromissos dela somem em seguida.
+- [ ] **Não perturbe:** ligue o **Não perturbe** do Windows (a central de notificações) e peça um
+      comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal. O mesmo
+      com o **Assistente de Foco** no Windows 10.
+- [ ] **Linha de status sem o Git Bash:** num Windows sem o Git para Windows, abra o modo terminal:
+      a linha de status embaixo é a do Wisp.
+- [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
+      modo terminal abre o Claude Code.
