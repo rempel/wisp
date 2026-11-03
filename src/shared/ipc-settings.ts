@@ -84,6 +84,7 @@ export interface Settings {
   calendarFiles: string[]
   calendarAlertMinutes: number
   weeklySummary: boolean
+  usageAlerts: boolean
   provider: Provider
   openrouterModel: string | null
   phoneAfterSeconds: number
@@ -132,6 +133,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'calendarFiles',
   'calendarAlertMinutes',
   'weeklySummary',
+  'usageAlerts',
   'provider',
   'openrouterModel',
   'phoneAfterSeconds',

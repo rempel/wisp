@@ -97,6 +97,7 @@ import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
 import { captureArea } from './area-capture'
+import { usageAlertsFor } from './usage-alerts'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
@@ -223,6 +224,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sound: (name) => sounds.play(name)
   }
 
+  // O aviso do uso do plano (Fase 41): uma vez ao passar de 80% e de 95% de cada janela.
+  const usageAlerts = usageAlertsFor(signals, () => chat?.open())
   // O registro da semana (só contagens e nomes, nada do conteúdo), para o resumo de segunda.
   const weekly = setupWeekly(notify, () => chat)
   const { activity } = weekly
@@ -353,6 +356,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       island?.onChatEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       phone?.onChatEvent(event)
+      if (event.type === 'usage') usageAlerts.observe(event.usage)
       if (event.type === 'permission-request') {
         desktopApprovals.request(event.id, event.toolName, event.input)
       } else if (event.type === 'permission-resolved') desktopApprovals.resolved(event.id)

@@ -173,6 +173,8 @@ export interface WispConfig {
   calendarAlertMinutes: number
   /** Guarda as contagens da semana (sem conteúdo) e mostra o resumo na segunda-feira. */
   weeklySummary: boolean
+  /** Avisa ao passar de 80% e de 95% das janelas do plano (Fase 41). */
+  usageAlerts: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -261,6 +263,7 @@ function defaults(): WispConfig {
     calendarLinks: [],
     calendarAlertMinutes: 10,
     weeklySummary: true,
+    usageAlerts: true,
     provider: 'subscription',
     openrouterModel: null,
     phoneApprovals: false,
@@ -384,6 +387,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .refine((links) => new Set(links.map((link) => link.id)).size === links.length),
   calendarAlertMinutes: z.number().int().min(0).max(240),
   weeklySummary: z.boolean(),
+  usageAlerts: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
   phoneApprovals: z.boolean(),

@@ -978,6 +978,9 @@ Em **Configurações → Integrações**:
     minutos no máximo, só por https.
 - **Resumo da semana:** só contagens (conversas, tempo do Claude, linhas editadas, aprovações), no
   topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?".
+- **Aviso do uso do plano** (Fase 41, `usageAlerts`, ligado por padrão): uma notificação ao passar
+  de 80% e de 95% da janela de 5 horas ou da semana, com a hora em que ela reinicia e a sugestão de
+  um modelo que gasta menos. Uma vez por janela (fica guardado em `aviso-do-plano.json`).
 
 ### A ilha
 
@@ -1225,6 +1228,7 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "calendarLinks": [],
   "calendarAlertMinutes": 10,
   "weeklySummary": true,
+  "usageAlerts": true,
   "provider": "subscription",
   "openrouterModel": null,
   "phoneApprovals": false,
