@@ -307,8 +307,10 @@ jobs:
         # O bash do Git: um comando que falha para o passo (o pwsh seguiria para o próximo).
         shell: bash
         run: |
-          node scripts/electron-arm64.mjs .cache/electron-win-arm64 win32
-          npx electron-builder --win nsis --arm64 -c.electronDist=.cache/electron-win-arm64 --publish never
+          # Fora da pasta do repositório: nada dele entra no pacote.
+          electron="$RUNNER_TEMP/electron-win-arm64"
+          node scripts/electron-arm64.mjs "$electron" win32
+          npx electron-builder --win nsis --arm64 -c.electronDist="$electron" --publish never
           node scripts/smoke-win-arm64.mjs
         env:
           WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}

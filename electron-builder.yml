@@ -23,6 +23,8 @@ files:
   - '!**/*.map'
   # Os testes de unidade montados (npm test) não vão no pacote.
   - '!out/test/**'
+  # O Electron de ARM64 baixado para montar os pacotes ARM64 (scripts/electron-arm64.mjs).
+  - '!.cache/**'
   # Do node-pty (o modo terminal), o código-fonte em C fica de fora; os binários de cada sistema
   # vão no pacote de cada um (linux.files e win.files).
   - '!node_modules/node-pty/{deps,third_party,src,scripts,typings}/**'
