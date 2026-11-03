@@ -11,10 +11,21 @@ export interface SavedPrompt {
   text: string
 }
 
+/**
+ * O que faz uma tarefa rodar (Fase 44): o horário (o de sempre), uma revisão num PR seu, um CI
+ * que falhou, um arquivo novo numa pasta (`watch`) ou a tela desbloqueada.
+ */
+export const TASK_TRIGGERS = ['time', 'pr-review', 'ci-failed', 'new-file', 'unlock'] as const
+export type TaskTrigger = (typeof TASK_TRIGGERS)[number]
+
 export interface ScheduledTask {
   id: string
   name: string
   prompt: string
+  /** Sem ele, o horário (as tarefas de antes da Fase 44). */
+  trigger?: TaskTrigger
+  /** A pasta acompanhada, no gatilho de arquivo novo. */
+  watch?: string | null
   /** A hora do dia, "HH:MM" (no fuso do computador). */
   time: string
   /** Os dias da semana em que roda: 0 é domingo, 6 é sábado. */
@@ -40,6 +51,8 @@ export interface PromptValues {
   clipboard: string
   date: string
   time: string
+  /** O que fez a tarefa rodar (Fase 44): o PR, os arquivos novos. Vazio fora das tarefas. */
+  event?: string
 }
 
 /** Cada variável, com o nome em português e em inglês (os dois valem em qualquer idioma). */
@@ -51,14 +64,16 @@ const VARIABLES: Record<string, keyof PromptValues> = {
   data: 'date',
   date: 'date',
   hora: 'time',
-  time: 'time'
+  time: 'time',
+  evento: 'event',
+  event: 'event'
 }
 
 /** O texto com as variáveis trocadas; uma {palavra} que não é variável fica como está. */
 export function expandPrompt(text: string, values: PromptValues): string {
   return text.replace(/\{(\w+)\}/g, (match, name: string) => {
     const key = VARIABLES[name.toLowerCase()]
-    return key ? values[key] : match
+    return key ? (values[key] ?? '') : match
   })
 }
 
@@ -120,7 +135,7 @@ function at(day: Date, time: string): Date | null {
 
 /** A próxima vez que a tarefa roda, depois de `after`; null se ela não tem dia ou está desligada. */
 export function nextRun(task: ScheduledTask, after: Date): Date | null {
-  if (!task.enabled || !task.days.length) return null
+  if (!task.enabled || !task.days.length || (task.trigger ?? 'time') !== 'time') return null
   for (let offset = 0; offset <= 7; offset++) {
     const day = new Date(after.getFullYear(), after.getMonth(), after.getDate() + offset)
     if (!task.days.includes(day.getDay())) continue
@@ -132,7 +147,7 @@ export function nextRun(task: ScheduledTask, after: Date): Date | null {
 
 /** A última vez que a tarefa devia ter rodado, até `now` (no máximo uma semana atrás). */
 export function lastDue(task: ScheduledTask, now: Date): Date | null {
-  if (!task.enabled || !task.days.length) return null
+  if (!task.enabled || !task.days.length || (task.trigger ?? 'time') !== 'time') return null
   for (let offset = 0; offset <= 7; offset++) {
     const day = new Date(now.getFullYear(), now.getMonth(), now.getDate() - offset)
     if (!task.days.includes(day.getDay())) continue

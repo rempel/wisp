@@ -9,17 +9,21 @@ import { PermissionCard } from './PermissionCard'
 import { QuestionCard } from './QuestionCard'
 import type { Item } from './state'
 import { ToolCard } from './ToolCard'
+import { ReviewCard } from './ReviewCard'
 import { t } from '../../shared/i18n'
 
 export function Message({
   item,
   streaming,
-  onEdit
+  onEdit,
+  conversation
 }: {
   item: Item
   streaming: boolean
   /** A última mensagem dá para editar (com o Claude parado). */
   onEdit?: () => void
+  /** A conversa do painel (o desfazer do card de revisão, Fase 42). */
+  conversation?: string
 }): JSX.Element {
   switch (item.kind) {
     case 'user':
@@ -79,6 +83,8 @@ export function Message({
       )
     case 'tool':
       return <ToolCard tool={item} />
+    case 'review':
+      return <ReviewCard item={item} conversation={conversation} />
     case 'notice':
       return (
         <div className={`notice notice-${item.level}`}>

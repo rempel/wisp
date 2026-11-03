@@ -27,9 +27,19 @@ src/
 │  ├─ dbus-wire.ts   # o formato das mensagens do D-Bus: tipos, assinaturas, leitura e escrita
 │  ├─ portal.ts      # pedidos aos portais do desktop (xdg-desktop-portal)
 │  ├─ shortcut.ts    # atalho global: Electron no X11, portal GlobalShortcuts no Wayland
+│  ├─ keys-win.ts    # no Windows: o PowerShell que diz quando a tecla do atalho de voz é solta
 │  ├─ reminders.ts   # lembretes: arquivo, horários e o temporizador
 │  ├─ media.ts       # players de música pelo MPRIS (e quem está tocando, para a dança)
 │  ├─ screenshot.ts  # print da tela (portal no Wayland, Electron no X11) e miniaturas
+│  ├─ area-capture.ts # recortar uma área: a camada em tela cheia e o recorte (Fase 41)
+│  ├─ usage-alerts.ts # o aviso de 80% e 95% das janelas do plano (Fase 41)
+│  ├─ turn-snapshot.ts # o hook que guarda a cópia de antes de cada edição (Fase 42)
+│  ├─ turn-review.ts # o card do fim do turno: o que mudou e o desfazer (Fase 42)
+│  ├─ worktrees.ts   # a conversa numa cópia do Git: criar, mudanças, juntar e descartar (Fase 43)
+│  ├─ worktrees-ipc.ts # a cópia pelo painel: a barra, o menu das pastas e a arrumação (Fase 43)
+│  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
+│  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
+│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -109,7 +119,7 @@ src/
 │  ├─ release-key.ts # a chave pública que confere os AppImage (gerada por scripts/release-key.mjs)
 │  ├─ portable.ts    # levar o Wisp junto: exportar, ler, a prévia e importar
 │  ├─ portable-ipc.ts # exportar e importar nas configurações (os diálogos e o backup)
-│  ├─ dnd.ts         # o "não perturbe" do desktop (KDE e GNOME, pelo D-Bus, por sinal)
+│  ├─ dnd.ts         # o "não perturbe" do desktop (KDE e GNOME pelo D-Bus; o Windows pela música)
 │  ├─ phone.ts       # aprovar pelo celular: o ntfy, o resumo do pedido e um pedido por vez
 │  ├─ phone-ipc.ts   # o pareamento pela tela de configurações e o canal lido do chaveiro
 │  ├─ desktop-approvals.ts # os cards respondidos pela notificação do sistema (D-Bus)
@@ -121,6 +131,8 @@ src/
 │  ├─ eds.ts         # as agendas do GNOME pelo Evolution Data Server (D-Bus)
 │  ├─ ical.ts        # leitura de iCalendar: fusos, dia inteiro e repetições (RRULE)
 │  ├─ agenda.ts      # a agenda: as fontes juntas, o aviso antes e o próximo compromisso
+│  ├─ calendar-links.ts # as agendas por endereço iCal (Google, Outlook): baixar e guardar
+│  ├─ calendar-links-ipc.ts # guardar e apagar um endereço (no chaveiro) pela tela
 │  ├─ activity.ts    # o registro da semana (só contagens) e o resumo
 │  ├─ demo/
 │  │  ├─ player.ts   # o Claude Code gravado do modo demonstração (stream-json)
@@ -148,6 +160,7 @@ src/
 │  ├─ i18n-en.ts     # o dicionário do inglês
 │  └─ format.ts      # datas, horários, custos e tokens, no idioma de agora
 └─ renderer/
+   ├─ area/          # a camada de recortar uma área (Fase 41): o print e o retângulo arrastado
    ├─ mascot/        # Mascot.tsx (SVG e reações), Bodies.tsx (o corpo de cada avatar), face.ts
    │                 # (o rosto de cada momento), FaceArt.tsx (olhos e bocas do kit), Emotes.tsx
    │                 # (os sinais no ar), sounds.ts (WebAudio), voice.ts e voice-worklet.ts
@@ -875,7 +888,13 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   conexão só fica aberta. O `ical.ts` lê os eventos (os do EDS e os dos arquivos) e abre as
   repetições na janela pedida, com as horas de parede convertidas pelo `Intl` no fuso de cada
   evento. O `agenda.ts` relê a janela de um dia atrás a oito à frente de 5 em 5 minutos, marca o
-  próximo aviso e manda ao painel o próximo compromisso das próximas 24 horas.
+  próximo aviso e manda ao painel o próximo compromisso das próximas 24 horas. As agendas por
+  endereço (Fase 40, `calendar-links.ts`): o endereço iCal fica no chaveiro
+  (`calendar-link-<id>`), e o `config.json`, com o id e o nome (`calendarLinks`); cada uma é
+  baixada de 15 em 15 minutos no máximo, só por https, com o `If-None-Match` do ETag e até 5 MB, e
+  a última que veio fica guardada na memória para quando a rede falha. Nenhuma mensagem leva o
+  endereço. O `calendar-links-ipc.ts` guarda (conferindo antes que vem um `BEGIN:VCALENDAR`) e
+  apaga; a página nunca recebe o endereço de volta. No Windows, o EDS nem é tentado.
 - **Resumo da semana:** o `activity.ts` ouve os eventos ao vivo das conversas (o histórico
   reaberto não conta), os lembretes e as mensagens das sessões do terminal (o hook
   `UserPromptSubmit`) e grava uma linha por coisa, com a hora. A semana vai de segunda a segunda
@@ -908,9 +927,13 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     árvore dela pelo `taskkill /pid … /t /f` (o do `%SystemRoot%\System32`, nunca um do PATH).
     No modo terminal, o node-pty recusa qualquer sinal: o Wisp fecha o ConPTY, e o `taskkill` na
     árvore se o Claude Code não sair em 3 s;
-  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o "não perturbe" do desktop, o
-    MPRIS, a agenda do Evolution), o comando `wisp` no PATH e o `.desktop`. O diagnóstico não
-    pede o que é do Linux;
+  - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o MPRIS, a agenda do Evolution),
+    o comando `wisp` no PATH e o `.desktop`. O diagnóstico não pede o que é do Linux. O "não
+    perturbe" (Fase 40) vem no laço do PowerShell da música (`QUIET`, em `media-win-watch.ts`): a
+    chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` em 0 (o botão "Não perturbe" do Windows 11). O
+    Assistente de Foco do Windows 10 fica de fora: o estado dele (WNF) não é documentado, e no CI
+    ele leu "ligado" sem ninguém ligar. O script escreve `{"dnd": …}` só quando muda, e o `dnd.ts` recebe
+    pelo `report`;
   - **o desktop pelo Claude (Fase 35):** o que no Linux vem do D-Bus, do X11 ou de programas do
     sistema, no Windows vem das APIs dele, por scripts fixos do PowerShell (`powershell.ts`: o
     `powershell.exe` do `%SystemRoot%`, sem perfil e sem janela, só quando pedem). O texto de cada
@@ -952,9 +975,11 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
       2 minutos), que traz os apps da loja e os do sistema sem atalho, como a Calculadora; esses
       abrem pelo `shell:AppsFolder\<AppID>`;
     - **a voz:** o `programs.ts` acha o `whisper-cli.exe` e o `piper.exe` pelo nome, pelo caminho
-      do Windows e em `%LOCALAPPDATA%\Wisp\Voz`. O atalho de voz não sabe quando a tecla é solta
-      (o `globalShortcut` só avisa o aperto, e o X11 que o Linux consulta não existe): a escuta
-      acaba no silêncio, como num toque rápido no Linux;
+      do Windows e em `%LOCALAPPDATA%\Wisp\Voz`. O `globalShortcut` só avisa o aperto; para
+      segurar para falar (Fase 40), o `keys-win.ts` abre, no primeiro aperto, um PowerShell que
+      pergunta ao Windows (`GetAsyncKeyState`) se a tecla ainda está apertada, de 30 em 30 ms, só
+      entre o aperto e o soltar (no resto do tempo, ele espera a próxima linha da entrada). Se o
+      script cair, a escuta em curso acaba e o atalho volta ao toque (até o silêncio);
   - **os hooks (Fase 35):** o relay é o próprio Wisp com `--wisp-hook`, na forma exec (o `boot.ts`
     chama o `runRelay` do `hooks/relay.ts` antes de carregar o app; no Linux, o mesmo relay roda
     pelo script `wisp-hook`, com o Electron em modo Node). No lugar do socket, um pipe nomeado
@@ -975,8 +1000,10 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     pelos pais dele (um snapshot dos processos, no mesmo script das janelas) até a primeira janela
     da barra de tarefas de um deles; um "pai" que nasceu depois do filho é um número reaproveitado
     e para o caminho. O navegador do Claude é procurado nas pastas dos instaladores (o Edge sempre
-    está). A linha de status do modo terminal é uma linha do bash do Git (a única forma que o
-    Claude Code aceita para ela), com o próprio Wisp entre aspas simples e só a ficha da aba. O
+    está). A linha de status do modo terminal é uma linha de shell (a única forma que o Claude Code
+    aceita para ela), que ele roda no bash do Git ou, sem ele, no PowerShell: com o caminho do Wisp
+    sem espaço nem símbolo, ela vai sem aspas e roda nos dois (Fase 40); senão, entre aspas
+    simples, só no bash. Leva só a ficha da aba. O
     **Atualizar** (o `self-update.ts`, com o formato `installer`) baixa o instalador do release e o
     `.sig` para `%LOCALAPPDATA%\Wisp\Cache\atualizacao`, confere a assinatura antes de dar o
     nome final, apaga os instaladores antigos da pasta e, no **Reiniciar**, roda o instalador com

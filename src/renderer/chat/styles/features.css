@@ -583,7 +583,7 @@
   opacity: 0.7;
 }
 
-.automation-item :is(input[type='text'], input[type='time'], textarea) {
+.automation-item :is(input[type='text'], input[type='time'], textarea, select) {
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border);
@@ -598,7 +598,7 @@
   resize: vertical;
 }
 
-.automation-item :is(input, textarea):focus-visible {
+.automation-item :is(input, textarea, select):focus-visible {
   border-color: var(--accent);
   outline: 2px solid color-mix(in srgb, var(--accent) 25%, transparent);
 }

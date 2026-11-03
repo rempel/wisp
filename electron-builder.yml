@@ -23,6 +23,8 @@ files:
   - '!**/*.map'
   # Os testes de unidade montados (npm test) não vão no pacote.
   - '!out/test/**'
+  # O Electron de ARM64 baixado para montar os pacotes ARM64 (scripts/electron-arm64.mjs).
+  - '!.cache/**'
   # Do node-pty (o modo terminal), o código-fonte em C fica de fora; os binários de cada sistema
   # vão no pacote de cada um (linux.files e win.files).
   - '!node_modules/node-pty/{deps,third_party,src,scripts,typings}/**'
@@ -86,7 +88,10 @@ appImage:
 toolsets:
   appimage: 1.0.3
 # O Windows (Fase 33): um instalador por usuário (sem pedir administrador), no menu Iniciar e na
-# área de trabalho. O node-pty traz o binário dele pronto (prebuilds/win32-x64).
+# área de trabalho. O node-pty traz o binário dele pronto (prebuilds/win32-x64 e win32-arm64; o
+# afterPack tira o da outra arquitetura). O de ARM64 (Fase 40) sai com --arm64 e o Electron de
+# ARM64 (scripts/electron-arm64.mjs ... win32), no job do Windows do CI. Com um certificado nos
+# segredos do CI (WIN_CSC_LINK e WIN_CSC_KEY_PASSWORD), o electron-builder assina os dois.
 win:
   target:
     - target: nsis
@@ -95,7 +100,7 @@ win:
   icon: build/icons/256x256.png
   artifactName: Wisp-${version}-Setup-${arch}.${ext}
   files:
-    - '!node_modules/node-pty/prebuilds/{darwin-*,linux-*,win32-arm64}/**'
+    - '!node_modules/node-pty/prebuilds/{darwin-*,linux-*}/**'
     - '!node_modules/node-pty/build/**'
 nsis:
   oneClick: true

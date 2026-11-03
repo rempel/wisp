@@ -451,7 +451,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       {
         title: 'Compromissos da agenda',
         description:
-          'Os compromissos da agenda do usuário (as agendas do GNOME e arquivos .ics), por dia, ' +
+          'Os compromissos da agenda do usuário (os endereços iCal, as agendas do GNOME e arquivos .ics), por dia, ' +
           'com a hora, o título, a agenda e o local. `dias`: quantos dias a partir de hoje ' +
           '(padrão 2: hoje e amanhã; até 31). `a_partir_de`: outro dia para começar, ' +
           '"AAAA-MM-DD". Só leitura.',

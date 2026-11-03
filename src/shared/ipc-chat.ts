@@ -91,6 +91,26 @@ export interface FileDiff {
   truncated: boolean
 }
 
+/** Um arquivo no card de revisão do fim do turno (Fase 42). */
+export interface ReviewFile {
+  path: string
+  status: 'created' | 'modified' | 'deleted'
+  added: number
+  removed: number
+  /** O diff (sem ele: um arquivo binário ou grande demais). */
+  diff?: FileDiff
+  /** A marca do conteúdo de agora: desfazer só vale com o arquivo ainda assim. */
+  hash: string
+  /** Há a cópia de antes. */
+  canUndo: boolean
+}
+
+/** O que o desfazer do card conseguiu. */
+export interface ReviewUndoResult {
+  undone: string[]
+  problems: string[]
+}
+
 /** Uma conversa guardada no histórico. */
 export interface ConversationSummary {
   id: string
@@ -166,6 +186,11 @@ export type ChatEvent =
     }
   /** Aviso para mostrar na conversa (texto em Markdown). */
   | { type: 'notice'; level: NoticeLevel; text: string }
+  /**
+   * O que a resposta mudou nos arquivos (Fase 42), no fim do turno: o diff de cada um, de antes
+   * do turno até agora, para revisar e desfazer. `turn` diz de qual turno é o card.
+   */
+  | { type: 'turn-review'; turn: number; files: ReviewFile[] }
   /**
    * O Claude quer usar uma ferramenta que precisa de aprovação. `toolUseId` liga o pedido ao
    * card da ferramenta.
@@ -297,6 +322,21 @@ export interface FolderChoice {
   name: string
   display: string
   path: string
+}
+
+/** Uma conversa numa cópia do projeto (Fase 43): de onde, o ramo e o que mudou nela. */
+export interface WorktreeStatus {
+  /** A pasta do repositório original (com ~). */
+  repo: string
+  branch: string
+  changes: { path: string; added: number; removed: number }[]
+  error?: string
+}
+
+/** Juntar ou descartar a cópia: deu certo ou não, e o que dizer. */
+export interface WorktreeResult {
+  ok: boolean
+  message: string
 }
 
 /** Abrir uma pasta numa aba: deu certo, a pessoa desistiu, ou o motivo. */

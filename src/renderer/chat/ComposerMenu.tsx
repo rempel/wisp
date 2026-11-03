@@ -10,10 +10,13 @@ import { t } from '../../shared/i18n'
 export function ComposerMenu({
   onAttach,
   onCapture,
+  onCaptureArea,
   capturing
 }: {
   onAttach: () => void
   onCapture: () => void
+  /** Recortar uma área da tela (Fase 41). */
+  onCaptureArea: () => void
   capturing: boolean
 }): JSX.Element {
   const [open, setOpen] = useState(false)
@@ -79,6 +82,21 @@ export function ComposerMenu({
             <span className="model-text">
               <strong>{t('Print da tela')}</strong>
               <small>{t('o painel sai da frente por um instante')}</small>
+            </span>
+          </button>
+          <button
+            type="button"
+            role="menuitem"
+            className="model-option"
+            disabled={capturing}
+            onClick={pick(onCaptureArea)}
+          >
+            <span className="model-check">
+              <ScreenshotIcon />
+            </span>
+            <span className="model-text">
+              <strong>{t('Recortar uma área')}</strong>
+              <small>{t('arraste um retângulo na tela; Esc desiste')}</small>
             </span>
           </button>
         </div>

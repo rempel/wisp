@@ -493,6 +493,8 @@ test(
     console.warn = (...args: unknown[]) => errors.push(args.join(' '))
     try {
       const first = new Promise<unknown>((resolve) => watcher.once('sessions', resolve))
+      // O "não perturbe" vem na primeira volta do laço também (Fase 40).
+      const quiet = new Promise<unknown>((resolve) => watcher.once('dnd', resolve))
       const started = Date.now()
       watcher.start()
       const sessions = await Promise.race([
@@ -501,6 +503,12 @@ test(
       ])
       console.log(`a primeira lista em ${Date.now() - started} ms: ${JSON.stringify(sessions)}`)
       assert.ok(Array.isArray(sessions), `${String(sessions)}\n${errors.join('\n')}`)
+      const dnd = await Promise.race([
+        quiet,
+        new Promise((resolve) => setTimeout(() => resolve('passou de 10 s'), 10_000))
+      ])
+      console.log(`o não perturbe: ${String(dnd)}`)
+      assert.equal(typeof dnd, 'boolean', `${String(dnd)}\n${errors.join('\n')}`)
       // Um comando para um player que não existe, a pressa e o volume (sem aparelho de som no CI,
       // o erro do Windows): ele continua lendo.
       assert.ok(watcher.send({ id: 'nenhum.exe', acao: 'PlayPause' }))
@@ -621,6 +629,18 @@ test('a linha de status no Windows: o próprio Wisp, numa linha do bash do Git, 
     ),
     `'C:/Users/João Silva/AppData/Local/Programs/Wisp/Wisp.exe' --wisp-hook --status ${token}`
   )
+  // Sem espaço nem símbolo no caminho: sem aspas, e a mesma linha roda no PowerShell (Fase 40).
+  assert.equal(
+    windowsStatusCommand('C:\\Users\\joão\\AppData\\Local\\Programs\\Wisp\\Wisp.exe', [], token),
+    `C:/Users/joão/AppData/Local/Programs/Wisp/Wisp.exe --wisp-hook --status ${token}`
+  )
+  assert.equal(
+    windowsStatusCommand('D:\\dev\\electron.exe', ['D:\\dev\\wisp'], token),
+    `D:/dev/electron.exe D:/dev/wisp --wisp-hook --status ${token}`
+  )
+  // Um símbolo que um dos shells leria de outro jeito volta para as aspas.
+  for (const odd of ['C:\\Program Files\\Wisp.exe', 'C:\\a,b\\Wisp.exe', 'C:\\$x\\Wisp.exe'])
+    assert.match(windowsStatusCommand(odd, [], token), /^'/, odd)
   // Rodando do código: o Electron e a pasta do app; um apóstrofo no caminho fica fechado.
   assert.equal(
     windowsStatusCommand('D:\\dev\\electron.exe', ["D:\\O'Neil\\wisp"], token),
@@ -679,6 +699,73 @@ test(
         // Já saiu.
       }
       terminal.kill()
+    }
+  }
+)
+
+test(
+  'a linha de status sem aspas roda igual no PowerShell e no bash do Git (Fase 40)',
+  windowsOnly,
+  async () => {
+    const { spawnSync } = await import('node:child_process')
+    const { existsSync } = await import('node:fs')
+    const { windowsStatusCommand } = await import('../src/main/claude-settings')
+    // No lugar do Wisp, o Node com um script que mostra os argumentos (na pasta do repositório,
+    // sem espaço: a do HOME temporário tem o "~" do nome curto do Windows).
+    const script = join(__dirname, 'eco-status.cjs')
+    writeFileSync(script, 'console.log(JSON.stringify(process.argv.slice(2)))\n')
+    const token = 'b'.repeat(32)
+    const line = windowsStatusCommand(process.execPath, [script], token)
+    console.log(`a linha: ${line}`)
+    assert.ok(!line.includes("'"), 'sem aspas')
+    const expected = ['--wisp-hook', '--status', token]
+    const ps = spawnSync('powershell.exe', ['-NoProfile', '-NonInteractive', '-Command', line], {
+      encoding: 'utf8'
+    })
+    assert.deepEqual(JSON.parse(ps.stdout.trim()), expected, ps.stderr)
+    const bash = join(process.env.ProgramFiles ?? 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
+    if (!existsSync(bash)) return console.log('sem o Git Bash neste Windows')
+    const sh = spawnSync(bash, ['-c', line], { encoding: 'utf8' })
+    assert.deepEqual(JSON.parse(sh.stdout.trim()), expected, sh.stderr)
+  }
+)
+
+test(
+  'o não perturbe do Windows (Fase 40): o botão do Windows 11 conta, e sem ele não está quieto',
+  windowsOnly,
+  async () => {
+    const { runPowerShell } = await import('../src/main/powershell')
+    const { QUIET } = await import('../src/main/media-win-watch')
+    const key =
+      'HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings'
+    const name = 'NOC_GLOBAL_SETTING_TOASTS_ENABLED'
+    const ask = async (): Promise<{ quieto: boolean }> => {
+      const result = await runPowerShell(
+        QUIET + 'ConvertTo-Json -InputObject @{ quieto = (Quieto) } -Compress'
+      )
+      assert.equal(result.code, 0, result.stderr)
+      return JSON.parse(result.stdout.trim()) as { quieto: boolean }
+    }
+    // Guarda o valor de antes (o runner pode não ter) e põe de volta no fim.
+    const saved = await runPowerShell(
+      `$v = [Microsoft.Win32.Registry]::GetValue('${key}', '${name}', $null); ` +
+        "if ($null -eq $v) { 'nada' } else { [string]$v }"
+    )
+    const before = saved.stdout.trim()
+    try {
+      const normal = await ask()
+      console.log(`sem mexer: ${JSON.stringify(normal)} (a chave: ${before})`)
+      assert.equal(normal.quieto, before === '0', 'sem mexer, o que a chave diz')
+      await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 0)`)
+      assert.equal((await ask()).quieto, true, 'com as notificações desligadas, quieto')
+      await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 1)`)
+      assert.equal((await ask()).quieto, false, 'com as notificações ligadas, não')
+    } finally {
+      await runPowerShell(
+        before === 'nada'
+          ? `$k = [Microsoft.Win32.Registry]::CurrentUser.OpenSubKey('Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings', $true); if ($k) { $k.DeleteValue('${name}', $false) }`
+          : `[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', ${Number(before)})`
+      )
     }
   }
 )

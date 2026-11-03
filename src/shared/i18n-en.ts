@@ -486,9 +486,6 @@ export const EN: Record<string, string> = {
   'Não consegui ler o GitHub agora.': "Couldn't read GitHub right now.",
   'O resumo da semana está desligado (Configurações → Integrações).':
     'The weekly summary is off (Settings → Integrations).',
-  'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ':
-    'The calendar is off. You can turn it on in Settings → Integrations (it reads the ',
-  'agendas do GNOME e arquivos .ics).': 'GNOME calendars and .ics files).',
   'Use a data no formato AAAA-MM-DD.': 'Use the date in the YYYY-MM-DD format.',
   'o Wisp ainda está abrindo': 'Wisp is still starting',
   'Não consegui: {message}.': "Couldn't: {message}.",
@@ -1204,8 +1201,6 @@ export const EN: Record<string, string> = {
   'CI e revisões dos seus PRs, e pedidos de revisão, a cada 3 minutos. Usa o gh (GitHub CLI) já logado: rode gh auth login antes.':
     'CI and reviews of your PRs, and review requests, every 3 minutes. It uses gh (GitHub CLI) already logged in: run gh auth login first.',
   Agenda: 'Calendar',
-  'Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura.':
-    'The next events from the GNOME calendars (including Google and Microsoft from Online Accounts) and from the files below. Read only.',
   'Arquivos de agenda': 'Calendar files',
   'Arquivos .ics ou pastas com eles (vdirsyncer, KOrganizer), um por linha. Opcional.':
     '.ics files or folders with them (vdirsyncer, KOrganizer), one per line. Optional.',
@@ -1797,8 +1792,6 @@ export const EN: Record<string, string> = {
   'O que pedir ao Claude…': 'What to ask Claude…',
   'Rodando numa aba nova, no modo Pedir.': 'Running in a new tab, in Ask mode.',
   'Tarefas agendadas': 'Scheduled tasks',
-  'Um prompt que roda sozinho num horário, numa aba nova, sempre no modo Pedir: o que mexer no computador espera o seu clique (ou vai para o celular, se ligado). Com o Wisp fechado na hora, ela roda quando ele abrir, até 2 horas depois. Valem {v1}, {v2} e {v3}; o que foi copiado, não.':
-    "A prompt that runs by itself at a set time, in a new tab, always in Ask mode: anything that touches the computer waits for your click (or goes to the phone, if on). If Wisp is closed at that time, it runs when Wisp opens, up to 2 hours later. {v1}, {v2} and {v3} work; what you copied doesn't.",
   'Nova tarefa': 'New task',
   'Nome da tarefa': 'Task name',
   Ligada: 'On',
@@ -2229,5 +2222,148 @@ export const EN: Record<string, string> = {
   '{n} com CI falhando': '{n} with failing CI',
   '… e mais (veja no painel)': '… and more (see the panel)',
   'Fogo-fátuo': "Will-o'-the-wisp",
-  Geleca: 'Jelly'
+  Geleca: 'Jelly',
+  'A agenda está desligada. Dá para ligar em Configurações → Integrações (lê os ':
+    'The calendar is off. You can turn it on in Settings → Integrations (it reads ',
+  'endereços iCal do Google e do Outlook, as agendas do GNOME e arquivos .ics).':
+    'Google and Outlook iCal addresses, GNOME calendars and .ics files).',
+  'Isso não parece um endereço de agenda (ele começa com https:// ou webcal://).':
+    "That doesn't look like a calendar address (it starts with https:// or webcal://).",
+  'Já são 10 agendas por endereço: apague uma antes.':
+    'There are already 10 calendars by address: delete one first.',
+  'O config.json está com um erro e o Wisp não grava nele assim.':
+    "config.json has an error and Wisp won't write to it like this.",
+  'Não guardei: {error}.': 'Not saved: {error}.',
+  'Wisp: agenda {name}': 'Wisp: calendar {name}',
+  'Guardada, mas não deu para conferir agora (sem rede).':
+    "Saved, but it couldn't be checked right now (no network).",
+  'Agenda "{name}" conferida e guardada.': 'Calendar "{name}" checked and saved.',
+  'Essa agenda não está mais na lista.': 'That calendar is no longer on the list.',
+  'Agenda "{name}" apagada.': 'Calendar "{name}" deleted.',
+  'O endereço da agenda "{name}" não está no chaveiro: guarde-o de novo.':
+    'The address of calendar "{name}" isn\'t in the keyring: save it again.',
+  'o servidor não mandou a agenda': "the server didn't send the calendar",
+  'A agenda "{name}" não atualizou: {why}': 'Calendar "{name}" didn\'t update: {why}',
+  'o servidor não respondeu': "the server didn't respond",
+  'sem conexão com o servidor da agenda': 'no connection to the calendar server',
+  'o endereço levou para fora do https': 'the address led outside https',
+  'o servidor recusou o endereço (ele mudou ou deixou de ser público?)':
+    'the server refused the address (did it change or stop being public?)',
+  'o servidor respondeu {status}': 'the server answered {status}',
+  'a agenda passa de 5 MB': 'the calendar is over 5 MB',
+  'o endereço não é de uma agenda iCal': "the address isn't an iCal calendar",
+  'Até 10 agendas por endereço, cada uma com um id e um nome.':
+    'Up to 10 calendars by address, each with an id and a name.',
+  'Agendas por endereço': 'Calendars by address',
+  'Agendas por endereço guardadas': 'Saved calendars by address',
+  'Apagar a agenda {name}': 'Delete calendar {name}',
+  'Nome (opcional)': 'Name (optional)',
+  'Nome da agenda': 'Calendar name',
+  'Endereço iCal da agenda': 'Calendar iCal address',
+  'O endereço secreto em formato iCal da agenda (no Google: Configurações da agenda → Integrar agenda; no Outlook: Agenda → Compartilhado → Publicar). Ele fica no chaveiro do sistema, nunca no config.json.':
+    "The calendar's secret address in iCal format (in Google: calendar Settings → Integrate calendar; in Outlook: Calendar → Shared → Publish). It stays in the system keyring, never in config.json.",
+  'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.':
+    'Upcoming events from iCal addresses (Google, Outlook, iCloud), GNOME calendars (on Linux, with Online Accounts) and the files below. Read-only.',
+  'Recortar uma área': 'Crop an area',
+  'Não consegui recortar a tela: {reason}.': "I couldn't crop the screen: {reason}.",
+  'Recortar uma área da tela para o Wisp': 'Crop an area of the screen for Wisp',
+  'Arraste para recortar uma área. Esc desiste.': 'Drag to crop an area. Esc cancels.',
+  'arraste um retângulo na tela; Esc desiste': 'drag a rectangle on the screen; Esc cancels',
+  'De qualquer lugar: arraste um retângulo na tela, e o recorte vai para a conversa em foco.':
+    'From anywhere: drag a rectangle on the screen, and the crop goes to the focused conversation.',
+  'às {time}': 'at {time}',
+  '{day}, {time}': 'on {day}, {time}',
+  '{percent}% da janela de 5 horas do plano': "{percent}% of the plan's 5-hour window",
+  '{percent}% da semana do plano': "{percent}% of the plan's week",
+  'Ela reinicia {reset}.': 'It resets {reset}.',
+  'Perto do limite: guarde o que falta para o mais importante.':
+    "Close to the limit: save what's left for what matters most.",
+  'Dá para seguir com o Sonnet ou o Haiku na pílula do modelo, que gastam menos.':
+    'You can continue with Sonnet or Haiku in the model pill, which use less.',
+  'Aviso do uso do plano': 'Plan usage alert',
+  'Avisa uma vez ao passar de 80% e de 95% da janela de 5 horas ou da semana do seu plano, com a hora em que ela reinicia.':
+    "Alerts once when passing 80% and 95% of your plan's 5-hour window or week, with the time it resets.",
+  'Clique para investigar numa conversa.': 'Click to investigate in a conversation.',
+  'O CI do PR {repo}#{number} "{title}" falhou ({url}). Veja o que quebrou (`gh pr checks {number} --repo {repo}` e `gh run view --log-failed --repo {repo}` com o id da execução que falhou), explique a causa e proponha a correção.':
+    'CI for PR {repo}#{number} "{title}" failed ({url}). See what broke (`gh pr checks {number} --repo {repo}` and `gh run view --log-failed --repo {repo}` with the id of the failed run), explain the cause and propose a fix.',
+  '{author} pediu mudanças no PR {repo}#{number} "{title}" ({url}). Leia a revisão (`gh pr view {number} --repo {repo} --comments`) e proponha o que mudar, um ponto por vez.':
+    '{author} requested changes on PR {repo}#{number} "{title}" ({url}). Read the review (`gh pr view {number} --repo {repo} --comments`) and propose what to change, one point at a time.',
+  'Essa resposta já passou: as cópias de antes dela não existem mais.':
+    'That reply is in the past: the copies from before it no longer exist.',
+  'Não consegui desfazer {path}: {message}': "I couldn't undo {path}: {message}",
+  '{path} mudou depois da resposta: ficou como está.':
+    '{path} changed after the reply: it was left as it is.',
+  'Não há a cópia de antes de {path}.': "There's no copy of {path} from before.",
+  mudou: 'changed',
+  apagado: 'deleted',
+  'O que esta resposta mudou': 'What this reply changed',
+  'Esta resposta mudou 1 arquivo': 'This reply changed 1 file',
+  'Esta resposta mudou {count} arquivos': 'This reply changed {count} files',
+  'Desfazer tudo': 'Undo all',
+  desfeito: 'undone',
+  'Desfazer {name}': 'Undo {name}',
+  Desfazer: 'Undo',
+  'Outra mensagem já começou: o desfazer vale só para a última resposta.':
+    'Another message has started: undo only works for the latest reply.',
+  'Revisar no fim da resposta': 'Review at the end of the reply',
+  'Depois de cada resposta que editou arquivos, um card com o que mudou em cada um e o Desfazer (as edições pelas ferramentas de edição; os comandos do Bash não entram).':
+    "After each reply that edited files, a card with what changed in each and Undo (edits made by the editing tools; Bash commands aren't included).",
+  'Essa conversa não está numa cópia.': "This conversation isn't in a copy.",
+  '{files} {v2} na pasta original ({repo}), sem commit.':
+    '{files} {v2} the original folder ({repo}), without a commit.',
+  'arquivo entrou': 'file went into',
+  'arquivos entraram': 'files went into',
+  'Nada novo para juntar.': 'Nothing new to merge.',
+  'A cópia saiu.': 'The copy was removed.',
+  '{name} (cópia {branch})': '{name} (copy {branch})',
+  'Essa pasta não é um repositório do Git.': "That folder isn't a Git repository.",
+  'O repositório ainda não tem nenhum commit para copiar.':
+    'The repository has no commit to copy yet.',
+  'As mudanças não entram limpas na pasta original ({message}). Nada mudou lá; o ramo {branch} fica com elas, para juntar à mão.':
+    "The changes don't apply cleanly to the original folder ({message}). Nothing changed there; the branch {branch} keeps them, to merge by hand.",
+  'Numa cópia (worktree do Git)': 'In a copy (Git worktree)',
+  'A conversa trabalha numa cópia, num ramo só dela; no fim, você junta na pasta original ou descarta.':
+    'The conversation works in a copy, on its own branch; at the end, you merge it into the original folder or discard it.',
+  'Cópia do projeto': 'Project copy',
+  'Numa cópia de': 'In a copy of',
+  'no ramo': 'on branch',
+  'sem mudanças': 'no changes',
+  '1 arquivo mudou': '1 file changed',
+  '{count} arquivos mudaram': '{count} files changed',
+  'As mudanças da cópia entram na pasta original, sem commit':
+    "The copy's changes go into the original folder, without a commit",
+  'Juntar na pasta original': 'Merge into the original folder',
+  'Descartar de vez?': 'Discard for good?',
+  Descartar: 'Discard',
+  'Um arquivo novo em {dir}: {file}': 'A new file in {dir}: {file}',
+  '{count} arquivos novos em {dir}:\n{files}': '{count} new files in {dir}:\n{files}',
+  'Tarefa: {name}': 'Task: {name}',
+  'A tela foi desbloqueada às {time}.': 'The screen was unlocked at {time}.',
+  '(rodada à mão, sem um evento)': '(run by hand, without an event)',
+  'Um prompt que roda sozinho num horário ou quando algo acontece (uma revisão, um CI vermelho, um arquivo novo, a tela desbloqueada), numa aba nova, sempre no modo Pedir: o que mexer no computador espera o seu clique (ou vai para o celular, se ligado). Com o Wisp fechado na hora, a do horário roda quando ele abrir, até 2 horas depois; a de um evento roda no máximo uma vez a cada 5 minutos. Valem {v1}, {v2}, {v3} e {v4} (o que aconteceu); o que foi copiado, não.':
+    "A prompt that runs by itself at a time or when something happens (a review, a red CI, a new file, the screen unlocked), in a new tab, always in Ask mode: anything that changes the computer waits for your click (or goes to your phone, if on). With Wisp closed at the time, a timed one runs when it opens, up to 2 hours later; an event one runs at most once every 5 minutes. {v1}, {v2}, {v3} and {v4} (what happened) work; the clipboard doesn't.",
+  'No horário': 'At a time',
+  'Quando chega uma revisão num PR seu (GitHub)':
+    'When a review arrives on one of your PRs (GitHub)',
+  'Quando o CI de um PR seu falha (GitHub)': 'When the CI of one of your PRs fails (GitHub)',
+  'Quando aparece um arquivo novo numa pasta': 'When a new file shows up in a folder',
+  'Ao desbloquear a tela': 'When the screen is unlocked',
+  'Quando a tarefa roda': 'When the task runs',
+  'Pasta acompanhada': 'Watched folder',
+  'A pasta acompanhada: ~/Downloads': 'The watched folder: ~/Downloads',
+  'Foco concluído': 'Focus done',
+  '{minutes} minutos. Hora de uma pausa: as notificações voltaram.':
+    '{minutes} minutes. Time for a break: notifications are back.',
+  'Explicar o texto selecionado com o Wisp': 'Explain the selected text with Wisp',
+  'Parar o foco (até {time})': 'Stop focus (until {time})',
+  'Modo foco': 'Focus mode',
+  '{minutes} minutos, sem notificações nem sons': '{minutes} minutes, no notifications or sounds',
+  'Explique, em poucas linhas e sem jargão, o que é isto:\n\n{text}':
+    'Explain, in a few lines and without jargon, what this is:\n\n{text}',
+  'Nada selecionado': 'Nothing selected',
+  'Marque um texto em qualquer programa e aperte o atalho de novo.':
+    'Select some text in any program and press the shortcut again.',
+  'Explicar a seleção': 'Explain the selection',
+  'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).':
+    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).'
 }

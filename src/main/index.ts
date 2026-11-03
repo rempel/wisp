@@ -82,8 +82,7 @@ import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
 import { AwayTracker } from './away'
-import { TaskScheduler } from './scheduler'
-import type { ScheduledTask } from '../shared/prompts'
+import { setupTasks } from './tasks-setup'
 import { setupPhone } from './phone-ipc'
 import { setupDiagnostics } from './diagnostics-ipc'
 import { setupUpdates } from './updates-setup'
@@ -96,6 +95,10 @@ import { setupSettings } from './settings-ipc'
 import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts, setupShortcuts } from './shortcut'
+import { captureArea } from './area-capture'
+import { usageAlertsFor } from './usage-alerts'
+import { createFocus } from './focus'
+import { explainSelection } from './selection'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
@@ -105,7 +108,7 @@ import { setupWeekly } from './weekly'
 import { transcribe, whisperSetup } from './whisper'
 import { XPointer } from './xpointer'
 import { IPC } from '../shared/ipc'
-import type { TaskResult, VoiceTestResult } from '../shared/ipc'
+import type { VoiceTestResult } from '../shared/ipc'
 import { pcmStats } from '../shared/vad'
 import { t } from '../shared/i18n'
 import { setSelfCommand } from './self-command'
@@ -221,7 +224,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     flash: (state) => mood.flashExternal(state),
     sound: (name) => sounds.play(name)
   }
+  // O modo foco (Fase 45): o Wisp quieto por um bloco; o menu acompanha.
+  const focus = createFocus(signals, () => menu?.refresh())
 
+  // O aviso do uso do plano (Fase 41): uma vez ao passar de 80% e de 95% de cada janela.
+  const usageAlerts = usageAlertsFor(signals, () => chat?.open())
   // O registro da semana (só contagens e nomes, nada do conteúdo), para o resumo de segunda.
   const weekly = setupWeekly(notify, () => chat)
   const { activity } = weekly
@@ -352,6 +359,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       island?.onChatEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       phone?.onChatEvent(event)
+      if (event.type === 'usage') usageAlerts.observe(event.usage)
       if (event.type === 'permission-request') {
         desktopApprovals.request(event.id, event.toolName, event.input)
       } else if (event.type === 'permission-resolved') desktopApprovals.resolved(event.id)
@@ -600,31 +608,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       })
     }
   })
-  // As tarefas agendadas (Fase 26): cada uma numa aba nova, no modo Pedir; o card dela espera você
-  // (ou vai para o celular e para a notificação, como qualquer card).
-  const runTask = (task: ScheduledTask, late: boolean): TaskResult => {
-    const result: TaskResult = chat
-      ? chat.runTask(task)
-      : { ok: false, message: t('O Wisp ainda está abrindo.') }
-    if (result.ok) {
-      notify(
-        late
-          ? t('Tarefa agendada (atrasada): {name}', { name: task.name })
-          : t('Tarefa agendada: {name}', { name: task.name }),
-        t('Começou numa aba nova, no modo Pedir. O que precisar do seu clique espera no painel.'),
-        () => chat?.open()
-      )
-    } else {
-      notify(t('A tarefa “{name}” não rodou', { name: task.name }), result.message)
-    }
-    return result
-  }
-  const scheduler = new TaskScheduler({
-    tasks: () => getConfig().scheduledTasks,
-    run: (task, late) => void runTask(task, late),
-    file: join(DATA_DIR, 'tarefas.json')
+  // As tarefas (Fase 26 e 44): pelo horário ou por um evento, numa aba nova, no modo Pedir.
+  const { scheduler, triggers, runNow } = setupTasks({
+    chat: () => chat,
+    notify,
+    github,
+    screenLock
   })
-  onConfigChange(() => scheduler.refresh())
   // A OpenRouter e as skills nas configurações.
   const openrouter = setupOpenRouterIpc({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -662,13 +652,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
     dnd: () => dnd.state().active,
-    runTask: async (id) => {
-      const task = getConfig().scheduledTasks.find((item) => item.id === id)
-      if (!task) return { ok: false, message: t('Essa tarefa não existe mais.') }
-      let result: TaskResult = { ok: true }
-      scheduler.runNow(id, (ran) => (result = runTask(ran, false)))
-      return result
-    }
+    runTask: async (id) => runNow(id)
   })
   // O "não perturbe" do desktop mudou: a tela de configurações mostra (Fase 32).
   dnd.onChange(() => {
@@ -738,6 +722,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     openDiagnostics: () => chat?.showView('diagnostics'),
     openPalette: () => chat?.showView('palette'),
     quiet,
+    focusEndsAt: () => focus.endsAt(),
+    startFocus: (minutes) => focus.start(minutes),
+    stopFocus: () => focus.stop(),
     shortcutLabel: () => shortcutLabel('toggle'),
     voiceShortcutLabel: () => shortcutLabel('voice'),
     openConfig: () => {
@@ -792,7 +779,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   sounds.watch()
   void (
     IS_WINDOWS
-      ? Promise.resolve(new WindowsMedia().watch())
+      ? Promise.resolve(
+          new WindowsMedia().on('dnd', (on: boolean) => dnd.report(on, 'windows')).watch()
+        )
       : Media.connect(() => getConfig().islandCovers)
   ).then((connected) => {
     media = connected
@@ -815,6 +804,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   powerMonitor.on('resume', () => {
     reminders.resume()
     scheduler.resume()
+    focus.resume()
     github.watcher.refreshSoon()
     if (calendar.agenda.enabled) void calendar.agenda.refresh()
   })
@@ -842,7 +832,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     const { shortcut, voiceShortcut, paletteShortcut, compact } = getConfig()
     // O da ilha (Fase 38) só vale com ela ligada.
     const islandShortcut = compact ? getConfig().islandShortcut : null
-    const key = JSON.stringify([shortcut, voiceShortcut, paletteShortcut, islandShortcut])
+    const { areaShortcut, selectionShortcut } = getConfig()
+    const key = JSON.stringify([
+      shortcut,
+      voiceShortcut,
+      paletteShortcut,
+      islandShortcut,
+      areaShortcut,
+      selectionShortcut
+    ])
     if (key === boundShortcuts) return
     boundShortcuts = key
     shortcuts = await setupShortcuts([
@@ -880,6 +878,23 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
           if (islandIsOpen()) closeIsland()
           else showIslandTab('ask')
         }
+      },
+      {
+        // Recortar uma área (Fase 41): o recorte vai para a caixa da conversa em foco.
+        id: 'area',
+        accelerator: areaShortcut,
+        description: t('Recortar uma área da tela para o Wisp'),
+        press: () =>
+          void captureArea(() => chat?.capture() ?? Promise.resolve([])).then((dropped) => {
+            if (dropped.files.length || dropped.problems.length) chat?.attach(dropped)
+          })
+      },
+      {
+        // Explicar a seleção (Fase 45): o texto marcado vai para uma conversa nova, na caixa.
+        id: 'selection',
+        accelerator: selectionShortcut,
+        description: t('Explicar o texto selecionado com o Wisp'),
+        press: () => void explainSelection(chat, notify)
       }
     ])
     for (const [id, status] of shortcuts) {
@@ -918,6 +933,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     media?.dispose()
     reminders.dispose()
     scheduler.dispose()
+    triggers.dispose()
+    focus.dispose()
     releaseShortcuts()
     voice?.cancel()
     screenLock.dispose()

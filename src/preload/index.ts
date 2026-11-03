@@ -37,6 +37,10 @@ function subscribe<T extends unknown[]>(
 
 // API mínima exposta ao renderer: só funções específicas, nunca o ipcRenderer cru.
 const api: WispApi = {
+  area: {
+    image: () => ipcRenderer.invoke(IPC.areaImage),
+    done: (rect) => ipcRenderer.send(IPC.areaDone, rect)
+  },
   mascot: {
     dragStart: (offsetX, offsetY) => ipcRenderer.send(IPC.mascotDragStart, offsetX, offsetY),
     dragEnd: () => ipcRenderer.send(IPC.mascotDragEnd),
@@ -104,6 +108,9 @@ const api: WispApi = {
     onAttach: (listener) => subscribe<[DroppedFiles]>(IPC.chatAttach, listener),
     activity: () => ipcRenderer.send(IPC.chatActivity),
     captureScreen: () => ipcRenderer.invoke(IPC.chatCapture),
+    captureArea: () => ipcRenderer.invoke(IPC.chatCaptureArea),
+    reviewUndo: (conversation, turn, files) =>
+      ipcRenderer.invoke(IPC.chatReviewUndo, conversation, turn, files),
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
@@ -128,7 +135,10 @@ const api: WispApi = {
     unsplit: (pane) => ipcRenderer.send(IPC.tabsUnsplit, pane),
     openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId),
     projects: () => ipcRenderer.invoke(IPC.tabsProjects),
-    openFolder: (path) => ipcRenderer.invoke(IPC.tabsOpenFolder, path)
+    openFolder: (path, worktree) => ipcRenderer.invoke(IPC.tabsOpenFolder, path, worktree === true),
+    worktreeStatus: (conversation) => ipcRenderer.invoke(IPC.worktreeStatus, conversation),
+    worktreeJoin: (conversation) => ipcRenderer.invoke(IPC.worktreeJoin, conversation),
+    worktreeDiscard: (conversation) => ipcRenderer.invoke(IPC.worktreeDiscard, conversation)
   },
   voice: {
     toggle: () => ipcRenderer.send(IPC.voiceToggle),
@@ -160,6 +170,10 @@ const api: WispApi = {
     models: () => ipcRenderer.invoke(IPC.openrouterModels),
     setKey: (key) => ipcRenderer.invoke(IPC.openrouterSetKey, key),
     clearKey: () => ipcRenderer.invoke(IPC.openrouterClearKey)
+  },
+  calendar: {
+    addLink: (url, name) => ipcRenderer.invoke(IPC.calendarAddLink, url, name),
+    removeLink: (id) => ipcRenderer.invoke(IPC.calendarRemoveLink, id)
   },
   diagnostics: {
     run: () => ipcRenderer.invoke(IPC.diagnosticsRun),

@@ -4,7 +4,8 @@
 import type { MenuItemConstructorOptions } from 'electron'
 import { AVATAR_LABELS, AVATARS } from '../shared/avatars'
 import type { AvatarName } from '../shared/avatars'
-import { t } from '../shared/i18n'
+import { FOCUS_BLOCKS } from './focus'
+import { dateLocale, t } from '../shared/i18n'
 
 export interface TrayActions {
   mascotVisible(): boolean
@@ -29,12 +30,44 @@ export interface TrayActions {
   openPalette(): void
   /** O "não perturbe" do desktop deixa o Wisp quieto agora (Fase 32). */
   quiet(): boolean
+  /** Quando o modo foco acaba (ms), ou null sem foco (Fase 45). */
+  focusEndsAt(): number | null
+  startFocus(minutes: number): void
+  stopFocus(): void
   /** O atalho global, para o menu mostrar ("Ctrl+Alt+W"); null sem atalho. */
   shortcutLabel(): string | null
   /** O atalho de voz ("Ctrl+Alt+Space"); null sem atalho. */
   voiceShortcutLabel(): string | null
   openConfig(): void
   quit(): void
+}
+
+/** O modo foco no menu: os blocos para começar, ou até quando vai e o parar. */
+function focusItem(actions: TrayActions, refresh: () => void): MenuItemConstructorOptions {
+  const ends = actions.focusEndsAt()
+  if (ends !== null) {
+    const time = new Date(ends).toLocaleTimeString(dateLocale(), {
+      hour: '2-digit',
+      minute: '2-digit'
+    })
+    return {
+      label: t('Parar o foco (até {time})', { time }),
+      click: () => {
+        actions.stopFocus()
+        refresh()
+      }
+    }
+  }
+  return {
+    label: t('Modo foco'),
+    submenu: FOCUS_BLOCKS.map((minutes) => ({
+      label: t('{minutes} minutos, sem notificações nem sons', { minutes }),
+      click: () => {
+        actions.startFocus(minutes)
+        refresh()
+      }
+    }))
+  }
 }
 
 export function menuTemplate(
@@ -66,6 +99,7 @@ export function menuTemplate(
       click: (item) => actions.setCompactEnabled(item.checked)
     },
     { label: t('Nova conversa'), click: () => actions.newConversation() },
+    focusItem(actions, refresh),
     { label: t('Paleta de comandos…'), click: () => actions.openPalette() },
     {
       label: t('Sons'),

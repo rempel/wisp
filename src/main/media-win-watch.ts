@@ -7,6 +7,9 @@
 // O Windows não avisa um script do PowerShell quando a música muda sem um laço esperando os
 // eventos; o laço daqui lê a lista de tempos em tempos (1,5 s com a ilha aberta, 4 s sem ela) e
 // escreve só quando ela muda. Parado e sem player nenhum, cada leitura é uma chamada só.
+//
+// No mesmo laço (Fase 40), o "não perturbe" do Windows, que o Windows também não avisa: ler é
+// barato (uma chave do registro), e escreve só quando ele muda.
 
 import type { ChildProcessWithoutNullStreams } from 'child_process'
 import { EventEmitter } from 'events'
@@ -24,6 +27,17 @@ export const MANAGER =
   '$null = [Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager,Windows.Media.Control,ContentType=WindowsRuntime]; ' +
   '$gerente = Esperar ([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]::RequestAsync()) ' +
   '([Windows.Media.Control.GlobalSystemMediaTransportControlsSessionManager]); '
+
+// O "não perturbe": o botão "Não perturbe" do Windows 11 desliga as notificações do usuário na
+// chave NOC_GLOBAL_SETTING_TOASTS_ENABLED (0). O Assistente de Foco do Windows 10 guarda o estado
+// num lugar que o Windows não documenta, e o CI mostrou que ele lê "ligado" num Windows em que
+// ninguém o ligou: fica de fora (um falso "ligado" deixaria o Wisp mudo).
+/** A função `Quieto` do script: o "não perturbe" do Windows agora (true ou false). */
+export const QUIET =
+  'function Quieto { ' +
+  "$avisos = [Microsoft.Win32.Registry]::GetValue('HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings', " +
+  "'NOC_GLOBAL_SETTING_TOASTS_ENABLED', $null); " +
+  '[bool]($null -ne $avisos -and [int]$avisos -eq 0) }; '
 
 /** Uma sessão de mídia como o script escreve. */
 export interface WatchedSession {
@@ -118,10 +132,14 @@ const WATCH =
   'if ($op) { [void](Esperar $op ([bool])) } }; ' +
   // A entrada pela stream crua: o [Console]::In do PowerShell 5.1 leria de forma síncrona.
   '$leitor = New-Object System.IO.StreamReader([Console]::OpenStandardInput(), [System.Text.Encoding]::UTF8); ' +
-  "$entrada = $leitor.ReadLineAsync(); $ultimo = ''; " +
+  QUIET +
+  "$entrada = $leitor.ReadLineAsync(); $ultimo = ''; $quieto = $null; " +
   'while ($true) { $json = $ultimo; ' +
   'try { $json = Ler } catch { [Console]::Error.WriteLine($_.Exception.Message) }; ' +
   'if ($json -ne $ultimo) { $ultimo = $json; [Console]::Out.WriteLine($json) }; ' +
+  'try { $q = Quieto; if ($q -ne $quieto) { $quieto = $q; ' +
+  '[Console]::Out.WriteLine((ConvertTo-Json -InputObject @{ dnd = $q } -Compress)) } } ' +
+  'catch { [Console]::Error.WriteLine($_.Exception.Message) }; ' +
   '$espera = $(if ($rapido) { 1500 } else { 4000 }); ' +
   'if ($entrada.Wait($espera)) { $linha = $entrada.Result; if ($null -eq $linha) { break }; ' +
   'try { Fazer $linha } catch { [Console]::Error.WriteLine($_.Exception.Message) }; ' +
@@ -132,10 +150,13 @@ const str = (value: unknown): string | null =>
 const num = (value: unknown): number =>
   typeof value === 'number' && Number.isFinite(value) ? value : 0
 
-/** Uma linha do script: a lista de sessões, ou o volume do sistema. null se não for nenhum. */
+/**
+ * Uma linha do script: a lista de sessões, o volume do sistema ou o "não perturbe" (Fase 40). null
+ * se não for nenhum.
+ */
 export function parseWatchLine(
   line: string
-): { sessions: WatchedSession[] } | { volume: number } | null {
+): { sessions: WatchedSession[] } | { volume: number } | { dnd: boolean } | null {
   let data: unknown
   try {
     data = JSON.parse(line)
@@ -143,7 +164,8 @@ export function parseWatchLine(
     return null
   }
   if (data && typeof data === 'object' && !Array.isArray(data)) {
-    const volume = (data as { volume?: unknown }).volume
+    const { volume, dnd } = data as { volume?: unknown; dnd?: unknown }
+    if (typeof dnd === 'boolean') return { dnd }
     return typeof volume === 'number' && volume >= 0 && volume <= 100 ? { volume } : null
   }
   if (!Array.isArray(data)) return null
@@ -218,7 +240,8 @@ export function windowsMusic(
 
 /**
  * O PowerShell que acompanha a música. 'sessions' quando a lista muda; 'volume' quando o volume
- * do sistema é lido ou muda; 'exit' quando ele fecha (o Wisp volta a perguntar a cada vez).
+ * do sistema é lido ou muda; 'dnd' quando o "não perturbe" do Windows muda (e na primeira
+ * leitura); 'exit' quando ele fecha (o Wisp volta a perguntar a cada vez).
  */
 export class WindowsMediaWatcher extends EventEmitter {
   private child: ChildProcessWithoutNullStreams | null = null
@@ -280,7 +303,9 @@ export class WindowsMediaWatcher extends EventEmitter {
       if (!line) continue
       const parsed = parseWatchLine(line)
       if (!parsed) continue
-      if ('volume' in parsed) {
+      if ('dnd' in parsed) {
+        this.emit('dnd', parsed.dnd)
+      } else if ('volume' in parsed) {
         this.volume = parsed.volume
         this.emit('volume', parsed.volume)
       } else {

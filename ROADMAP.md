@@ -1336,8 +1336,8 @@ Notas da entrega:
 
 **Status:** pronta (testes: `test/windows.test.ts`, com os scripts do PowerShell rodando no
 Windows; `e2e/toast.mjs`, `e2e/integracoes.mjs` e o card do modo terminal no `e2e/essencial.mjs`,
-no job **Windows** do CI). Fica para depois o segurar para falar (no Windows, o atalho de voz liga
-a escuta, que acaba no silêncio).
+no job **Windows** do CI). Ficou para depois o segurar para falar (no Windows, o atalho de voz
+ligava a escuta, que acabava no silêncio), que veio na Fase 40.
 
 - **Os cards do modo terminal e a aba Sessões (M):** os hooks pelo `Wisp.exe` (forma exec), com o
   relay falando com o Wisp por um named pipe de nome sorteado, que só o seu usuário conhece.
@@ -1583,6 +1583,218 @@ Notas da entrega:
 - um `config.json` com `"avatar": "robo"` abre no fogo-fátuo, sem o aviso de valor inválido, e
   fica com `"fogo"` na próxima gravação;
 - o `CLAUDE.md` do Wisp (a persona) diz que ele é um fogo-fátuo.
+
+### Fase 40: o Windows sem lacunas
+
+**Status:** pronta (testes: `test/segurar.test.ts`, `test/agenda-endereco.test.ts`,
+`test/windows.test.ts`, `test/island.test.ts` e `test/paleta.test.ts`; os scripts do PowerShell e
+os dois shells da linha de status rodam no job **Windows** do CI, que também monta o instalador
+ARM64 e confere os binários com o `scripts/smoke-win-arm64.mjs`).
+
+Veio da revisão do roadmap: o que ainda era pior no Windows que no Linux.
+
+- **Segurar para falar (M):** o atalho de voz ouve enquanto está apertado, como no Linux.
+- **A agenda pelo endereço iCal (M):** o Google, o Outlook e o iCloud pelo endereço secreto da
+  agenda, no chaveiro. É a agenda do Windows, que não tem as agendas do GNOME, e vale no Linux.
+- **O "não perturbe" do Windows (P):** ligado, o Wisp fica quieto (sem notificações e sem sons).
+- **A linha de status no PowerShell (P):** a do Wisp também sem o Git Bash.
+- **O instalador ARM64 (M):** para os Windows com Snapdragon, com o Atualizar escolhendo o certo.
+- **A assinatura do instalador (P):** com um certificado nos segredos do CI, sai assinado.
+
+**Aceite:** no Windows, segurar o atalho de voz ouve até soltar; uma agenda do Google colada pelo
+endereço mostra o próximo compromisso no painel; com o "não perturbe" ligado, um card não toca
+som nem notifica; no modo terminal sem o Git Bash, a linha de status é a do Wisp; o instalador
+ARM64 sai no CI com os binários de ARM64.
+
+Notas da entrega:
+
+- segurar para falar: o `globalShortcut` só avisa o aperto. No primeiro aperto, o `keys-win.ts`
+  abre um PowerShell com o `GetAsyncKeyState`, que confere a tecla de 30 em 30 ms só entre o
+  aperto e o soltar (no resto do tempo espera a próxima linha da entrada, sem gastar CPU). Uma
+  tecla presa por mais de 2 minutos conta como solta. Se o script cair, a escuta em curso acaba e
+  o atalho volta ao toque (até o silêncio). A pontuação muda de lugar conforme o teclado: um
+  atalho com ela fica no toque;
+- a agenda: o endereço é um segredo (quem o tem lê a agenda), então vai para o chaveiro
+  (`calendar-link-<id>`), e o `config.json` guarda o id e o nome (`calendarLinks`); exportar (Fase 31) não o leva. Só https (o `webcal://` vira https), conferido ao guardar (precisa vir um
+  `BEGIN:VCALENDAR`; sem rede, guarda com o aviso). Cada agenda é baixada de 15 em 15 minutos no
+  máximo, com o ETag, até 5 MB, e a última que veio fica na memória para quando a rede falha. Nenhuma
+  mensagem, nem do registro, leva o endereço. O Outlook e o Google de empresa às vezes desligam a
+  publicação: aí o endereço não aparece nas opções da agenda;
+- o "não perturbe": o Windows não avisa um app quando ele muda, e consultar de tempos em tempos
+  gastaria CPU. O PowerShell da música (Fase 37) já fica aberto e acorda a cada 4 s: no mesmo
+  laço, ele lê a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` (o botão "Não perturbe" do Windows 11) e escreve uma linha só quando muda. A primeira versão lia também o Assistente de Foco do
+  Windows 10, pelo estado WNF que o Windows não documenta (`NtQueryWnfStateData`); no CI, ele
+  dizia "ligado" num Windows em que ninguém o ligou, e o Wisp ficava mudo. Saiu: um falso "ligado"
+  é pior que nenhum;
+- a linha de status: o Claude Code a roda no Git Bash ou, sem ele, no PowerShell, que não executa
+  um caminho entre aspas. Com o caminho do Wisp só de letras, algarismos e `_ . : / -` (o comum),
+  a linha vai sem aspas e roda igual nos dois; o CI roda a mesma linha nos dois shells. Com um
+  espaço no caminho, fica entre aspas, só para o Git Bash, como antes;
+- o ARM64: o `node-pty` já traz o binário pronto para o Windows ARM64, e o
+  `scripts/electron-arm64.mjs` baixa o Electron de ARM64 também para o Windows (com o `tar` do
+  Windows pelo caminho completo: o do Git, antes no PATH do runner, não abre .zip). O afterPack
+  tira o `node-pty` da outra arquitetura. O Atualizar baixa o `-Setup-arm64.exe` num Windows
+  ARM64. Abrir o Wisp de ARM64 pede uma máquina ARM (está no roteiro de validação);
+- a assinatura: o electron-builder assina quando o `WIN_CSC_LINK` (o `.pfx` em base64) e o
+  `WIN_CSC_KEY_PASSWORD` existem; vazios, ele não tenta. O certificado é de quem publica;
+- ficou de fora o comando `wisp` no PATH: pôr a pasta do Wisp no PATH do usuário muda o ambiente
+  de todo programa, e o `Wisp.exe` já aceita as mesmas opções (`--ask`).
+
+### Fase 41: recortar, o aviso do plano e o CI que vira conversa
+
+**Status:** pronta (testes: `test/recorte.test.ts`, `test/uso-plano.test.ts` e
+`test/github.test.ts`; `e2e/recorte.mjs`, no job do Linux e no **Windows** do CI).
+
+Das ideias novas, as que aproveitam o que o Wisp já tem.
+
+- **Recortar uma área (P):** pelo **+** da caixa ou de qualquer lugar (Ctrl+Alt+R), arrastar um
+  retângulo na tela; o recorte vai para a conversa em foco.
+- **O aviso do uso do plano (P):** ao passar de 80% e de 95% da janela de 5 horas ou da semana,
+  uma vez, com a hora do reinício e a sugestão de um modelo que gasta menos.
+- **O CI que vira conversa (P):** o clique num CI vermelho ou num pedido de mudanças abre uma aba
+  com o pedido de investigar pronto.
+
+**Aceite:** Ctrl+Alt+R, arrastar e soltar põe o recorte na caixa da conversa; com 81% da janela de
+5 horas, sai um aviso, e não sai outro até ela reiniciar; o clique no alerta de um CI vermelho
+abre uma aba com o PR e como ler o log, sem mandar nada.
+
+Notas da entrega:
+
+- o recorte é do próprio Wisp, sem programa de fora: o print de sempre (o painel sai da frente),
+  numa camada em tela cheia (a página `area`) na tela do cursor, com a imagem inteira, sem
+  distorcer. O retângulo volta em pixels da imagem e é conferido no main (dentro dela, de pelo
+  menos 4 pixels); Esc, o botão direito, um clique sem arrastar ou 2 minutos sem nada desistem.
+  No Wayland, o portal dá um print só (de todas as telas): a camada mostra ele inteiro. A
+  ferramenta de recorte do Windows (`ms-screenclip:`) ficou de fora: ela só devolve pela área de
+  transferência, e o Wisp teria de ficar olhando a área de transferência;
+- o aviso do plano: os números já vinham no `rate_limit_event` (Fase 38), a cada resposta. Uma
+  janela que reinicia (outra hora de reinício, ou o uso caindo) zera os degraus. O que foi avisado
+  fica em `aviso-do-plano.json`, para não repetir a cada vez que o Wisp abre. Com o limite já
+  atingido, o aviso do próprio painel basta;
+- o CI que vira conversa: o pedido vai para a caixa de uma aba nova, sem ser mandado (o Claude
+  roda o `gh` pelos cards, como sempre). O título do PR vem do GitHub e vai no texto: você o vê
+  antes de mandar. Os outros alertas abrem o PR no navegador, como antes.
+
+### Fase 42: revisar no fim da resposta
+
+**Status:** pronta (testes: `test/revisar.test.ts`; `e2e/revisar.mjs`, no job do Linux e no
+**Windows** do CI, com o Claude Code de mentira rodando os hooks do `--settings`).
+
+- **O card do fim da resposta (M):** os arquivos que a resposta mudou, com +N −M e o diff do
+  arquivo inteiro (de antes da resposta até agora), **Abrir** e **Desfazer**, um a um ou todos.
+- **As cópias de antes (M):** um hook `PreToolUse` nas ferramentas de edição guarda a cópia de
+  cada arquivo antes da primeira edição da resposta.
+
+**Aceite:** no modo Aceitar edições, uma resposta que edita três arquivos termina com o card dos
+três; **Desfazer** num deles volta só aquele ao que era; a mensagem seguinte deixa o card velho
+sem o desfazer.
+
+Notas da entrega:
+
+- as cópias: o hook roda o relay do Wisp com `--snapshot` (no Windows, o próprio Wisp na forma
+  exec), antes de o Claude Code editar, e guarda o arquivo numa pasta da conversa no cache (só do
+  usuário), sem falar com o Wisp nem decidir nada. Só a primeira cópia de cada arquivo vale (o
+  `.json` dela é criado com `wx`); um arquivo que não existia conta como "novo" (desfazer é
+  apagar); acima de 5 MB, fica sem cópia (o card mostra, sem o desfazer). A pasta sai inteira
+  quando o Wisp abre;
+- o turno: começa quando o Claude começa a trabalhar (o `busy`), que é quando as cópias da
+  resposta anterior saem; uma mensagem mandada no meio da resposta não muda o `busy`, e as cópias
+  ficam. A primeira versão contava o turno pela mensagem do usuário, mas o `--ask` e a caixa do
+  painel não passam por ali do mesmo jeito: o e2e pegou;
+- o desfazer: só com o card do último turno e com o arquivo ainda como o card mostrou (pela marca
+  do conteúdo); mudado depois, ele fica como está e o card diz. Os comandos do Bash (um `sed`, um
+  `rm`) não entram: só as ferramentas de edição passam pelo hook;
+- o diff do arquivo inteiro deixa de fora as linhas iguais do começo e do fim antes da conta, para
+  um arquivo grande com uma mudança no meio não virar "tudo saiu, tudo entrou";
+- o card não vai para o histórico: numa conversa reaberta, as cópias já não existem.
+
+### Fase 43: a conversa numa cópia do Git
+
+**Status:** pronta (testes: `test/copias.test.ts`, com o git de verdade; `e2e/copias.mjs`, no job do
+Linux e no **Windows** do CI).
+
+- **Abrir numa cópia (M):** no menu das pastas, a conversa trabalha numa worktree do projeto, num
+  ramo só dela (`wisp/<id>`).
+- **A barra da cópia (P):** o ramo e o que mudou, relido no fim de cada resposta.
+- **Juntar e descartar (M):** as mudanças entram na pasta original, sem commit; descartar tira a
+  cópia e o ramo e fecha a aba.
+
+**Aceite:** duas conversas no mesmo projeto, cada uma numa cópia, editam o mesmo arquivo sem uma
+ver a mudança da outra; juntar uma leva a mudança dela para a pasta original; descartar a outra
+some com ela.
+
+Notas da entrega:
+
+- juntar é um patch (`git diff --cached --binary` da base até a cópia, com os arquivos novos pelo
+  `git add -A` no índice da cópia), conferido antes com `git apply --check` na pasta original: se
+  não entra limpo, nada muda lá, e o ramo fica para juntar à mão. Sem commit, nem na cópia nem na
+  original: o que entra fica para você revisar e commitar. A base passa a ser a árvore do que já
+  entrou (`git write-tree`), então juntar de novo leva só o que mudou depois;
+- descartar pede uma segunda confirmação na própria barra, tira a worktree (`git worktree remove
+--force`) e o ramo, e fecha a aba (a conversa fica no histórico);
+- as cópias ficam nos dados do Wisp (`copias/`, com a lista em `copias.json`). Ao abrir o Wisp,
+  uma cópia sem mudança e sem aba sai; uma com mudança entra no menu das pastas, para reabrir;
+- a pasta da cópia tem os hooks e as configurações do projeto: o card de confiança (Fase 15)
+  aparece para ela como para a original;
+- a página nunca manda um caminho: cada pedido vem com o id da conversa, e a cópia é a da pasta
+  dela.
+
+### Fase 44: tarefas por evento
+
+**Status:** pronta (testes: `test/gatilhos.test.ts`; `e2e/gatilhos.mjs`, no job do Linux e no
+**Windows** do CI).
+
+- **O gatilho da tarefa (M):** no lugar do horário, uma revisão num PR seu, um CI seu que falhou,
+  um arquivo novo numa pasta ou a tela desbloqueada.
+- **O `{evento}` (P):** o que aconteceu, no prompt: o PR com o link, os arquivos novos, a hora do
+  desbloqueio.
+
+**Aceite:** uma tarefa "quando aparece um arquivo novo em ~/Downloads" roda ao baixar um arquivo,
+numa aba com o nome dela e o caminho no prompt; uma "quando o CI falha" roda com o link do PR.
+
+Notas da entrega:
+
+- as tarefas continuam no `scheduledTasks`, com `trigger` (sem ele, o horário, como as de antes) e
+  `watch` (a pasta do arquivo novo). O agendador ignora as de um evento;
+- o GitHub: os mesmos alertas da Fase 13 (de 3 em 3 minutos, pelo `gh`); a revisão vale para
+  qualquer uma (aprovação, mudanças, comentário);
+- a pasta: o `fs.watch` dela, sem descer nas de dentro; o que já estava lá quando o Wisp abriu (ou
+  quando a tarefa entrou) não conta. Os arquivos que chegam juntos esperam 3 segundos e viram uma
+  rodada só; os que ainda baixam (`.part`, `.crdownload`, `.tmp`) entram quando ganham o nome final;
+- cada tarefa por evento roda no máximo uma vez a cada 5 minutos (um PR com dez comentários não
+  abre dez abas). **Rodar agora** roda com "(rodada à mão, sem um evento)" no `{evento}`;
+- o bloco das tarefas saiu do `index.ts` para o `tasks-setup.ts` (o `index.ts` estava perto das
+  1.000 linhas);
+- o e2e achou que, com o painel escondido, a aba nova da tarefa não aparece com a mensagem até ele
+  abrir: o painel aplica os eventos a cada quadro, e escondido ele não desenha. Numa tarefa com um
+  card, o card abre o painel; sem card, a mensagem está lá quando você abrir.
+
+### Fase 45: explicar a seleção e o modo foco
+
+**Status:** pronta (testes: `test/foco.test.ts`; `e2e/selecao.mjs`, com o atalho de verdade pelo
+xdotool, no job do Linux do CI).
+
+- **Explicar a seleção (M):** um atalho (Ctrl+Alt+E) leva o texto marcado em qualquer programa
+  para uma conversa nova, com o pedido de explicar na caixa, para trocar e mandar.
+- **O modo foco (P):** um bloco de 25 ou 50 minutos, pelo menu, com o Wisp quieto; no fim, o
+  mascote comemora e uma notificação avisa.
+
+**Aceite:** marcar um parágrafo no navegador e apertar Ctrl+Alt+E abre a conversa com ele na
+caixa; com o foco ligado, um card não toca som nem notifica, e no fim do bloco o mascote comemora.
+
+Notas da entrega:
+
+- a seleção: no Linux, a seleção primária do X (o que está marcado, sem copiar), pelo
+  `clipboard.selection` do Electron (no Wayland, a do XWayland, que o GNOME e o KDE espelham). No
+  Windows, que não tem seleção primária, um PowerShell espera as teclas do atalho subirem (até
+  1,5 s; senão o Ctrl+C sairia Ctrl+Alt+C) e aperta Ctrl+C; o Wisp lê o texto novo e devolve a área
+  de transferência como estava (todos os formatos). Até 20 mil caracteres;
+- só o pedido de explicar vai na caixa: as outras ações (traduzir, corrigir, resumir) são trocar o
+  verbo antes de mandar. Os botões de ação ficaram de fora: no Linux, a ilha não recebe o teclado,
+  e o painel já é onde se escreve;
+- o foco é o mesmo "quieto" do "não perturbe" (Fase 32), somado a ele: sem notificações e sem sons,
+  e os cards esperam no painel (e vão para o celular, se ligado). O temporizador confere de minuto
+  em minuto, e a volta da suspensão confere na hora. Não sobrevive a fechar o Wisp.
 
 ## Ideias avaliadas e deixadas de fora
 
