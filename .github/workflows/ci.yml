@@ -71,7 +71,7 @@ jobs:
       - name: X virtual, D-Bus, as bibliotecas do Electron e o EDS (agenda)
         timeout-minutes: 25
         run: |
-          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool openbox evolution-data-server \
+          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool xclip openbox evolution-data-server \
             libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
       - run: npm ci
       - run: npx install-electron

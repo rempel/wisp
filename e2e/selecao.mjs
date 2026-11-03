@@ -1,15 +1,16 @@
-// Explicar a seleção (Fase 45), de ponta a ponta no X: um texto marcado (aqui, no próprio painel:
-// marcar algo no X preenche a seleção primária, como em qualquer programa) e o atalho global de
-// verdade (Ctrl+Alt+E, pelo xdotool) abrem uma conversa nova com o pedido de explicar e o texto na
-// caixa, sem mandar. Sem nada marcado, nada abre.
-// Uso: node e2e/selecao.mjs (veja e2e/run.sh); precisa do xdotool.
-import { execFileSync } from 'node:child_process'
+// Explicar a seleção (Fase 45), de ponta a ponta no X: um texto marcado (a seleção primária do X,
+// posta pelo xclip, como faz qualquer programa em que você marca algo) e o atalho global de
+// verdade (Ctrl+Alt+E, pelo xdotool) abrem uma conversa com o pedido de explicar e o texto na
+// caixa, sem mandar.
+// Uso: node e2e/selecao.mjs (veja e2e/run.sh); precisa do xdotool e do xclip.
+import { execFileSync, spawnSync } from 'node:child_process'
 import { checks, connect, sleep, startApp, stopApp, testHome, waitFor, wisp } from './lib.mjs'
 
 try {
   execFileSync('xdotool', ['--version'], { stdio: 'ignore' })
+  execFileSync('xclip', ['-version'], { stdio: 'ignore' })
 } catch {
-  console.log('sem o xdotool: pulado')
+  console.log('sem o xdotool ou o xclip: pulado')
   process.exit(0)
 }
 
@@ -24,14 +25,12 @@ const tabsBefore = await ev(`document.querySelectorAll('.tab').length`)
 
 console.log('== Marcar um texto e apertar o atalho')
 const marked = 'idempotência de requisições HTTP'
-await ev(`(() => {
-  const p = document.createElement('p')
-  p.id = 'para-marcar'
-  p.textContent = ${JSON.stringify(marked)}
-  document.body.append(p)
-  window.getSelection().selectAllChildren(p)
-  return true
-})()`)
+// O xclip fica dono da seleção primária (em segundo plano) até outro programa marcar algo.
+spawnSync('xclip', ['-selection', 'primary', '-i'], {
+  input: marked,
+  stdio: ['pipe', 'ignore', 'ignore'],
+  timeout: 5000
+})
 await sleep(500)
 execFileSync('xdotool', ['key', 'ctrl+alt+e'])
 const composed = await waitFor(
