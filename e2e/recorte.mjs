@@ -41,7 +41,7 @@ const ready = await waitFor(
 )
 check('R2 a camada abre com o print da tela', !!ready)
 const view = await area.evaluate(
-  `({ w: innerWidth, h: innerHeight, nw: document.getElementById('shot').naturalWidth, hint: document.getElementById('hint').textContent })`
+  `({ w: innerWidth, h: innerHeight, nw: document.getElementById('shot').naturalWidth, nh: document.getElementById('shot').naturalHeight, hint: document.getElementById('hint').textContent })`
 )
 console.log(`  a camada: ${JSON.stringify(view)}`)
 check('R3 com a dica de como usar', /Arraste/.test(view?.hint ?? ''), view?.hint)
@@ -79,8 +79,14 @@ const find = (dir, depth = 0) => {
 }
 const file = name ? find(home.home) : null
 const size = file ? pngSize(file) : null
-// A tela do X virtual tem a escala 1; num Windows com 150%, o print tem mais pixels que a janela.
-const scale = (view?.nw ?? 1) / (view?.w ?? 1)
+// Quantos pixels do print cabem num da camada (a imagem cabe inteira, sem distorcer): no X
+// virtual, 1; num Windows com 150%, o print tem mais pixels que a janela.
+const scale = Math.max((view?.nw ?? 1) / (view?.w ?? 1), (view?.nh ?? 1) / (view?.h ?? 1))
+check(
+  'R4b a camada cobre a tela inteira',
+  Math.abs(scale - (view?.nw ?? 1) / (view?.w ?? 1)) < 0.02,
+  JSON.stringify(view)
+)
 console.log(`  o recorte: ${file ?? 'não achei'} ${JSON.stringify(size)} (escala ${scale})`)
 check(
   'R5 do tamanho arrastado (240 × 150, na escala da tela)',
