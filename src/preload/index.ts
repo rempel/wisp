@@ -135,7 +135,10 @@ const api: WispApi = {
     unsplit: (pane) => ipcRenderer.send(IPC.tabsUnsplit, pane),
     openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId),
     projects: () => ipcRenderer.invoke(IPC.tabsProjects),
-    openFolder: (path) => ipcRenderer.invoke(IPC.tabsOpenFolder, path)
+    openFolder: (path, worktree) => ipcRenderer.invoke(IPC.tabsOpenFolder, path, worktree === true),
+    worktreeStatus: (conversation) => ipcRenderer.invoke(IPC.worktreeStatus, conversation),
+    worktreeJoin: (conversation) => ipcRenderer.invoke(IPC.worktreeJoin, conversation),
+    worktreeDiscard: (conversation) => ipcRenderer.invoke(IPC.worktreeDiscard, conversation)
   },
   voice: {
     toggle: () => ipcRenderer.send(IPC.voiceToggle),

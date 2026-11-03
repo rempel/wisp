@@ -324,6 +324,21 @@ export interface FolderChoice {
   path: string
 }
 
+/** Uma conversa numa cópia do projeto (Fase 43): de onde, o ramo e o que mudou nela. */
+export interface WorktreeStatus {
+  /** A pasta do repositório original (com ~). */
+  repo: string
+  branch: string
+  changes: { path: string; added: number; removed: number }[]
+  error?: string
+}
+
+/** Juntar ou descartar a cópia: deu certo ou não, e o que dizer. */
+export interface WorktreeResult {
+  ok: boolean
+  message: string
+}
+
 /** Abrir uma pasta numa aba: deu certo, a pessoa desistiu, ou o motivo. */
 export type FolderResult = { ok: true } | { ok: false; message?: string }
 

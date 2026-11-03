@@ -35,6 +35,8 @@ src/
 │  ├─ usage-alerts.ts # o aviso de 80% e 95% das janelas do plano (Fase 41)
 │  ├─ turn-snapshot.ts # o hook que guarda a cópia de antes de cada edição (Fase 42)
 │  ├─ turn-review.ts # o card do fim do turno: o que mudou e o desfazer (Fase 42)
+│  ├─ worktrees.ts   # a conversa numa cópia do Git: criar, mudanças, juntar e descartar (Fase 43)
+│  ├─ worktrees-ipc.ts # a cópia pelo painel: a barra, o menu das pastas e a arrumação (Fase 43)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X

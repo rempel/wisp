@@ -13,6 +13,8 @@ export function FolderMenu(): JSX.Element {
   const [open, setOpen] = useState(false)
   const [projects, setProjects] = useState<FolderChoice[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  // Numa cópia do Git (Fase 43): a conversa trabalha numa worktree, num ramo só dela.
+  const [copy, setCopy] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -31,7 +33,7 @@ export function FolderMenu(): JSX.Element {
 
   const openFolder = async (path: string | null): Promise<void> => {
     setError(null)
-    const result = await window.wisp.tabs.openFolder(path)
+    const result = await window.wisp.tabs.openFolder(path, copy)
     if (result.ok) setOpen(false)
     else if (result.message) setError(result.message)
   }
@@ -65,6 +67,21 @@ export function FolderMenu(): JSX.Element {
               'Uma conversa nova que roda dentro da pasta, com o CLAUDE.md, as configurações e as skills dela.'
             )}
           </p>
+          <label className="folder-copy">
+            <input
+              type="checkbox"
+              checked={copy}
+              onChange={(event) => setCopy(event.target.checked)}
+            />
+            <span>
+              <strong>{t('Numa cópia (worktree do Git)')}</strong>
+              <small>
+                {t(
+                  'A conversa trabalha numa cópia, num ramo só dela; no fim, você junta na pasta original ou descarta.'
+                )}
+              </small>
+            </span>
+          </label>
           {projects?.map((project) => (
             <button
               key={project.path}

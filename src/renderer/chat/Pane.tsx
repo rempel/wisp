@@ -18,6 +18,7 @@ import { ModelPill } from './ModelPill'
 import { OpenRouterModelPill } from './OpenRouterModelPill'
 import { ProviderPill } from './ProviderPill'
 import { ModePill } from './ModePill'
+import { WorktreeBar } from './WorktreeBar'
 import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
 import { requestTitle } from './describe-request'
@@ -624,6 +625,9 @@ export function Pane({
       <div className="sr-only" role="status" aria-live="polite" data-announce>
         {announcement}
       </div>
+      {!terminalView && (
+        <WorktreeBar conversation={conversation} folder={state.folder} busy={state.busy} />
+      )}
       <div
         className="messages"
         ref={list}

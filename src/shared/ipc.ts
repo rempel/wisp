@@ -25,6 +25,8 @@ import type {
   Provider,
   ReviewUndoResult,
   TabsState,
+  WorktreeResult,
+  WorktreeStatus,
   WindowState
 } from './ipc-chat'
 import type {
@@ -258,6 +260,12 @@ export const IPC = {
    * da lista, ou null para escolher a pasta. Devolve FolderResult.
    */
   tabsOpenFolder: 'tabs:open-folder',
+  /** chat → main (invoke): a cópia (worktree) de uma conversa (Fase 43). Devolve WorktreeStatus ou null. */
+  worktreeStatus: 'worktree:status',
+  /** chat → main (invoke): junta a cópia da conversa na pasta original. Devolve WorktreeResult. */
+  worktreeJoin: 'worktree:join',
+  /** chat → main (invoke): descarta a cópia da conversa (e fecha a aba). Devolve WorktreeResult. */
+  worktreeDiscard: 'worktree:discard',
   /** chat → main (invoke): as skills instaladas. Devolve SkillInfo[]. */
   skillsList: 'skills:list',
   /** chat → main (invoke): escolher uma pasta com uma skill. Devolve SkillPreview, { error } ou null. */
@@ -572,7 +580,11 @@ export interface WispApi {
     /** Os projetos das pastas de projetos, para abrir um numa aba. */
     projects(): Promise<FolderChoice[]>
     /** Uma conversa numa pasta (um projeto da lista, ou null para escolher), numa aba nova. */
-    openFolder(path: string | null): Promise<FolderResult>
+    /** Com `worktree` (Fase 43), a conversa trabalha numa cópia do Git do projeto. */
+    openFolder(path: string | null, worktree?: boolean): Promise<FolderResult>
+    worktreeStatus(conversation: string): Promise<WorktreeStatus | null>
+    worktreeJoin(conversation: string): Promise<WorktreeResult>
+    worktreeDiscard(conversation: string): Promise<WorktreeResult>
   }
   /** As skills do Claude Code: listar, instalar de uma pasta e remover. */
   skills: {

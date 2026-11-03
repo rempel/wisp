@@ -911,3 +911,18 @@ Com **Ilha no topo** ligada:
       está, e o card diz que mudou depois.
 - [ ] **A resposta seguinte:** mande outra mensagem: o card velho fica sem o desfazer, com a dica.
 - [ ] **Windows:** o mesmo no Windows (o hook vai pelo próprio Wisp).
+
+## A conversa numa cópia do Git (Fase 43)
+
+- [ ] **Abrir:** no botão de pasta, marque **Numa cópia (worktree do Git)** e escolha um projeto:
+      a aba nova tem a barra "Numa cópia de ~/… no ramo wisp/…", sem mudanças.
+- [ ] **Duas cópias:** abra o mesmo projeto em outra cópia e peça uma mudança diferente no mesmo
+      arquivo em cada uma: cada barra mostra só a sua; a pasta original não muda.
+- [ ] **Juntar:** **Juntar na pasta original** numa delas: `git status` na pasta original mostra
+      a mudança, sem commit.
+- [ ] **Não entra limpo:** junte a outra: a barra diz que não entra limpo e que o ramo fica; a
+      pasta original não muda.
+- [ ] **Descartar:** **Descartar** → **Descartar de vez?**: a aba fecha, e `git branch` não tem
+      mais o ramo.
+- [ ] **Guardada:** feche a aba de uma cópia com mudanças e abra o Wisp de novo: ela aparece no
+      menu das pastas, para reabrir.

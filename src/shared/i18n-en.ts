@@ -2309,5 +2309,32 @@ export const EN: Record<string, string> = {
     'Another message has started: undo only works for the latest reply.',
   'Revisar no fim da resposta': 'Review at the end of the reply',
   'Depois de cada resposta que editou arquivos, um card com o que mudou em cada um e o Desfazer (as edições pelas ferramentas de edição; os comandos do Bash não entram).':
-    "After each reply that edited files, a card with what changed in each and Undo (edits made by the editing tools; Bash commands aren't included)."
+    "After each reply that edited files, a card with what changed in each and Undo (edits made by the editing tools; Bash commands aren't included).",
+  'Essa conversa não está numa cópia.': "This conversation isn't in a copy.",
+  '{files} {v2} na pasta original ({repo}), sem commit.':
+    '{files} {v2} the original folder ({repo}), without a commit.',
+  'arquivo entrou': 'file went into',
+  'arquivos entraram': 'files went into',
+  'Nada novo para juntar.': 'Nothing new to merge.',
+  'A cópia saiu.': 'The copy was removed.',
+  '{name} (cópia {branch})': '{name} (copy {branch})',
+  'Essa pasta não é um repositório do Git.': "That folder isn't a Git repository.",
+  'O repositório ainda não tem nenhum commit para copiar.':
+    'The repository has no commit to copy yet.',
+  'As mudanças não entram limpas na pasta original ({message}). Nada mudou lá; o ramo {branch} fica com elas, para juntar à mão.':
+    "The changes don't apply cleanly to the original folder ({message}). Nothing changed there; the branch {branch} keeps them, to merge by hand.",
+  'Numa cópia (worktree do Git)': 'In a copy (Git worktree)',
+  'A conversa trabalha numa cópia, num ramo só dela; no fim, você junta na pasta original ou descarta.':
+    'The conversation works in a copy, on its own branch; at the end, you merge it into the original folder or discard it.',
+  'Cópia do projeto': 'Project copy',
+  'Numa cópia de': 'In a copy of',
+  'no ramo': 'on branch',
+  'sem mudanças': 'no changes',
+  '1 arquivo mudou': '1 file changed',
+  '{count} arquivos mudaram': '{count} files changed',
+  'As mudanças da cópia entram na pasta original, sem commit':
+    "The copy's changes go into the original folder, without a commit",
+  'Juntar na pasta original': 'Merge into the original folder',
+  'Descartar de vez?': 'Discard for good?',
+  Descartar: 'Discard'
 }
