@@ -13,7 +13,8 @@ import {
   diffSnapshots,
   GithubWatcher,
   parseSnapshot,
-  QUERY
+  QUERY,
+  investigatePrompt
 } from '../src/main/github'
 import type { GhProblem, GithubAlert, GithubSnapshot } from '../src/main/github'
 import { FIXTURES } from './helpers/paths'
@@ -196,6 +197,32 @@ test('os textos: título, PR e o link que o clique abre', () => {
   const text = describeSnapshot(s)
   assert.match(text, /eu\/app#7 "PR 7": CI falhou/)
   assert.match(text, /Pedem a sua revisão \(1\):\n- time\/api#3 "Revisão 3", de ana/)
+})
+
+test('investigar (Fase 41): o CI vermelho e o pedido de mudanças viram um pedido pronto; o resto, não', () => {
+  const s = snap([{ number: 7, ci: 'FAILURE' }], [{ number: 3, author: 'ana' }])
+  const ci = investigatePrompt({ kind: 'ci-failed', pr: s.mine[0] }) ?? ''
+  assert.match(
+    ci,
+    /^O CI do PR eu\/app#7 "PR 7" falhou \(https:\/\/github\.com\/eu\/app\/pull\/7\)/
+  )
+  assert.match(ci, /gh pr checks 7 --repo eu\/app/)
+  assert.match(ci, /gh run view --log-failed --repo eu\/app/)
+  const review =
+    investigatePrompt({
+      kind: 'review',
+      pr: s.mine[0],
+      author: 'bia',
+      state: 'CHANGES_REQUESTED'
+    }) ?? ''
+  assert.match(review, /^bia pediu mudanças no PR eu\/app#7/)
+  assert.match(review, /gh pr view 7 --repo eu\/app --comments/)
+  assert.equal(investigatePrompt({ kind: 'ci-passed', pr: s.mine[0] }), null)
+  assert.equal(
+    investigatePrompt({ kind: 'review', pr: s.mine[0], author: 'bia', state: 'APPROVED' }),
+    null
+  )
+  assert.equal(investigatePrompt({ kind: 'review-requested', request: s.reviewRequests[0] }), null)
 })
 
 const calls = (): { args: string[]; apiKey: boolean; prompt: string | null }[] => {
