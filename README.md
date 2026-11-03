@@ -138,8 +138,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   conversas, os cards, o modo terminal e a integração com o desktop (as janelas, o terminal, os
   apps, a música, o volume e a voz), com poucas diferenças (veja [Windows](#windows)). O CI
   também roda num Windows de verdade.
-- **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64). Os de ARM64 são montados num
-  x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
+- **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64 e,
+  desde a Fase 40, ARM64). Os de ARM64 são montados num x86-64 e conferidos pela arquitetura e
+  pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
@@ -245,8 +246,9 @@ Prefira o .deb no Ubuntu: o perfil dele vale só para o `/opt/Wisp/wisp`.
 
 ### Windows
 
-O instalador `Wisp-<versão>-Setup-x64.exe` (Windows 10 e 11, x64) põe o Wisp só para o seu
-usuário, sem pedir administrador, no menu Iniciar e na área de trabalho, e abre o Wisp no fim.
+O instalador `Wisp-<versão>-Setup-x64.exe` (Windows 10 e 11, x64; ou o `-Setup-arm64.exe`, para
+os computadores com Snapdragon, desde a Fase 40) põe o Wisp só para o seu usuário, sem pedir
+administrador, no menu Iniciar e na área de trabalho, e abre o Wisp no fim.
 
 - **Antes:** o Claude Code, pelo instalador oficial, no PowerShell, e o
   [Git para Windows](https://git-scm.com/download/win) (o Claude Code roda os comandos no Git
@@ -257,7 +259,9 @@ irm https://claude.ai/install.ps1 | iex
 ```
 
 - **O aviso do SmartScreen:** o instalador ainda não é assinado, e o Windows mostra "O Windows
-  protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**.
+  protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**. (Quem publica
+  pode assinar: com um certificado de assinatura de código nos segredos `WIN_CSC_LINK`, o `.pfx`
+  em base64, e `WIN_CSC_KEY_PASSWORD` do repositório, o CI assina o Wisp e os instaladores.)
 - **Onde ficam as coisas:** o `config.json` em `%APPDATA%\Wisp`; as conversas, o cache e o
   registro (`Logs\wisp.log`) em `%LOCALAPPDATA%\Wisp`.
 - **O que já funciona:** o mascote, o painel, as conversas e as abas, os cards (cada comando do
