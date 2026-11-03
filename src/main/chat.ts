@@ -5,6 +5,7 @@ import { homedir } from 'os'
 import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { saveIncoming, savePasted } from './attachments'
+import { captureArea } from './area-capture'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
@@ -432,6 +433,10 @@ export function setupChat({
       return { files: [], problems: [t('Não consegui tirar o print: {reason}.', { reason })] }
     }
   })
+  // Recortar uma área (Fase 41): o mesmo print sem o painel, e a camada para arrastar.
+  ipcMain.handle(IPC.chatCaptureArea, (event): Promise<DroppedFiles> | DroppedFiles =>
+    fromChat(event) ? captureArea(captureWithoutPanel) : { files: [], problems: [] }
+  )
   ipcMain.handle(IPC.chatClipboardUse, async (event, id: unknown): Promise<ClipboardUse> => {
     if (!fromChat(event) || typeof id !== 'string') return { error: t('pedido inválido') }
     clipboardOffered = null

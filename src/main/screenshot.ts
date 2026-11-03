@@ -23,6 +23,8 @@ export interface ScreenImage {
   image: NativeImage
   /** "tela 1 de 2", quando há mais de uma. */
   label?: string
+  /** A tela de onde veio (o id do Electron), quando se sabe (no Wayland, o portal não diz). */
+  displayId?: number
 }
 
 /** Por que o print não saiu, em português, para o chat e para o Claude. */
@@ -71,6 +73,7 @@ async function viaElectron(): Promise<ScreenImage[]> {
   if (!shots.length) throw new CaptureError(t('não consegui ler a tela'))
   return shots.map((source, index) => ({
     image: source.thumbnail,
+    ...(source.display_id ? { displayId: Number(source.display_id) } : {}),
     ...(shots.length > 1
       ? { label: t('tela {v1} de {length}', { v1: index + 1, length: shots.length }) }
       : {})

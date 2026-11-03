@@ -280,6 +280,15 @@ export const IPC = {
    * Devolve DroppedFiles (um arquivo por tela, ou o motivo em problems).
    */
   chatCapture: 'chat:capture',
+  /**
+   * chat → main (invoke): recorta uma área da tela (Fase 41): o print, a camada para arrastar e o
+   * recorte. Devolve DroppedFiles (vazio se a pessoa desistiu).
+   */
+  chatCaptureArea: 'chat:capture-area',
+  /** área → main (invoke): o print que a camada mostra. Devolve AreaImage ou null. */
+  areaImage: 'area:image',
+  /** área → main: o retângulo escolhido (AreaRect, em pixels da imagem), ou null para desistir. */
+  areaDone: 'area:done',
   /** main → chat: o que há de novo na área de transferência (ClipboardOffer), ou null. */
   chatClipboard: 'chat:clipboard',
   /** chat → main (invoke): usar o que foi copiado. Arg: id da oferta. Devolve ClipboardUse. */
@@ -381,7 +390,28 @@ export const IPC = {
 } as const
 
 /** API que o preload expõe ao renderer como `window.wisp`. */
+/** O print que a camada de recorte mostra (Fase 41). */
+export interface AreaImage {
+  /** Data URL do PNG. */
+  url: string
+  width: number
+  height: number
+}
+
+/** Um retângulo em pixels da imagem do print. */
+export interface AreaRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface WispApi {
+  /** A camada de recorte (Fase 41). */
+  area: {
+    image(): Promise<AreaImage | null>
+    done(rect: AreaRect | null): void
+  }
   mascot: {
     /** Começa a arrastar o mascote; o offset é o ponto agarrado dentro da janela (px CSS). */
     dragStart(offsetX: number, offsetY: number): void
@@ -487,6 +517,8 @@ export interface WispApi {
     activity(): void
     /** Tira um print da tela (o painel sai da frente) e devolve os arquivos para anexar. */
     captureScreen(): Promise<DroppedFiles>
+    /** Recorta uma área da tela (Fase 41) e devolve o recorte para anexar (vazio: desistiu). */
+    captureArea(): Promise<DroppedFiles>
     /** O que há de novo na área de transferência (null: nada a oferecer). */
     onClipboard(listener: (offer: ClipboardOffer | null) => void): () => void
     /** Usa o que foi copiado: o texto para a caixa ou um anexo. */
