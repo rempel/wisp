@@ -2,6 +2,8 @@ import { globalShortcut } from 'electron'
 import { Variant } from './dbus'
 import type { DBusConnection } from './dbus'
 import { XClient } from './ewmh'
+import { KeyWatcher, acceleratorVirtualKey } from './keys-win'
+import { IS_WINDOWS } from './platform'
 import {
   options,
   PORTAL,
@@ -168,9 +170,9 @@ export function releaseShortcuts(): void {
 
 /**
  * Liga os atalhos globais (abrir o painel, falar). Devolve como ficou cada um, pelo id.
- * - No X11, o próprio Electron prende as teclas. O Electron só avisa quando a tecla é apertada;
- *   para saber quando ela é solta, o Wisp pergunta ao servidor X, enquanto ela está apertada,
- *   quais teclas estão para baixo.
+ * - No X11 e no Windows, o próprio Electron prende as teclas. O Electron só avisa quando a tecla
+ *   é apertada; para saber quando ela é solta, o Wisp pergunta, enquanto ela está apertada, quais
+ *   teclas estão para baixo: ao servidor X, ou ao Windows por um PowerShell (keys-win.ts).
  * - No Wayland, só o portal GlobalShortcuts funciona: o Electron roda no XWayland e só veria
  *   teclas digitadas em janelas X11. O desktop (GNOME 48+, KDE) mostra uma janela para o usuário
  *   confirmar ou escolher as teclas, e avisa quando cada uma é apertada e solta.
@@ -204,7 +206,11 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
   const result = new Map<string, ShortcutStatus>()
   const undo: (() => void)[] = []
   // A conexão com o servidor X para saber quando a tecla é solta, só se alguém quiser saber.
-  const x = specs.some((spec) => spec.release) ? await XClient.open().catch(() => null) : null
+  // No Windows, quem sabe é um PowerShell que confere a tecla (keys-win.ts), aberto no primeiro aperto.
+  const x =
+    !IS_WINDOWS && specs.some((spec) => spec.release)
+      ? await XClient.open().catch(() => null)
+      : null
   if (x) undo.push(() => x.close())
   const taken = new Map<string, string>()
   for (const spec of specs) {
@@ -217,13 +223,22 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
       })
       continue
     }
-    let keycodes: number[] = []
-    if (spec.release && x) {
+    const status: ShortcutStatus = { via: 'x11', label: accelerator, releases: false }
+    let watcher: { start(): void; stop(): void } | null = null
+    if (spec.release && IS_WINDOWS) {
+      const virtualKey = acceleratorVirtualKey(accelerator)
+      if (virtualKey !== null)
+        watcher = new KeyWatcher(virtualKey, {
+          release: spec.release,
+          // Sem o script, o próximo aperto vira um toque (a escuta acaba no silêncio).
+          broken: () => (status.releases = false)
+        })
+    } else if (spec.release && x) {
       const keysym = acceleratorKeysym(accelerator)
-      if (keysym !== null) keycodes = await x.keycodesOf(keysym)
+      const keycodes = keysym !== null ? await x.keycodesOf(keysym) : []
+      if (keycodes.length) watcher = releaseWatcher(x, keycodes, spec.release)
     }
-    const watcher =
-      keycodes.length && spec.release ? releaseWatcher(x!, keycodes, spec.release) : null
+    status.releases = watcher !== null
     try {
       const registered = globalShortcut.register(accelerator, () => {
         spec.press()
@@ -241,7 +256,7 @@ async function bindWithX11(specs: ShortcutSpec[]): Promise<Map<string, ShortcutS
         globalShortcut.unregister(accelerator)
       })
       taken.set(accelerator.toLowerCase().replace(/\s+/g, ''), spec.id)
-      result.set(spec.id, { via: 'x11', label: accelerator, releases: watcher !== null })
+      result.set(spec.id, status)
     } catch {
       result.set(spec.id, {
         via: 'none',

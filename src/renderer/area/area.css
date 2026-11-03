@@ -1,0 +1,53 @@
+/* A camada de recortar uma área (Fase 41): o print inteiro, escurecido fora do retângulo. */
+html,
+body {
+  margin: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #000;
+  cursor: crosshair;
+  user-select: none;
+  font:
+    14px system-ui,
+    sans-serif;
+}
+
+#shot {
+  position: absolute;
+  pointer-events: none;
+}
+
+#shade {
+  position: absolute;
+  inset: 0;
+  background: rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+
+/* O retângulo: o print sem a sombra (o box-shadow enorme escurece o resto). */
+#box {
+  position: absolute;
+  border: 2px solid #8ab4ff;
+  box-shadow: 0 0 0 100vmax rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+
+#box:not([hidden]) ~ #hint,
+body.dragging #shade {
+  opacity: 0;
+}
+
+#hint {
+  position: absolute;
+  top: 24px;
+  left: 50%;
+  margin: 0;
+  padding: 8px 14px;
+  border-radius: 999px;
+  transform: translateX(-50%);
+  background: rgb(20 20 28 / 85%);
+  color: #fff;
+  pointer-events: none;
+  transition: opacity 0.15s;
+}

@@ -45,9 +45,9 @@ export function appImageName(version: string, arch: string = process.arch): stri
 /** O que se baixa: o AppImage (que é o próprio app) ou o instalador do Windows. */
 export type UpdateFormat = 'appimage' | 'installer'
 
-/** O nome do instalador do Windows de uma versão (o do electron-builder); só há o x64. */
+/** O nome do instalador do Windows de uma versão (o do electron-builder): x64 e, desde a Fase 40, ARM64. */
 export function installerName(version: string, arch: string = process.arch): string | null {
-  return arch === 'x64' ? `Wisp-${version}-Setup-x64.exe` : null
+  return arch === 'x64' || arch === 'arm64' ? `Wisp-${version}-Setup-${arch}.exe` : null
 }
 
 /** O arquivo desta arquitetura e a assinatura dele, se a versão tem os dois. */

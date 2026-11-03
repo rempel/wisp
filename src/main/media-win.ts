@@ -112,6 +112,8 @@ export class WindowsMedia extends EventEmitter implements MediaPlayers {
       this.emit('changed')
     })
     this.watcher.on('volume', () => this.emit('changed'))
+    // O "não perturbe" do Windows vem no mesmo script (Fase 40).
+    this.watcher.on('dnd', (active: boolean) => this.emit('dnd', active))
     this.watcher.on('exit', () => {
       // Caiu (o Windows fechou o PowerShell, um erro): volta uma vez, sem insistir.
       if (!this.disposed && this.restarts++ < 1) setTimeout(() => this.watch(), 5000)

@@ -382,7 +382,8 @@ test('no Windows, atualizar baixa o instalador, confere a assinatura e o roda no
   writeFileSync(join(dir, 'Wisp-0.8.0-Setup-x64.exe'), 'velho')
   const name = 'Wisp-0.9.0-Setup-x64.exe'
   assert.equal(installerName('0.9.0', 'x64'), name)
-  assert.equal(installerName('0.9.0', 'arm64'), null)
+  assert.equal(installerName('0.9.0', 'arm64'), 'Wisp-0.9.0-Setup-arm64.exe')
+  assert.equal(installerName('0.9.0', 'ia32'), null)
   const bytes = Buffer.from('MZ um instalador')
   const rel = release([
     { name: 'Wisp-0.9.0-x86_64.AppImage' },

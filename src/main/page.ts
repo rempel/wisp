@@ -26,7 +26,7 @@ export function reloadOnCrash(win: BrowserWindow, onReload?: () => void): void {
 }
 
 /** Carrega uma página do renderer: do servidor do Vite em dev, dos arquivos da build fora dele. */
-export function loadPage(win: BrowserWindow, page: 'mascot' | 'chat'): void {
+export function loadPage(win: BrowserWindow, page: 'mascot' | 'chat' | 'area'): void {
   const devServer = process.env['ELECTRON_RENDERER_URL']
   if (!app.isPackaged && devServer) {
     void win.loadURL(`${devServer}/${page}/index.html?lang=${getLocale()}`)

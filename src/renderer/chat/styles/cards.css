@@ -234,3 +234,153 @@
   color: var(--ok);
   font-weight: 600;
 }
+
+/* O card do fim do turno (Fase 42): os arquivos que a resposta mudou, com o diff e o desfazer. */
+.review-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.review-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-head strong {
+  flex: 1;
+}
+
+.review-files {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.review-file {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.review-toggle {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 2px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+}
+
+.review-toggle:disabled {
+  cursor: default;
+}
+
+.review-name {
+  font-family: var(--mono);
+  font-weight: 600;
+}
+
+.review-dir {
+  overflow: hidden;
+  color: var(--muted);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.review-status {
+  color: var(--muted);
+}
+
+.review-status.created {
+  color: var(--ok);
+}
+
+.review-status.deleted {
+  color: var(--danger-solid);
+}
+
+.review-files li.reverted .review-name {
+  text-decoration: line-through;
+  opacity: 0.7;
+}
+
+/* A conversa numa cópia do Git (Fase 43): de onde, o ramo, o que mudou, juntar e descartar. */
+.worktree-bar {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 12px 0;
+  padding: 6px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.worktree-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.worktree-what {
+  flex: 1;
+  min-width: 0;
+}
+
+.worktree-count {
+  color: var(--muted);
+}
+
+.worktree-files {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.worktree-files li {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.folder-copy {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 6px 10px;
+  cursor: pointer;
+}
+
+.folder-copy span {
+  display: flex;
+  flex-direction: column;
+}
+
+.folder-copy small {
+  color: var(--muted);
+}
+
+.settings-button.danger {
+  border-color: var(--danger-solid);
+  color: var(--danger-solid);
+}

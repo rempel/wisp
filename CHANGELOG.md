@@ -95,6 +95,29 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   amassando, entrou como mais uma escolha, ao lado do fantasminha. Os ícones do app e da bandeja
   viraram a chama.
 
+- **O Windows sem lacunas** (Fase 40): segurar o atalho de voz ouve até soltar; a agenda pelo
+  endereço iCal do Google, do Outlook ou do iCloud (guardado no chaveiro; vale no Linux também); o
+  "não perturbe" do Windows deixa o Wisp quieto; a linha de status do Wisp também sem o Git Bash;
+  e o instalador para Windows ARM64.
+
+- **Recortar, o aviso do plano e o CI que vira conversa** (Fase 41): recortar uma área da tela
+  para a conversa (pelo **+** ou com Ctrl+Alt+R); um aviso ao passar de 80% e de 95% das janelas
+  do plano; e o clique num CI vermelho ou num pedido de mudanças abre uma aba com o pedido de
+  investigar pronto.
+
+- **Revisar no fim da resposta** (Fase 42): um card com os arquivos que a resposta mudou, o diff de
+  cada um e o **Desfazer**, um a um ou todos.
+
+- **A conversa numa cópia do Git** (Fase 43): abrir um projeto numa worktree, num ramo só da
+  conversa, e no fim juntar na pasta original (sem commit) ou descartar.
+
+- **Tarefas por evento** (Fase 44): uma tarefa pode rodar quando chega uma revisão num PR seu,
+  quando um CI seu falha, quando aparece um arquivo novo numa pasta ou ao desbloquear a tela, com o
+  `{evento}` no prompt.
+
+- **Explicar a seleção e o modo foco** (Fase 45): Ctrl+Alt+E leva o texto marcado em qualquer
+  programa para uma conversa; o modo foco deixa o Wisp quieto por 25 ou 50 minutos.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

@@ -11,6 +11,8 @@ import { join } from 'path'
 import { z } from 'zod'
 import { CONFIG_DIR, DATA_DIR } from './paths'
 import { IS_WINDOWS } from './platform'
+import { MAX_LINKS } from './calendar-links'
+import type { CalendarLink } from './calendar-links'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode } from '../shared/ipc'
 import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
@@ -26,6 +28,7 @@ import {
   MAX_TASKS,
   PROMPT_NAME,
   RESERVED_NAMES,
+  TASK_TRIGGERS,
   TIME,
   defaultPrompts
 } from '../shared/prompts'
@@ -106,6 +109,10 @@ export interface WispConfig {
   paletteShortcut: string | null
   /** Atalho global que abre a ilha no Perguntar (Fase 38; só com a ilha ligada); null desliga. */
   islandShortcut: string | null
+  /** Atalho global que recorta uma área da tela para uma conversa (Fase 41); null desliga. */
+  areaShortcut: string | null
+  /** Atalho global que leva o texto selecionado para uma conversa (Fase 45); null desliga. */
+  selectionShortcut: string | null
   /** O painel oferece um chip para usar o que você copiou. */
   clipboardChip: boolean
   /**
@@ -160,10 +167,19 @@ export interface WispConfig {
   calendar: boolean
   /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
   calendarFiles: string[]
+  /**
+   * As agendas por endereço iCal (Fase 40): só o id e o nome. O endereço fica no chaveiro do
+   * sistema (calendar-links.ts) e muda pela tela de configurações.
+   */
+  calendarLinks: CalendarLink[]
   /** Minutos antes de um compromisso para o Wisp avisar; 0 não avisa. */
   calendarAlertMinutes: number
   /** Guarda as contagens da semana (sem conteúdo) e mostra o resumo na segunda-feira. */
   weeklySummary: boolean
+  /** Avisa ao passar de 80% e de 95% das janelas do plano (Fase 41). */
+  usageAlerts: boolean
+  /** No fim de cada resposta que editou arquivos, o card com o que mudou e o desfazer (Fase 42). */
+  turnReview: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -222,6 +238,8 @@ function defaults(): WispConfig {
     shortcut: 'Ctrl+Alt+W',
     paletteShortcut: 'Ctrl+Alt+P',
     islandShortcut: 'Ctrl+Alt+K',
+    areaShortcut: 'Ctrl+Alt+R',
+    selectionShortcut: 'Ctrl+Alt+E',
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
@@ -248,8 +266,11 @@ function defaults(): WispConfig {
     github: false,
     calendar: false,
     calendarFiles: [],
+    calendarLinks: [],
     calendarAlertMinutes: 10,
     weeklySummary: true,
+    usageAlerts: true,
+    turnReview: true,
     provider: 'subscription',
     openrouterModel: null,
     phoneApprovals: false,
@@ -342,6 +363,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   shortcut: z.string().max(60).nullable(),
   paletteShortcut: z.string().max(60).nullable(),
   islandShortcut: z.string().max(60).nullable(),
+  areaShortcut: z.string().max(60).nullable(),
+  selectionShortcut: z.string().max(60).nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
   browserAutomation: z.boolean(),
@@ -364,8 +387,16 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   github: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
+  calendarLinks: z
+    .array(
+      z.object({ id: z.string().regex(/^[0-9a-f]{8}$/), name: z.string().trim().min(1).max(80) })
+    )
+    .max(MAX_LINKS)
+    .refine((links) => new Set(links.map((link) => link.id)).size === links.length),
   calendarAlertMinutes: z.number().int().min(0).max(240),
   weeklySummary: z.boolean(),
+  usageAlerts: z.boolean(),
+  turnReview: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
   phoneApprovals: z.boolean(),
@@ -393,6 +424,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
         id: z.string().regex(/^[\w-]{1,40}$/),
         name: z.string().trim().min(1).max(80),
         prompt: z.string().trim().min(1).max(MAX_PROMPT_TEXT),
+        trigger: z.enum(TASK_TRIGGERS).optional(),
+        watch: z.string().trim().min(1).max(500).nullable().optional(),
         time: z.string().regex(TIME),
         days: z.array(z.number().int().min(0).max(6)).max(7),
         folder: z.string().trim().min(1).max(500).nullable(),
@@ -518,10 +551,13 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   shortcut: t('O atalho tem no máximo 60 caracteres.'),
   paletteShortcut: t('O atalho tem no máximo 60 caracteres.'),
   islandShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  areaShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  selectionShortcut: t('O atalho tem no máximo 60 caracteres.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),
   calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
+  calendarLinks: t('Até 10 agendas por endereço, cada uma com um id e um nome.'),
   calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).'),
   prompts: t(
     'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).'

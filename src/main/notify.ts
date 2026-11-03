@@ -3,6 +3,7 @@
 // Permitir e Negar (Fase 24; no Windows, Fase 35). Com o "não perturbe" do desktop ligado (Fase 32),
 // nenhuma sai.
 
+import { focusActive } from './focus'
 import { Notification } from 'electron'
 import appIcon from '../../resources/icon.png?asset'
 import type { Chat } from './chat'
@@ -41,7 +42,8 @@ export function setupNotifications(chat: () => Chat | null): {
   // O servidor de notificações pelo D-Bus (Fase 24): os cards, e as outras quando falta a libnotify.
   let notifier: Notifier | null = null
   const dnd = new DoNotDisturb()
-  const quiet = (): boolean => getConfig().quietWithDnd && dnd.active()
+  // O modo foco (Fase 45) também deixa o Wisp quieto, com ou sem o "não perturbe" do desktop.
+  const quiet = (): boolean => (getConfig().quietWithDnd && dnd.active()) || focusActive()
   /** O clique de cada notificação simples que foi pelo D-Bus. */
   const clicks = new Map<number, () => void>()
   const notify: Notify = (title, body, onClick) => {

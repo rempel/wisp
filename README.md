@@ -79,9 +79,21 @@ Em resumo:
 - Mandar mais instruções com o Claude trabalhando: a mensagem entra na próxima pausa, sem parar a
   resposta. Os passos dos subagentes aparecem no card do Agente, e os comandos com barra (`/`)
   trazem as skills e os comandos do Claude Code.
-- Anexos (arrastar, colar uma imagem, o **+**, soltar um arquivo no mascote), print da tela, o
+- Anexos (arrastar, colar uma imagem, o **+**, soltar um arquivo no mascote), print da tela,
+  **recortar uma área** (Fase 41: pelo **+** ou de qualquer lugar com **Ctrl+Alt+R**, arrastando um
+  retângulo; o recorte vai para a conversa em foco), o
   "usar o que você copiou", o histórico das conversas, a troca de modelo, a pílula do contexto com o
   **Compactar agora** e o uso do seu plano.
+- **Numa cópia do Git** (Fase 43): no menu das pastas, **Numa cópia (worktree do Git)** abre o
+  projeto numa worktree, num ramo só da conversa (`wisp/…`), para duas tarefas no mesmo
+  repositório não pisarem uma na outra. A barra da cópia mostra o que mudou nela; **Juntar na
+  pasta original** leva as mudanças para lá (sem commit) e **Descartar** tira a cópia e o ramo.
+  As cópias ficam em `copias/`, nos dados do Wisp; uma sem mudança e sem aba sai quando o Wisp
+  abre, e uma com mudança aparece no menu das pastas para reabrir.
+- **Revisar no fim da resposta** (Fase 42, `turnReview`): depois de cada resposta que editou
+  arquivos, um card com cada arquivo (+N −M e o diff, de antes da resposta até agora), **Abrir** e
+  **Desfazer**, um a um ou todos. Junto com o **Aceitar edições**, dá para deixar o Claude editar
+  e revisar tudo de uma vez no fim.
 - Os modos de permissão do Claude Code (**Pedir**, **Aceitar edições**, **Planejar**,
   **Automático**), por conversa, e um **Permitir sempre** que entende comandos (`git status` não
   libera `git push`).
@@ -138,8 +150,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   conversas, os cards, o modo terminal e a integração com o desktop (as janelas, o terminal, os
   apps, a música, o volume e a voz), com poucas diferenças (veja [Windows](#windows)). O CI
   também roda num Windows de verdade.
-- **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64). Os de ARM64 são montados num
-  x86-64 e conferidos pela arquitetura e pelo conteúdo; ainda não foram abertos numa máquina ARM.
+- **Pacotes:** .deb e AppImage para x86-64 e ARM64, um Flatpak e o instalador do Windows (x64 e,
+  desde a Fase 40, ARM64). Os de ARM64 são montados num x86-64 e conferidos pela arquitetura e
+  pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
 - **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
@@ -148,7 +161,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
   acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
   perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows) e 37 (a ilha que abre):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git), 44 (tarefas por evento) e 45 (explicar a seleção e o modo foco):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
@@ -165,19 +178,19 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 **Opcionais, para cada recurso:**
 
-| Recurso                      | Precisa de                                                                                                                                                                    |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Voz                          | Um microfone, o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) e um modelo (veja [Voz](#voz))                                                         |
-| Volume pela voz              | `wpctl` (PipeWire, pacote `wireplumber`) ou `pactl` (`pulseaudio-utils`)                                                                                                      |
-| O Wisp falando               | [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português                                                                                                       |
-| Atalho global no Wayland     | O portal `GlobalShortcuts` (GNOME 48+ ou KDE Plasma 5.27+); no X11, nada                                                                                                      |
-| Print da tela no Wayland     | O portal de captura (o GNOME e o KDE já têm)                                                                                                                                  |
-| Trazer janelas para a frente | KDE (X11 ou Wayland) ou qualquer desktop no X11; no GNOME com Wayland o sistema não deixa                                                                                     |
-| Aba Sessões                  | Claude Code 2.1 ou mais novo                                                                                                                                                  |
-| Navegador do Claude          | Google Chrome, Chromium, Brave, Edge ou Vivaldi instalado fora do Snap                                                                                                        |
-| Alertas do GitHub            | O [gh](https://cli.github.com) logado (`gh auth login`)                                                                                                                       |
-| Agenda                       | No GNOME, nada (o Evolution Data Server já vem; Google e Microsoft entram pelas Contas Online). Fora dele, arquivos `.ics` ou o [vdirsyncer](https://vdirsyncer.pimutils.org) |
-| OpenRouter (experimental)    | Uma chave de [openrouter.ai](https://openrouter.ai) e um chaveiro com o Secret Service (GNOME Keyring, KWallet 6 ou KeePassXC com a integração ligada)                        |
+| Recurso                      | Precisa de                                                                                                                                                                                                              |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Voz                          | Um microfone, o [whisper.cpp](https://github.com/ggml-org/whisper.cpp) (`whisper-cli`) e um modelo (veja [Voz](#voz))                                                                                                   |
+| Volume pela voz              | `wpctl` (PipeWire, pacote `wireplumber`) ou `pactl` (`pulseaudio-utils`)                                                                                                                                                |
+| O Wisp falando               | [Piper](https://github.com/OHF-Voice/piper1-gpl) e uma voz em português                                                                                                                                                 |
+| Atalho global no Wayland     | O portal `GlobalShortcuts` (GNOME 48+ ou KDE Plasma 5.27+); no X11, nada                                                                                                                                                |
+| Print da tela no Wayland     | O portal de captura (o GNOME e o KDE já têm)                                                                                                                                                                            |
+| Trazer janelas para a frente | KDE (X11 ou Wayland) ou qualquer desktop no X11; no GNOME com Wayland o sistema não deixa                                                                                                                               |
+| Aba Sessões                  | Claude Code 2.1 ou mais novo                                                                                                                                                                                            |
+| Navegador do Claude          | Google Chrome, Chromium, Brave, Edge ou Vivaldi instalado fora do Snap                                                                                                                                                  |
+| Alertas do GitHub            | O [gh](https://cli.github.com) logado (`gh auth login`)                                                                                                                                                                 |
+| Agenda                       | No GNOME, nada (o Evolution Data Server já vem; Google e Microsoft entram pelas Contas Online). Fora dele (e no Windows), o endereço iCal da agenda, arquivos `.ics` ou o [vdirsyncer](https://vdirsyncer.pimutils.org) |
+| OpenRouter (experimental)    | Uma chave de [openrouter.ai](https://openrouter.ai) e um chaveiro com o Secret Service (GNOME Keyring, KWallet 6 ou KeePassXC com a integração ligada)                                                                  |
 
 Para compilar do código, veja as dependências em [Compilar a partir do código](#compilar-a-partir-do-código).
 
@@ -245,8 +258,9 @@ Prefira o .deb no Ubuntu: o perfil dele vale só para o `/opt/Wisp/wisp`.
 
 ### Windows
 
-O instalador `Wisp-<versão>-Setup-x64.exe` (Windows 10 e 11, x64) põe o Wisp só para o seu
-usuário, sem pedir administrador, no menu Iniciar e na área de trabalho, e abre o Wisp no fim.
+O instalador `Wisp-<versão>-Setup-x64.exe` (Windows 10 e 11, x64; ou o `-Setup-arm64.exe`, para
+os computadores com Snapdragon, desde a Fase 40) põe o Wisp só para o seu usuário, sem pedir
+administrador, no menu Iniciar e na área de trabalho, e abre o Wisp no fim.
 
 - **Antes:** o Claude Code, pelo instalador oficial, no PowerShell, e o
   [Git para Windows](https://git-scm.com/download/win) (o Claude Code roda os comandos no Git
@@ -257,7 +271,9 @@ irm https://claude.ai/install.ps1 | iex
 ```
 
 - **O aviso do SmartScreen:** o instalador ainda não é assinado, e o Windows mostra "O Windows
-  protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**.
+  protegeu o computador". Clique em **Mais informações** → **Executar assim mesmo**. (Quem publica
+  pode assinar: com um certificado de assinatura de código nos segredos `WIN_CSC_LINK`, o `.pfx`
+  em base64, e `WIN_CSC_KEY_PASSWORD` do repositório, o CI assina o Wisp e os instaladores.)
 - **Onde ficam as coisas:** o `config.json` em `%APPDATA%\Wisp`; as conversas, o cache e o
   registro (`Logs\wisp.log`) em `%LOCALAPPDATA%\Wisp`.
 - **O que já funciona:** o mascote, o painel, as conversas e as abas, os cards (cada comando do
@@ -273,15 +289,17 @@ irm https://claude.ai/install.ps1 | iex
   navegadores, o player do Windows) e o volume do sistema. Tudo pelas funções do próprio Windows,
   sem o cmd: nada procura programas na pasta atual. O `editorCommand` `code` abre o `Code.exe`
   do VS Code (o `code.cmd` passaria pelo cmd; o mesmo para o Cursor, o VSCodium e o Windsurf).
-- **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). O atalho de voz liga a
-  escuta, que acaba no silêncio depois da fala (ou num segundo aperto): segurar para falar ainda
-  não dá no Windows.
+- **A voz:** o whisper.cpp e o Piper do Windows (veja [Voz](#voz)). Segurar o atalho de voz
+  ouve enquanto ele estiver apertado (Fase 40), como no Linux; um toque rápido ouve até o silêncio
+  depois da fala.
+- **A agenda** (Fase 40): pelo endereço iCal do Google, do Outlook ou do iCloud (veja
+  [GitHub, agenda e resumo da semana](#github-agenda-e-resumo-da-semana)), ou por arquivos `.ics`.
 - **Diferenças:** os players do Windows não mostram o volume deles, e o `media_volume` muda o do
   sistema (a barrinha de volume da ilha também). Desde a Fase 37, um PowerShell fica acompanhando
   o controle de mídia do Windows (lê a lista de players a cada 4 s, ou 1,5 s com a ilha aberta, e
   recebe os botões dela): o mascote dança com a música e a ilha mostra o que toca, com a capa que
-  o player dá ao Windows. O "não perturbe" do Windows segura as notificações do Wisp (os sons continuam: desligue-os no
-  menu do mascote). O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
+  o player dá ao Windows. Com o "Não perturbe" do Windows 11 ligado, o Wisp fica quieto como no Linux (Fase 40): sem notificações e sem sons, com os cards
+  esperando no painel; o estado vem no mesmo PowerShell da música, que confere a cada 4 s. O comando `wisp` não entra no PATH: as mesmas opções valem no `Wisp.exe`
   (`& "$env:LOCALAPPDATA\Programs\Wisp\Wisp.exe" --ask "oi"`).
 - **Antes de desinstalar,** se instalou os hooks na aba Sessões, tire-os por lá: as entradas no
   `settings.json` do Claude Code chamam o `wisp.exe`, e sem ele o Claude Code reclama a cada hook
@@ -294,8 +312,8 @@ irm https://claude.ai/install.ps1 | iex
 - **Na aba Sessões, Trazer para a frente** (Fase 36) acha a janela do terminal da sessão (o
   Windows Terminal, o VS Code, o console) pelos processos e a traz para a frente. **O navegador do
   Claude** (`browserAutomation`) acha o Chrome ou o Edge sozinho, nas pastas de instalação. **No
-  modo terminal**, a linha de status é a do Wisp (com o Git Bash, que o Claude Code usa para
-  ela).
+  modo terminal**, a linha de status é a do Wisp, no Git Bash ou no PowerShell (Fase 40; no
+  PowerShell, só se o caminho do Wisp não tiver espaços, o que é o comum).
 - **Remover:** Configurações do Windows → **Aplicativos** → Wisp → **Desinstalar**. As pastas
   `%APPDATA%\Wisp` e `%LOCALAPPDATA%\Wisp` ficam; apague-as para tirar tudo.
 - **Do código, no Windows:** com o [Node](https://nodejs.org) 22 e o Git, `npm ci` e
@@ -885,6 +903,17 @@ então o login da assinatura nunca é tocado.
   nessa hora), `{data}` e `{hora}`; em inglês, `{folder}`, `{clipboard}`, `{date}` e `{time}` (as
   duas formas valem sempre). Um prompt com o nome de um comando do Claude Code passa na frente dele
   no menu do Wisp. A lista fica em **Configurações → Prompts salvos**.
+- **Explicar a seleção** (Fase 45, **Ctrl+Alt+E**, `selectionShortcut`): marque um texto em
+  qualquer programa e aperte o atalho: ele vai para uma conversa nova, com o pedido de explicar na
+  caixa (troque por "traduza", "corrija"… e mande). No Linux, vem da seleção primária (sem
+  copiar); no Windows, o Wisp aperta Ctrl+C por você e devolve a área de transferência como estava.
+- **Modo foco** (Fase 45): no menu do mascote ou da bandeja, **Modo foco** → 25 ou 50 minutos: o
+  Wisp fica quieto (sem notificações nem sons; os cards esperam no painel) e, no fim, comemora.
+- **Tarefas por evento** (Fase 44): no lugar do horário, o **Quando** da tarefa pode ser uma
+  revisão num PR seu ou um CI seu que falhou (com os alertas do GitHub ligados), um arquivo novo
+  numa pasta (os que já estavam lá não contam, e os que ainda baixam esperam) ou a tela
+  desbloqueada. O `{evento}` do prompt diz o que aconteceu (o PR com o link, os arquivos novos).
+  Cada tarefa por evento roda no máximo uma vez a cada 5 minutos, também no modo Pedir.
 - **Tarefas agendadas:** um prompt que roda sozinho num horário e em dias da semana ("todo dia útil
   às 9h, o resumo dos PRs"), em **Configurações → Tarefas agendadas**. Na hora, ela abre uma aba
   com o nome dela, **sempre no modo Pedir** (mesmo que o padrão seja outro): o que mexer no
@@ -957,12 +986,23 @@ Em **Configurações → Integrações**:
 - **Alertas do GitHub:** pelo `gh` já logado (o Wisp não guarda token nenhum). A cada 3 minutos, ele
   confere os seus PRs abertos e os que pedem a sua revisão e avisa o que mudou: CI que falhou ou
   passou, aprovação, pedido de mudanças, comentário, pedido de revisão. O clique na notificação abre o
-  PR. Pergunte "como estão meus PRs?".
+  PR; num CI vermelho ou num pedido de mudanças (Fase 41), ele abre uma aba nova com o pedido de
+  investigar já na caixa (o PR, o link e como ler o log pelo `gh`), para você revisar e mandar. Pergunte "como estão meus PRs?".
 - **Agenda:** as agendas do GNOME (as ligadas no app Agenda, inclusive Google, Microsoft e Nextcloud
-  pelas Contas Online) e arquivos `.ics` ou pastas do vdirsyncer. O painel vazio mostra o próximo
-  compromisso, e o Wisp avisa alguns minutos antes. Pergunte "o que eu tenho amanhã?".
+  pelas Contas Online), arquivos `.ics` ou pastas do vdirsyncer e, desde a Fase 40, o endereço
+  iCal de uma agenda do Google, do Outlook ou do iCloud (é assim que a agenda chega no Windows). O
+  painel vazio mostra o próximo compromisso, e o Wisp avisa alguns minutos antes. Pergunte "o que
+  eu tenho amanhã?".
+  - **Pelo endereço:** em **Configurações → Integrações → Agenda**, cole o endereço secreto em
+    formato iCal (no Google: Configurações da agenda → Integrar agenda; no Outlook: Agenda →
+    Compartilhado → Publicar, o link ICS). O Wisp confere que ele traz uma agenda e o guarda no
+    chaveiro do sistema; o `config.json` fica só com o nome. Ele baixa cada agenda de 15 em 15
+    minutos no máximo, só por https.
 - **Resumo da semana:** só contagens (conversas, tempo do Claude, linhas editadas, aprovações), no
   topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?".
+- **Aviso do uso do plano** (Fase 41, `usageAlerts`, ligado por padrão): uma notificação ao passar
+  de 80% e de 95% da janela de 5 horas ou da semana, com a hora em que ela reinicia e a sugestão de
+  um modelo que gasta menos. Uma vez por janela (fica guardado em `aviso-do-plano.json`).
 
 ### A ilha
 
@@ -1207,8 +1247,10 @@ Fica em `~/.config/wisp/config.json` e é criada com os padrões na primeira exe
   "github": false,
   "calendar": false,
   "calendarFiles": [],
+  "calendarLinks": [],
   "calendarAlertMinutes": 10,
   "weeklySummary": true,
+  "usageAlerts": true,
   "provider": "subscription",
   "openrouterModel": null,
   "phoneApprovals": false,
@@ -1413,7 +1455,10 @@ com o app fechado (até 12 horas) avisar quando ele abre. Para o GitHub Enterpri
 `calendar` liga a agenda, só leitura: as agendas do GNOME (pelo Evolution Data Server, as que
 estão ligadas e visíveis no app Agenda) e os arquivos de `calendarFiles`: arquivos `.ics` ou
 pastas com eles, como as do vdirsyncer (cada subpasta é uma agenda, com o nome do arquivo
-`displayname`). `calendarAlertMinutes` são os minutos de antecedência do aviso (`0` não avisa).
+`displayname`). `calendarLinks` são as agendas por endereço iCal (Fase 40), cada uma com `id` e
+`name`: o endereço fica no chaveiro do sistema e entra pela tela de configurações (no Windows, que
+não tem as agendas do GNOME, é o caminho para o Google e o Outlook). `calendarAlertMinutes` são os
+minutos de antecedência do aviso (`0` não avisa).
 Os compromissos de dia inteiro aparecem na lista, mas não avisam.
 
 `weeklySummary` guarda as contagens da semana em `~/.local/share/wisp/atividade.jsonl` (9

@@ -864,3 +864,89 @@ Com **Ilha no topo** ligada:
 - [ ] **Emoções:** em **Configurações → Mascote e sons**, veja algumas emoções e danças da galeria
       nos três avatares: os olhos e a boca escuros, os sinais no ar perto da cabeça.
 - [ ] **Menos movimento:** ligado, a chama e a geleca ficam paradas.
+
+## O Windows sem lacunas (Fase 40)
+
+- [ ] **Segurar para falar:** no Windows, segure **Ctrl+Alt+Espaço**, diga "abre a Calculadora" e
+      solte: a escuta acaba ao soltar (não no silêncio). Um toque rápido ainda ouve até o silêncio.
+- [ ] **Agenda pelo endereço:** no Google Agenda, em Configurações da agenda → Integrar agenda,
+      copie o **Endereço secreto em formato iCal**. Em **Configurações → Integrações**, ligue a
+      **Agenda** e cole em **Agendas por endereço**: aparece "conferida e guardada", e o painel
+      vazio mostra o próximo compromisso. Pergunte "o que eu tenho amanhã?". O endereço não aparece
+      no `config.json` nem no `wisp.log`.
+- [ ] **Apagar:** **Apagar** tira a agenda da lista, e os compromissos dela somem em seguida.
+- [ ] **Não perturbe:** ligue o **Não perturbe** do Windows (a central de notificações) e peça um
+      comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal.
+- [ ] **Linha de status sem o Git Bash:** num Windows sem o Git para Windows, abra o modo terminal:
+      a linha de status embaixo é a do Wisp.
+- [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
+      modo terminal abre o Claude Code.
+
+## Recortar, o aviso do plano e o CI que vira conversa (Fase 41)
+
+- [ ] **Recortar pelo +:** no painel, **+** → **Recortar uma área**: o painel some, a tela fica
+      escurecida com a dica no topo. Arraste um retângulo em volta de uma janela: o recorte aparece
+      nos anexos da caixa, só com aquela área.
+- [ ] **Recortar de qualquer lugar:** com o painel fechado, **Ctrl+Alt+R**: a mesma camada; o
+      recorte abre o painel com ele na caixa. Esc desiste sem anexar nada.
+- [ ] **Duas telas:** com o cursor na segunda tela, Ctrl+Alt+R: a camada aparece nela, com o
+      print dela.
+- [ ] **Wayland:** no GNOME com Wayland, o sistema pergunta da captura na primeira vez; depois, a
+      camada mostra o print e recorta igual.
+- [ ] **Aviso do plano:** num dia de uso pesado, ao passar de 80% da janela de 5 horas, sai uma
+      notificação com a hora em que ela reinicia. Abrir o Wisp de novo não repete o aviso.
+- [ ] **CI que vira conversa:** com os alertas do GitHub ligados, faça um PR com o CI quebrado:
+      a notificação diz "Clique para investigar"; o clique abre uma aba nova com o pedido na caixa,
+      sem mandar. Mande: o Claude pede para rodar o `gh` e explica o que quebrou.
+
+## Revisar no fim da resposta (Fase 42)
+
+- [ ] **O card:** num projeto com Git, no modo **Aceitar edições**, peça "renomeie a função X e
+      atualize quem a chama": no fim, o card "Esta resposta mudou N arquivos", cada um com +N −M.
+- [ ] **O diff:** clique num arquivo: o diff abre no editor, só em volta do que mudou.
+- [ ] **Desfazer um:** **Desfazer** num arquivo: `git diff` mostra que só ele voltou ao que era.
+- [ ] **Desfazer tudo:** numa resposta que criou um arquivo novo, **Desfazer tudo** apaga o novo e
+      volta os outros.
+- [ ] **Mudado depois:** edite à mão um arquivo do card e clique em **Desfazer**: ele fica como
+      está, e o card diz que mudou depois.
+- [ ] **A resposta seguinte:** mande outra mensagem: o card velho fica sem o desfazer, com a dica.
+- [ ] **Windows:** o mesmo no Windows (o hook vai pelo próprio Wisp).
+
+## A conversa numa cópia do Git (Fase 43)
+
+- [ ] **Abrir:** no botão de pasta, marque **Numa cópia (worktree do Git)** e escolha um projeto:
+      a aba nova tem a barra "Numa cópia de ~/… no ramo wisp/…", sem mudanças.
+- [ ] **Duas cópias:** abra o mesmo projeto em outra cópia e peça uma mudança diferente no mesmo
+      arquivo em cada uma: cada barra mostra só a sua; a pasta original não muda.
+- [ ] **Juntar:** **Juntar na pasta original** numa delas: `git status` na pasta original mostra
+      a mudança, sem commit.
+- [ ] **Não entra limpo:** junte a outra: a barra diz que não entra limpo e que o ramo fica; a
+      pasta original não muda.
+- [ ] **Descartar:** **Descartar** → **Descartar de vez?**: a aba fecha, e `git branch` não tem
+      mais o ramo.
+- [ ] **Guardada:** feche a aba de uma cópia com mudanças e abra o Wisp de novo: ela aparece no
+      menu das pastas, para reabrir.
+
+## Tarefas por evento (Fase 44)
+
+- [ ] **Arquivo novo:** em **Configurações → Tarefas agendadas**, **Nova tarefa** com **Quando**
+      "Quando aparece um arquivo novo numa pasta", a pasta `~/Downloads` e o prompt "Diga o que é
+      {evento}". Baixe um PDF no navegador: quando o download termina, abre uma aba com o caminho.
+- [ ] **CI vermelho:** com os alertas do GitHub ligados, uma tarefa "Quando o CI de um PR seu
+      falha" com "Investigue {evento}": quebre o CI de um PR e espere o alerta: a aba abre com o
+      link do PR.
+- [ ] **Desbloquear:** uma tarefa "Ao desbloquear a tela": bloqueie e desbloqueie: ela roda uma
+      vez; bloquear e desbloquear de novo em seguida não roda outra (5 minutos).
+- [ ] **Rodar agora:** numa tarefa por evento, **Rodar agora** roda com "(rodada à mão, sem um
+      evento)".
+
+## Explicar a seleção e o modo foco (Fase 45)
+
+- [ ] **Seleção no Linux:** marque um parágrafo no navegador (sem copiar) e aperte **Ctrl+Alt+E**:
+      o painel abre com "Explique… :" e o parágrafo na caixa, sem mandar.
+- [ ] **Seleção no Windows:** copie algo (uma imagem, por exemplo), marque um texto no Bloco de
+      Notas e aperte **Ctrl+Alt+E**: o texto vai para a caixa, e colar depois traz a imagem de antes.
+- [ ] **Nada marcado:** sem nada marcado, o atalho mostra a notificação "Nada selecionado".
+- [ ] **Foco:** botão direito no mascote → **Modo foco** → **25 minutos**: o menu passa a mostrar
+      "Parar o foco (até …)"; peça um comando: o card não toca som nem notifica.
+- [ ] **Fim do foco:** no fim do bloco, o mascote comemora e sai a notificação "Foco concluído".

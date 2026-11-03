@@ -3,11 +3,15 @@
 // pedidos pela ferramenta agenda.
 
 import { Agenda, describeAgenda } from './agenda'
+import { CalendarFeeds, linkSecret } from './calendar-links'
+import { setupCalendarLinksIpc } from './calendar-links-ipc'
 import type { Chat } from './chat'
 import { getConfig } from './config'
 import { EdsCalendars } from './eds'
 import { islandMessage, reactMascot, setIslandNote } from './mascot'
 import type { Signals } from './notify'
+import { IS_WINDOWS } from './platform'
+import { readSecret } from './secrets'
 import { dateLocale, t } from '../shared/i18n'
 
 export interface AgendaAlerts {
@@ -16,6 +20,8 @@ export interface AgendaAlerts {
   update(): void
   /** Os compromissos em texto, para o Claude: `days` dias a partir de hoje (ou de `from`). */
   describe(days: number, from?: string): Promise<string>
+  /** As agendas por endereço: o que foi baixado de cada uma (para esquecer uma que mudou). */
+  feeds: CalendarFeeds
 }
 
 const clock = (ms: number): string =>
@@ -23,12 +29,17 @@ const clock = (ms: number): string =>
 
 export function setupAgenda(signals: Signals, chat: () => Chat | null): AgendaAlerts {
   let eds: EdsCalendars | null = null
+  // O chaveiro só é lido para as agendas por endereço que existem no config.json.
+  const feeds = new CalendarFeeds({ secret: (id) => readSecret(linkSecret(id)) })
   const agenda = new Agenda({
+    // O Windows não tem as agendas do GNOME: nem tenta o D-Bus.
     eds: async () => {
+      if (IS_WINDOWS) return null
       if (!eds?.alive) eds = await EdsCalendars.connect()
       return eds
     },
     files: () => getConfig().calendarFiles,
+    links: () => feeds.read(getConfig().calendarLinks),
     alertMinutes: () => getConfig().calendarAlertMinutes,
     onAlert: (event, minutes) => {
       signals.activity()
@@ -57,12 +68,14 @@ export function setupAgenda(signals: Signals, chat: () => Chat | null): AgendaAl
       setIslandNote(next ? `${clock(next.start)} ${next.title}` : '')
     }
   })
+  setupCalendarLinksIpc({ isSender: (sender) => chat()?.isSender(sender) ?? false, feeds })
   let key = ''
   return {
     agenda,
+    feeds,
     update: () => {
-      const { calendar, calendarFiles, calendarAlertMinutes } = getConfig()
-      const current = JSON.stringify([calendar, calendarFiles, calendarAlertMinutes])
+      const { calendar, calendarFiles, calendarLinks, calendarAlertMinutes } = getConfig()
+      const current = JSON.stringify([calendar, calendarFiles, calendarLinks, calendarAlertMinutes])
       if (current === key) return
       key = current
       if (!calendar) {
@@ -78,8 +91,8 @@ export function setupAgenda(signals: Signals, chat: () => Chat | null): AgendaAl
     describe: async (days, from) => {
       if (!getConfig().calendar) {
         return (
-          t('A agenda está desligada. Dá para ligar em Configurações → Integrações (lê as ') +
-          t('agendas do GNOME e arquivos .ics).')
+          t('A agenda está desligada. Dá para ligar em Configurações → Integrações (lê os ') +
+          t('endereços iCal do Google e do Outlook, as agendas do GNOME e arquivos .ics).')
         )
       }
       const today = new Date()

@@ -18,6 +18,7 @@ import { ModelPill } from './ModelPill'
 import { OpenRouterModelPill } from './OpenRouterModelPill'
 import { ProviderPill } from './ProviderPill'
 import { ModePill } from './ModePill'
+import { WorktreeBar } from './WorktreeBar'
 import { nextMode } from './modes'
 import type { PaneBus } from './paneBus'
 import { requestTitle } from './describe-request'
@@ -542,12 +543,17 @@ export function Pane({
     window.wisp.chat.dismissClipboard(offer.id)
   }
 
-  /** Print da tela como anexo: o painel some, a tela é capturada e ele volta com o print. */
-  async function captureScreen(): Promise<void> {
+  /**
+   * Print da tela como anexo: o painel some, a tela é capturada e ele volta com o print. Com
+   * `area` (Fase 41), uma camada deixa recortar um retângulo dele.
+   */
+  async function captureScreen(area = false): Promise<void> {
     if (capturing) return
     setCapturing(true)
     try {
-      attachments.addPrepared(await window.wisp.chat.captureScreen())
+      attachments.addPrepared(
+        await (area ? window.wisp.chat.captureArea() : window.wisp.chat.captureScreen())
+      )
     } finally {
       setCapturing(false)
       input.current?.focus()
@@ -619,6 +625,9 @@ export function Pane({
       <div className="sr-only" role="status" aria-live="polite" data-announce>
         {announcement}
       </div>
+      {!terminalView && (
+        <WorktreeBar conversation={conversation} folder={state.folder} busy={state.busy} />
+      )}
       <div
         className="messages"
         ref={list}
@@ -687,6 +696,7 @@ export function Pane({
               item={item}
               streaming={state.busy && item === last}
               onEdit={position === editIndex && !editing ? startEdit : undefined}
+              conversation={conversation}
             />
           )
         })}
@@ -809,6 +819,7 @@ export function Pane({
           <ComposerMenu
             onAttach={() => picker.current?.click()}
             onCapture={() => void captureScreen()}
+            onCaptureArea={() => void captureScreen(true)}
             capturing={capturing}
           />
           <button

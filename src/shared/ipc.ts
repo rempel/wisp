@@ -23,7 +23,10 @@ import type {
   PermissionDecision,
   PermissionMode,
   Provider,
+  ReviewUndoResult,
   TabsState,
+  WorktreeResult,
+  WorktreeStatus,
   WindowState
 } from './ipc-chat'
 import type {
@@ -51,6 +54,7 @@ import type {
   McpPreview,
   McpSnapshot,
   OpenRouterKeyResult,
+  CalendarLinkResult,
   PanelView,
   PhonePairResult,
   PhoneResult,
@@ -168,6 +172,13 @@ export const IPC = {
   /** chat → main (invoke): apaga a chave do chaveiro. Devolve OpenRouterKeyResult. */
   openrouterClearKey: 'openrouter:clear-key',
   /**
+   * chat → main (invoke): guarda uma agenda por endereço (Fase 40), conferida antes. Args:
+   * (endereço, nome ou ''). Devolve CalendarLinkResult.
+   */
+  calendarAddLink: 'calendar:add-link',
+  /** chat → main (invoke): apaga uma agenda por endereço, pelo id. Devolve CalendarLinkResult. */
+  calendarRemoveLink: 'calendar:remove-link',
+  /**
    * chat → main (invoke): pareia um celular (Fase 18): sorteia os tópicos e os guarda no chaveiro.
    * Args: (servidor, ficha de acesso ou ''). Devolve PhonePairResult.
    */
@@ -249,6 +260,12 @@ export const IPC = {
    * da lista, ou null para escolher a pasta. Devolve FolderResult.
    */
   tabsOpenFolder: 'tabs:open-folder',
+  /** chat → main (invoke): a cópia (worktree) de uma conversa (Fase 43). Devolve WorktreeStatus ou null. */
+  worktreeStatus: 'worktree:status',
+  /** chat → main (invoke): junta a cópia da conversa na pasta original. Devolve WorktreeResult. */
+  worktreeJoin: 'worktree:join',
+  /** chat → main (invoke): descarta a cópia da conversa (e fecha a aba). Devolve WorktreeResult. */
+  worktreeDiscard: 'worktree:discard',
   /** chat → main (invoke): as skills instaladas. Devolve SkillInfo[]. */
   skillsList: 'skills:list',
   /** chat → main (invoke): escolher uma pasta com uma skill. Devolve SkillPreview, { error } ou null. */
@@ -272,6 +289,20 @@ export const IPC = {
    * Devolve DroppedFiles (um arquivo por tela, ou o motivo em problems).
    */
   chatCapture: 'chat:capture',
+  /**
+   * chat → main (invoke): recorta uma área da tela (Fase 41): o print, a camada para arrastar e o
+   * recorte. Devolve DroppedFiles (vazio se a pessoa desistiu).
+   */
+  chatCaptureArea: 'chat:capture-area',
+  /**
+   * chat → main (invoke): desfaz arquivos do card do fim do turno (Fase 42). Args: (conversa,
+   * turno, [{ path, hash }]). Devolve ReviewUndoResult.
+   */
+  chatReviewUndo: 'chat:review-undo',
+  /** área → main (invoke): o print que a camada mostra. Devolve AreaImage ou null. */
+  areaImage: 'area:image',
+  /** área → main: o retângulo escolhido (AreaRect, em pixels da imagem), ou null para desistir. */
+  areaDone: 'area:done',
   /** main → chat: o que há de novo na área de transferência (ClipboardOffer), ou null. */
   chatClipboard: 'chat:clipboard',
   /** chat → main (invoke): usar o que foi copiado. Arg: id da oferta. Devolve ClipboardUse. */
@@ -373,7 +404,28 @@ export const IPC = {
 } as const
 
 /** API que o preload expõe ao renderer como `window.wisp`. */
+/** O print que a camada de recorte mostra (Fase 41). */
+export interface AreaImage {
+  /** Data URL do PNG. */
+  url: string
+  width: number
+  height: number
+}
+
+/** Um retângulo em pixels da imagem do print. */
+export interface AreaRect {
+  x: number
+  y: number
+  width: number
+  height: number
+}
+
 export interface WispApi {
+  /** A camada de recorte (Fase 41). */
+  area: {
+    image(): Promise<AreaImage | null>
+    done(rect: AreaRect | null): void
+  }
   mascot: {
     /** Começa a arrastar o mascote; o offset é o ponto agarrado dentro da janela (px CSS). */
     dragStart(offsetX: number, offsetY: number): void
@@ -479,6 +531,14 @@ export interface WispApi {
     activity(): void
     /** Tira um print da tela (o painel sai da frente) e devolve os arquivos para anexar. */
     captureScreen(): Promise<DroppedFiles>
+    /** Recorta uma área da tela (Fase 41) e devolve o recorte para anexar (vazio: desistiu). */
+    captureArea(): Promise<DroppedFiles>
+    /** Desfaz arquivos do card do fim do turno (Fase 42). */
+    reviewUndo(
+      conversation: string,
+      turn: number,
+      files: { path: string; hash: string }[]
+    ): Promise<ReviewUndoResult>
     /** O que há de novo na área de transferência (null: nada a oferecer). */
     onClipboard(listener: (offer: ClipboardOffer | null) => void): () => void
     /** Usa o que foi copiado: o texto para a caixa ou um anexo. */
@@ -520,7 +580,11 @@ export interface WispApi {
     /** Os projetos das pastas de projetos, para abrir um numa aba. */
     projects(): Promise<FolderChoice[]>
     /** Uma conversa numa pasta (um projeto da lista, ou null para escolher), numa aba nova. */
-    openFolder(path: string | null): Promise<FolderResult>
+    /** Com `worktree` (Fase 43), a conversa trabalha numa cópia do Git do projeto. */
+    openFolder(path: string | null, worktree?: boolean): Promise<FolderResult>
+    worktreeStatus(conversation: string): Promise<WorktreeStatus | null>
+    worktreeJoin(conversation: string): Promise<WorktreeResult>
+    worktreeDiscard(conversation: string): Promise<WorktreeResult>
   }
   /** As skills do Claude Code: listar, instalar de uma pasta e remover. */
   skills: {
@@ -562,6 +626,11 @@ export interface WispApi {
     models(): Promise<OpenRouterModelInfo[] | { error: string }>
     setKey(key: string): Promise<OpenRouterKeyResult>
     clearKey(): Promise<OpenRouterKeyResult>
+  }
+  /** As agendas por endereço (Fase 40): o endereço vai para o chaveiro e nunca volta. */
+  calendar: {
+    addLink(url: string, name: string): Promise<CalendarLinkResult>
+    removeLink(id: string): Promise<CalendarLinkResult>
   }
   /** O diagnóstico e os primeiros passos (Fase 20). */
   diagnostics: {

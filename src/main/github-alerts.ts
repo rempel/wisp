@@ -1,11 +1,19 @@
 // Os alertas do GitHub (Fase 13, opcional), pelo gh já logado: CI e revisões dos seus PRs, e
 // pedidos de revisão. Cada um vira uma notificação (o clique abre o PR no navegador), uma linha na
 // ilha e uma reação do mascote; e o Claude lê o mesmo retrato pela ferramenta github_status.
+// Desde a Fase 41, o clique num CI vermelho ou num pedido de mudanças abre uma aba nova com o
+// pedido de investigar na caixa (sem mandar: você revisa e manda).
 
 import { shell } from 'electron'
 import type { Chat } from './chat'
 import { getConfig } from './config'
-import { describeAlert, describeSnapshot, GithubWatcher, MAX_ALERTS } from './github'
+import {
+  describeAlert,
+  describeSnapshot,
+  GithubWatcher,
+  investigatePrompt,
+  MAX_ALERTS
+} from './github'
 import type { GithubAlert } from './github'
 import { islandMessage, reactMascot } from './mascot'
 import type { Signals } from './notify'
@@ -18,17 +26,30 @@ export interface GithubAlerts {
   update(): void
   /** O retrato dos seus PRs em texto, para o Claude. */
   describe(): Promise<string>
+  /** Os alertas novos, para as tarefas por evento (Fase 44). */
+  onAlerts(listener: (alerts: GithubAlert[]) => void): void
 }
 
 export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAlerts {
   const { notify } = signals
+  const listeners: ((alerts: GithubAlert[]) => void)[] = []
   const alerted = (alerts: GithubAlert[]): void => {
+    for (const listener of listeners) listener(alerts)
     signals.activity()
     const first = describeAlert(alerts[0])
     islandMessage(first.title, first.body, 8000)
     for (const alert of alerts.slice(0, MAX_ALERTS)) {
       const { title, body, url } = describeAlert(alert)
-      notify(title, body, () => void shell.openExternal(url))
+      const prompt = investigatePrompt(alert)
+      const panel = prompt ? chat() : null
+      if (prompt && panel) {
+        notify(title, `${body}\n${t('Clique para investigar numa conversa.')}`, () => {
+          panel.newConversation()
+          panel.compose(prompt)
+        })
+      } else {
+        notify(title, body, () => void shell.openExternal(url))
+      }
     }
     if (alerts.length > MAX_ALERTS) {
       const more = alerts.length - MAX_ALERTS
@@ -78,6 +99,7 @@ export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAl
   })
   return {
     watcher,
+    onAlerts: (listener) => void listeners.push(listener),
     update: () => {
       if (getConfig().github) watcher.start()
       else watcher.stop()

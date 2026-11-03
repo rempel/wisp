@@ -13,6 +13,7 @@ import { MODE_TEXT } from './modes'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
+import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
 import { PortableSection } from './PortableSection'
 import {
@@ -318,6 +319,14 @@ export function SettingsView({
             checked={values.clipboardChip}
             onChange={(clipboardChip) => void save({ clipboardChip })}
           />
+          <Toggle
+            label={t('Revisar no fim da resposta')}
+            hint={t(
+              'Depois de cada resposta que editou arquivos, um card com o que mudou em cada um e o Desfazer (as edições pelas ferramentas de edição; os comandos do Bash não entram).'
+            )}
+            checked={values.turnReview}
+            onChange={(turnReview) => void save({ turnReview })}
+          />
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>
@@ -421,6 +430,30 @@ export function SettingsView({
             <ShortcutInput
               value={values.islandShortcut}
               onCommit={(islandShortcut) => save({ islandShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Recortar uma área')}
+            hint={t(
+              'De qualquer lugar: arraste um retângulo na tela, e o recorte vai para a conversa em foco.'
+            )}
+            error={errors.areaShortcut}
+          >
+            <ShortcutInput
+              value={values.areaShortcut}
+              onCommit={(areaShortcut) => save({ areaShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Explicar a seleção')}
+            hint={t(
+              'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).'
+            )}
+            error={errors.selectionShortcut}
+          >
+            <ShortcutInput
+              value={values.selectionShortcut}
+              onCommit={(selectionShortcut) => save({ selectionShortcut })}
             />
           </Row>
           <Toggle
@@ -553,13 +586,14 @@ export function SettingsView({
           <Toggle
             label={t('Agenda')}
             hint={t(
-              'Os próximos compromissos das agendas do GNOME (inclusive Google e Microsoft das Contas Online) e dos arquivos abaixo. Só leitura.'
+              'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.'
             )}
             checked={values.calendar}
             onChange={(calendar) => void save({ calendar })}
           />
           {values.calendar && (
             <>
+              <CalendarLinks links={snapshot.calendarLinks} />
               <Row
                 label={t('Arquivos de agenda')}
                 hint={t(
@@ -592,6 +626,14 @@ export function SettingsView({
             )}
             checked={values.weeklySummary}
             onChange={(weeklySummary) => void save({ weeklySummary })}
+          />
+          <Toggle
+            label={t('Aviso do uso do plano')}
+            hint={t(
+              'Avisa uma vez ao passar de 80% e de 95% da janela de 5 horas ou da semana do seu plano, com a hora em que ela reinicia.'
+            )}
+            checked={values.usageAlerts}
+            onChange={(usageAlerts) => void save({ usageAlerts })}
           />
         </Section>
 

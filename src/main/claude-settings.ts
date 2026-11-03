@@ -2,6 +2,7 @@
 // segredos que sempre pedem aprovação, o hook que manda todo Bash para o card, o --settings do
 // modo terminal e as opções de uma conversa.
 
+import { EDIT_MATCHER, SNAPSHOT_ARG } from './turn-snapshot'
 import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
 import type { PermissionMode, Provider } from '../shared/ipc'
@@ -139,11 +140,36 @@ function bashHook(): Record<string, unknown> {
   return { type: 'command', command: BASH_HOOK }
 }
 
+/**
+ * O hook que guarda a cópia de antes de cada edição (Fase 42, turn-snapshot.ts): o relay do Wisp
+ * com --snapshot. No Windows, o próprio Wisp na forma exec; sem saber o executável, nada (o card
+ * do fim do turno mostra o que mudou, sem desfazer).
+ */
+function snapshotHook(relay = WRAPPER_PATH): Record<string, unknown> | null {
+  if (!IS_WINDOWS)
+    return { type: 'command', command: `${shellQuote(relay)} ${SNAPSHOT_ARG}`, timeout: 10 }
+  const self = selfCommandOf()
+  return self
+    ? {
+        type: 'command',
+        command: self.command,
+        args: [...self.args, RELAY_ARG, SNAPSHOT_ARG],
+        timeout: 10
+      }
+    : null
+}
+
 /** As configurações extras do chat (--settings). */
 export function sessionSettings(): string {
+  const snapshot = snapshotHook()
   return JSON.stringify({
     permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
-    hooks: { PreToolUse: [{ matcher: 'Bash', hooks: [bashHook()] }] }
+    hooks: {
+      PreToolUse: [
+        { matcher: 'Bash', hooks: [bashHook()] },
+        ...(snapshot ? [{ matcher: EDIT_MATCHER, hooks: [snapshot] }] : [])
+      ]
+    }
   })
 }
 
@@ -202,15 +228,24 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
 }
 
 /**
+ * Um pedaço que o bash e o PowerShell leem igual sem aspas: letras (com acento), algarismos e
+ * `_ . : / -`, sem começar por `-`. Nada que um dos dois trate de outro jeito (o espaço, as aspas,
+ * o `$`, a crase, a vírgula do PowerShell, o `&`, o `;`, os parênteses e as chaves).
+ */
+const PLAIN_PART = /^[\p{L}\p{N}_.:/][\p{L}\p{N}_.:/-]*$/u
+
+/**
  * A linha de status no Windows (Fase 36). Ela só aceita uma linha de shell (sem a forma exec), e o
- * Claude Code a roda no bash do Git para Windows: o próprio Wisp entre aspas simples, com as
- * barras normais (que o bash do Git entende), e nada além da ficha da aba, que é hexadecimal. Sem
- * o Git Bash, o Claude Code usa o PowerShell, que não roda esta linha: a linha de status fica a
- * dele, como antes.
+ * Claude Code a roda no bash do Git para Windows ou, sem ele, no PowerShell: o próprio Wisp com as
+ * barras normais (que os dois entendem), e nada além da ficha da aba, que é hexadecimal. Sem
+ * espaço nem símbolo no caminho (o comum), a linha vai sem aspas e roda nos dois (Fase 40); com
+ * eles, entre aspas simples, que só o bash roda (no PowerShell, a linha de status fica a dele).
  */
 export function windowsStatusCommand(command: string, args: string[], tab: string): string {
-  const path = (part: string): string => shellQuote(part.replaceAll('\\', '/'))
-  return [path(command), ...args.map(path), RELAY_ARG, STATUS_ARG, tab].join(' ')
+  const parts = [command, ...args].map((part) => part.replaceAll('\\', '/'))
+  const plain = parts.every((part) => PLAIN_PART.test(part))
+  const path = (part: string): string => (plain ? part : shellQuote(part))
+  return [...parts.map(path), RELAY_ARG, STATUS_ARG, tab].join(' ')
 }
 
 /** Como subir o Claude Code interativo do modo terminal (num pty). */
@@ -247,6 +282,8 @@ export interface ClaudeOptions {
   permissionMode: PermissionMode
   /** Onde gravar o modo atual, para o hook do Bash ler (em $XDG_RUNTIME_DIR, só do usuário). */
   modeFile?: string
+  /** A pasta das cópias de antes das edições (Fase 42), que o hook delas lê. */
+  snapshotDir?: string
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */

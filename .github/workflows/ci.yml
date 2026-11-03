@@ -71,7 +71,7 @@ jobs:
       - name: X virtual, D-Bus, as bibliotecas do Electron e o EDS (agenda)
         timeout-minutes: 25
         run: |
-          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool openbox evolution-data-server \
+          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool xclip openbox evolution-data-server \
             libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
       - run: npm ci
       - run: npx install-electron
@@ -246,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows paleta busca conversa diagnostics notificacoes editor island
+        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}
@@ -270,6 +270,22 @@ jobs:
         run: node e2e/integracoes.mjs
         env:
           WISP_E2E_SHOTS: ${{ runner.temp }}/telas
+      - name: Ponta a ponta (as tarefas por evento)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/gatilhos.mjs
+      - name: Ponta a ponta (a conversa numa cópia do Git)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/copias.mjs
+      - name: Ponta a ponta (revisar no fim da resposta)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/revisar.mjs
+      - name: Ponta a ponta (recortar uma área da tela)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/recorte.mjs
       - name: Ponta a ponta (atualizar com um clique)
         if: ${{ !cancelled() }}
         timeout-minutes: 10
@@ -289,8 +305,28 @@ jobs:
           path: ${{ runner.temp }}/telas
           if-no-files-found: ignore
           retention-days: 3
+      # Com um certificado de assinatura de código nos segredos (Fase 40), o electron-builder
+      # assina o Wisp.exe e os instaladores (o SmartScreen deixa de avisar); sem ele, saem como
+      # antes, sem assinatura.
       - name: O instalador
         run: npx electron-builder --win nsis --publish never
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
+      # O instalador para Windows ARM64 (Fase 40): o Electron de ARM64 e o node-pty que já vem
+      # pronto para ele. Abrir pede uma máquina ARM; a conferência olha a arquitetura dos binários.
+      - name: O instalador ARM64
+        # O bash do Git: um comando que falha para o passo (o pwsh seguiria para o próximo).
+        shell: bash
+        run: |
+          # Fora da pasta do repositório: nada dele entra no pacote.
+          electron="$RUNNER_TEMP/electron-win-arm64"
+          node scripts/electron-arm64.mjs "$electron" win32
+          npx electron-builder --win nsis --arm64 -c.electronDist="$electron" --publish never
+          node scripts/smoke-win-arm64.mjs
+        env:
+          WIN_CSC_LINK: ${{ secrets.WIN_CSC_LINK }}
+          WIN_CSC_KEY_PASSWORD: ${{ secrets.WIN_CSC_KEY_PASSWORD }}
       - uses: actions/upload-artifact@v6
         continue-on-error: ${{ !startsWith(github.ref, 'refs/tags/') }}
         with:
