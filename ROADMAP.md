@@ -1622,10 +1622,10 @@ Notas da entrega:
   publicação: aí o endereço não aparece nas opções da agenda;
 - o "não perturbe": o Windows não avisa um app quando ele muda, e consultar de tempos em tempos
   gastaria CPU. O PowerShell da música (Fase 37) já fica aberto e acorda a cada 4 s: no mesmo
-  laço, ele lê o perfil do Assistente de Foco (o estado WNF que o Windows publica, pelo
-  `NtQueryWnfStateData`, que não é documentado) e a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` (o
-  botão "Não perturbe" do Windows 11), e escreve uma linha só quando muda. O CI conferiu o C# e a
-  chave; o Assistente de Foco de verdade fica para a validação;
+  laço, ele lê a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` (o botão "Não perturbe" do Windows 11) e escreve uma linha só quando muda. A primeira versão lia também o Assistente de Foco do
+  Windows 10, pelo estado WNF que o Windows não documenta (`NtQueryWnfStateData`); no CI, ele
+  dizia "ligado" num Windows em que ninguém o ligou, e o Wisp ficava mudo. Saiu: um falso "ligado"
+  é pior que nenhum;
 - a linha de status: o Claude Code a roda no Git Bash ou, sem ele, no PowerShell, que não executa
   um caminho entre aspas. Com o caminho do Wisp só de letras, algarismos e `_ . : / -` (o comum),
   a linha vai sem aspas e roda igual nos dois; o CI roda a mesma linha nos dois shells. Com um

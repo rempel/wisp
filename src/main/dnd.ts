@@ -8,8 +8,8 @@
 // - GNOME: a chave show-banners de org.gnome.desktop.notifications (desligada é o "não
 //   perturbe"), pelo portal de configurações (org.freedesktop.portal.Settings), com o
 //   SettingChanged;
-// - Windows (Fase 40): o PowerShell que acompanha a música lê o Assistente de Foco e o botão
-//   "Não perturbe" do Windows 11 no mesmo laço, e conta quando muda (report).
+// - Windows (Fase 40): o PowerShell que acompanha a música lê o botão "Não perturbe" do
+//   Windows 11 no mesmo laço, e conta quando muda (report).
 //
 // Um desktop que não diz nada (null) nunca fica em "não perturbe".
 

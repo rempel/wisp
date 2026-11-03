@@ -731,7 +731,7 @@ test(
 )
 
 test(
-  'o não perturbe do Windows (Fase 40): o Assistente de Foco responde, e o botão do Windows 11 conta',
+  'o não perturbe do Windows (Fase 40): o botão do Windows 11 conta, e sem ele não está quieto',
   windowsOnly,
   async () => {
     const { runPowerShell } = await import('../src/main/powershell')
@@ -739,12 +739,12 @@ test(
     const key =
       'HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Notifications\\Settings'
     const name = 'NOC_GLOBAL_SETTING_TOASTS_ENABLED'
-    const ask = async (): Promise<{ quieto: boolean; foco: number }> => {
+    const ask = async (): Promise<{ quieto: boolean }> => {
       const result = await runPowerShell(
-        QUIET + 'ConvertTo-Json -InputObject @{ quieto = (Quieto); foco = $script:foco } -Compress'
+        QUIET + 'ConvertTo-Json -InputObject @{ quieto = (Quieto) } -Compress'
       )
       assert.equal(result.code, 0, result.stderr)
-      return JSON.parse(result.stdout.trim()) as { quieto: boolean; foco: number }
+      return JSON.parse(result.stdout.trim()) as { quieto: boolean }
     }
     // Guarda o valor de antes (o runner pode não ter) e põe de volta no fim.
     const saved = await runPowerShell(
@@ -755,11 +755,10 @@ test(
     try {
       const normal = await ask()
       console.log(`sem mexer: ${JSON.stringify(normal)} (a chave: ${before})`)
-      assert.equal(normal.foco, 1, 'o C# do Assistente de Foco compilou')
+      assert.equal(normal.quieto, before === '0', 'sem mexer, o que a chave diz')
       await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 0)`)
       assert.equal((await ask()).quieto, true, 'com as notificações desligadas, quieto')
       await runPowerShell(`[Microsoft.Win32.Registry]::SetValue('${key}', '${name}', 1)`)
-      // O Windows do CI não liga o Assistente de Foco: com as notificações ligadas, não está quieto.
       assert.equal((await ask()).quieto, false, 'com as notificações ligadas, não')
     } finally {
       await runPowerShell(

@@ -919,11 +919,10 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     árvore se o Claude Code não sair em 3 s;
   - **desligado no Windows:** o D-Bus (a conexão nem é tentada: o MPRIS, a agenda do Evolution),
     o comando `wisp` no PATH e o `.desktop`. O diagnóstico não pede o que é do Linux. O "não
-    perturbe" (Fase 40) vem no laço do PowerShell da música (`QUIET`, em `media-win-watch.ts`): o
-    perfil do Assistente de Foco pelo `NtQueryWnfStateData` (o estado WNF
-    `WNF_SHEL_QUIETHOURS_ACTIVE_PROFILE_CHANGED`, que não é documentado: o C# compila uma vez, e se
-    falhar fica só o registro) ou a chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` em 0 (o botão "Não
-    perturbe" do Windows 11). O script escreve `{"dnd": …}` só quando muda, e o `dnd.ts` recebe
+    perturbe" (Fase 40) vem no laço do PowerShell da música (`QUIET`, em `media-win-watch.ts`): a
+    chave `NOC_GLOBAL_SETTING_TOASTS_ENABLED` em 0 (o botão "Não perturbe" do Windows 11). O
+    Assistente de Foco do Windows 10 fica de fora: o estado dele (WNF) não é documentado, e no CI
+    ele leu "ligado" sem ninguém ligar. O script escreve `{"dnd": …}` só quando muda, e o `dnd.ts` recebe
     pelo `report`;
   - **o desktop pelo Claude (Fase 35):** o que no Linux vem do D-Bus, do X11 ou de programas do
     sistema, no Windows vem das APIs dele, por scripts fixos do PowerShell (`powershell.ts`: o

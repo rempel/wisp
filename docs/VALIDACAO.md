@@ -876,8 +876,7 @@ Com **Ilha no topo** ligada:
       no `config.json` nem no `wisp.log`.
 - [ ] **Apagar:** **Apagar** tira a agenda da lista, e os compromissos dela somem em seguida.
 - [ ] **Não perturbe:** ligue o **Não perturbe** do Windows (a central de notificações) e peça um
-      comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal. O mesmo
-      com o **Assistente de Foco** no Windows 10.
+      comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal.
 - [ ] **Linha de status sem o Git Bash:** num Windows sem o Git para Windows, abra o modo terminal:
       a linha de status embaixo é a do Wisp.
 - [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
