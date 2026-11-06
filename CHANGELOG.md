@@ -126,6 +126,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   numa janela ao lado do painel (e um Markdown no próprio painel), pelo `/preview` ou pelos cards;
   recarrega sozinha, e **Mostrar ao Claude** anexa um print dela.
 
+- **O mascote numa janela** (Fase 48): arraste o mascote com o Ctrl e solte numa janela, ou
+  aperte Ctrl+Alt+J, e o print dela vai para a conversa, com o título e o programa na caixa.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

@@ -224,9 +224,15 @@ const menu = await ev(
   `[...document.querySelectorAll('.panes .pane')[0].querySelectorAll('.composer-plus-menu strong')].map((e) => e.textContent)`
 )
 check(
-  'G13 o + abre anexar, print e recortar',
+  'G13 o + abre anexar, print, recortar, a pré-visualização e a pergunta lateral',
   JSON.stringify(menu) ===
-    JSON.stringify(['Anexar arquivos', 'Print da tela', 'Recortar uma área']),
+    JSON.stringify([
+      'Anexar arquivos',
+      'Print da tela',
+      'Recortar uma área',
+      'Pré-visualizar',
+      'Pergunta lateral'
+    ]),
   JSON.stringify(menu)
 )
 check(

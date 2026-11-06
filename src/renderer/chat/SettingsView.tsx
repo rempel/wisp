@@ -456,6 +456,30 @@ export function SettingsView({
               onCommit={(selectionShortcut) => save({ selectionShortcut })}
             />
           </Row>
+          <Row
+            label={t('Mostrar a janela da frente')}
+            hint={t(
+              'De qualquer lugar: o print da janela em foco, com o título, vai para a conversa (o mesmo que soltar o mascote em cima dela com o Ctrl apertado).'
+            )}
+            error={errors.windowShortcut}
+          >
+            <ShortcutInput
+              value={values.windowShortcut}
+              onCommit={(windowShortcut) => save({ windowShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Ditar em qualquer programa')}
+            hint={t(
+              'Segure, fale e solte: o que você disse (transcrito na sua máquina) é colado no programa da frente. Precisa do whisper.cpp da voz.'
+            )}
+            error={errors.dictationShortcut}
+          >
+            <ShortcutInput
+              value={values.dictationShortcut}
+              onCommit={(dictationShortcut) => save({ dictationShortcut })}
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(

@@ -71,6 +71,8 @@ export interface Settings {
   islandShortcut: string | null
   areaShortcut: string | null
   selectionShortcut: string | null
+  windowShortcut: string | null
+  dictationShortcut: string | null
   voiceShortcut: string | null
   clipboardChip: boolean
   browserAutomation: boolean
@@ -122,6 +124,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'islandShortcut',
   'areaShortcut',
   'selectionShortcut',
+  'windowShortcut',
+  'dictationShortcut',
   'voiceShortcut',
   'clipboardChip',
   'browserAutomation',

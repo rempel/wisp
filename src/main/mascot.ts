@@ -73,6 +73,8 @@ export interface MascotHandlers {
   ready(): void
   /** O mascote apareceu ou mudou de lugar (a leitura do cursor recomeça). */
   moved(): void
+  /** O mascote foi solto com o Ctrl apertado neste ponto (Fase 48: mostrar a janela de baixo). */
+  dropped?(point: Point): void
   /** O que a captura de voz (que roda na página do mascote) contou, já conferido. */
   voice(event: VoiceCaptureEvent): void
   /** O que a ilha aberta mostra (Fase 37). */
@@ -491,7 +493,7 @@ function keepMascotOnScreen(): void {
 // coordenadas dos eventos do renderer: elas são relativas a uma janela que está se movendo e
 // fazem o mascote tremer.
 
-let drag: { offset: Point; timer: NodeJS.Timeout } | null = null
+let drag: { offset: Point; timer: NodeJS.Timeout; from: [number, number] } | null = null
 
 function followCursor(): void {
   if (!drag) return
@@ -522,14 +524,27 @@ function onDragStart(event: IpcMainEvent, offsetX: unknown, offsetY: unknown): v
   // A ilha fica no topo: não se arrasta.
   if (island) return
   stopDrag()
-  drag = { offset: { x: offsetX, y: offsetY }, timer: setInterval(followCursor, DRAG_TICK_MS) }
+  drag = {
+    offset: { x: offsetX, y: offsetY },
+    timer: setInterval(followCursor, DRAG_TICK_MS),
+    from: (mascotWin?.getPosition() as [number, number] | undefined) ?? [0, 0]
+  }
   followCursor()
 }
 
-function onDragEnd(event: IpcMainEvent): void {
+function onDragEnd(event: IpcMainEvent, withCtrl: unknown): void {
   if (!fromMascot(event) || !drag || !mascotWin) return
   followCursor()
+  const from = drag.from
   stopDrag()
+  // Solto com o Ctrl (Fase 48): mostra a janela de baixo ao Claude, e o mascote volta para onde
+  // estava (ele só foi levar o recado).
+  if (withCtrl === true && handlers?.dropped) {
+    handlers.dropped(screen.getCursorScreenPoint())
+    mascotWin.setPosition(from[0], from[1])
+    handlers.moved()
+    return
+  }
   const [x, y] = mascotWin.getPosition()
   updateConfig({ mascotPosition: { x, y } })
   handlers?.moved()

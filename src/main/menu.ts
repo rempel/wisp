@@ -28,6 +28,8 @@ export interface TrayActions {
   openDiagnostics(): void
   /** Abre a paleta de comandos no painel (Fase 32). */
   openPalette(): void
+  /** Mostra a janela da frente ao Claude (Fase 48). */
+  showFrontWindow(): void
   /** O "não perturbe" do desktop deixa o Wisp quieto agora (Fase 32). */
   quiet(): boolean
   /** Quando o modo foco acaba (ms), ou null sem foco (Fase 45). */
@@ -101,6 +103,7 @@ export function menuTemplate(
     { label: t('Nova conversa'), click: () => actions.newConversation() },
     focusItem(actions, refresh),
     { label: t('Paleta de comandos…'), click: () => actions.openPalette() },
+    { label: t('Mostrar a janela da frente'), click: () => actions.showFrontWindow() },
     {
       label: t('Sons'),
       type: 'checkbox',
