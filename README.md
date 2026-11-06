@@ -771,6 +771,23 @@ libera) antes de copiar para `~/.claude/skills/<nome>`, sem nunca substituir out
 no terminal. Uma skill nova vale na próxima conversa (Ctrl+K). Pela OpenRouter, as skills
 pessoais também valem (por um link na pasta de configuração de lá); os plugins, não.
 
+### Subagentes
+
+Os subagentes do Claude Code são ajudantes que ele chama sozinho para uma parte do trabalho
+(revisar código, escrever testes, pesquisar), cada um com o próprio prompt, modelo e ferramentas.
+Em **Configurações → Subagentes → Ver e editar os subagentes** (ou **Subagentes**, na paleta), a
+tela lista os seus (`~/.claude/agents`) e os do projeto da conversa em foco (`.claude/agents` da
+pasta dela) (Fase 50):
+
+- **Novo subagente:** o nome, quando usar (a descrição que o Claude lê para escolher), o prompt, o
+  modelo (ou o da conversa), as ferramentas (vazio: todas) e onde gravar.
+- **Ver o que muda:** o diff do arquivo antes de gravar. Editar deixa um backup do arquivo de antes
+  ao lado (`<nome>.md.backup-wisp-<data>`), e gravar só vale se o arquivo ainda estiver como na
+  prévia.
+- **Apagar** manda o arquivo para a lixeira.
+
+O Claude Code passa a usar um subagente novo nas conversas novas (Ctrl+K).
+
 ### Servidores MCP
 
 Os servidores MCP dão ao Claude ferramentas de outros programas e serviços (um banco de dados, o

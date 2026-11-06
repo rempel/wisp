@@ -172,6 +172,50 @@ export interface UsageReport {
   files: number
 }
 
+/** De onde é um subagente (Fase 50): os seus ou os do projeto da conversa. */
+export type AgentScope = 'personal' | 'project'
+
+/** Um subagente do Claude Code (um .md em agents/). */
+export interface AgentInfo {
+  name: string
+  /** O nome do arquivo, sem o .md. */
+  file: string
+  scope: AgentScope
+  path: string
+  description: string
+  model?: string
+  /** As ferramentas, separadas por vírgula (sem elas: todas). */
+  tools?: string
+  prompt: string
+}
+
+/** O que o formulário manda para criar ou editar um subagente. */
+export interface AgentSpec {
+  scope: AgentScope
+  name: string
+  description: string
+  prompt: string
+  /** Separadas por vírgula; vazio: todas as ferramentas da conversa. */
+  tools: string
+  /** "", sonnet, opus, haiku, fable ou inherit. */
+  model: string
+}
+
+/** O que gravar muda, antes de gravar. */
+export interface AgentPreview {
+  path: string
+  exists: boolean
+  diff: FileDiff
+  /** O arquivo como estava na prévia: gravar só vale com ele assim. */
+  fingerprint: string
+  unchanged: boolean
+}
+
+export interface AgentResult {
+  ok: boolean
+  message: string
+}
+
 /** A resposta da pergunta lateral (Fase 46). */
 export interface AsideResult {
   ok: boolean

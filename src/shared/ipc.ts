@@ -30,6 +30,11 @@ import type {
   PreviewResult,
   PreviewState,
   UsageReport,
+  AgentInfo,
+  AgentPreview,
+  AgentResult,
+  AgentScope,
+  AgentSpec,
   TabsState,
   WorktreeResult,
   WorktreeStatus,
@@ -187,6 +192,14 @@ export const IPC = {
   usageReport: 'usage:report',
   /** chat → main (invoke): o uso em CSV (o diálogo escolhe onde). Arg: dias. Devolve ExportResult. */
   usageExport: 'usage:export',
+  /** chat → main (invoke): os subagentes (Fase 50). Arg: a pasta da conversa. Devolve AgentInfo[]. */
+  agentsList: 'agents:list',
+  /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
+  agentsPreview: 'agents:preview',
+  /** chat → main (invoke): grava o subagente. Args: (AgentSpec, pasta, fingerprint da prévia). */
+  agentsSave: 'agents:save',
+  /** chat → main (invoke): manda um subagente para a lixeira. Args: (escopo, arquivo, pasta). */
+  agentsRemove: 'agents:remove',
   /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
   chatDraft: 'chat:draft',
   /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
@@ -726,6 +739,13 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** Os subagentes do Claude Code (Fase 50). */
+  agents: {
+    list(folder: string | null): Promise<AgentInfo[]>
+    preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>
+    save(spec: AgentSpec, folder: string | null, fingerprint: string): Promise<AgentResult>
+    remove(scope: AgentScope, file: string, folder: string | null): Promise<AgentResult>
   }
   /** O painel de uso (Fase 49). */
   usage: {

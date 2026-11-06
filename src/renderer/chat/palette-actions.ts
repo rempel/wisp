@@ -17,7 +17,7 @@ import { MODE_TEXT } from './modes'
 import type { PaletteItem } from './palette'
 
 /** As telas do painel que a paleta abre. */
-export type PaletteView = 'history' | 'sessions' | 'settings' | 'diagnostics' | 'usage'
+export type PaletteView = 'history' | 'sessions' | 'settings' | 'diagnostics' | 'usage' | 'agents'
 
 export interface PaletteContext {
   /** A conversa da aba em foco (null: uma sessão do terminal, ou nenhuma). */
@@ -197,7 +197,8 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
     ['sessions', t('Sessões do terminal'), 'hooks'],
     ['settings', t('Configurações'), t('preferências opções')],
     ['diagnostics', t('Diagnóstico'), t('problemas versão')],
-    ['usage', t('Painel de uso'), t('tokens custo gastos')]
+    ['usage', t('Painel de uso'), t('tokens custo gastos')],
+    ['agents', t('Subagentes'), t('agentes ajudantes')]
   ]
   for (const [view, title, keywords] of views) {
     items.push({

@@ -47,6 +47,7 @@ src/
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
+│  ├─ agents.ts      # os subagentes do Claude Code: listar, a prévia, gravar e apagar (Fase 50)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1127,3 +1128,12 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   - **a tela:** os quatro números, as barras por dia (com o valor do dia ao passar o mouse e uma
     tabela para o leitor de tela), as tabelas por projeto e por modelo e o CSV pelo diálogo do
     sistema.
+- **Os subagentes (Fase 50):** os `.md` de `agents/` do Claude Code (o `CLAUDE_CONFIG_DIR`, ou
+  `~/.claude`) e os de `.claude/agents` da pasta da conversa em foco. O arquivo é o cabeçalho que
+  o Claude Code lê (`name`, `description`, `tools` e `model`, os dois últimos só quando escolhidos)
+  e o prompt. A descrição vai numa linha só, entre aspas simples quando precisa (o YAML não tem
+  escapes nelas: a aspa simples de dentro vira duas). O main confere de novo o que vem do
+  formulário (o nome como o Claude Code aceita, o modelo da lista, o nome de cada ferramenta),
+  mostra o diff do arquivo inteiro na prévia, com a marca do conteúdo de então, e só grava com o
+  arquivo ainda assim, depois do backup ao lado (`.backup-wisp-<data>`, que o Claude Code não lê,
+  por não terminar em `.md`) e por um arquivo temporário renomeado. Apagar é o `trashItem`.

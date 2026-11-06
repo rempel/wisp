@@ -21,6 +21,7 @@ import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
 import { UsageView } from './UsageView'
+import { AgentsView } from './AgentsView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
 import { MarkdownPreview, PreviewBar } from './Preview'
@@ -103,14 +104,15 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   sessions: [t('Sessões'), t('do Claude Code no terminal')],
   diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
   welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
-  usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')]
+  usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
+  agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')]
 }
 
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<
-    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome' | 'usage'
+    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome' | 'usage' | 'agents'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
@@ -163,6 +165,10 @@ export default function Chat(): JSX.Element {
     const id = state.panes[state.focused]
     return state.tabs.find((tab) => tab.id === id)?.kind === 'chat' ? id : null
   }, [])
+
+  // A pasta da conversa em foco (os subagentes do projeto, Fase 50).
+  const focusedPane = tabs.panes[tabs.focused]
+  const focusedFolder = (focusedPane ? conversations.get(focusedPane)?.folder : null) ?? null
 
   const apply = useCallback((conversation: string, action: Action): void => {
     setConversations((current) => {
@@ -813,6 +819,7 @@ export default function Chat(): JSX.Element {
 
         {view === 'settings' ? (
           <SettingsView
+            onAgents={() => setView('agents')}
             onDiagnostics={() => setView('diagnostics')}
             onWelcome={() => setView('welcome')}
           />
@@ -824,6 +831,8 @@ export default function Chat(): JSX.Element {
           <HistoryView onClose={() => setView('chat')} />
         ) : view === 'usage' ? (
           <UsageView />
+        ) : view === 'agents' ? (
+          <AgentsView folder={focusedFolder} />
         ) : view === 'sessions' ? (
           <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
         ) : (

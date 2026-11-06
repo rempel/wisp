@@ -1922,7 +1922,8 @@ Notas da entrega:
 
 ### Fase 50: os subagentes pelo Wisp
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/agentes.test.ts`; `e2e/agentes.mjs`, no job
+do Linux e no **Windows** do CI).
 
 - **A lista (P):** os subagentes do Claude Code (`~/.claude/agents/*.md` e os da pasta da
   conversa), com o nome, a descrição, o modelo e as ferramentas.
@@ -1931,6 +1932,17 @@ Notas da entrega:
 
 **Aceite:** criar um subagente pelo Wisp grava o `.md` com o cabeçalho certo e o Claude Code o
 lista; editar mostra o diff e deixa o backup; apagar some com ele.
+
+Notas da entrega:
+
+- os arquivos são os do Claude Code, sem nada do Wisp: o cabeçalho (`name`, `description`,
+  `tools`, `model`) e o prompt; os campos que ficam vazios saem (todas as ferramentas, o modelo da
+  conversa);
+- o cuidado de sempre com um arquivo de configuração do usuário: o diff antes, o backup ao lado (um
+  nome que o Claude Code não lê) e gravar só com o arquivo como na prévia; apagar vai para a
+  lixeira;
+- o nome não muda depois de criado (o nome é o arquivo): para renomear, crie outro e apague o
+  velho.
 
 ### Fase 51: o quadro de tarefas
 

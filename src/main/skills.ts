@@ -48,7 +48,8 @@ export function parseFrontmatter(text: string): Record<string, string> {
         .map((part) => part.replace(/^-\s+/, ''))
         .join(parts[0]?.startsWith('-') ? ', ' : ' ')
     }
-    if (/^(["']).*\1$/.test(value)) value = value.slice(1, -1)
+    if (/^'.*'$/.test(value)) value = value.slice(1, -1).replace(/''/g, "'")
+    else if (/^".*"$/.test(value)) value = value.slice(1, -1)
     if (value.startsWith('[') && value.endsWith(']')) {
       value = value
         .slice(1, -1)

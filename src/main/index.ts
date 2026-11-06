@@ -78,6 +78,7 @@ import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
 import { setupPreview } from './preview'
+import { setupAgentsIpc } from './agents'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
@@ -632,6 +633,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     version: app.getVersion()
   })
   setupFileViewIpc((sender) => chat?.isSender(sender) ?? false)
+  setupAgentsIpc((sender) => chat?.isSender(sender) ?? false)
   setupPreview(
     (sender) => chat?.isSender(sender) ?? false,
     (dropped) => chat?.attach(dropped)
