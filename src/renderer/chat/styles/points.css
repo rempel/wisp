@@ -313,3 +313,84 @@
 .link.danger {
   color: var(--danger, #dc2626);
 }
+
+/* Fase 51: o quadro de tarefas. */
+
+.board-view {
+  overflow-y: auto;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.board-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.board-head p {
+  flex: 1;
+  margin: 0;
+}
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.board-column h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.board-count {
+  font-weight: normal;
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.board-running .board-card {
+  border-color: var(--accent);
+}
+
+.board-project {
+  color: var(--muted);
+}
+
+.board-prompt {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

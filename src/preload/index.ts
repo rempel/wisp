@@ -4,6 +4,7 @@ import { IPC } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
+  BoardCard,
   PreviewState,
   Accessory,
   AgendaItem,
@@ -214,6 +215,12 @@ const api: WispApi = {
   },
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
+  },
+  board: {
+    list: () => ipcRenderer.invoke(IPC.boardList),
+    add: (title, prompt, folder) => ipcRenderer.invoke(IPC.boardAdd, title, prompt, folder),
+    action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
+    onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
   },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),

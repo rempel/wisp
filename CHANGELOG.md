@@ -135,6 +135,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Os subagentes pelo Wisp** (Fase 50): listar, criar, editar e apagar os subagentes do Claude
   Code (os seus e os do projeto), com o diff antes de gravar e o backup do arquivo de antes.
 
+- **O quadro de tarefas** (Fase 51): cartões em A fazer, Rodando, Revisar e Feito; cada um roda
+  numa cópia do Git do projeto, vai sozinho para Revisar no fim da resposta, e Juntar leva a
+  mudança para a pasta original.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

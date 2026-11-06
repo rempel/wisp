@@ -113,6 +113,14 @@ export const HistoryIcon = (): JSX.Element => (
   </Icon>
 )
 
+export const BoardIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="2.5" y="3" width="3" height="10" rx="1" />
+    <rect x="6.5" y="3" width="3" height="7" rx="1" />
+    <rect x="10.5" y="3" width="3" height="4.5" rx="1" />
+  </Icon>
+)
+
 export const TrashIcon = (): JSX.Element => (
   <Icon>
     <path d="M3 4.5h10M6.5 4.5V3h3v1.5M4.4 4.5l.6 8.2a1 1 0 0 0 1 .9h4a1 1 0 0 0 1-.9l.6-8.2" />

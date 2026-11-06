@@ -48,6 +48,7 @@ src/
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
 │  ├─ agents.ts      # os subagentes do Claude Code: listar, a prévia, gravar e apagar (Fase 50)
+│  ├─ board.ts       # o quadro de tarefas: os cartões, cada um numa cópia do Git (Fase 51)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1137,3 +1138,13 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   mostra o diff do arquivo inteiro na prévia, com a marca do conteúdo de então, e só grava com o
   arquivo ainda assim, depois do backup ao lado (`.backup-wisp-<data>`, que o Claude Code não lê,
   por não terminar em `.md`) e por um arquivo temporário renomeado. Apagar é o `trashItem`.
+- **O quadro de tarefas (Fase 51):** os cartões ficam em `quadro.json` (título, pedido, a pasta
+  original, a coluna, a conversa e a cópia). Começar cria a cópia pelo mesmo `Worktrees` da Fase
+  43 (numa pasta sem Git, roda na própria pasta, com um aviso no cartão), abre a aba com a pasta da
+  cópia e manda o pedido como o `--ask` (o `showUser` e o `send`). Enquanto há um cartão rodando,
+  o quadro confere as conversas de 2 em 2 segundos: a resposta acabou (o `busy` voltou a false
+  depois de ser visto, ou o `turn-end` no histórico da conversa, para uma resposta que coube entre
+  duas conferências), a aba fechou ou passou um minuto sem o Claude começar, e o cartão vai para
+  Revisar. Juntar e Descartar são os da barra da cópia (o patch conferido e o `git worktree
+remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou volta em Revisar.
+  A página recebe os cartões pelo `board:changed` a cada mudança.

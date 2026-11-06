@@ -216,6 +216,31 @@ export interface AgentResult {
   message: string
 }
 
+/** As colunas do quadro de tarefas (Fase 51). */
+export type BoardColumn = 'todo' | 'running' | 'review' | 'done'
+
+/** Um cartão do quadro: um pedido numa pasta de projeto. */
+export interface BoardCard {
+  id: string
+  title: string
+  prompt: string
+  /** A pasta original do projeto. */
+  folder: string
+  column: BoardColumn
+  /** A conversa que roda o cartão (a aba), depois de Começar. */
+  conversation?: string
+  /** A cópia do Git onde ele roda (Fase 43). */
+  copy?: string
+  /** Um aviso (rodou sem cópia, por exemplo). */
+  note?: string
+  createdAt: number
+}
+
+export interface BoardResult {
+  ok: boolean
+  message: string
+}
+
 /** A resposta da pergunta lateral (Fase 46). */
 export interface AsideResult {
   ok: boolean

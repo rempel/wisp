@@ -1013,3 +1013,15 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Do projeto:** numa conversa numa pasta, **Onde → Deste projeto**: o arquivo vai para
       `.claude/agents` da pasta.
 - [ ] **Apagar:** **Apagar** → **Mandar para a lixeira?**: o arquivo vai para a lixeira.
+
+## O quadro de tarefas (Fase 51)
+
+- [ ] **Dois cartões no mesmo projeto:** no quadro (o botão no cabeçalho), dois cartões num
+      repositório seu: "crie docs/a.md com oi" e "crie docs/b.md com olá". **Começar** nos dois:
+      abrem duas abas, cada uma numa cópia (a barra da cópia mostra ramos diferentes).
+- [ ] **Revisar:** quando cada resposta acaba, o cartão dele vai sozinho para Revisar.
+- [ ] **Juntar:** **Juntar** no primeiro: o `docs/a.md` aparece na pasta original, sem commit, e
+      o cartão vai para Feito.
+- [ ] **Descartar:** **Descartar** → **Descartar de vez?** no segundo: a aba fecha, a cópia sai e
+      o cartão volta para A fazer.
+- [ ] **Sem Git:** um cartão numa pasta sem Git roda nela mesma, e o cartão diz "Sem cópia".

@@ -90,6 +90,15 @@ Em resumo:
   pasta original** leva as mudanças para lá (sem commit) e **Descartar** tira a cópia e o ramo.
   As cópias ficam em `copias/`, nos dados do Wisp; uma sem mudança e sem aba sai quando o Wisp
   abre, e uma com mudança aparece no menu das pastas para reabrir.
+- **Quadro de tarefas** (Fase 51): o botão do quadro, no cabeçalho (ou **Quadro de tarefas**, na
+  paleta), mostra cartões em **A fazer**, **Rodando**, **Revisar** e **Feito**. Um cartão é um
+  título, um pedido e um projeto (das suas pastas de projetos). **Começar** abre uma conversa numa
+  cópia do Git do projeto (como o **Numa cópia** do menu das pastas) e manda o pedido; no fim da
+  resposta, o cartão vai sozinho para **Revisar**, onde **Abrir** mostra a conversa, **Juntar**
+  leva as mudanças para a pasta original (sem commit) e o cartão para **Feito**, e **Descartar**
+  tira a cópia e o cartão volta para **A fazer**. Vários cartões no mesmo projeto rodam ao mesmo
+  tempo, cada um na sua cópia. Numa pasta sem Git, o cartão roda na própria pasta (e diz). Os
+  cartões ficam em `quadro.json`, nos dados do Wisp.
 - **Revisar no fim da resposta** (Fase 42, `turnReview`): depois de cada resposta que editou
   arquivos, um card com cada arquivo (+N −M e o diff, de antes da resposta até agora), **Abrir** e
   **Desfazer**, um a um ou todos. Junto com o **Aceitar edições**, dá para deixar o Claude editar

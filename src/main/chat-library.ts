@@ -17,6 +17,7 @@ import { setPinned } from './history'
 import type { History, SavedConversation } from './history'
 import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
+import { setupBoard } from './board'
 import { setupUsageReport } from './usage-report'
 import { pickFolder, pickSaveFile } from './pick'
 import { IPC } from '../shared/ipc'
@@ -149,6 +150,17 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   })
   // As cópias do Git (Fase 43): as guardadas, sem aba, entram na lista para reabrir.
   const copies = setupWorktrees({ fromChat, tabs })
+  // O quadro de tarefas (Fase 51): cada cartão numa cópia, com o pedido.
+  setupBoard(
+    fromChat,
+    {
+      tabs,
+      worktrees: copies.worktrees,
+      open: (folder) => tabs.addChat(ctx.makeConversation(undefined, undefined, folder)),
+      show: ctx.show
+    },
+    () => win()?.webContents ?? null
+  )
   const projects = (): FolderChoice[] => [
     ...listProjects(getConfig().projectRoots).map(({ nome, caminho }) => ({
       name: nome,

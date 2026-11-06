@@ -1946,7 +1946,8 @@ Notas da entrega:
 
 ### Fase 51: o quadro de tarefas
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/quadro.test.ts`, com o git de verdade;
+`e2e/quadro.mjs`, no job do Linux e no **Windows** do CI).
 
 - **O quadro (M):** cartões em A fazer, Rodando, Revisar e Feito, cada um com um pedido e uma
   pasta de projeto.
@@ -1956,6 +1957,19 @@ Notas da entrega:
 
 **Aceite:** dois cartões no mesmo projeto rodam ao mesmo tempo, cada um na sua cópia; o que
 acaba vai para Revisar; Juntar leva a mudança para a pasta original e o cartão vai para Feito.
+
+Notas da entrega:
+
+- cada cartão numa cópia do Git (Fase 43), com o pedido mandado como o `--ask`; numa pasta sem
+  Git, roda na própria pasta, e o cartão diz;
+- o andamento: o quadro confere as conversas dos cartões rodando de 2 em 2 segundos (só enquanto
+  há um rodando). O fim da resposta vem do `busy` ou, para uma resposta curta que coube entre duas
+  conferências, do fim do turno no histórico da conversa: o e2e pegou o cartão parado em Rodando
+  com o Claude Code de mentira, que responde em menos de um segundo;
+- Juntar e Descartar são os mesmos da barra da cópia; um cartão com a cópia ainda lá não sai do
+  quadro (junte ou descarte antes);
+- arrastar os cartões entre as colunas ficou de fora: as colunas andam pelos botões de cada
+  cartão (e Rodando só pelo Começar).
 
 ### Fase 52: os pequenos
 
