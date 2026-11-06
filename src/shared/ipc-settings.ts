@@ -217,7 +217,7 @@ export interface DiagnosticsSnapshot {
 }
 
 /** Uma tela do painel aberta pelo main. */
-export type PanelView = 'welcome' | 'diagnostics' | 'palette'
+export type PanelView = 'welcome' | 'diagnostics' | 'palette' | 'usage'
 
 /** Em que pé está a aprovação pelo celular. */
 export interface PhoneStatus {

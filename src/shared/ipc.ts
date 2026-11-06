@@ -29,6 +29,7 @@ import type {
   AsideResult,
   PreviewResult,
   PreviewState,
+  UsageReport,
   TabsState,
   WorktreeResult,
   WorktreeStatus,
@@ -182,6 +183,10 @@ export const IPC = {
   previewGet: 'preview:get',
   /** main → chat: a pré-visualização abriu, mudou ou fechou. Arg: PreviewState. */
   previewState: 'preview:state',
+  /** chat → main (invoke): o uso dos últimos dias (Fase 49). Arg: dias. Devolve UsageReport. */
+  usageReport: 'usage:report',
+  /** chat → main (invoke): o uso em CSV (o diálogo escolhe onde). Arg: dias. Devolve ExportResult. */
+  usageExport: 'usage:export',
   /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
   chatDraft: 'chat:draft',
   /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
@@ -721,6 +726,11 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** O painel de uso (Fase 49). */
+  usage: {
+    report(days: number): Promise<UsageReport | null>
+    export(days: number): Promise<ExportResult>
   }
   /** A pré-visualização (Fase 47): HTML, PDF, imagens e o localhost numa janela; Markdown no painel. */
   preview: {

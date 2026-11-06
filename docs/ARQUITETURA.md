@@ -46,6 +46,7 @@ src/
 │  ├─ preview.ts     # a pré-visualização: o que abrir e a janela isolada ao lado do painel (Fase 47)
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
+│  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1110,3 +1111,19 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   - **os atalhos:** saíram do `index.ts` (que estava perto das 1.000 linhas) para o
     `shortcuts-setup.ts`, com o da janela da frente (`windowShortcut`) e o lugar do ditado (Fase
     53).
+- **O painel de uso (Fase 49):**
+  - **de onde:** os `.jsonl` das pastas `projects/` do Claude Code (o `CLAUDE_CONFIG_DIR`, ou
+    `~/.claude`, e o da OpenRouter nos dados do Wisp), descendo até três níveis (os subagentes
+    ficam em `<sessão>/subagents/`), só os mudados dentro do período. Cada linha com `usage` de uma
+    resposta (`type: assistant`, sem o modelo `<synthetic>`) conta uma vez: o Claude Code grava uma
+    linha por bloco da mesma resposta, com o mesmo uso, e a chave é o `message.id` com o
+    `requestId`. O dia é o local; o projeto, a pasta do `cwd` gravado;
+  - **o custo:** a tabela `PRICES` (dólares por milhão de tokens, novembro de 2026) pelo prefixo do
+    id do modelo (um id com data cai no da família); a escrita do cache sai da entrada (1,25× a de 5
+    minutos e 2× a de 1 hora, pelo `cache_creation`), e a leitura tem o preço de cada modelo. Um
+    modelo sem preço fica com o custo nulo e entra na lista dos sem preço;
+  - **só quando pedem:** o relatório é montado quando o painel abre (ou o período muda), com as
+    respostas de cada arquivo guardadas em memória pelo tamanho e pela data dele;
+  - **a tela:** os quatro números, as barras por dia (com o valor do dia ao passar o mouse e uma
+    tabela para o leitor de tela), as tabelas por projeto e por modelo e o CSV pelo diálogo do
+    sistema.

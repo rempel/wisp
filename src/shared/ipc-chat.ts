@@ -147,6 +147,31 @@ export interface PreviewState {
   kind: 'url' | 'file' | 'markdown' | null
 }
 
+/** Uma linha do painel de uso (Fase 49): um dia, um projeto e um modelo. */
+export interface UsageRow {
+  /** AAAA-MM-DD, no fuso daqui. */
+  day: string
+  project: string
+  model: string
+  input: number
+  output: number
+  cacheWrite: number
+  cacheRead: number
+  /** O custo estimado pela API, em dólares (null: o modelo não tem preço na tabela). */
+  cost: number | null
+}
+
+/** O uso dos últimos dias, lido dos .jsonl do Claude Code (Fase 49). */
+export interface UsageReport {
+  since: string
+  days: number
+  rows: UsageRow[]
+  /** Os modelos sem preço (o custo deles fica de fora). */
+  unknownModels: string[]
+  /** Quantos arquivos de sessão foram lidos. */
+  files: number
+}
+
 /** A resposta da pergunta lateral (Fase 46). */
 export interface AsideResult {
   ok: boolean

@@ -2456,5 +2456,32 @@ export const EN: Record<string, string> = {
     'From anywhere: a screenshot of the focused window, with its title, goes to the conversation (the same as dropping the mascot on it while holding Ctrl).',
   'Ditar em qualquer programa': 'Dictate into any program',
   'Segure, fale e solte: o que você disse (transcrito na sua máquina) é colado no programa da frente. Precisa do whisper.cpp da voz.':
-    "Hold, speak and release: what you said (transcribed on your machine) is pasted into the front program. Needs the voice's whisper.cpp."
+    "Hold, speak and release: what you said (transcribed on your machine) is pasted into the front program. Needs the voice's whisper.cpp.",
+  'Exportar o uso': 'Export the usage',
+  Uso: 'Usage',
+  'tokens e custo, das sessões do Claude Code nesta máquina':
+    'tokens and cost, from the Claude Code sessions on this machine',
+  'Tokens e custo por dia, projeto e modelo': 'Tokens and cost by day, project and model',
+  'Custo estimado por dia': 'Estimated cost per day',
+  'Tokens por dia': 'Tokens per day',
+  'Máximo num dia: {value}': 'Most in one day: {value}',
+  Tokens: 'Tokens',
+  Custo: 'Cost',
+  'Exportado em {path}.': 'Exported to {path}.',
+  '{count} dias': '{count} days',
+  'Exportar CSV': 'Export CSV',
+  'Lendo as sessões do Claude Code…': 'Reading the Claude Code sessions…',
+  'Nenhuma resposta do Claude Code nesse período (as sessões ficam em ~/.claude/projects).':
+    'No Claude Code replies in this period (the sessions are in ~/.claude/projects).',
+  'custo estimado pela API': 'estimated API cost',
+  'tokens no total': 'tokens in total',
+  'tokens de saída': 'output tokens',
+  'lidos do cache': 'read from the cache',
+  'Por projeto': 'By project',
+  'Por modelo': 'By model',
+  'O custo é o que essas respostas custariam pela API da Anthropic (os preços de novembro de 2026); numa assinatura, você não paga por token. Tudo vem dos arquivos do Claude Code nesta máquina, sem rede.':
+    "The cost is what these replies would cost through the Anthropic API (November 2026 prices); on a subscription, you don't pay per token. Everything comes from the Claude Code files on this machine, with no network.",
+  'Sem preço (fora do custo): {models}.': 'No price (left out of the cost): {models}.',
+  'Painel de uso': 'Usage panel',
+  'tokens custo gastos': 'tokens cost spending'
 }
