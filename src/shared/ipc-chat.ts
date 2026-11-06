@@ -111,6 +111,142 @@ export interface ReviewUndoResult {
   problems: string[]
 }
 
+/** O que voltar a um ponto da conversa muda nos arquivos (Fase 46), antes de confirmar. */
+export interface RewindPreview {
+  ok: boolean
+  /** Por que não dá (com ok false). */
+  message?: string
+  /** Os arquivos que voltam a ser como eram antes daquela mensagem. */
+  files: ReviewFile[]
+  /** Algumas respostas dali em diante são de antes de o Wisp abrir: sem as cópias delas. */
+  partial: boolean
+}
+
+/** O que voltar a um ponto conseguiu: o texto da mensagem volta para a caixa. */
+export interface RewindResult {
+  ok: boolean
+  message?: string
+  text: string
+  attachments: AttachmentPreview[]
+  undone: string[]
+  problems: string[]
+}
+
+/** O que abrir a pré-visualização deu (Fase 47): o Markdown abre no painel, pelo `path`. */
+export interface PreviewResult {
+  ok: boolean
+  message?: string
+  kind?: 'url' | 'file' | 'markdown'
+  path?: string
+}
+
+/** A janela da pré-visualização (Fase 47): aberta e com o quê. */
+export interface PreviewState {
+  open: boolean
+  display: string
+  kind: 'url' | 'file' | 'markdown' | null
+}
+
+/** Uma linha do painel de uso (Fase 49): um dia, um projeto e um modelo. */
+export interface UsageRow {
+  /** AAAA-MM-DD, no fuso daqui. */
+  day: string
+  project: string
+  model: string
+  input: number
+  output: number
+  cacheWrite: number
+  cacheRead: number
+  /** O custo estimado pela API, em dólares (null: o modelo não tem preço na tabela). */
+  cost: number | null
+}
+
+/** O uso dos últimos dias, lido dos .jsonl do Claude Code (Fase 49). */
+export interface UsageReport {
+  since: string
+  days: number
+  rows: UsageRow[]
+  /** Os modelos sem preço (o custo deles fica de fora). */
+  unknownModels: string[]
+  /** Quantos arquivos de sessão foram lidos. */
+  files: number
+}
+
+/** De onde é um subagente (Fase 50): os seus ou os do projeto da conversa. */
+export type AgentScope = 'personal' | 'project'
+
+/** Um subagente do Claude Code (um .md em agents/). */
+export interface AgentInfo {
+  name: string
+  /** O nome do arquivo, sem o .md. */
+  file: string
+  scope: AgentScope
+  path: string
+  description: string
+  model?: string
+  /** As ferramentas, separadas por vírgula (sem elas: todas). */
+  tools?: string
+  prompt: string
+}
+
+/** O que o formulário manda para criar ou editar um subagente. */
+export interface AgentSpec {
+  scope: AgentScope
+  name: string
+  description: string
+  prompt: string
+  /** Separadas por vírgula; vazio: todas as ferramentas da conversa. */
+  tools: string
+  /** "", sonnet, opus, haiku, fable ou inherit. */
+  model: string
+}
+
+/** O que gravar muda, antes de gravar. */
+export interface AgentPreview {
+  path: string
+  exists: boolean
+  diff: FileDiff
+  /** O arquivo como estava na prévia: gravar só vale com ele assim. */
+  fingerprint: string
+  unchanged: boolean
+}
+
+export interface AgentResult {
+  ok: boolean
+  message: string
+}
+
+/** As colunas do quadro de tarefas (Fase 51). */
+export type BoardColumn = 'todo' | 'running' | 'review' | 'done'
+
+/** Um cartão do quadro: um pedido numa pasta de projeto. */
+export interface BoardCard {
+  id: string
+  title: string
+  prompt: string
+  /** A pasta original do projeto. */
+  folder: string
+  column: BoardColumn
+  /** A conversa que roda o cartão (a aba), depois de Começar. */
+  conversation?: string
+  /** A cópia do Git onde ele roda (Fase 43). */
+  copy?: string
+  /** Um aviso (rodou sem cópia, por exemplo). */
+  note?: string
+  createdAt: number
+}
+
+export interface BoardResult {
+  ok: boolean
+  message: string
+}
+
+/** A resposta da pergunta lateral (Fase 46). */
+export interface AsideResult {
+  ok: boolean
+  text: string
+}
+
 /** Uma conversa guardada no histórico. */
 export interface ConversationSummary {
   id: string
@@ -231,8 +367,11 @@ export type ChatEvent =
    * anterior chega depois dele.
    */
   | { type: 'reset' }
-  /** A última mensagem (e o que veio depois dela) saiu: ela foi editada (Fase 21). */
-  | { type: 'rewind' }
+  /**
+   * Mensagens saíram: a última (e o que veio depois dela), editada (Fase 21), ou, com `keep`,
+   * tudo a partir da mensagem que começa o turno número `keep` (Fase 46: voltar a um ponto).
+   */
+  | { type: 'rewind'; keep?: number }
   /** O rascunho da caixa, guardado da última vez. */
   | { type: 'draft'; text: string }
   /**

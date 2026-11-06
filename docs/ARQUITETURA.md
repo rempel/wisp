@@ -40,6 +40,19 @@ src/
 │  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
 │  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
 │  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
+│  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
+│  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
+│  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
+│  ├─ preview.ts     # a pré-visualização: o que abrir e a janela isolada ao lado do painel (Fase 47)
+│  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
+│  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
+│  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
+│  ├─ agents.ts      # os subagentes do Claude Code: listar, a prévia, gravar e apagar (Fase 50)
+│  ├─ board.ts       # o quadro de tarefas: os cartões, cada um numa cópia do Git (Fase 51)
+│  ├─ gitlab.ts      # os avisos de CI do GitLab, pelo glab, no mesmo vigia do GitHub (Fase 52)
+│  ├─ dictation.ts   # ditar em qualquer programa: as trocas, o Ctrl+V e a volta da área de transferência (Fase 53)
+│  ├─ remote-chat.ts # conversar pelo celular na rede local: o servidor, o pareamento e a API (Fase 54)
+│  ├─ remote-page.ts # a página do celular: o HTML, o CSS e o JS que o servidor entrega (Fase 54)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1046,3 +1059,142 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     painel, abre na linha da mudança, marca as linhas que a edição pôs e fecha com o Esc (pego na
     captura, antes de chegar ao painel, que se esconderia; com a busca do editor aberta, o Esc
     fecha só a busca). Com ele aberto, os atalhos do painel esperam.
+- **Voltar, ramificar e a pergunta lateral (Fase 46):**
+  - **o turno:** a página manda o número do turno (contado das mensagens que começam um turno,
+    como no `turnStarts` do histórico) e o main confere com o histórico. O `rewind` do histórico
+    ganhou o `keep`: tira tudo a partir do turno `keep`. O Claude Code retoma com
+    `--resume-session-at` na última resposta do turno anterior, numa cópia (`--fork-session`),
+    como a edição da última mensagem (Fase 21);
+  - **os arquivos:** as cópias de antes das edições (Fase 42) deixam de sair no turno seguinte:
+    no começo de cada turno, a pasta das cópias vai para `<pasta>.turnos/<turno>` (o número da
+    mensagem que começou o turno, pelo histórico). Voltar ao turno `k` junta as cópias dos turnos
+    `k` em diante, a mais antiga de cada arquivo, e mostra o diff de agora até ela; confirmado,
+    cada arquivo só volta se ainda estiver como a prévia mostrou. Ficam as dos últimos 30 turnos;
+    os turnos de antes de o Wisp abrir não têm cópias, e a prévia avisa (`partial`);
+  - **ramificar:** uma aba nova (`forkOf`) com os eventos da conversa até o fim do turno, como o
+    preâmbulo do histórico dela (o mesmo caminho de uma sessão trazida do terminal), e a sessão
+    retomada só até a última resposta do turno, numa cópia. A conversa nova ganha o id dela no
+    histórico na primeira mensagem;
+  - **a pergunta lateral:** `claude -p --output-format json --no-session-persistence --max-turns
+1`, com as ferramentas no `--disallowedTools`, `--strict-mcp-config` e, se a conversa já tem
+    sessão, `--resume <sessão> --fork-session`. A pergunta vai pela entrada padrão, nunca pela
+    linha de comando. Nada vai para o histórico nem para a sessão da conversa, que segue como
+    estava, mesmo trabalhando.
+- **A pré-visualização (Fase 47):**
+  - **o que abre:** `previewTarget` aceita um endereço desta máquina (`localhost`, `127.0.0.1`,
+    `[::1]`; o `0.0.0.0` de um servidor de desenvolvimento vira `localhost`; `:5173` e `5173`
+    também) ou um arquivo (absoluto, com `~` ou relativo à pasta da conversa) com uma extensão de
+    HTML, PDF, imagem ou Markdown, nunca um dos arquivos de segredos do `isSensitivePath`. Um
+    endereço da internet ou outro protocolo é recusado;
+  - **a janela:** um `BrowserWindow` noutra sessão (`partition: wisp-preview`, sem os cookies do
+    painel), sem preload, no sandbox, com o `contextIsolation`, sem permissões (o
+    `setPermissionRequestHandler` nega tudo), sem janelas novas (`setWindowOpenHandler`) e sem
+    navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta dele.
+    Abre do lado do painel que tem mais espaço, com a altura dele. O `plugins: true` liga o leitor
+    de PDF do Chromium;
+  - **recarregar:** o `fs.watch` da pasta do arquivo (sem descer nas de dentro, para um
+    `node_modules` não pesar), com 300 ms de espera; num endereço, o servidor de desenvolvimento
+    já recarrega sozinho. F5 e Ctrl+R na janela, e o Recarregar da barra;
+  - **mostrar ao Claude:** o `capturePage` da janela vira um anexo (`preview-<data>.png`), pelo
+    mesmo caminho dos prints, na conversa em foco;
+  - **o Markdown:** abre no painel, por cima da conversa, com o `Markdown` das respostas, lido pelo
+    `files:view` (Fase 34: até 2 MB, sem segredos) de 1,5 em 1,5 s enquanto está aberto;
+  - **nos cards:** o de uma edição de um arquivo que dá para ver tem Pré-visualizar; o de um
+    comando cuja saída tem um `http://localhost:porta` (sem as cores do terminal no meio) tem o
+    abrir esse endereço.
+- **O mascote numa janela (Fase 48):**
+  - **qual janela:** as janelas à vista, da mais à frente para a mais atrás, sem as do Wisp: no
+    X11, as do `_NET_CLIENT_LIST_STACKING` na área de trabalho de agora, cada uma com a posição
+    (o `TranslateCoordinates` do canto dela até a raiz, que atravessa a moldura) e o tamanho (o
+    `GetGeometry`), na conexão própria do `ewmh.ts`, divididos pela escala; no Windows, a lista da
+    Fase 35 com o `GetWindowRect` de cada uma, num PowerShell que se declara ciente do DPI, e o
+    `screenToDipRect` do Electron. A janela sob o ponto é a primeira que o contém;
+  - **o print:** o `desktopCapturer` da própria janela (`window:<id>:0`; sem ele, pelo título),
+    no tamanho dela; o mascote por cima não aparece;
+  - **soltar:** a página do mascote manda o `ctrlKey` do soltar; com ele, o main pega o ponto do
+    cursor, devolve o mascote para onde o arraste começou e leva a janela para a conversa em foco
+    (o print pelo `attach`, a linha pelo `compose`);
+  - **os atalhos:** saíram do `index.ts` (que estava perto das 1.000 linhas) para o
+    `shortcuts-setup.ts`, com o da janela da frente (`windowShortcut`) e o lugar do ditado (Fase
+    53).
+- **O painel de uso (Fase 49):**
+  - **de onde:** os `.jsonl` das pastas `projects/` do Claude Code (o `CLAUDE_CONFIG_DIR`, ou
+    `~/.claude`, e o da OpenRouter nos dados do Wisp), descendo até três níveis (os subagentes
+    ficam em `<sessão>/subagents/`), só os mudados dentro do período. Cada linha com `usage` de uma
+    resposta (`type: assistant`, sem o modelo `<synthetic>`) conta uma vez: o Claude Code grava uma
+    linha por bloco da mesma resposta, com o mesmo uso, e a chave é o `message.id` com o
+    `requestId`. O dia é o local; o projeto, a pasta do `cwd` gravado;
+  - **o custo:** a tabela `PRICES` (dólares por milhão de tokens, novembro de 2026) pelo prefixo do
+    id do modelo (um id com data cai no da família); a escrita do cache sai da entrada (1,25× a de 5
+    minutos e 2× a de 1 hora, pelo `cache_creation`), e a leitura tem o preço de cada modelo. Um
+    modelo sem preço fica com o custo nulo e entra na lista dos sem preço;
+  - **só quando pedem:** o relatório é montado quando o painel abre (ou o período muda), com as
+    respostas de cada arquivo guardadas em memória pelo tamanho e pela data dele;
+  - **a tela:** os quatro números, as barras por dia (com o valor do dia ao passar o mouse e uma
+    tabela para o leitor de tela), as tabelas por projeto e por modelo e o CSV pelo diálogo do
+    sistema.
+- **Os subagentes (Fase 50):** os `.md` de `agents/` do Claude Code (o `CLAUDE_CONFIG_DIR`, ou
+  `~/.claude`) e os de `.claude/agents` da pasta da conversa em foco. O arquivo é o cabeçalho que
+  o Claude Code lê (`name`, `description`, `tools` e `model`, os dois últimos só quando escolhidos)
+  e o prompt. A descrição vai numa linha só, entre aspas simples quando precisa (o YAML não tem
+  escapes nelas: a aspa simples de dentro vira duas). O main confere de novo o que vem do
+  formulário (o nome como o Claude Code aceita, o modelo da lista, o nome de cada ferramenta),
+  mostra o diff do arquivo inteiro na prévia, com a marca do conteúdo de então, e só grava com o
+  arquivo ainda assim, depois do backup ao lado (`.backup-wisp-<data>`, que o Claude Code não lê,
+  por não terminar em `.md`) e por um arquivo temporário renomeado. Apagar é o `trashItem`.
+- **O quadro de tarefas (Fase 51):** os cartões ficam em `quadro.json` (título, pedido, a pasta
+  original, a coluna, a conversa e a cópia). Começar cria a cópia pelo mesmo `Worktrees` da Fase
+  43 (numa pasta sem Git, roda na própria pasta, com um aviso no cartão), abre a aba com a pasta da
+  cópia e manda o pedido como o `--ask` (o `showUser` e o `send`). Enquanto há um cartão rodando,
+  o quadro confere as conversas de 2 em 2 segundos: a resposta acabou (o `busy` voltou a false
+  depois de ser visto, ou o `turn-end` no histórico da conversa, para uma resposta que coube entre
+  duas conferências), a aba fechou ou passou um minuto sem o Claude começar, e o cartão vai para
+  Revisar. Juntar e Descartar são os da barra da cópia (o patch conferido e o `git worktree
+remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou volta em Revisar.
+  A página recebe os cartões pelo `board:changed` a cada mudança.
+- **Os pequenos (Fase 52):**
+  - **revisar um PR:** o pedido de revisão do GitHub ganhou o seu pedido pronto (o `gh pr diff` e
+    os comentários), como o CI vermelho da Fase 41;
+  - **para todas as conversas:** o `/todas` manda a mensagem a cada conversa da grade pelo mesmo
+    caminho da caixa (a página mostra e o main manda), uma por painel;
+  - **as horas de silêncio:** o `inQuietHours` (um intervalo que passa da meia-noite vale nos dois
+    dias) entra no mesmo "quieto" do não perturbe e do foco;
+  - **a busca nas configurações:** a página esconde as seções cujo texto (sem acento nem caixa)
+    não tem o procurado;
+  - **os seus sons:** a pasta já existia (`~/.config/wisp/sounds`, Fase 8); o botão a cria e abre;
+  - **o resumo em imagem:** o painel desenha num canvas (só as contagens) e o main grava o PNG onde
+    você escolher;
+  - **as notas da versão:** a versão que abriu da última vez fica em `ultima-versao.txt`; uma mais
+    nova avisa, com o clique na página da versão no GitHub. O mascote fica animado com ela e com o
+    aviso de versão nova (Fase 20);
+  - **o GitLab:** o vigia do GitHub ganhou a leitura trocável (`parse`); o do GitLab pergunta ao
+    `glab api` quem é você, os seus merge requests abertos e, de cada um (até 20), o pipeline do
+    commit mais novo, e o que muda vira o mesmo aviso (com o `!` do GitLab e o pedido pelo `glab`).
+- **Ditar em qualquer programa (Fase 53):** o atalho do ditado (`dictationShortcut`) é o mesmo
+  segurar para falar da voz, com a fonte `dictation`: o microfone, o whisper.cpp e o "Não
+  entendi" são os de sempre, e o texto vai direto para o `deliver` (sem os comandos rápidos, o
+  "não" dos cards e a conversa). O `dictate` aplica as trocas (`shared/dictation.ts`: palavras
+  inteiras, sem ligar para maiúsculas, com letras e números de qualquer língua), guarda a área de
+  transferência (todos os formatos e, de reserva, o texto: no X11 a leitura dos formatos pode vir
+  vazia), escreve o texto e aperta o Ctrl+V: no X11, o `xdotool key --clearmodifiers ctrl+v` (o
+  Ctrl+Alt do atalho ainda apertado não entra); no Wayland, o `wtype` ou o `ydotool`; no
+  Windows, um PowerShell que espera as teclas do atalho subirem, como o da seleção (Fase 45).
+  600 ms depois, se a área de transferência ainda for o ditado, ela volta. Sem quem aperte o
+  Ctrl+V, o texto fica copiado e uma notificação diz para colar.
+- **Conversar pelo celular, na rede local (Fase 54):**
+  - **o servidor:** um `http.createServer` numa porta sorteada, ligado só com o `phoneChat` (e
+    desligado com ele). Cada pedido passa por duas conferências antes de tudo: o endereço de quem
+    pede é da rede local (10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7, o próprio
+    computador) e o `Host` é exatamente o endereço do QR, o que barra um site de fora que tente
+    chegar aqui pelo navegador de alguém da casa (o DNS rebinding). A página vem com um CSP que
+    só deixa o que é do próprio Wisp (`default-src 'none'`, o JS e o CSS em arquivos, nada
+    embutido);
+  - **o pareamento:** o QR leva um código de 128 bits, de uso único, que vale 10 minutos; a página
+    o troca por uma chave de 256 bits, guardada no `localStorage` do celular. O Wisp guarda só o
+    SHA-256 das chaves (`celular-chaves.json`, até 10 celulares) e compara em tempo constante;
+  - **a API:** as conversas abertas, os itens de uma conversa (do histórico dela: as mensagens, o
+    texto das respostas e uma linha por ferramenta) e mandar (o `showUser` e o `send` do `--ask`).
+    Uma conversa no modo Automático ou no terminal só é lida, e os cards de permissão não passam
+    por aqui;
+  - **a página:** relê de 2 em 2 segundos enquanto está à vista (o `visibilitychange`) e lê o
+    código do QR também quando ele chega com ela aberta (o `hashchange`).

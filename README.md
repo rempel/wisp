@@ -90,6 +90,15 @@ Em resumo:
   pasta original** leva as mudanças para lá (sem commit) e **Descartar** tira a cópia e o ramo.
   As cópias ficam em `copias/`, nos dados do Wisp; uma sem mudança e sem aba sai quando o Wisp
   abre, e uma com mudança aparece no menu das pastas para reabrir.
+- **Quadro de tarefas** (Fase 51): o botão do quadro, no cabeçalho (ou **Quadro de tarefas**, na
+  paleta), mostra cartões em **A fazer**, **Rodando**, **Revisar** e **Feito**. Um cartão é um
+  título, um pedido e um projeto (das suas pastas de projetos). **Começar** abre uma conversa numa
+  cópia do Git do projeto (como o **Numa cópia** do menu das pastas) e manda o pedido; no fim da
+  resposta, o cartão vai sozinho para **Revisar**, onde **Abrir** mostra a conversa, **Juntar**
+  leva as mudanças para a pasta original (sem commit) e o cartão para **Feito**, e **Descartar**
+  tira a cópia e o cartão volta para **A fazer**. Vários cartões no mesmo projeto rodam ao mesmo
+  tempo, cada um na sua cópia. Numa pasta sem Git, o cartão roda na própria pasta (e diz). Os
+  cartões ficam em `quadro.json`, nos dados do Wisp.
 - **Revisar no fim da resposta** (Fase 42, `turnReview`): depois de cada resposta que editou
   arquivos, um card com cada arquivo (+N −M e o diff, de antes da resposta até agora), **Abrir** e
   **Desfazer**, um a um ou todos. Junto com o **Aceitar edições**, dá para deixar o Claude editar
@@ -155,14 +164,12 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
-- **Fases 18 (aprovar pelo celular), 19 (avatares), 20 (primeiros passos e diagnóstico), 21
-  (conversa mais fluida), 22 (acessibilidade e aparência), 23 (desempenho e consumo), 24
-  (notificações e cards), 25 (inglês, Flatpak e ARM64), 26 (prompts salvos e tarefas
-  agendadas), 27 (emoções e danças do mascote), 28 (manutenção e CI), 29 (o histórico que
-  acha), 30 (servidores MCP pelo Wisp), 31 (levar o Wisp junto), 32 (paleta de comandos e não
-  perturbe), 33 (o essencial no Windows), 34 (o editor do VS Code), 35 (o Windows por
-  inteiro), 36 (o que faltava no Windows), 37 (a ilha que abre), 40 (o Windows sem lacunas) e 41 (recortar, o aviso do plano e o CI que vira conversa) , 42 (revisar no fim da resposta), 43 (a conversa numa cópia do Git), 44 (tarefas por evento) e 45 (explicar a seleção e o modo foco):** prontas, esperando a validação com o uso. O Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
-  [Publicando uma versão](#publicando-uma-versão)).
+- **Validação:** as Fases 6 a 45 foram validadas com o uso, menos os pacotes de ARM64 (os do Linux,
+  Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
+  Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
+  ferramentas parecidas) estão prontas, com os testes de unidade e de ponta a ponta, e esperam a
+  validação com o uso (os roteiros em [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
 ## Requisitos
 
@@ -550,6 +557,34 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   dela saem da conversa e do contexto do Claude, que responde de novo. Por baixo, o Wisp volta a
   sessão do Claude Code até a resposta anterior, numa cópia (a sessão original continua inteira).
   Os arquivos que a resposta velha mudou continuam como ficaram.
+- **Voltar a um ponto e ramificar** (Fase 46): com o Claude parado, passe o mouse numa mensagem sua
+  qualquer. **Voltar aqui** tira ela e o que veio depois (da conversa e do contexto do Claude) e
+  devolve o texto dela para a caixa. Antes, um card mostra os arquivos que as respostas dali em
+  diante mudaram, com +N −M, e **Voltar também os arquivos** os deixa como eram antes daquela
+  mensagem (das respostas desde que o Wisp abriu: as cópias de antes ficam por 30 respostas).
+  **Ramificar** abre uma aba nova com a conversa até a resposta daquela mensagem, para tentar outro
+  caminho; a original continua como estava.
+- **Mostrar uma janela** (Fase 48): arraste o mascote com o **Ctrl** apertado e solte em cima de
+  uma janela: o print dela vai como anexo para a conversa em foco, com "Na imagem, a janela
+  "título" (programa)." na caixa, sem mandar, e o mascote volta para onde estava (sem o Ctrl, ele
+  só muda de lugar). **Ctrl+Alt+J** (`windowShortcut`) e **Mostrar a janela da frente**, no menu do
+  mascote, fazem o mesmo com a janela em foco. O print é o da própria janela, então o mascote em
+  cima dela não aparece. No X11 e no Windows; no Wayland, o sistema não deixa um app ver as
+  janelas dos outros (use o **Print da tela** ou o **Recortar**).
+- **Pré-visualização** (Fase 47): no **+** da caixa, **Pré-visualizar**, ou `/preview` com o
+  arquivo ou o endereço: `/preview index.html` (relativo à pasta da conversa), `/preview
+~/site/relatorio.pdf`, `/preview localhost:5173` ou só `/preview 5173`. HTML, PDF e imagens abrem
+  numa janela ao lado do painel; um Markdown abre no próprio painel. O card de uma edição de HTML
+  (ou de Markdown, PDF, imagem) tem **Pré-visualizar**, e o de um comando que subiu um servidor
+  ("Local: http://localhost:5173") tem **Abrir … na pré-visualização**. Um arquivo recarrega sozinho
+  quando a pasta dele muda; a barra acima das abas tem **Recarregar**, **Mostrar ao Claude** (um
+  print da janela vai como anexo na conversa em foco) e **Fechar**. Só arquivos e endereços desta
+  máquina: um endereço da internet é recusado, e a página não sai do servidor (ou da pasta) em que
+  abriu. A janela é isolada do Wisp: sem os cookies do painel e sem permissões (câmera, microfone,
+  notificações).
+- **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
+  Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
+  entrar no histórico e sem parar o Claude, mesmo com ele trabalhando.
 - **Buscar:** Ctrl+F busca na conversa da aba, com os trechos marcados; Enter e Shift+Enter andam
   entre eles, Esc fecha.
 - **Rascunho:** o que ficou escrito na caixa de texto de cada aba volta quando você fecha e abre o
@@ -570,6 +605,13 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   padrão do seu Claude Code) no meio da conversa, sem perder o contexto.
 - **Uso do plano:** depois da primeira resposta, uma pílula no cabeçalho mostra quanto da sua
   assinatura já foi usado (a janela de 5 horas e a da semana).
+- **Painel de uso** (Fase 49): pela paleta (**Painel de uso**) ou pelo cartão da pílula do plano,
+  os tokens (entrada, saída e cache) e o custo estimado dos últimos 7, 30 ou 90 dias: os totais, um
+  gráfico por dia e as tabelas por projeto e por modelo, com **Exportar CSV**. Os números vêm dos
+  `.jsonl` que o próprio Claude Code grava em `~/.claude/projects` (inclusive o das conversas do
+  terminal e dos subagentes), lidos na sua máquina, sem rede. O custo é o que essas respostas
+  custariam pela API da Anthropic, pelos preços de novembro de 2026; numa assinatura, você não paga
+  por token. Um modelo sem preço na tabela (um da OpenRouter) entra só nos tokens.
 - **Anexos:** o **+** à esquerda da caixa tem **Anexar arquivos** e **Print da tela**; dá também para
   arrastar arquivos para o painel, colar uma imagem com Ctrl+V ou soltar um arquivo em cima do
   mascote. Imagens, PDFs e textos são lidos pelo Claude. Até 20 arquivos por mensagem, de até 50 MB.
@@ -579,6 +621,8 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   ela está trabalhando, esperando você ou com resposta nova. Ctrl+Tab e Ctrl+1…9 trocam; Ctrl+W fecha.
   Uma aba parada há 20 minutos dorme: o Claude Code dela sai, e a próxima mensagem o acorda na
   mesma conversa, com alguns segundos a mais (**Configurações → Conversas**).
+- **Para todas as conversas da grade** (Fase 52): `/todas sua mensagem` manda a mesma mensagem a
+  cada conversa à vista, para comparar modelos (ou pastas) lado a lado.
 - **Conversas longas:** só o fim fica na página; **Mostrar anteriores**, no topo, traz o resto aos
   poucos (o Ctrl+F busca na conversa inteira). O histórico mostra 50 conversas por vez.
 
@@ -740,6 +784,23 @@ libera) antes de copiar para `~/.claude/skills/<nome>`, sem nunca substituir out
 no terminal. Uma skill nova vale na próxima conversa (Ctrl+K). Pela OpenRouter, as skills
 pessoais também valem (por um link na pasta de configuração de lá); os plugins, não.
 
+### Subagentes
+
+Os subagentes do Claude Code são ajudantes que ele chama sozinho para uma parte do trabalho
+(revisar código, escrever testes, pesquisar), cada um com o próprio prompt, modelo e ferramentas.
+Em **Configurações → Subagentes → Ver e editar os subagentes** (ou **Subagentes**, na paleta), a
+tela lista os seus (`~/.claude/agents`) e os do projeto da conversa em foco (`.claude/agents` da
+pasta dela) (Fase 50):
+
+- **Novo subagente:** o nome, quando usar (a descrição que o Claude lê para escolher), o prompt, o
+  modelo (ou o da conversa), as ferramentas (vazio: todas) e onde gravar.
+- **Ver o que muda:** o diff do arquivo antes de gravar. Editar deixa um backup do arquivo de antes
+  ao lado (`<nome>.md.backup-wisp-<data>`), e gravar só vale se o arquivo ainda estiver como na
+  prévia.
+- **Apagar** manda o arquivo para a lixeira.
+
+O Claude Code passa a usar um subagente novo nas conversas novas (Ctrl+K).
+
 ### Servidores MCP
 
 Os servidores MCP dão ao Claude ferramentas de outros programas e serviços (um banco de dados, o
@@ -870,6 +931,19 @@ traz). Para o Piper, o `piper.exe` vai em `%LOCALAPPDATA%\Wisp\Voz\piper` (ou no
 Windows precisa deixar os apps usarem o microfone (Configurações → Privacidade → Microfone →
 **Permitir que aplicativos da área de trabalho acessem o microfone**).
 
+#### Ditar em qualquer programa (Fase 53)
+
+Com a voz instalada, em **Configurações → Atalhos e sistema → Ditar em qualquer programa**,
+escolha um atalho (por exemplo, Ctrl+Alt+D; vem desligado). Segure o atalho, fale e solte: o que
+você disse, transcrito na sua máquina, é colado no programa da frente (o editor, o navegador, o
+chat), sem passar pela conversa. **Trocas do ditado**, logo abaixo, corrige o que o whisper erra
+sempre: uma por linha, `dito = escrito` (por exemplo, `uisp = Wisp`), como palavra inteira.
+
+O Wisp cola pela área de transferência e aperta o Ctrl+V: no X11 pelo `xdotool`, no Wayland pelo
+`wtype` (ou o `ydotool`) e no Windows pelo próprio Windows; logo depois, a área de transferência
+volta a ser a de antes. Sem nenhum deles instalado, o texto fica copiado e uma notificação diz para
+colar. Num terminal, onde colar é Ctrl+Shift+V, cole à mão.
+
 ### OpenRouter (experimental)
 
 Em vez da assinatura do Claude, uma conversa pode ir pela [OpenRouter](https://openrouter.ai),
@@ -943,6 +1017,8 @@ então o login da assinatura nunca é tocado.
   ligada, vão para o celular como sempre. O Wisp fica sabendo na hora em que você liga ou desliga
   (sem ficar conferindo), e o menu da bandeja mostra quando ele está quieto. Dá para desligar em
   **Configurações → Atalhos e sistema → Ficar quieto no "não perturbe"**.
+- **Horas de silêncio** (Fase 52, `quietHours`): no mesmo lugar, um horário de todo dia (por
+  exemplo, das 22:00 às 08:00) em que o Wisp fica quieto do mesmo jeito.
 
 ### Aprovar pelo celular
 
@@ -979,6 +1055,23 @@ público, os pedidos passam pelo ntfy.sh; para não passarem por terceiros, use 
 (com login, a ficha de acesso também fica no chaveiro). Por enquanto, valem as conversas do
 painel; os pedidos das sessões do terminal (aba Sessões) esperam o computador.
 
+### Conversar pelo celular, na rede local
+
+Além de aprovar (acima), dá para conversar pelo celular na rede da sua casa (Fase 54). Em
+**Configurações → Celular**, ligue **Conversar pelo celular, na rede local** (`phoneChat`,
+desligado por padrão) e aponte a câmera do celular para o QR: a página abre no navegador dele com
+as conversas abertas no Wisp, as respostas e a caixa para mandar. Uma mensagem de lá aparece no
+painel como se fosse escrita nele.
+
+- **Só na rede local:** a página responde só a endereços da rede local (e pelo endereço do QR),
+  numa porta sorteada. Nada vai para a internet, e nada passa por um servidor de fora.
+- **Sem criptografia:** é HTTP na sua rede. Ligue só numa rede sua (não no Wi-Fi do café).
+- **O pareamento:** o QR leva um código que vale uma vez, por 10 minutos; o celular o troca por
+  uma chave só dele. **Esquecer os celulares** apaga as chaves (o Wisp guarda só o hash delas).
+- **O que fica no computador:** os cards de permissão (o celular não permite nada; para isso há a
+  aprovação pelo ntfy, acima) e as conversas no modo Automático ou no modo terminal, que pelo
+  celular só podem ser lidas.
+
 ### GitHub, agenda e resumo da semana
 
 Em **Configurações → Integrações**:
@@ -988,6 +1081,11 @@ Em **Configurações → Integrações**:
   passou, aprovação, pedido de mudanças, comentário, pedido de revisão. O clique na notificação abre o
   PR; num CI vermelho ou num pedido de mudanças (Fase 41), ele abre uma aba nova com o pedido de
   investigar já na caixa (o PR, o link e como ler o log pelo `gh`), para você revisar e mandar. Pergunte "como estão meus PRs?".
+  Num pedido de revisão (Fase 52), o clique abre a aba com o pedido de revisar o PR pelo `gh pr
+diff` e pelos comentários, sem baixar nada nem comentar no PR.
+- **Avisos do GitLab** (Fase 52, `gitlab`): o pipeline dos seus merge requests abertos, pelo
+  `glab` já logado, a cada 3 minutos: falhou, ou passou depois de rodar. O clique num pipeline
+  vermelho abre a aba com o pedido de investigar pelo `glab`.
 - **Agenda:** as agendas do GNOME (as ligadas no app Agenda, inclusive Google, Microsoft e Nextcloud
   pelas Contas Online), arquivos `.ics` ou pastas do vdirsyncer e, desde a Fase 40, o endereço
   iCal de uma agenda do Google, do Outlook ou do iCloud (é assim que a agenda chega no Windows). O
@@ -999,7 +1097,9 @@ Em **Configurações → Integrações**:
     chaveiro do sistema; o `config.json` fica só com o nome. Ele baixa cada agenda de 15 em 15
     minutos no máximo, só por https.
 - **Resumo da semana:** só contagens (conversas, tempo do Claude, linhas editadas, aprovações), no
-  topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?".
+  topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?". **Salvar
+  como imagem** (Fase 52) grava um PNG de 1080 × 1350 para compartilhar, só com as contagens (sem
+  projetos nem apps).
 - **Aviso do uso do plano** (Fase 41, `usageAlerts`, ligado por padrão): uma notificação ao passar
   de 80% e de 95% da janela de 5 horas ou da semana, com a hora em que ela reinicia e a sugestão de
   um modelo que gasta menos. Uma vez por janela (fica guardado em `aviso-do-plano.json`).
@@ -1099,6 +1199,9 @@ na bandeja e no botão direito do mascote.
 | Qualquer lugar | Ctrl+Alt+Espaço                 | Segure e fale; um toque ouve até você parar (`voiceShortcut`) |
 | Qualquer lugar | Ctrl+Alt+P                      | Abre a paleta de comandos (`paletteShortcut`)                 |
 | Qualquer lugar | Ctrl+Alt+K                      | Abre a ilha no Perguntar, e recolhe (`islandShortcut`)        |
+| Qualquer lugar | Ctrl+Alt+R                      | Recorta uma área da tela para a conversa (`areaShortcut`)     |
+| Qualquer lugar | Ctrl+Alt+E                      | Explica o texto selecionado (`selectionShortcut`)             |
+| Qualquer lugar | Ctrl+Alt+J                      | Mostra a janela da frente ao Claude (`windowShortcut`)        |
 | Ilha aberta    | Esc / Ctrl+← e Ctrl+→           | Recolhe (ou fecha o diff) / troca de pílula (Windows)         |
 | Caixa de texto | Enter / Shift+Enter             | Envia / quebra a linha                                        |
 | Caixa de texto | Shift+Tab                       | Passa para o próximo modo de permissão                        |
@@ -1151,6 +1254,8 @@ E reage a quem mexe com ele:
 | Gole          | Soltou o arquivo                              | O arquivo voa para dentro dele, que engole e brilha              |
 | Lembrete      | Chegou a hora de um lembrete                  | Faísca âmbar, um sininho tocando ao lado e um chacoalhão         |
 | Dança         | Um player de música está tocando              | Dança no ritmo (a escolhida nas configurações), com notas        |
+| Recado        | Arrastado com o Ctrl e solto numa janela      | Leva o print da janela para a conversa e volta para o lugar      |
+| Novidade      | Há versão nova, ou o Wisp acabou de atualizar | Fica animado (Fase 52); a notificação leva ao que mudou          |
 
 As cores ficam em variáveis no topo de `src/renderer/mascot/styles/body.css`, então cada estado só
 precisa trocá-las. O desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação
@@ -1514,7 +1619,9 @@ hora uma conversa apagada.
 - **Sem telemetria.** O Wisp não manda nada para lugar nenhum por conta própria. A rede é só a do
   Claude Code (para a Anthropic, ou para a OpenRouter, se você escolheu) e a do que você ligou: o
   `gh`, as agendas, o navegador do Claude, o ntfy da aprovação pelo celular e, com o aviso de
-  versão ligado, uma consulta por dia às versões do Wisp no GitHub.
+  versão ligado, uma consulta por dia às versões do Wisp no GitHub. Com a conversa pelo celular
+  ligada (Fase 54), o Wisp abre uma porta só para a rede local, sem criptografia; desligada, a
+  porta fecha.
 - **A sua assinatura, não uma chave de API.** O Claude Code roda sem `ANTHROPIC_API_KEY` no ambiente,
   para não cobrar por uso sem você saber. Se mesmo assim ele usar uma chave, a conversa avisa.
 - **Permissão antes de mudar qualquer coisa** (veja [Modos de permissão](#modos-de-permissão)). O

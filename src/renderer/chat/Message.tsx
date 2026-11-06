@@ -16,29 +16,63 @@ export function Message({
   item,
   streaming,
   onEdit,
+  onRewind,
+  onFork,
   conversation
 }: {
   item: Item
   streaming: boolean
   /** A última mensagem dá para editar (com o Claude parado). */
   onEdit?: () => void
+  /** Voltar a conversa para antes desta mensagem (Fase 46). */
+  onRewind?: () => void
+  /** Uma aba nova com a conversa até o fim da resposta desta mensagem (Fase 46). */
+  onFork?: () => void
   /** A conversa do painel (o desfazer do card de revisão, Fase 42). */
   conversation?: string
 }): JSX.Element {
   switch (item.kind) {
     case 'user':
       return (
-        <div className={`user-turn${onEdit ? ' editable' : ''}`}>
-          {onEdit && (
-            <button
-              type="button"
-              className="edit-last"
-              onClick={onEdit}
-              title={t('Editar e mandar de novo (↑ na caixa vazia)')}
-              aria-label={t('Editar a última mensagem')}
-            >
-              {t('Editar')}
-            </button>
+        <div
+          className={`user-turn${onEdit ? ' editable' : ''}${onRewind || onFork ? ' has-actions' : ''}`}
+        >
+          {(onEdit || onRewind || onFork) && (
+            <span className="turn-actions">
+              {onRewind && (
+                <button
+                  type="button"
+                  className="turn-action"
+                  onClick={onRewind}
+                  title={t('A conversa volta para antes desta mensagem (e os arquivos, se quiser)')}
+                  aria-label={t('Voltar a este ponto')}
+                >
+                  {t('Voltar aqui')}
+                </button>
+              )}
+              {onFork && (
+                <button
+                  type="button"
+                  className="turn-action"
+                  onClick={onFork}
+                  title={t('Uma aba nova com a conversa até a resposta desta mensagem')}
+                  aria-label={t('Ramificar daqui')}
+                >
+                  {t('Ramificar')}
+                </button>
+              )}
+              {onEdit && (
+                <button
+                  type="button"
+                  className="edit-last"
+                  onClick={onEdit}
+                  title={t('Editar e mandar de novo (↑ na caixa vazia)')}
+                  aria-label={t('Editar a última mensagem')}
+                >
+                  {t('Editar')}
+                </button>
+              )}
+            </span>
           )}
           <span className="sr-only">{t('Você:')}</span>
           {item.attachments.length > 0 && <AttachmentList items={item.attachments} />}

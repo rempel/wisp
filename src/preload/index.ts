@@ -4,6 +4,8 @@ import { IPC } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
+  BoardCard,
+  PreviewState,
   Accessory,
   AgendaItem,
   ChatEvent,
@@ -43,7 +45,7 @@ const api: WispApi = {
   },
   mascot: {
     dragStart: (offsetX, offsetY) => ipcRenderer.send(IPC.mascotDragStart, offsetX, offsetY),
-    dragEnd: () => ipcRenderer.send(IPC.mascotDragEnd),
+    dragEnd: (withCtrl) => ipcRenderer.send(IPC.mascotDragEnd, withCtrl === true),
     click: () => ipcRenderer.send(IPC.mascotClick),
     ready: () => ipcRenderer.send(IPC.mascotReady),
     onState: (listener) => subscribe<[MascotView]>(IPC.mascotState, listener),
@@ -86,6 +88,12 @@ const api: WispApi = {
     stop: (conversation) => ipcRenderer.send(IPC.chatStop, conversation),
     editLast: (conversation, text, attachments) =>
       ipcRenderer.invoke(IPC.chatEditLast, conversation, text, attachments),
+    rewindPreview: (conversation, turn) =>
+      ipcRenderer.invoke(IPC.chatRewindPreview, conversation, turn),
+    rewind: (conversation, turn, files) =>
+      ipcRenderer.invoke(IPC.chatRewind, conversation, turn, files),
+    fork: (conversation, turn) => ipcRenderer.invoke(IPC.chatFork, conversation, turn),
+    aside: (conversation, question) => ipcRenderer.invoke(IPC.chatAside, conversation, question),
     saveDraft: (conversation, text) => ipcRenderer.send(IPC.chatDraft, conversation, text),
     exportMarkdown: (conversation) => ipcRenderer.invoke(IPC.chatExport, conversation),
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
@@ -157,6 +165,7 @@ const api: WispApi = {
   },
   summary: {
     get: () => ipcRenderer.invoke(IPC.summaryGet),
+    saveImage: (png) => ipcRenderer.invoke(IPC.summaryImage, png),
     onShow: (listener) => subscribe<[]>(IPC.summaryShow, listener)
   },
   skills: {
@@ -207,6 +216,35 @@ const api: WispApi = {
   },
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
+  },
+  remoteChat: {
+    state: () => ipcRenderer.invoke(IPC.remoteChatState),
+    forget: () => ipcRenderer.invoke(IPC.remoteChatForget)
+  },
+  board: {
+    list: () => ipcRenderer.invoke(IPC.boardList),
+    add: (title, prompt, folder) => ipcRenderer.invoke(IPC.boardAdd, title, prompt, folder),
+    action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
+    onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
+  },
+  agents: {
+    list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),
+    preview: (spec, folder) => ipcRenderer.invoke(IPC.agentsPreview, spec, folder),
+    save: (spec, folder, fingerprint) =>
+      ipcRenderer.invoke(IPC.agentsSave, spec, folder, fingerprint),
+    remove: (scope, file, folder) => ipcRenderer.invoke(IPC.agentsRemove, scope, file, folder)
+  },
+  usage: {
+    report: (days) => ipcRenderer.invoke(IPC.usageReport, days),
+    export: (days) => ipcRenderer.invoke(IPC.usageExport, days)
+  },
+  preview: {
+    open: (target, folder) => ipcRenderer.invoke(IPC.previewOpen, target, folder),
+    capture: () => ipcRenderer.invoke(IPC.previewCapture),
+    reload: () => ipcRenderer.send(IPC.previewReload),
+    close: () => ipcRenderer.send(IPC.previewClose),
+    get: () => ipcRenderer.invoke(IPC.previewGet),
+    onState: (listener) => subscribe<[PreviewState]>(IPC.previewState, listener)
   },
   portable: {
     export: (withHistory) => ipcRenderer.invoke(IPC.portableExport, withHistory),

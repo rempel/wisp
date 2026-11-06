@@ -25,7 +25,8 @@
 // controle.
 // A sessão lembra as mensagens de cada turno e o uuid da última resposta dele: [memória]
 // responde o que ele lembra, e --resume-session-at <uuid> (com --fork-session, numa sessão nova)
-// volta até a resposta com esse uuid, como o de verdade (um uuid desconhecido: erro).
+// volta até a resposta com esse uuid, como o de verdade (um uuid desconhecido: erro). Com
+// --output-format json (a pergunta lateral do Wisp), responde uma vez a pergunta da entrada.
 const fs = require('node:fs')
 const path = require('node:path')
 const args = process.argv.slice(2)
@@ -210,6 +211,28 @@ if (resumeId && args.includes('--fork-session')) {
   sessionId = require('node:crypto').randomUUID()
   sessionFile = path.join(SESSIONS, sessionId + '.json')
 }
+// A pergunta lateral do Wisp (Fase 46): -p com --output-format json, a pergunta pela entrada e
+// uma resposta só, com o que a sessão lembra (sem gravar nada, com --no-session-persistence).
+if (flag('--output-format') === 'json') {
+  let input = ''
+  process.stdin.setEncoding('utf8')
+  process.stdin.on('data', (chunk) => (input += chunk))
+  process.stdin.on('end', () => {
+    const said = memory.map((turn) => turn.user).join(' | ')
+    const result = `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
+    process.stdout.write(
+      JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result,
+        session_id: sessionId
+      }) + '\n'
+    )
+  })
+  return
+}
+
 /** O uuid da última resposta mandada (o fim do turno guarda). */
 let lastUuid = null
 

@@ -8,6 +8,8 @@ import { openDisplay } from './xpointer'
 const TIMEOUT_MS = 2000
 const INTERN_ATOM = 16
 const GET_PROPERTY = 20
+const GET_GEOMETRY = 14
+const TRANSLATE_COORDINATES = 40
 const SEND_EVENT = 25
 const GET_INPUT_FOCUS = 43
 const QUERY_KEYMAP = 44
@@ -29,6 +31,19 @@ export interface XWindow {
   minimized: boolean
   active: boolean
 }
+
+/** A área de trabalho de agora (undefined: o gerenciador não diz). */
+export async function currentDesktop(client: XClient): Promise<number | undefined> {
+  const [current] = await client.numbers(client.root, '_NET_CURRENT_DESKTOP')
+  return current
+}
+
+/** A janela está na área de trabalho de agora (ou em todas)? */
+export const onDesktop = (window: XWindow, current: number | undefined): boolean =>
+  window.desktop === undefined ||
+  current === undefined ||
+  window.desktop === current ||
+  window.desktop === ALL_DESKTOPS
 
 const pad = (length: number): number => (4 - (length % 4)) % 4
 
@@ -165,6 +180,34 @@ export class XClient {
     if (!type || !format) return null
     const length = reply.readUInt32LE(16) * (format / 8)
     return { type, format, data: reply.subarray(32, 32 + length) }
+  }
+
+  /**
+   * Onde a janela está (Fase 48), em pixels do X: o canto da área dela na janela raiz (pelo
+   * TranslateCoordinates, que atravessa a moldura do gerenciador) e o tamanho (GetGeometry).
+   */
+  async geometry(
+    window: number
+  ): Promise<{ x: number; y: number; width: number; height: number } | null> {
+    const get = Buffer.alloc(8)
+    get.writeUInt8(GET_GEOMETRY, 0)
+    get.writeUInt16LE(2, 2)
+    get.writeUInt32LE(window, 4)
+    const size = await this.request(get, true)
+    if (!size || size.length < 20) return null
+    const translate = Buffer.alloc(16)
+    translate.writeUInt8(TRANSLATE_COORDINATES, 0)
+    translate.writeUInt16LE(4, 2)
+    translate.writeUInt32LE(window, 4)
+    translate.writeUInt32LE(this.root, 8)
+    const at = await this.request(translate, true)
+    if (!at || at.length < 16) return null
+    return {
+      x: at.readInt16LE(12),
+      y: at.readInt16LE(14),
+      width: size.readUInt16LE(16),
+      height: size.readUInt16LE(18)
+    }
   }
 
   /** Uma propriedade de números de 32 bits (janelas, átomos, cardinais). */

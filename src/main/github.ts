@@ -26,6 +26,8 @@ export interface PullRequest {
   /** O commit mais novo do PR e o estado do CI nele. */
   head: string
   ci: CiState
+  /** De onde é (sem o campo: o GitHub; Fase 52: um merge request do GitLab). */
+  host?: 'gitlab'
   /** A decisão das revisões: aprovado, pedem mudanças, esperando revisão (ou nenhuma regra). */
   decision: 'APPROVED' | 'CHANGES_REQUESTED' | 'REVIEW_REQUIRED' | null
   /** A revisão mais nova de cada pessoa. */
@@ -204,7 +206,7 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
     }
   }
   const { pr } = alert
-  const where = `${pr.repo}#${pr.number}: ${pr.title}`
+  const where = `${pr.repo}${pr.host === 'gitlab' ? '!' : '#'}${pr.number}: ${pr.title}`
   switch (alert.kind) {
     case 'ci-failed':
       return { title: t('O CI falhou'), body: where, url: pr.url }
@@ -228,6 +230,28 @@ export function describeAlert(alert: GithubAlert): { title: string; body: string
  * uma aba nova, para você revisar e mandar. null para os outros alertas.
  */
 export function investigatePrompt(alert: GithubAlert): string | null {
+  // Revisar um PR (Fase 52): pelo diff e pelos comentários no gh, sem baixar nada nem mudar o
+  // ramo de uma pasta sua.
+  if (alert.kind === 'review-requested') {
+    const { request } = alert
+    return t(
+      '{author} pediu a sua revisão no PR {repo}#{number} "{title}" ({url}). Leia o que mudou (`gh pr diff {number} --repo {repo}`) e a conversa (`gh pr view {number} --repo {repo} --comments`), e me diga os problemas (bugs, segurança, casos esquecidos) e o que está bom, com o arquivo e a linha de cada ponto. Não comente no PR: eu decido o que mandar.',
+      {
+        author: request.author || t('Alguém'),
+        repo: request.repo,
+        number: request.number,
+        title: request.title,
+        url: request.url
+      }
+    )
+  }
+  if (alert.kind === 'ci-failed' && alert.pr.host === 'gitlab') {
+    const { pr } = alert
+    return t(
+      'O pipeline do merge request {repo}!{number} "{title}" falhou ({url}). Veja o que quebrou (`glab mr view {number} -R {repo}` e `glab ci view -R {repo}` ou `glab ci trace -R {repo}` no job que falhou), explique a causa e proponha a correção.',
+      { repo: pr.repo, number: pr.number, title: pr.title, url: pr.url }
+    )
+  }
   if (alert.kind === 'ci-failed') {
     const { pr } = alert
     return t(
@@ -289,15 +313,30 @@ export type GhProblem = { kind: 'missing' | 'login' | 'failed'; message: string 
 
 /** Roda a consulta pelo gh. O ambiente vai sem a chave da Anthropic e sem perguntas interativas. */
 export function runQuery(gh: string, timeoutMs = 30_000): Promise<unknown> {
+  return runJson(gh, ['api', 'graphql', '-f', `query=${QUERY}`], 'gh', timeoutMs)
+}
+
+/**
+ * Roda um CLI que responde em JSON (o gh, ou o glab da Fase 52) e devolve a resposta lida; o erro
+ * diz se falta o programa, o login ou se foi um problema passageiro.
+ */
+export function runJson(
+  bin: string,
+  args: string[],
+  name: 'gh' | 'glab',
+  timeoutMs = 30_000
+): Promise<unknown> {
   return new Promise((resolve, reject) => {
     const env: NodeJS.ProcessEnv = {
       ...process.env,
       GH_PROMPT_DISABLED: '1',
       GH_NO_UPDATE_NOTIFIER: '1',
+      GLAB_NO_PROMPT: '1',
+      GLAB_CHECK_UPDATE: 'false',
       NO_COLOR: '1'
     }
     delete env.ANTHROPIC_API_KEY
-    const run = viaHost(gh, ['api', 'graphql', '-f', `query=${QUERY}`], {
+    const run = viaHost(bin, args, {
       env,
       unset: ['ANTHROPIC_API_KEY']
     })
@@ -319,7 +358,7 @@ export function runQuery(gh: string, timeoutMs = 30_000): Promise<unknown> {
       clearTimeout(timer)
       reject(
         error.code === 'ENOENT'
-          ? { kind: 'missing', message: 'o gh não está instalado' }
+          ? { kind: 'missing', message: `o ${name} não está instalado` }
           : { kind: 'failed', message: error.message }
       )
     })
@@ -329,14 +368,14 @@ export function runQuery(gh: string, timeoutMs = 30_000): Promise<unknown> {
         try {
           return resolve(JSON.parse(out))
         } catch {
-          return reject({ kind: 'failed', message: 'resposta ilegível do gh' })
+          return reject({ kind: 'failed', message: `resposta ilegível do ${name}` })
         }
       }
-      // Sem login, o gh sai com 4 e manda rodar `gh auth login`.
-      const login = code === 4 || /gh auth login|authentication|401/i.test(err)
+      // Sem login, o gh sai com 4 e manda rodar `gh auth login` (o glab, `glab auth login`).
+      const login = code === 4 || /auth login|authentication|401/i.test(err)
       reject({
         kind: login ? 'login' : 'failed',
-        message: err.trim().split('\n').pop()?.slice(0, 200) || `o gh saiu com ${code}`
+        message: err.trim().split('\n').pop()?.slice(0, 200) || `o ${name} saiu com ${code}`
       } satisfies GhProblem)
     })
   })
@@ -353,6 +392,8 @@ export interface GithubWatcherOptions {
   snapshotPath?: string
   /** A consulta (os testes trocam). */
   query?: (gh: string) => Promise<unknown>
+  /** A leitura da resposta (o GitLab já devolve o retrato pronto). */
+  parse?: (raw: unknown) => GithubSnapshot | null
   pollMs?: number
   problemPollMs?: number
 }
@@ -417,7 +458,7 @@ export class GithubWatcher {
       this.problem = kind
       return []
     }
-    const snapshot = parseSnapshot(raw)
+    const snapshot = (this.options.parse ?? parseSnapshot)(raw)
     if (!snapshot) {
       this.problem = 'failed'
       return []

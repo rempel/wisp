@@ -1,5 +1,7 @@
 import { ipcMain, shell } from 'electron'
 import type { WebContents } from 'electron'
+import { mkdirSync } from 'fs'
+import { SOUNDS_DIR } from './sounds'
 import { homedir } from 'os'
 import {
   checkSettings,
@@ -132,6 +134,12 @@ export function setupSettings(options: SettingsOptions): { notify(): void } {
   })
   ipcMain.on(IPC.settingsOpenFile, (event, which: unknown) => {
     if (!options.isSender(event.sender)) return
+    // A pasta dos seus sons (Fase 52): criada na hora, para você soltar os arquivos nela.
+    if (which === 'sounds') {
+      mkdirSync(SOUNDS_DIR, { recursive: true })
+      void shell.openPath(SOUNDS_DIR)
+      return
+    }
     const path = which === 'log' ? LOG_PATH : CONFIG_PATH
     // Abre no app padrão do tipo; sem um (ou sem o arquivo ainda), mostra na pasta.
     void shell.openPath(path).then((error) => {

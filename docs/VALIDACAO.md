@@ -551,8 +551,9 @@ Precisa do app do ntfy no celular (Play Store, F-Droid ou App Store) e do chavei
       (`flatpak run io.github.rempel.Wisp`). Uma conversa com o Claude Code de verdade funciona,
       um card de comando roda o comando na máquina (fora do sandbox), e `wisp --toggle` abre e fecha
       o painel.
-- [ ] **ARM64:** num Raspberry Pi 4 ou 5 (ou outra máquina ARM64 com Ubuntu ou Debian), instale o
-      `.deb` de ARM64 do CI e abra: o mascote aparece, o painel conversa e o modo terminal abre.
+- [ ] **ARM64** (ainda não validado: falta uma máquina ARM): num Raspberry Pi 4 ou 5 (ou outra
+      máquina ARM64 com Ubuntu ou Debian), instale o `.deb` de ARM64 do CI e abra: o mascote
+      aparece, o painel conversa e o modo terminal abre.
 
 ## Prompts salvos e tarefas agendadas (Fase 26)
 
@@ -879,8 +880,8 @@ Com **Ilha no topo** ligada:
       comando: o card espera no painel, sem som nem notificação. Desligue: volta ao normal.
 - [ ] **Linha de status sem o Git Bash:** num Windows sem o Git para Windows, abra o modo terminal:
       a linha de status embaixo é a do Wisp.
-- [ ] **ARM64:** num Windows com Snapdragon, o `Wisp-<versão>-Setup-arm64.exe` instala e abre; o
-      modo terminal abre o Claude Code.
+- [ ] **ARM64** (ainda não validado: falta uma máquina ARM): num Windows com Snapdragon, o
+      `Wisp-<versão>-Setup-arm64.exe` instala e abre; o modo terminal abre o Claude Code.
 
 ## Recortar, o aviso do plano e o CI que vira conversa (Fase 41)
 
@@ -950,3 +951,116 @@ Com **Ilha no topo** ligada:
 - [ ] **Foco:** botão direito no mascote → **Modo foco** → **25 minutos**: o menu passa a mostrar
       "Parar o foco (até …)"; peça um comando: o card não toca som nem notifica.
 - [ ] **Fim do foco:** no fim do bloco, o mascote comemora e sai a notificação "Foco concluído".
+
+## Voltar, ramificar e a pergunta lateral (Fase 46)
+
+- [ ] **Voltar com arquivos:** numa pasta de teste, peça "crie o arquivo a.txt com oi", depois
+      "troque oi por olá" e "quanto é 2+2?". Passe o mouse na primeira mensagem → **Voltar aqui**:
+      o card mostra `a.txt`; **Voltar**: a conversa fica vazia, o pedido volta para a caixa e o
+      `a.txt` some.
+- [ ] **Voltar sem arquivos:** **Voltar aqui** na terceira: o card não mostra arquivos, e a
+      conversa fica com as duas primeiras.
+- [ ] **Ramificar:** **Ramificar** na primeira de duas mensagens: abre a aba "… (ramo)" com uma
+      mensagem; pergunte "o que eu pedi até agora?": o Claude só lembra da primeira.
+- [ ] **Pergunta lateral:** com o Claude trabalhando numa resposta longa, `/btw o que você está
+fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
+
+## A pré-visualização (Fase 47)
+
+- [ ] **HTML:** numa conversa numa pasta, peça "crie um index.html com uma página de boas-vindas".
+      No card do Write, **Pré-visualizar**: a janela abre ao lado do painel com a página.
+- [ ] **Recarregar:** peça "mude o título para Olá": a janela recarrega sozinha com o título novo.
+- [ ] **Mostrar ao Claude:** na barra acima das abas, **Mostrar ao Claude**: o print vai para a
+      caixa como anexo; mande "o que você vê?".
+- [ ] **Servidor:** num projeto Vite, peça "rode npm run dev em segundo plano": o card do comando
+      tem **Abrir http://localhost:5173/ na pré-visualização**.
+- [ ] **Markdown e PDF:** `/preview README.md` abre o Markdown no painel (Esc fecha);
+      `/preview ~/algum.pdf` abre o PDF na janela.
+- [ ] **Fora:** `/preview https://example.com` diz que só vale o que é desta máquina; um link
+      para outro site dentro da página não navega.
+
+## O mascote numa janela (Fase 48)
+
+- [ ] **Soltar:** com o editor de texto aberto, arraste o mascote com o **Ctrl** apertado e solte
+      em cima dele: o print do editor vai como anexo, com "Na imagem, a janela …" na caixa, e o
+      mascote volta para onde estava.
+- [ ] **Sem o Ctrl:** arrastar sem o Ctrl só muda o mascote de lugar.
+- [ ] **Atalho:** com o navegador em foco, **Ctrl+Alt+J**: o print do navegador vai para a
+      conversa (o mascote e o painel não aparecem nele).
+- [ ] **Windows:** o mesmo no Windows, com uma tela em 150%: o print é o da janela certa.
+- [ ] **Wayland:** no GNOME com Wayland, o atalho avisa que o sistema não deixa ver as janelas.
+
+## O painel de uso (Fase 49)
+
+- [ ] **Abrir:** Ctrl+P → **Painel de uso**: os números, o gráfico dos últimos 30 dias e as
+      tabelas por projeto e por modelo aparecem (com as suas sessões do terminal também).
+- [ ] **Conferir:** compare o total de um dia com o `npx ccusage daily` (se você usa): os tokens
+      batem.
+- [ ] **Período:** **7 dias** e **90 dias** mudam o gráfico e os totais.
+- [ ] **CSV:** **Exportar CSV** grava o arquivo; ele abre numa planilha com uma linha por dia,
+      projeto e modelo.
+
+## Os subagentes pelo Wisp (Fase 50)
+
+- [ ] **Criar:** em **Configurações → Subagentes**, **Novo subagente** "revisor", com uma
+      descrição, um prompt e o modelo Sonnet: **Ver o que muda** mostra o arquivo; **Criar** grava
+      `~/.claude/agents/revisor.md`.
+- [ ] **Usar:** numa conversa nova (Ctrl+K), peça "use o subagente revisor para revisar este
+      arquivo": o card do Agente mostra o revisor trabalhando. No terminal, o `/agents` do Claude
+      Code o lista.
+- [ ] **Editar:** troque o modelo para Opus: o diff mostra a linha; **Gravar** deixa o
+      `revisor.md.backup-wisp-…` ao lado.
+- [ ] **Do projeto:** numa conversa numa pasta, **Onde → Deste projeto**: o arquivo vai para
+      `.claude/agents` da pasta.
+- [ ] **Apagar:** **Apagar** → **Mandar para a lixeira?**: o arquivo vai para a lixeira.
+
+## O quadro de tarefas (Fase 51)
+
+- [ ] **Dois cartões no mesmo projeto:** no quadro (o botão no cabeçalho), dois cartões num
+      repositório seu: "crie docs/a.md com oi" e "crie docs/b.md com olá". **Começar** nos dois:
+      abrem duas abas, cada uma numa cópia (a barra da cópia mostra ramos diferentes).
+- [ ] **Revisar:** quando cada resposta acaba, o cartão dele vai sozinho para Revisar.
+- [ ] **Juntar:** **Juntar** no primeiro: o `docs/a.md` aparece na pasta original, sem commit, e
+      o cartão vai para Feito.
+- [ ] **Descartar:** **Descartar** → **Descartar de vez?** no segundo: a aba fecha, a cópia sai e
+      o cartão volta para A fazer.
+- [ ] **Sem Git:** um cartão numa pasta sem Git roda nela mesma, e o cartão diz "Sem cópia".
+
+## Os pequenos (Fase 52)
+
+- [ ] **Revisar um PR:** peça a alguém (ou a uma conta de teste) a sua revisão num PR: o clique
+      no aviso abre a aba com o pedido de revisar pelo `gh pr diff`.
+- [ ] **/todas:** com duas conversas lado a lado (uma com Sonnet, outra com Opus),
+      `/todas explique o que é um closure`: as duas respondem.
+- [ ] **Silêncio:** ligue as horas de silêncio com o horário de agora: um card não toca som nem
+      notifica; desligue: volta.
+- [ ] **Busca:** nas configurações, "atalho" deixa só as seções com atalhos.
+- [ ] **Sons:** **Abrir a pasta dos sons**, ponha um `pronto.ogg`: o fim da resposta toca ele.
+- [ ] **Imagem:** no histórico, **Salvar como imagem**: o PNG abre com as contagens da semana.
+- [ ] **Notas:** depois de atualizar o Wisp, a notificação "Wisp atualizado para …" abre a página
+      da versão.
+- [ ] **GitLab:** com o `glab` logado e **Avisos do GitLab** ligados, quebre o pipeline de um MR
+      seu: o aviso chega, e o clique abre a aba com o pedido de investigar pelo `glab`.
+
+## Ditar em qualquer programa (Fase 53)
+
+- [ ] **Ligar:** em **Configurações → Atalhos e sistema**, **Ditar em qualquer programa** com
+      Ctrl+Alt+D.
+- [ ] **Ditar:** no editor de texto, segure Ctrl+Alt+D, diga uma frase e solte: a frase aparece
+      no editor; o que estava copiado antes continua lá (cole para conferir).
+- [ ] **Trocas:** em **Trocas do ditado**, `uisp = Wisp`; dite "abra o uisp": sai "abra o Wisp".
+- [ ] **Sem colar sozinho:** sem o `xdotool` (ou, no Wayland, sem o `wtype`), a notificação diz
+      que copiou; Ctrl+V cola.
+- [ ] **Windows:** o mesmo no Bloco de Notas.
+
+## Conversar pelo celular, na rede local (Fase 54)
+
+- [ ] **Parear:** em **Configurações → Celular**, ligue **Conversar pelo celular**: o QR aparece.
+      Com o celular no mesmo Wi-Fi, aponte a câmera: a página abre com as conversas.
+- [ ] **Mandar:** escreva "oi" no celular: a mensagem aparece no painel, e a resposta aparece no
+      celular.
+- [ ] **Automático:** ponha uma conversa no modo Automático: no celular, a caixa fica desligada.
+- [ ] **Uso único:** abra o mesmo endereço do QR noutro aparelho: ele não pareia (o código já foi
+      usado); gere outro QR (feche e abra as configurações depois de 10 minutos).
+- [ ] **Esquecer:** **Esquecer os celulares**: o celular volta a pedir o pareamento.
+- [ ] **Desligar:** desligue: a página para de responder.

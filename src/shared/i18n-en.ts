@@ -202,8 +202,8 @@ export const EN: Record<string, string> = {
     "I didn't trust {v1}: Claude Code doesn't run in it. To continue, send the ",
   'mensagem de novo e clique em **Confiar nesta pasta**, ou abra outra pasta.':
     'message again and click **Trust this folder**, or open another folder.',
-  'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar ':
-    "I couldn't edit the last message of this conversation: it's from before Wisp saved ",
+  'Não deu para voltar a conversa a este ponto: ele é de antes de o Wisp guardar ':
+    "I couldn't take the conversation back to this point: it's from before Wisp saved ",
   'onde voltar, ou veio do terminal. Mande a mensagem como uma nova.':
     'where to go back to, or it came from the terminal. Send the message as a new one.',
   'Espere a resposta terminar para compactar.': 'Wait for the reply to finish to compact.',
@@ -2365,5 +2365,286 @@ export const EN: Record<string, string> = {
     'Select some text in any program and press the shortcut again.',
   'Explicar a seleção': 'Explain the selection',
   'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).':
-    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).'
+    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).',
+  'O Claude não respondeu à pergunta.': "Claude didn't answer the question.",
+  'Escreva a pergunta.': 'Write the question.',
+  'Espere a resposta acabar (ou pare-a) para voltar a conversa.':
+    'Wait for the reply to finish (or stop it) to take the conversation back.',
+  'No modo terminal, use o Esc Esc do Claude Code.': "In terminal mode, use Claude Code's Esc Esc.",
+  'Essa mensagem não está no histórico da conversa.':
+    "That message isn't in the conversation's history.",
+  'Não deu para voltar a conversa a este ponto.':
+    "I couldn't take the conversation back to this point.",
+  'Não deu para ramificar daqui: a resposta dessa mensagem é de antes de o Wisp guardar ':
+    "I couldn't branch from here: this message's reply is from before Wisp saved ",
+  'onde voltar, ou veio do terminal.': 'where to go back to, or it came from the terminal.',
+  'As abas estão cheias: feche uma para ramificar a conversa.':
+    'The tabs are full: close one to branch the conversation.',
+  'A pergunta lateral precisa do Claude Code (e, pela OpenRouter, da chave e do modelo).':
+    'The side question needs Claude Code (and, through OpenRouter, the key and the model).',
+  '{title} (ramo)': '{title} (branch)',
+  'Pergunta lateral': 'Side question',
+  'uma dúvida rápida, sem entrar na conversa (/btw)':
+    'a quick question that stays out of the conversation (/btw)',
+  'A conversa volta para antes desta mensagem (e os arquivos, se quiser)':
+    'The conversation goes back to before this message (and the files, if you want)',
+  'Voltar a este ponto': 'Go back to this point',
+  'Voltar aqui': 'Go back here',
+  'Uma aba nova com a conversa até a resposta desta mensagem':
+    "A new tab with the conversation up to this message's reply",
+  'Ramificar daqui': 'Branch from here',
+  Ramificar: 'Branch',
+  'Não deu para voltar.': "I couldn't go back.",
+  '1 arquivo voltou a ser como era.': '1 file is back to how it was.',
+  '{count} arquivos voltaram a ser como eram.': '{count} files are back to how they were.',
+  'Os anexos da mensagem não voltam: anexe de novo se precisar.':
+    "The message's attachments don't come back: attach them again if you need them.",
+  'Voltar para antes desta mensagem?': 'Go back to before this message?',
+  'Ela e o que veio depois saem da conversa (o Claude esquece), e o texto dela volta para a caixa.':
+    'It and everything after it leave the conversation (Claude forgets them), and its text goes back to the box.',
+  'Voltar também o arquivo que mudou daí em diante':
+    'Also restore the file that changed from then on',
+  'Voltar também os {count} arquivos que mudaram daí em diante':
+    'Also restore the {count} files that changed from then on',
+  'sem a cópia de antes': 'no copy from before',
+  'Parte dessas respostas é de antes de o Wisp abrir: os arquivos que elas mudaram ficam como estão.':
+    'Some of these replies are from before Wisp opened: the files they changed stay as they are.',
+  'não entra na conversa nem para o Claude':
+    "stays out of the conversation and doesn't stop Claude",
+  'Fechar a pergunta lateral': 'Close the side question',
+  'Pergunte sem interromper o Claude…': 'Ask without interrupting Claude…',
+  'A pergunta lateral': 'The side question',
+  'Diga o endereço (localhost) ou o arquivo.': 'Give the address (localhost) or the file.',
+  'Só arquivos e endereços desta máquina (localhost).':
+    'Only files and addresses on this machine (localhost).',
+  'Use o caminho inteiro do arquivo.': "Use the file's full path.",
+  'A pré-visualização mostra HTML, PDF, imagens e Markdown.':
+    'The preview shows HTML, PDF, images and Markdown.',
+  'Esse endereço não é válido.': "That address isn't valid.",
+  'Pré-visualização: {what}': 'Preview: {what}',
+  'A pré-visualização está fechada.': 'The preview is closed.',
+  'A página ainda não apareceu.': "The page hasn't shown up yet.",
+  'Pré-visualização': 'Preview',
+  'Pré-visualizar': 'Preview',
+  'um HTML, PDF, imagem, Markdown ou o localhost (/preview)':
+    'an HTML, PDF, image, Markdown or localhost (/preview)',
+  'Não deu para abrir a pré-visualização.': "I couldn't open the preview.",
+  'pré-visualização': 'preview',
+  'Pré-visualização:': 'Preview:',
+  Recarregar: 'Reload',
+  'Um print da pré-visualização vai como anexo para a conversa em foco':
+    'A screenshot of the preview goes as an attachment to the focused conversation',
+  'Não deu para tirar o print da pré-visualização.': "I couldn't take a screenshot of the preview.",
+  'Mostrar ao Claude': 'Show Claude',
+  'Abrir {url} na pré-visualização': 'Open {url} in the preview',
+  'Mostrar a janela da frente': 'Show the front window',
+  'Mostrar a janela da frente ao Wisp': 'Show the front window to Wisp',
+  'Ditar em qualquer programa (segure enquanto fala)':
+    'Dictate into any program (hold while you speak)',
+  'Na imagem, a janela "{title}" ({app}).': 'In the image, the "{title}" window ({app}).',
+  'Na imagem, a janela "{title}".': 'In the image, the "{title}" window.',
+  'No Wayland, o sistema não deixa um app ver as janelas dos outros: use o Print da tela ou o Recortar.':
+    "On Wayland, the system doesn't let an app see other apps' windows: use the Screenshot or the Crop.",
+  'Não consegui falar com o servidor X.': "I couldn't talk to the X server.",
+  'Não consegui o print da janela "{title}".':
+    'I couldn\'t get a screenshot of the "{title}" window.',
+  'Não deu para ver a janela': "Couldn't see the window",
+  'Nenhuma janela aqui': 'No window here',
+  'Solte o mascote em cima da janela que você quer mostrar.':
+    'Drop the mascot on the window you want to show.',
+  'De qualquer lugar: o print da janela em foco, com o título, vai para a conversa (o mesmo que soltar o mascote em cima dela com o Ctrl apertado).':
+    'From anywhere: a screenshot of the focused window, with its title, goes to the conversation (the same as dropping the mascot on it while holding Ctrl).',
+  'Ditar em qualquer programa': 'Dictate into any program',
+  'Segure, fale e solte: o que você disse (transcrito na sua máquina) é colado no programa da frente. Precisa do whisper.cpp da voz.':
+    "Hold, speak and release: what you said (transcribed on your machine) is pasted into the front program. Needs the voice's whisper.cpp.",
+  'Exportar o uso': 'Export the usage',
+  Uso: 'Usage',
+  'tokens e custo, das sessões do Claude Code nesta máquina':
+    'tokens and cost, from the Claude Code sessions on this machine',
+  'Tokens e custo por dia, projeto e modelo': 'Tokens and cost by day, project and model',
+  'Custo estimado por dia': 'Estimated cost per day',
+  'Tokens por dia': 'Tokens per day',
+  'Máximo num dia: {value}': 'Most in one day: {value}',
+  Tokens: 'Tokens',
+  Custo: 'Cost',
+  'Exportado em {path}.': 'Exported to {path}.',
+  '{count} dias': '{count} days',
+  'Exportar CSV': 'Export CSV',
+  'Lendo as sessões do Claude Code…': 'Reading the Claude Code sessions…',
+  'Nenhuma resposta do Claude Code nesse período (as sessões ficam em ~/.claude/projects).':
+    'No Claude Code replies in this period (the sessions are in ~/.claude/projects).',
+  'custo estimado pela API': 'estimated API cost',
+  'tokens no total': 'tokens in total',
+  'tokens de saída': 'output tokens',
+  'lidos do cache': 'read from the cache',
+  'Por projeto': 'By project',
+  'Por modelo': 'By model',
+  'O custo é o que essas respostas custariam pela API da Anthropic (os preços de novembro de 2026); numa assinatura, você não paga por token. Tudo vem dos arquivos do Claude Code nesta máquina, sem rede.':
+    "The cost is what these replies would cost through the Anthropic API (November 2026 prices); on a subscription, you don't pay per token. Everything comes from the Claude Code files on this machine, with no network.",
+  'Sem preço (fora do custo): {models}.': 'No price (left out of the cost): {models}.',
+  'Painel de uso': 'Usage panel',
+  'tokens custo gastos': 'tokens cost spending',
+  'O nome: só minúsculas, números e hífens (ex.: revisor-de-codigo).':
+    'The name: only lowercase letters, numbers and hyphens (e.g. code-reviewer).',
+  'Diga quando o Claude deve usar este subagente.': 'Say when Claude should use this subagent.',
+  'A descrição está longa demais.': 'The description is too long.',
+  'Escreva o prompt do subagente.': "Write the subagent's prompt.",
+  'O prompt está longo demais.': 'The prompt is too long.',
+  'Modelo desconhecido.': 'Unknown model.',
+  'Uma das ferramentas tem um nome inválido.': 'One of the tools has an invalid name.',
+  'Esta conversa não está numa pasta de projeto.': "This conversation isn't in a project folder.",
+  'O arquivo mudou depois da prévia: veja o que muda de novo.':
+    'The file changed after the preview: look at what changes again.',
+  'Gravado. O arquivo de antes ficou em {backup}.': 'Saved. The previous file is at {backup}.',
+  'Criado. O Claude Code o usa nas conversas novas (Ctrl+K).':
+    'Created. Claude Code uses it in new conversations (Ctrl+K).',
+  'Não consegui gravar: {message}': "I couldn't save: {message}",
+  'Esse subagente não existe mais.': "That subagent doesn't exist anymore.",
+  'Não consegui mandar para a lixeira: {message}': "I couldn't move it to the trash: {message}",
+  '"{name}" foi para a lixeira.': '"{name}" went to the trash.',
+  'O da conversa': "The conversation's",
+  seu: 'yours',
+  'deste projeto': "this project's",
+  'Os subagentes são ajudantes que o Claude chama sozinho para uma parte do trabalho (revisar código, escrever testes, pesquisar), cada um com o seu prompt, o seu modelo e as suas ferramentas. Os seus ficam em ~/.claude/agents; os do projeto, em .claude/agents da pasta da conversa.':
+    "Subagents are helpers Claude calls on its own for part of the work (reviewing code, writing tests, researching), each with its own prompt, model and tools. Yours are in ~/.claude/agents; the project's, in .claude/agents of the conversation's folder.",
+  'Quando usar (a descrição que o Claude lê para escolher)':
+    'When to use (the description Claude reads to choose)',
+  'Revisa o código depois de uma mudança: bugs, segurança e clareza.':
+    'Reviews the code after a change: bugs, security and clarity.',
+  'O prompt do subagente': "The subagent's prompt",
+  'Você é um revisor de código cuidadoso. Leia o diff e…':
+    'You are a careful code reviewer. Read the diff and…',
+  Onde: 'Where',
+  'Seus (todas as conversas)': 'Yours (every conversation)',
+  'Deste projeto ({folder})': "This project's ({folder})",
+  'Deste projeto (abra uma pasta)': "This project's (open a folder)",
+  'Ferramentas, separadas por vírgula (vazio: todas as da conversa)':
+    "Tools, separated by commas (empty: all of the conversation's)",
+  'O que muda': 'What changes',
+  'Nada muda em {path}.': 'Nothing changes in {path}.',
+  'Muda {path} (o de antes ganha um backup ao lado):':
+    'Changes {path} (the previous one gets a backup next to it):',
+  'Cria {path}:': 'Creates {path}:',
+  Criar: 'Create',
+  'Novo subagente': 'New subagent',
+  'Nenhum subagente ainda.': 'No subagents yet.',
+  'Mandar para a lixeira?': 'Move to the trash?',
+  'Apagar {name}': 'Delete {name}',
+  'Ferramentas:': 'Tools:',
+  Subagentes: 'Subagents',
+  'os ajudantes que o Claude chama sozinho': 'the helpers Claude calls on its own',
+  'Ajudantes com o próprio prompt, modelo e ferramentas, que o Claude chama sozinho.':
+    'Helpers with their own prompt, model and tools, which Claude calls on its own.',
+  'Ver e editar os subagentes': 'See and edit the subagents',
+  'agentes ajudantes': 'agents helpers',
+  'O quadro está cheio.': 'The board is full.',
+  'Esse cartão não existe mais.': "That card doesn't exist anymore.",
+  'Espere a resposta acabar.': 'Wait for the reply to finish.',
+  'Junte ou descarte a cópia antes de tirar o cartão.':
+    'Merge or discard the copy before removing the card.',
+  'As abas estão cheias: feche uma para começar o cartão.':
+    'The tabs are full: close one to start the card.',
+  'Sem cópia ({message}): a conversa roda na própria pasta.':
+    'No copy ({message}): the conversation runs in the folder itself.',
+  'Esse cartão não está numa cópia.': "That card isn't in a copy.",
+  'Dê um título curto ao cartão.': 'Give the card a short title.',
+  'Escreva o pedido do cartão.': "Write the card's request.",
+  'Escolha uma pasta de projeto.': 'Choose a project folder.',
+  'A fazer': 'To do',
+  Rodando: 'Running',
+  Revisar: 'Review',
+  Feito: 'Done',
+  'Abrir a conversa': 'Open the conversation',
+  Juntar: 'Merge',
+  'Voltar para A fazer': 'Back to To do',
+  'Cada cartão é um pedido num projeto. Começar abre uma conversa numa cópia do Git (as tarefas não pisam uma na outra); no fim da resposta, o cartão vai para Revisar, onde você junta as mudanças na pasta original (sem commit) ou descarta.':
+    "Each card is a request in a project. Start opens a conversation in a Git copy (the tasks don't step on each other); when the reply ends, the card moves to Review, where you merge the changes into the original folder (without a commit) or discard them.",
+  'Novo cartão': 'New card',
+  Título: 'Title',
+  'Adicionar o modo escuro': 'Add dark mode',
+  'O pedido para o Claude': 'The request for Claude',
+  'Adicione um modo escuro às configurações, com testes.':
+    'Add a dark mode to the settings, with tests.',
+  'Nenhuma pasta de projeto (veja Configurações → Pastas)':
+    'No project folders (see Settings → Folders)',
+  'Pôr em A fazer': 'Add to To do',
+  'numa cópia': 'in a copy',
+  'Quadro de tarefas': 'Task board',
+  'cada cartão numa cópia do projeto': 'each card in a copy of the project',
+  'kanban cartões cópias': 'kanban cards copies',
+  'Dois horários HH:MM (ex.: 22:00 e 08:00), ou null.':
+    'Two HH:MM times (e.g. 22:00 and 08:00), or null.',
+  'Clique para revisar numa conversa.': 'Click to review it in a conversation.',
+  'Os avisos do GitLab voltaram a funcionar.': 'The GitLab alerts are working again.',
+  'Para os avisos do GitLab, instale o **glab** (GitLab CLI) e rode `glab auth login`.':
+    'For the GitLab alerts, install **glab** (the GitLab CLI) and run `glab auth login`.',
+  'O **glab** não está logado no GitLab: rode `glab auth login` no terminal.':
+    "**glab** isn't logged in to GitLab: run `glab auth login` in the terminal.",
+  '{author} pediu a sua revisão no PR {repo}#{number} "{title}" ({url}). Leia o que mudou (`gh pr diff {number} --repo {repo}`) e a conversa (`gh pr view {number} --repo {repo} --comments`), e me diga os problemas (bugs, segurança, casos esquecidos) e o que está bom, com o arquivo e a linha de cada ponto. Não comente no PR: eu decido o que mandar.':
+    '{author} asked for your review on PR {repo}#{number} "{title}" ({url}). Read what changed (`gh pr diff {number} --repo {repo}`) and the conversation (`gh pr view {number} --repo {repo} --comments`), and tell me the problems (bugs, security, missed cases) and what\'s good, with the file and line of each point. Don\'t comment on the PR: I decide what to send.',
+  'O pipeline do merge request {repo}!{number} "{title}" falhou ({url}). Veja o que quebrou (`glab mr view {number} -R {repo}` e `glab ci view -R {repo}` ou `glab ci trace -R {repo}` no job que falhou), explique a causa e proponha a correção.':
+    'The pipeline of merge request {repo}!{number} "{title}" failed ({url}). See what broke (`glab mr view {number} -R {repo}` and `glab ci view -R {repo}` or `glab ci trace -R {repo}` on the failed job), explain the cause and propose the fix.',
+  'Wisp atualizado para {version}': 'Wisp updated to {version}',
+  'Antes era a {previous}. Clique para ver o que mudou.':
+    'It was {previous} before. Click to see what changed.',
+  'Salvar o resumo da semana': "Save the week's summary",
+  'Buscar nas configurações (ex.: som, atalho, voz)':
+    'Search the settings (e.g. sound, shortcut, voice)',
+  'Buscar nas configurações': 'Search the settings',
+  'Os seus sons': 'Your sounds',
+  'Abrir a pasta dos sons': 'Open the sounds folder',
+  'Um arquivo com o nome de um som (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), em .ogg, .wav, .mp3…, troca o do Wisp na hora; apagar traz o de volta.':
+    "A file named after one of Wisp's sounds (the names are in the README), as .ogg, .wav, .mp3…, replaces Wisp's right away; deleting it brings Wisp's back.",
+  'Horas de silêncio': 'Quiet hours',
+  'Todo dia, nesse horário, o Wisp fica quieto como no “não perturbe” (os cards esperam no painel).':
+    'Every day, at these times, Wisp stays quiet as in “do not disturb” (the cards wait in the panel).',
+  'Ligar as horas de silêncio': 'Turn on the quiet hours',
+  'Começa às': 'Starts at',
+  até: 'to',
+  'Acaba às': 'Ends at',
+  'Avisos do GitLab': 'GitLab alerts',
+  'O pipeline dos seus merge requests abertos (falhou, ou passou depois de rodar), a cada 3 minutos. Usa o glab (GitLab CLI) já logado: rode glab auth login antes.':
+    'The pipeline of your open merge requests (failed, or passed after running), every 3 minutes. Uses glab (the GitLab CLI), already logged in: run glab auth login first.',
+  'Salva em {path}.': 'Saved to {path}.',
+  'Salvar como imagem': 'Save as an image',
+  'linhas editadas': 'lines edited',
+  'pedidos aprovados': 'requests approved',
+  'O painel não conseguiu desenhar a imagem.': "The panel couldn't draw the image.",
+  'Minha semana com o Wisp': 'My week with Wisp',
+  'Mais usadas: {tools}': 'Most used: {tools}',
+  'Até 100 trocas, cada uma com o dito (até 100 caracteres) e o escrito.':
+    'Up to 100 replacements, each with the spoken form (up to 100 characters) and the written one.',
+  'Copiei o que você disse': 'I copied what you said',
+  'Cole com Ctrl+V. (Para o Wisp colar sozinho no Linux, instale o xdotool, ou o wtype no Wayland.)':
+    'Paste it with Ctrl+V. (For Wisp to paste by itself on Linux, install xdotool, or wtype on Wayland.)',
+  'Trocas do ditado': 'Dictation replacements',
+  'Uma por linha, no formato "dito = escrito" (ex.: "uisp = Wisp"): vale como palavra inteira, sem ligar para maiúsculas.':
+    'One per line, as "spoken = written" (e.g. "uisp = Wisp"): it applies to whole words, ignoring case.',
+  'Não achei este computador numa rede local (Wi-Fi ou cabo).':
+    "I couldn't find this computer on a local network (Wi-Fi or cable).",
+  'Não consegui abrir a porta: {message}': "I couldn't open the port: {message}",
+  'O código venceu ou já foi usado: gere outro QR no computador.':
+    'The code expired or was already used: make another QR on the computer.',
+  'Este celular não está pareado.': "This phone isn't paired.",
+  'Essa conversa não está aberta.': "That conversation isn't open.",
+  'Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.':
+    'This conversation is in Auto mode: from the phone, it can only be read.',
+  'Esta conversa está no modo terminal: use o computador.':
+    'This conversation is in terminal mode: use the computer.',
+  'A conversa não pode receber agora.': "The conversation can't take a message right now.",
+  'Conversa nova': 'New conversation',
+  'Escreva para o Claude…': 'Write to Claude…',
+  'Pareie este celular pelo QR em Configurações → Celular, no computador.':
+    'Pair this phone with the QR in Settings → Phone, on the computer.',
+  'Nenhuma conversa aberta no Wisp.': 'No open conversations in Wisp.',
+  'Esta conversa está no modo Automático (ou no terminal): pelo celular, só dá para ler.':
+    'This conversation is in Auto mode (or in the terminal): from the phone, you can only read it.',
+  'Conversar pelo celular, na rede local': 'Chat from the phone, on the local network',
+  'Uma página no celular com as conversas abertas, as respostas e a caixa para mandar. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua. Os cards de permissão continuam no computador, e uma conversa no modo Automático só pode ser lida.':
+    'A page on the phone with the open conversations, the replies and the box to send. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours. The permission cards stay on the computer, and a conversation in Auto mode can only be read.',
+  'Aponte a câmera do celular para o QR (ou abra o endereço no navegador dele). O código vale uma vez, por 10 minutos.':
+    "Point the phone's camera at the QR (or open the address in its browser). The code works once, for 10 minutes.",
+  '1 celular pareado.': '1 phone paired.',
+  '{count} celulares pareados.': '{count} phones paired.',
+  'Esquecer os celulares': 'Forget the phones'
 }

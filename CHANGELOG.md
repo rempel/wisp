@@ -118,6 +118,39 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Explicar a seleção e o modo foco** (Fase 45): Ctrl+Alt+E leva o texto marcado em qualquer
   programa para uma conversa; o modo foco deixa o Wisp quieto por 25 ou 50 minutos.
 
+- **Voltar, ramificar e a pergunta lateral** (Fase 46): voltar a conversa (e, se quiser, os
+  arquivos) para antes de qualquer mensagem sua; ramificar uma conversa numa aba nova a partir de
+  uma resposta; e o `/btw`, uma pergunta rápida que não entra na conversa.
+
+- **A pré-visualização** (Fase 47): um HTML, PDF, imagem ou o servidor local do projeto
+  numa janela ao lado do painel (e um Markdown no próprio painel), pelo `/preview` ou pelos cards;
+  recarrega sozinha, e **Mostrar ao Claude** anexa um print dela.
+
+- **O mascote numa janela** (Fase 48): arraste o mascote com o Ctrl e solte numa janela, ou
+  aperte Ctrl+Alt+J, e o print dela vai para a conversa, com o título e o programa na caixa.
+
+- **O painel de uso** (Fase 49): os tokens e o custo estimado por dia, por projeto e por
+  modelo, lidos dos arquivos que o Claude Code grava na sua máquina, com um gráfico e o CSV.
+
+- **Os subagentes pelo Wisp** (Fase 50): listar, criar, editar e apagar os subagentes do Claude
+  Code (os seus e os do projeto), com o diff antes de gravar e o backup do arquivo de antes.
+
+- **O quadro de tarefas** (Fase 51): cartões em A fazer, Rodando, Revisar e Feito; cada um roda
+  numa cópia do Git do projeto, vai sozinho para Revisar no fim da resposta, e Juntar leva a
+  mudança para a pasta original.
+
+- **Os pequenos** (Fase 52): revisar um PR pelo aviso do pedido de revisão; `/todas` manda a
+  mesma mensagem às conversas da grade; horas de silêncio; busca nas configurações; o botão da
+  pasta dos seus sons; o resumo da semana em imagem; as notas depois de atualizar; e os avisos de
+  CI do GitLab, pelo `glab`.
+
+- **Ditar em qualquer programa** (Fase 53): segure o atalho do ditado, fale e solte; o que você
+  disse (transcrito na sua máquina) é colado no programa da frente, com as suas trocas.
+
+- **Conversar pelo celular, na rede local** (Fase 54): uma página servida pelo Wisp só na rede
+  da sua casa, pareada por um QR de uso único, com as conversas abertas, as respostas e a caixa
+  para mandar. Desligada por padrão.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

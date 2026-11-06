@@ -24,6 +24,20 @@ import type {
   PermissionMode,
   Provider,
   ReviewUndoResult,
+  RewindPreview,
+  RewindResult,
+  AsideResult,
+  PreviewResult,
+  PreviewState,
+  UsageReport,
+  AgentInfo,
+  BoardCard,
+  BoardColumn,
+  BoardResult,
+  AgentPreview,
+  AgentResult,
+  AgentScope,
+  AgentSpec,
   TabsState,
   WorktreeResult,
   WorktreeStatus,
@@ -67,7 +81,8 @@ import type {
   SkillPreview,
   SkillResult,
   TaskResult,
-  WeekSummaries
+  WeekSummaries,
+  RemoteChatState
 } from './ipc-settings'
 
 export * from './ipc-chat'
@@ -119,6 +134,8 @@ export const IPC = {
   islandAction: 'island:action',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
+  /** chat → main (invoke): grava o resumo em imagem (Fase 52). Arg: o PNG. Devolve ExportResult. */
+  summaryImage: 'summary:image',
   summaryShow: 'summary:show',
   /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
   mascotSound: 'mascot:sound',
@@ -148,6 +165,62 @@ export const IPC = {
    * antes dela e a nova vai no lugar. Args: (conversa, texto, anexos). Devolve boolean.
    */
   chatEditLast: 'chat:edit-last',
+  /**
+   * chat → main (invoke): o que voltar ao turno `turn` (contado das mensagens que começam um
+   * turno, a partir de 0) faria nos arquivos (Fase 46). Args: (conversa, turno). Devolve
+   * RewindPreview.
+   */
+  chatRewindPreview: 'chat:rewind-preview',
+  /**
+   * chat → main (invoke): volta a conversa para antes do turno `turn` (Fase 46); com `files`, os
+   * arquivos ([{ path, hash }] da prévia) voltam também. Devolve RewindResult.
+   */
+  chatRewind: 'chat:rewind',
+  /** chat → main (invoke): uma aba nova com a conversa até o fim do turno `turn`. Devolve boolean. */
+  chatFork: 'chat:fork',
+  /** chat → main (invoke): a pergunta lateral (Fase 46). Args: (conversa, pergunta). Devolve AsideResult. */
+  chatAside: 'chat:aside',
+  /**
+   * chat → main (invoke): abre a pré-visualização (Fase 47). Args: (alvo, pasta da conversa ou
+   * null). Devolve PreviewResult.
+   */
+  previewOpen: 'preview:open',
+  /** chat → main (invoke): um print da pré-visualização vai como anexo. Devolve boolean. */
+  previewCapture: 'preview:capture',
+  /** chat → main: recarregar e fechar a pré-visualização. */
+  previewReload: 'preview:reload',
+  previewClose: 'preview:close',
+  /** chat → main (invoke): o estado da pré-visualização (PreviewState). */
+  previewGet: 'preview:get',
+  /** main → chat: a pré-visualização abriu, mudou ou fechou. Arg: PreviewState. */
+  previewState: 'preview:state',
+  /** chat → main (invoke): o uso dos últimos dias (Fase 49). Arg: dias. Devolve UsageReport. */
+  usageReport: 'usage:report',
+  /** chat → main (invoke): o uso em CSV (o diálogo escolhe onde). Arg: dias. Devolve ExportResult. */
+  usageExport: 'usage:export',
+  /** chat → main (invoke): os subagentes (Fase 50). Arg: a pasta da conversa. Devolve AgentInfo[]. */
+  /** chat → main (invoke): os cartões do quadro (Fase 51). Devolve BoardCard[]. */
+  /** chat → main (invoke): a página do celular (Fase 54). Devolve RemoteChatState. */
+  remoteChatState: 'remote-chat:state',
+  /** chat → main (invoke): esquece os celulares pareados. Devolve RemoteChatState. */
+  remoteChatForget: 'remote-chat:forget',
+  boardList: 'board:list',
+  /** chat → main (invoke): um cartão novo. Args: (título, pedido, pasta). Devolve BoardResult. */
+  boardAdd: 'board:add',
+  /**
+   * chat → main (invoke): começar, mostrar, juntar, descartar, tirar ou mover um cartão. Args:
+   * (ação, id, coluna para o mover). Devolve BoardResult.
+   */
+  boardAction: 'board:action',
+  /** main → chat: os cartões mudaram. Arg: BoardCard[]. */
+  boardChanged: 'board:changed',
+  agentsList: 'agents:list',
+  /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
+  agentsPreview: 'agents:preview',
+  /** chat → main (invoke): grava o subagente. Args: (AgentSpec, pasta, fingerprint da prévia). */
+  agentsSave: 'agents:save',
+  /** chat → main (invoke): manda um subagente para a lixeira. Args: (escopo, arquivo, pasta). */
+  agentsRemove: 'agents:remove',
   /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
   chatDraft: 'chat:draft',
   /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
@@ -429,7 +502,8 @@ export interface WispApi {
   mascot: {
     /** Começa a arrastar o mascote; o offset é o ponto agarrado dentro da janela (px CSS). */
     dragStart(offsetX: number, offsetY: number): void
-    dragEnd(): void
+    /** Soltou o mascote; `withCtrl`: com o Ctrl apertado (Fase 48: mostrar a janela de baixo). */
+    dragEnd(withCtrl?: boolean): void
     click(): void
     /** Avisa que a página está pronta. Chame depois de registrar o onState. */
     ready(): void
@@ -491,6 +565,18 @@ export interface WispApi {
       text: string,
       attachments: OutgoingAttachment[]
     ): Promise<boolean>
+    /** O que voltar ao turno `turn` faria nos arquivos (Fase 46). */
+    rewindPreview(conversation: string, turn: number): Promise<RewindPreview>
+    /** Volta a conversa para antes do turno `turn`; com `files`, os arquivos também (Fase 46). */
+    rewind(
+      conversation: string,
+      turn: number,
+      files: { path: string; hash: string }[] | null
+    ): Promise<RewindResult>
+    /** Uma aba nova com a conversa até o fim do turno `turn` (Fase 46). */
+    fork(conversation: string, turn: number): Promise<boolean>
+    /** Uma pergunta rápida com o contexto da conversa, sem entrar nela (Fase 46). */
+    aside(conversation: string, question: string): Promise<AsideResult>
     /** Guarda o rascunho da caixa da aba. */
     saveDraft(conversation: string, text: string): void
     /** Exporta a conversa da aba em Markdown (o diálogo do sistema escolhe onde). */
@@ -617,6 +703,8 @@ export interface WispApi {
   /** O resumo da semana: o cartão no topo do histórico. */
   summary: {
     get(): Promise<WeekSummaries | null>
+    /** Grava o resumo em imagem (o PNG que o painel desenhou), onde você escolher. */
+    saveImage(png: ArrayBuffer): Promise<ExportResult>
     /** A notificação de segunda-feira pediu o resumo. */
     onShow(listener: () => void): () => void
   }
@@ -656,7 +744,7 @@ export interface WispApi {
     set(patch: Partial<Settings> & { autostart?: boolean }): Promise<SettingsResult>
     onChanged(listener: (snapshot: SettingsSnapshot) => void): () => void
     /** Abre o config.json ou o registro no app padrão (ou mostra na pasta). */
-    openFile(which: 'config' | 'log'): void
+    openFile(which: 'config' | 'log' | 'sounds'): void
     /** Fecha e abre o Wisp de novo (para o idioma novo valer). */
     relaunch(): void
     /** Roda uma tarefa agendada agora, numa aba nova. */
@@ -674,6 +762,43 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** Conversar pelo celular na rede local (Fase 54). */
+  remoteChat: {
+    state(): Promise<RemoteChatState | null>
+    forget(): Promise<RemoteChatState | null>
+  }
+  /** O quadro de tarefas (Fase 51). */
+  board: {
+    list(): Promise<BoardCard[]>
+    add(title: string, prompt: string, folder: string): Promise<BoardResult>
+    action(
+      action: 'start' | 'show' | 'join' | 'discard' | 'remove' | 'move',
+      card: string,
+      column?: BoardColumn
+    ): Promise<BoardResult>
+    onChanged(listener: (cards: BoardCard[]) => void): () => void
+  }
+  /** Os subagentes do Claude Code (Fase 50). */
+  agents: {
+    list(folder: string | null): Promise<AgentInfo[]>
+    preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>
+    save(spec: AgentSpec, folder: string | null, fingerprint: string): Promise<AgentResult>
+    remove(scope: AgentScope, file: string, folder: string | null): Promise<AgentResult>
+  }
+  /** O painel de uso (Fase 49). */
+  usage: {
+    report(days: number): Promise<UsageReport | null>
+    export(days: number): Promise<ExportResult>
+  }
+  /** A pré-visualização (Fase 47): HTML, PDF, imagens e o localhost numa janela; Markdown no painel. */
+  preview: {
+    open(target: string, folder: string | null): Promise<PreviewResult>
+    capture(): Promise<boolean>
+    reload(): void
+    close(): void
+    get(): Promise<PreviewState>
+    onState(listener: (state: PreviewState) => void): () => void
   }
   /** Levar o Wisp junto (Fase 31): exportar e importar. */
   portable: {

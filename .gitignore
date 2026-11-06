@@ -8,3 +8,4 @@ out
 .flatpak-build
 .flatpak-builder
 wisp-release-key.pem
+*.tsbuildinfo

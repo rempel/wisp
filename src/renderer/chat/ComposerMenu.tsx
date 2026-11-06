@@ -11,12 +11,18 @@ export function ComposerMenu({
   onAttach,
   onCapture,
   onCaptureArea,
+  onAside,
+  onPreview,
   capturing
 }: {
   onAttach: () => void
   onCapture: () => void
   /** Recortar uma área da tela (Fase 41). */
   onCaptureArea: () => void
+  /** A pergunta lateral (Fase 46). */
+  onAside?: () => void
+  /** Pré-visualizar um arquivo ou o localhost (Fase 47). */
+  onPreview?: () => void
   capturing: boolean
 }): JSX.Element {
   const [open, setOpen] = useState(false)
@@ -99,6 +105,29 @@ export function ComposerMenu({
               <small>{t('arraste um retângulo na tela; Esc desiste')}</small>
             </span>
           </button>
+          {onPreview && (
+            <button
+              type="button"
+              role="menuitem"
+              className="model-option"
+              onClick={pick(onPreview)}
+            >
+              <span className="model-check">▸</span>
+              <span className="model-text">
+                <strong>{t('Pré-visualizar')}</strong>
+                <small>{t('um HTML, PDF, imagem, Markdown ou o localhost (/preview)')}</small>
+              </span>
+            </button>
+          )}
+          {onAside && (
+            <button type="button" role="menuitem" className="model-option" onClick={pick(onAside)}>
+              <span className="model-check">?</span>
+              <span className="model-text">
+                <strong>{t('Pergunta lateral')}</strong>
+                <small>{t('uma dúvida rápida, sem entrar na conversa (/btw)')}</small>
+              </span>
+            </button>
+          )}
         </div>
       )}
     </div>

@@ -71,6 +71,10 @@ export interface Settings {
   islandShortcut: string | null
   areaShortcut: string | null
   selectionShortcut: string | null
+  windowShortcut: string | null
+  dictationShortcut: string | null
+  dictationReplacements: { from: string; to: string }[]
+  quietHours: { from: string; to: string } | null
   voiceShortcut: string | null
   clipboardChip: boolean
   browserAutomation: boolean
@@ -81,6 +85,8 @@ export interface Settings {
   demo: boolean
   compact: boolean
   github: boolean
+  gitlab: boolean
+  phoneChat: boolean
   calendar: boolean
   calendarFiles: string[]
   calendarAlertMinutes: number
@@ -122,6 +128,10 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'islandShortcut',
   'areaShortcut',
   'selectionShortcut',
+  'windowShortcut',
+  'dictationShortcut',
+  'dictationReplacements',
+  'quietHours',
   'voiceShortcut',
   'clipboardChip',
   'browserAutomation',
@@ -132,6 +142,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'demo',
   'compact',
   'github',
+  'gitlab',
+  'phoneChat',
   'calendar',
   'calendarFiles',
   'calendarAlertMinutes',
@@ -213,7 +225,18 @@ export interface DiagnosticsSnapshot {
 }
 
 /** Uma tela do painel aberta pelo main. */
-export type PanelView = 'welcome' | 'diagnostics' | 'palette'
+/** A página do celular na rede local (Fase 54): ligada, o endereço com o código do QR. */
+export interface RemoteChatState {
+  running: boolean
+  /** O endereço do QR (com o código de uso único); null desligada. */
+  link: string | null
+  /** Quantos celulares estão pareados. */
+  devices: number
+  /** Por que não ligou (sem rede local, a porta). */
+  error: string | null
+}
+
+export type PanelView = 'welcome' | 'diagnostics' | 'palette' | 'usage' | 'agents' | 'board'
 
 /** Em que pé está a aprovação pelo celular. */
 export interface PhoneStatus {

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import type { WeekSummaries, WeekSummary } from '../../shared/ipc'
 import { t, dateLocale } from '../../shared/i18n'
+import { weekImage } from './week-image'
 
 const DAY = new Intl.DateTimeFormat(dateLocale(), { day: '2-digit', month: '2-digit' })
 
@@ -89,6 +90,7 @@ function Stats({ week, before }: { week: WeekSummary; before: WeekSummary | null
 export function WeekCard(): JSX.Element | null {
   const [data, setData] = useState<WeekSummaries | null>(null)
   const [which, setWhich] = useState<'current' | 'previous'>('current')
+  const [saved, setSaved] = useState<string | null>(null)
   useEffect(() => {
     let alive = true
     void window.wisp.summary.get().then((summaries) => alive && setData(summaries))
@@ -126,6 +128,26 @@ export function WeekCard(): JSX.Element | null {
         </span>
       </div>
       <Stats week={week} before={which === 'current' ? data.previous : null} />
+      <div className="week-share">
+        <button
+          type="button"
+          className="link"
+          onClick={() =>
+            void weekImage(week)
+              .then((png) => window.wisp.summary.saveImage(png))
+              .then((result) => {
+                if (result)
+                  setSaved(
+                    result.ok ? t('Salva em {path}.', { path: result.path }) : result.message
+                  )
+              })
+              .catch((err: unknown) => setSaved(String(err)))
+          }
+        >
+          {t('Salvar como imagem')}
+        </button>
+        {saved && <small className="settings-hint">{saved}</small>}
+      </div>
     </section>
   )
 }

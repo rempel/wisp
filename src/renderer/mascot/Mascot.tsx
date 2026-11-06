@@ -436,7 +436,7 @@ export default function Mascot(): JSX.Element {
     press.current = null
     if (p.dragging) {
       setDragging(false)
-      window.wisp.mascot.dragEnd()
+      window.wisp.mascot.dragEnd(e.ctrlKey)
     } else if (released) {
       onClick()
     }

@@ -4,6 +4,8 @@ import { changedLines, diffFromInput, pathOf } from '../../shared/diff'
 import { danceLabel, emotionLabel, isDance, isEmotion } from '../../shared/emotions'
 import { DiffCount, DiffView } from './DiffView'
 import { openFileView } from './fileView'
+import { PreviewButton } from './Preview'
+import { localhostIn, PREVIEWABLE } from './preview-store'
 import { CheckIcon, ChevronIcon, ErrorIcon } from './icons'
 import { stepLabel, toolLabel } from './state'
 import type { Item, SubagentStep } from './state'
@@ -136,6 +138,8 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
   const images = tool.images ?? []
   const inlineImages = images.length > 0 && INLINE_IMAGES.has(tool.name)
   const filePath = FILE_TOOLS.has(tool.name) ? pathOf(tool.input) : ''
+  // Um servidor que subiu (o "Local: http://localhost:5173" na saída de um comando, Fase 47).
+  const local = tool.name === 'Bash' && tool.output ? localhostIn(tool.output) : null
 
   return (
     <div className={`tool tool-${tool.status}`}>
@@ -174,6 +178,15 @@ export function ToolCard({ tool }: { tool: ToolItem }): JSX.Element {
             >
               {t('Abrir o arquivo no painel')}
             </button>
+          )}
+          {filePath && tool.name !== 'Read' && PREVIEWABLE.test(filePath) && (
+            <PreviewButton target={filePath} label={t('Pré-visualizar')} />
+          )}
+          {local && (
+            <PreviewButton
+              target={local}
+              label={t('Abrir {url} na pré-visualização', { url: local })}
+            />
           )}
           {diff && diff.hunks.length > 0 ? (
             <>

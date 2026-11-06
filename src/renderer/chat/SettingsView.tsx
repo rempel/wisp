@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { JSX } from 'react'
 import { AVATAR_LABELS, AVATARS } from '../../shared/avatars'
 import type { AvatarName } from '../../shared/avatars'
@@ -15,6 +15,7 @@ import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
 import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
+import { RemoteChatSection } from './RemoteChatSection'
 import { PortableSection } from './PortableSection'
 import {
   ListInput,
@@ -25,6 +26,7 @@ import {
   TextInput,
   Toggle
 } from './SettingsFields'
+import { parseReplacements } from '../../shared/dictation'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -69,15 +71,20 @@ const LANGUAGES: Record<string, string> = {
  * hora (sem mexer no resto dele) e vale como uma edição no próprio arquivo.
  */
 export function SettingsView({
+  onAgents,
   onDiagnostics,
   onWelcome
 }: {
+  /** Abre a tela dos subagentes (Fase 50). */
+  onAgents: () => void
   onDiagnostics: () => void
   onWelcome: () => void
 }): JSX.Element {
   const [snapshot, setSnapshot] = useState<SettingsSnapshot | null>(null)
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(0)
+  const [query, setQuery] = useState('')
+  const scroll = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     let alive = true
@@ -95,6 +102,20 @@ export function SettingsView({
     const timer = window.setTimeout(() => setSaved(0), 1600)
     return () => window.clearTimeout(timer)
   }, [saved])
+
+  // A busca (Fase 52): só as seções com o texto procurado ficam à vista (sem acento nem caixa).
+  useEffect(() => {
+    const fold = (text: string): string =>
+      text
+        .normalize('NFD')
+        .replace(/\p{Diacritic}/gu, '')
+        .toLowerCase()
+    const wanted = fold(query.trim())
+    for (const section of scroll.current?.querySelectorAll<HTMLElement>('.settings-section') ??
+      []) {
+      section.hidden = !!wanted && !fold(section.textContent ?? '').includes(wanted)
+    }
+  }, [query, snapshot])
 
   if (!snapshot) return <div className="settings" />
   const values = snapshot.values
@@ -114,7 +135,21 @@ export function SettingsView({
 
   return (
     <div className="settings">
-      <div className="settings-scroll">
+      <input
+        type="search"
+        className="settings-search"
+        value={query}
+        placeholder={t('Buscar nas configurações (ex.: som, atalho, voz)')}
+        aria-label={t('Buscar nas configurações')}
+        onChange={(event) => setQuery(event.target.value)}
+        onKeyDown={(event) => {
+          if (event.key === 'Escape' && query) {
+            event.stopPropagation()
+            setQuery('')
+          }
+        }}
+      />
+      <div className="settings-scroll" ref={scroll}>
         {snapshot.problems.length > 0 && (
           <div className="settings-problems" role="alert">
             <strong>{t('O config.json tem problemas')}</strong>
@@ -278,6 +313,21 @@ export function SettingsView({
             checked={values.sound}
             onChange={(sound) => void save({ sound })}
           />
+          <div className="settings-row">
+            <span className="settings-label">{t('Os seus sons')}</span>
+            <button
+              type="button"
+              className="settings-button"
+              onClick={() => window.wisp.settings.openFile('sounds')}
+            >
+              {t('Abrir a pasta dos sons')}
+            </button>
+            <small className="settings-hint">
+              {t(
+                'Um arquivo com o nome de um som (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), em .ogg, .wav, .mp3…, troca o do Wisp na hora; apagar traz o de volta.'
+              )}
+            </small>
+          </div>
           <Row label={t('Volume')}>
             <input
               type="range"
@@ -456,6 +506,48 @@ export function SettingsView({
               onCommit={(selectionShortcut) => save({ selectionShortcut })}
             />
           </Row>
+          <Row
+            label={t('Mostrar a janela da frente')}
+            hint={t(
+              'De qualquer lugar: o print da janela em foco, com o título, vai para a conversa (o mesmo que soltar o mascote em cima dela com o Ctrl apertado).'
+            )}
+            error={errors.windowShortcut}
+          >
+            <ShortcutInput
+              value={values.windowShortcut}
+              onCommit={(windowShortcut) => save({ windowShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Ditar em qualquer programa')}
+            hint={t(
+              'Segure, fale e solte: o que você disse (transcrito na sua máquina) é colado no programa da frente. Precisa do whisper.cpp da voz.'
+            )}
+            error={errors.dictationShortcut}
+          >
+            <ShortcutInput
+              value={values.dictationShortcut}
+              onCommit={(dictationShortcut) => save({ dictationShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Trocas do ditado')}
+            hint={t(
+              'Uma por linha, no formato "dito = escrito" (ex.: "uisp = Wisp"): vale como palavra inteira, sem ligar para maiúsculas.'
+            )}
+            error={errors.dictationReplacements}
+          >
+            <textarea
+              className="settings-textarea"
+              rows={3}
+              defaultValue={values.dictationReplacements
+                .map(({ from, to }) => `${from} = ${to}`)
+                .join('\n')}
+              onBlur={(event) =>
+                void save({ dictationReplacements: parseReplacements(event.target.value) })
+              }
+            />
+          </Row>
           <Toggle
             label={t('Responder pela notificação')}
             hint={t(
@@ -480,6 +572,49 @@ export function SettingsView({
             checked={values.quietWithDnd}
             onChange={(quietWithDnd) => void save({ quietWithDnd })}
           />
+          <Row
+            label={t('Horas de silêncio')}
+            hint={t(
+              'Todo dia, nesse horário, o Wisp fica quieto como no “não perturbe” (os cards esperam no painel).'
+            )}
+            error={errors.quietHours}
+          >
+            <span className="quiet-hours">
+              <input
+                type="checkbox"
+                checked={!!values.quietHours}
+                aria-label={t('Ligar as horas de silêncio')}
+                onChange={(event) =>
+                  void save({
+                    quietHours: event.target.checked ? { from: '22:00', to: '08:00' } : null
+                  })
+                }
+              />
+              <input
+                type="time"
+                aria-label={t('Começa às')}
+                value={values.quietHours?.from ?? '22:00'}
+                disabled={!values.quietHours}
+                onChange={(event) =>
+                  values.quietHours &&
+                  event.target.value &&
+                  void save({ quietHours: { ...values.quietHours, from: event.target.value } })
+                }
+              />
+              {t('até')}
+              <input
+                type="time"
+                aria-label={t('Acaba às')}
+                value={values.quietHours?.to ?? '08:00'}
+                disabled={!values.quietHours}
+                onChange={(event) =>
+                  values.quietHours &&
+                  event.target.value &&
+                  void save({ quietHours: { ...values.quietHours, to: event.target.value } })
+                }
+              />
+            </span>
+          </Row>
           <Toggle
             label={t('Iniciar com o sistema')}
             checked={snapshot.autostart}
@@ -527,6 +662,15 @@ export function SettingsView({
 
         <Section title={t('Skills')}>
           <SkillsSection />
+        </Section>
+
+        <Section title={t('Subagentes')}>
+          <p className="settings-hint">
+            {t('Ajudantes com o próprio prompt, modelo e ferramentas, que o Claude chama sozinho.')}
+          </p>
+          <button type="button" className="settings-button" onClick={onAgents}>
+            {t('Ver e editar os subagentes')}
+          </button>
         </Section>
 
         <Section title={t('Servidores MCP')}>
@@ -584,6 +728,14 @@ export function SettingsView({
             onChange={(github) => void save({ github })}
           />
           <Toggle
+            label={t('Avisos do GitLab')}
+            hint={t(
+              'O pipeline dos seus merge requests abertos (falhou, ou passou depois de rodar), a cada 3 minutos. Usa o glab (GitLab CLI) já logado: rode glab auth login antes.'
+            )}
+            checked={values.gitlab}
+            onChange={(gitlab) => void save({ gitlab })}
+          />
+          <Toggle
             label={t('Agenda')}
             hint={t(
               'Os próximos compromissos dos endereços iCal (Google, Outlook, iCloud), das agendas do GNOME (no Linux, com as Contas Online) e dos arquivos abaixo. Só leitura.'
@@ -639,6 +791,10 @@ export function SettingsView({
 
         <Section title={t('Celular')}>
           <PhoneSection status={snapshot.phone} />
+          <RemoteChatSection
+            enabled={values.phoneChat}
+            onToggle={(phoneChat) => void save({ phoneChat })}
+          />
           <Row
             label={t('Mandar depois de')}
             hint={t(
