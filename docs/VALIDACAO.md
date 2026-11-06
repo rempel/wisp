@@ -963,4 +963,18 @@ Com **Ilha no topo** ligada:
 - [ ] **Ramificar:** **Ramificar** na primeira de duas mensagens: abre a aba "… (ramo)" com uma
       mensagem; pergunte "o que eu pedi até agora?": o Claude só lembra da primeira.
 - [ ] **Pergunta lateral:** com o Claude trabalhando numa resposta longa, `/btw o que você está
-    fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
+  fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
+
+## A pré-visualização (Fase 47)
+
+- [ ] **HTML:** numa conversa numa pasta, peça "crie um index.html com uma página de boas-vindas".
+      No card do Write, **Pré-visualizar**: a janela abre ao lado do painel com a página.
+- [ ] **Recarregar:** peça "mude o título para Olá": a janela recarrega sozinha com o título novo.
+- [ ] **Mostrar ao Claude:** na barra acima das abas, **Mostrar ao Claude**: o print vai para a
+      caixa como anexo; mande "o que você vê?".
+- [ ] **Servidor:** num projeto Vite, peça "rode npm run dev em segundo plano": o card do comando
+      tem **Abrir http://localhost:5173/ na pré-visualização**.
+- [ ] **Markdown e PDF:** `/preview README.md` abre o Markdown no painel (Esc fecha);
+      `/preview ~/algum.pdf` abre o PDF na janela.
+- [ ] **Fora:** `/preview https://example.com` diz que só vale o que é desta máquina; um link
+      para outro site dentro da página não navega.

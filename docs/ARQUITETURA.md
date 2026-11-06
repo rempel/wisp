@@ -43,6 +43,7 @@ src/
 │  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
 │  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
+│  ├─ preview.ts     # a pré-visualização: o que abrir e a janela isolada ao lado do painel (Fase 47)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1070,3 +1071,25 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     sessão, `--resume <sessão> --fork-session`. A pergunta vai pela entrada padrão, nunca pela
     linha de comando. Nada vai para o histórico nem para a sessão da conversa, que segue como
     estava, mesmo trabalhando.
+- **A pré-visualização (Fase 47):**
+  - **o que abre:** `previewTarget` aceita um endereço desta máquina (`localhost`, `127.0.0.1`,
+    `[::1]`; o `0.0.0.0` de um servidor de desenvolvimento vira `localhost`; `:5173` e `5173`
+    também) ou um arquivo (absoluto, com `~` ou relativo à pasta da conversa) com uma extensão de
+    HTML, PDF, imagem ou Markdown, nunca um dos arquivos de segredos do `isSensitivePath`. Um
+    endereço da internet ou outro protocolo é recusado;
+  - **a janela:** um `BrowserWindow` noutra sessão (`partition: wisp-preview`, sem os cookies do
+    painel), sem preload, no sandbox, com o `contextIsolation`, sem permissões (o
+    `setPermissionRequestHandler` nega tudo), sem janelas novas (`setWindowOpenHandler`) e sem
+    navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta dele.
+    Abre do lado do painel que tem mais espaço, com a altura dele. O `plugins: true` liga o leitor
+    de PDF do Chromium;
+  - **recarregar:** o `fs.watch` da pasta do arquivo (sem descer nas de dentro, para um
+    `node_modules` não pesar), com 300 ms de espera; num endereço, o servidor de desenvolvimento
+    já recarrega sozinho. F5 e Ctrl+R na janela, e o Recarregar da barra;
+  - **mostrar ao Claude:** o `capturePage` da janela vira um anexo (`preview-<data>.png`), pelo
+    mesmo caminho dos prints, na conversa em foco;
+  - **o Markdown:** abre no painel, por cima da conversa, com o `Markdown` das respostas, lido pelo
+    `files:view` (Fase 34: até 2 MB, sem segredos) de 1,5 em 1,5 s enquanto está aberto;
+  - **nos cards:** o de uma edição de um arquivo que dá para ver tem Pré-visualizar; o de um
+    comando cuja saída tem um `http://localhost:porta` (sem as cores do terminal no meio) tem o
+    abrir esse endereço.

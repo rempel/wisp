@@ -77,6 +77,7 @@ import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
+import { setupPreview } from './preview'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
@@ -631,6 +632,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     version: app.getVersion()
   })
   setupFileViewIpc((sender) => chat?.isSender(sender) ?? false)
+  setupPreview(
+    (sender) => chat?.isSender(sender) ?? false,
+    (dropped) => chat?.attach(dropped)
+  )
   // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,

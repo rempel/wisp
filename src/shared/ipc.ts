@@ -27,6 +27,8 @@ import type {
   RewindPreview,
   RewindResult,
   AsideResult,
+  PreviewResult,
+  PreviewState,
   TabsState,
   WorktreeResult,
   WorktreeStatus,
@@ -166,6 +168,20 @@ export const IPC = {
   chatFork: 'chat:fork',
   /** chat → main (invoke): a pergunta lateral (Fase 46). Args: (conversa, pergunta). Devolve AsideResult. */
   chatAside: 'chat:aside',
+  /**
+   * chat → main (invoke): abre a pré-visualização (Fase 47). Args: (alvo, pasta da conversa ou
+   * null). Devolve PreviewResult.
+   */
+  previewOpen: 'preview:open',
+  /** chat → main (invoke): um print da pré-visualização vai como anexo. Devolve boolean. */
+  previewCapture: 'preview:capture',
+  /** chat → main: recarregar e fechar a pré-visualização. */
+  previewReload: 'preview:reload',
+  previewClose: 'preview:close',
+  /** chat → main (invoke): o estado da pré-visualização (PreviewState). */
+  previewGet: 'preview:get',
+  /** main → chat: a pré-visualização abriu, mudou ou fechou. Arg: PreviewState. */
+  previewState: 'preview:state',
   /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
   chatDraft: 'chat:draft',
   /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
@@ -704,6 +720,15 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** A pré-visualização (Fase 47): HTML, PDF, imagens e o localhost numa janela; Markdown no painel. */
+  preview: {
+    open(target: string, folder: string | null): Promise<PreviewResult>
+    capture(): Promise<boolean>
+    reload(): void
+    close(): void
+    get(): Promise<PreviewState>
+    onState(listener: (state: PreviewState) => void): () => void
   }
   /** Levar o Wisp junto (Fase 31): exportar e importar. */
   portable: {

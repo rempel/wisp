@@ -26,6 +26,8 @@ export interface Points {
   fork(turn: number): void
   /** Abre a pergunta lateral (com uma pergunta, já a faz). */
   aside(question?: string): void
+  /** Um aviso curto acima da caixa (a pré-visualização que não abriu, Fase 47). */
+  say(text: string): void
   /** A confirmação e a pergunta lateral, para ficarem acima da caixa. */
   panel: JSX.Element | null
 }
@@ -220,5 +222,7 @@ export function usePoints(conversation: string, putDraft: (text: string) => void
       </div>
     ) : null
 
-  return { rewind, fork, aside: openAside, panel }
+  const say = (text: string): void => setNote({ ok: false, text })
+
+  return { rewind, fork, aside: openAside, say, panel }
 }

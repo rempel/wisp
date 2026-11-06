@@ -22,6 +22,8 @@ import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
+import { MarkdownPreview, PreviewBar } from './Preview'
+import { markdownOpen } from './preview-store'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
@@ -364,7 +366,7 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       // Com a paleta ou um arquivo aberto (Fase 34), as teclas são deles.
-      if (paletteRef.current || fileViewOpen()) return
+      if (paletteRef.current || fileViewOpen() || markdownOpen()) return
       // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
       if (
         fromTerminal(event.target) &&
@@ -825,6 +827,7 @@ export default function Chat(): JSX.Element {
             {tabs.tabs.length > 0 && (
               <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
             )}
+            <PreviewBar />
             <div className="panes">
               <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
             </div>
@@ -832,6 +835,7 @@ export default function Chat(): JSX.Element {
         )}
         {palette && <CommandPalette actions={actions} onClose={closePalette} />}
         <FileViewer />
+        <MarkdownPreview />
       </div>
     </AvatarContext.Provider>
   )

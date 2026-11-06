@@ -122,6 +122,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   arquivos) para antes de qualquer mensagem sua; ramificar uma conversa numa aba nova a partir de
   uma resposta; e o `/btw`, uma pergunta rápida que não entra na conversa.
 
+- **A pré-visualização** (Fase 47): um HTML, PDF, imagem ou o servidor local do projeto
+  numa janela ao lado do painel (e um Markdown no próprio painel), pelo `/preview` ou pelos cards;
+  recarrega sozinha, e **Mostrar ao Claude** anexa um print dela.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.
