@@ -221,8 +221,13 @@ if (flag('--output-format') === 'json') {
     const said = memory.map((turn) => turn.user).join(' | ')
     const result = `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
     process.stdout.write(
-      JSON.stringify({ type: 'result', subtype: 'success', is_error: false, result, session_id: sessionId }) +
-        '\n'
+      JSON.stringify({
+        type: 'result',
+        subtype: 'success',
+        is_error: false,
+        result,
+        session_id: sessionId
+      }) + '\n'
     )
   })
   return
