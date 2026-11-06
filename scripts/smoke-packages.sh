@@ -49,7 +49,9 @@ ok "o app, o relay dos hooks, a demonstração, o node-pty (modo terminal), o .d
 ! grep -q '/out/test/' "$work/deb.txt" || fail "o .deb leva os testes de unidade"
 ! grep -q 'node-pty/prebuilds/' "$work/deb.txt" || fail "o .deb leva os binários do node-pty de outros sistemas"
 ! grep -q 'default_app.asar' "$work/deb.txt" || fail "o .deb leva o app padrão do Electron"
-ok "sem os testes e sem o app padrão do Electron"
+! grep -qE '^\./opt/Wisp/resources/app/(src|test|e2e|docs|scripts)/' "$work/deb.txt" ||
+  fail "o .deb leva o projeto (o código-fonte, os testes ou a documentação)"
+ok "sem os testes, sem o código-fonte e sem o app padrão do Electron"
 dpkg-deb -e "$deb" "$work/control"
 grep -q apparmor "$work/control/postinst" || fail "o postinst não instala o perfil do AppArmor"
 ok "o postinst instala o perfil do AppArmor"

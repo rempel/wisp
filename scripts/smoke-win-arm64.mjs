@@ -1,6 +1,7 @@
 // Confere os instaladores do Windows montados em dist/ (Fase 40): cada pasta montada tem o
 // Wisp.exe e o node-pty da arquitetura dela (pelo cabeçalho PE dos binários), e só ela (o node-pty
-// da outra arquitetura fica de fora), e os dois instaladores existem. Abrir o Wisp de ARM64 pede
+// da outra arquitetura fica de fora), nada do projeto além do app montado (sem o src, os testes e
+// a documentação), e os dois instaladores existem. Abrir o Wisp de ARM64 pede
 // uma máquina ARM; isto confere o que dá para conferir num x64.
 // Uso: node scripts/smoke-win-arm64.mjs
 import { existsSync, openSync, readSync, closeSync, readdirSync } from 'node:fs'
@@ -51,6 +52,14 @@ for (const [arch, dir, other] of [
   }
   check(!existsSync(join(prebuilds, `win32-${other}`)), `${dir} sem o node-pty de ${other}`)
   check(!existsSync(join(app, 'resources', 'app', '.cache')), `${dir} sem a pasta .cache`)
+  const extra = ['src', 'test', 'e2e', 'docs', 'scripts'].filter((name) =>
+    existsSync(join(app, 'resources', 'app', name))
+  )
+  check(extra.length === 0, `${dir} sem o projeto (${extra.join(', ') || 'só o app montado'})`)
+  check(
+    !existsSync(join(app, 'resources', 'app', 'node_modules', 'node-pty', 'build')),
+    `${dir} sem o node-pty/build`
+  )
   const installers = readdirSync(dist).filter((name) => name.endsWith(`-Setup-${arch}.exe`))
   check(installers.length === 1, `o instalador ${arch}: ${installers.join(', ') || 'nenhum'}`)
 }
