@@ -2030,7 +2030,9 @@ Notas da entrega:
 
 ### Fase 54: conversar pelo celular, na rede local
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/celular-rede.test.ts`, com pedidos HTTP de
+verdade; `e2e/celular-rede.mjs`, com a página aberta numa janela da pré-visualização, noutra
+sessão, como o navegador do celular, no job do Linux do CI).
 
 - **A página do celular (G):** além de aprovar pelo ntfy (Fase 18), uma página servida pelo Wisp
   na rede local, com as conversas abertas, as respostas e a caixa para mandar.
@@ -2039,6 +2041,20 @@ Notas da entrega:
 
 **Aceite:** ligado, o QR abre no celular a conversa em foco; uma mensagem mandada de lá aparece
 no painel e o Claude responde; sem o token, nada responde; desligado, a porta fecha.
+
+Notas da entrega:
+
+- HTTP na rede local, e não HTTPS: um certificado próprio faria o navegador do celular avisar a
+  cada vez, e não dá para fixar um certificado numa página aberta pelo QR. Em troca, a porta só
+  existe com a opção ligada, só responde a endereços da rede local e pelo endereço do QR, e a
+  configuração diz para ligar só numa rede sua;
+- o celular conversa, mas não aprova: os cards continuam no computador (ou no ntfy, Fase 18). Uma
+  conversa no Automático, que roda comandos sem perguntar, só é lida pelo celular;
+- a página lê de 2 em 2 segundos, sem WebSocket: a resposta aparece por blocos (o histórico grava
+  o texto quando o bloco acaba), não letra a letra;
+- o e2e abre a página na janela da pré-visualização (outra sessão do Electron, como outro
+  navegador). Ela pegou que um QR novo com a página já aberta não pareava: agora a página lê o
+  código também no `hashchange`.
 
 ## Ideias avaliadas e deixadas de fora
 

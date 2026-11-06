@@ -173,6 +173,8 @@ export interface WispConfig {
   github: boolean
   /** Os avisos de CI do GitLab, pelo glab (Fase 52). */
   gitlab: boolean
+  /** Conversar pelo celular, numa página da rede local (Fase 54). */
+  phoneChat: boolean
   /** Agenda: os próximos compromissos (Evolution Data Server e .ics). Desligada por padrão. */
   calendar: boolean
   /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
@@ -279,6 +281,7 @@ function defaults(): WispConfig {
     islandCovers: false,
     github: false,
     gitlab: false,
+    phoneChat: false,
     calendar: false,
     calendarFiles: [],
     calendarLinks: [],
@@ -412,6 +415,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   islandCovers: z.boolean(),
   github: z.boolean(),
   gitlab: z.boolean(),
+  phoneChat: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
   calendarLinks: z

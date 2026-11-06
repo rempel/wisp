@@ -86,6 +86,7 @@ export interface Settings {
   compact: boolean
   github: boolean
   gitlab: boolean
+  phoneChat: boolean
   calendar: boolean
   calendarFiles: string[]
   calendarAlertMinutes: number
@@ -142,6 +143,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'compact',
   'github',
   'gitlab',
+  'phoneChat',
   'calendar',
   'calendarFiles',
   'calendarAlertMinutes',
@@ -223,6 +225,17 @@ export interface DiagnosticsSnapshot {
 }
 
 /** Uma tela do painel aberta pelo main. */
+/** A página do celular na rede local (Fase 54): ligada, o endereço com o código do QR. */
+export interface RemoteChatState {
+  running: boolean
+  /** O endereço do QR (com o código de uso único); null desligada. */
+  link: string | null
+  /** Quantos celulares estão pareados. */
+  devices: number
+  /** Por que não ligou (sem rede local, a porta). */
+  error: string | null
+}
+
 export type PanelView = 'welcome' | 'diagnostics' | 'palette' | 'usage' | 'agents' | 'board'
 
 /** Em que pé está a aprovação pelo celular. */

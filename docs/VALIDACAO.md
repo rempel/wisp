@@ -1052,3 +1052,15 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Sem colar sozinho:** sem o `xdotool` (ou, no Wayland, sem o `wtype`), a notificação diz
       que copiou; Ctrl+V cola.
 - [ ] **Windows:** o mesmo no Bloco de Notas.
+
+## Conversar pelo celular, na rede local (Fase 54)
+
+- [ ] **Parear:** em **Configurações → Celular**, ligue **Conversar pelo celular**: o QR aparece.
+      Com o celular no mesmo Wi-Fi, aponte a câmera: a página abre com as conversas.
+- [ ] **Mandar:** escreva "oi" no celular: a mensagem aparece no painel, e a resposta aparece no
+      celular.
+- [ ] **Automático:** ponha uma conversa no modo Automático: no celular, a caixa fica desligada.
+- [ ] **Uso único:** abra o mesmo endereço do QR noutro aparelho: ele não pareia (o código já foi
+      usado); gere outro QR (feche e abra as configurações depois de 10 minutos).
+- [ ] **Esquecer:** **Esquecer os celulares**: o celular volta a pedir o pareamento.
+- [ ] **Desligar:** desligue: a página para de responder.

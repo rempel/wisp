@@ -81,7 +81,8 @@ import type {
   SkillPreview,
   SkillResult,
   TaskResult,
-  WeekSummaries
+  WeekSummaries,
+  RemoteChatState
 } from './ipc-settings'
 
 export * from './ipc-chat'
@@ -199,6 +200,10 @@ export const IPC = {
   usageExport: 'usage:export',
   /** chat → main (invoke): os subagentes (Fase 50). Arg: a pasta da conversa. Devolve AgentInfo[]. */
   /** chat → main (invoke): os cartões do quadro (Fase 51). Devolve BoardCard[]. */
+  /** chat → main (invoke): a página do celular (Fase 54). Devolve RemoteChatState. */
+  remoteChatState: 'remote-chat:state',
+  /** chat → main (invoke): esquece os celulares pareados. Devolve RemoteChatState. */
+  remoteChatForget: 'remote-chat:forget',
   boardList: 'board:list',
   /** chat → main (invoke): um cartão novo. Args: (título, pedido, pasta). Devolve BoardResult. */
   boardAdd: 'board:add',
@@ -757,6 +762,11 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** Conversar pelo celular na rede local (Fase 54). */
+  remoteChat: {
+    state(): Promise<RemoteChatState | null>
+    forget(): Promise<RemoteChatState | null>
   }
   /** O quadro de tarefas (Fase 51). */
   board: {

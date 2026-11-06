@@ -217,6 +217,10 @@ const api: WispApi = {
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
   },
+  remoteChat: {
+    state: () => ipcRenderer.invoke(IPC.remoteChatState),
+    forget: () => ipcRenderer.invoke(IPC.remoteChatForget)
+  },
   board: {
     list: () => ipcRenderer.invoke(IPC.boardList),
     add: (title, prompt, folder) => ipcRenderer.invoke(IPC.boardAdd, title, prompt, folder),

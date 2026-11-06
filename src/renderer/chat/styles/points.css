@@ -444,3 +444,23 @@
   color: var(--text);
   font: inherit;
 }
+
+/* Fase 54: conversar pelo celular na rede local. */
+
+.remote-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.remote-chat-pair {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.remote-chat-link {
+  word-break: break-all;
+}
