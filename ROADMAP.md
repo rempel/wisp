@@ -1973,7 +1973,8 @@ Notas da entrega:
 
 ### Fase 52: os pequenos
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/pequenos.test.ts` e `test/github.test.ts`;
+`e2e/pequenos.mjs`, no job do Linux e no **Windows** do CI).
 
 - **Revisar um PR (P):** no aviso de um PR que pede a sua revisão, abrir o ramo dele numa cópia,
   com o pedido de revisão na caixa.
@@ -1985,10 +1986,22 @@ Notas da entrega:
 - **O resumo da semana em imagem (P):** um PNG para compartilhar.
 - **As notas da versão (P):** depois de atualizar, o que mudou, e o mascote avisa quando há
   versão nova.
-- **GitLab e Gitea (P):** os avisos de CI pelo `glab` e pelo `tea`, como o `gh`.
+- **GitLab (P):** os avisos de CI pelo `glab`, como o `gh` (o Gitea ficou de fora: veja as notas).
 
 **Aceite:** cada item com o seu teste; a busca "som" deixa só as seções com sons; com o horário de
 silêncio agora, um card não toca som.
+
+Notas da entrega:
+
+- revisar um PR: pelo `gh pr diff` e pelos comentários, no lugar de abrir o ramo numa cópia: não
+  é preciso achar a pasta do repositório nem baixar nada, e nada muda numa pasta sua. O pedido diz
+  para não comentar no PR;
+- os seus sons já existiam (a pasta da Fase 8): faltava achá-los, e o botão das configurações
+  abre a pasta;
+- as notas da versão: a página da versão no GitHub, num clique (sem baixar as notas: rede só com
+  o seu clique);
+- o Gitea ficou de fora: o `tea` não tem um jeito estável de ler o estado do CI de um pull
+  request. O GitLab entrou pelo `glab api`, no mesmo vigia (e com os mesmos avisos) do GitHub.
 
 ### Fase 53: ditar em qualquer programa
 

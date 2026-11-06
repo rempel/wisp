@@ -105,6 +105,8 @@ export interface PaneProps {
    * a última (a edição), que sai com o que veio depois.
    */
   onSent: (text: string, attachments: AttachmentPreview[], replace?: boolean) => void
+  /** A mesma mensagem em todas as conversas da grade (Fase 52); devolve em quantas foi. */
+  onBroadcast?: (text: string) => number
 }
 
 /** O que a demonstração sugere pedir (cada um tem uma resposta gravada). */
@@ -133,7 +135,8 @@ export function Pane({
   bus,
   demo,
   agenda,
-  onSent
+  onSent,
+  onBroadcast
 }: PaneProps): JSX.Element {
   const [draft, setDraft] = useState(() => drafts.get(conversation) ?? state.draft ?? '')
   // Voltar, ramificar e a pergunta lateral (Fase 46): o texto que saiu volta para a caixa.
@@ -357,6 +360,14 @@ export function Pane({
     const saved = /^\/([a-z0-9-]+)$/.exec(text.trim())
     if (saved && savedPrompts.some((prompt) => prompt.name === saved[1])) {
       pickCommand({ name: saved[1], description: '', prompt: true })
+      return true
+    }
+    // Para todas as conversas da grade (Fase 52): /todas com a mensagem.
+    const all = /^\/todas\s+([\s\S]+)$/.exec(text)
+    if (all && onBroadcast && !attachments.pending.length) {
+      onBroadcast(all[1].trim())
+      setDraft('')
+      stick.current = true
       return true
     }
     // A pré-visualização (Fase 47): /preview com o endereço ou o arquivo.

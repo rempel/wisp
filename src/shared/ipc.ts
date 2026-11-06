@@ -133,6 +133,8 @@ export const IPC = {
   islandAction: 'island:action',
   agendaNext: 'agenda:next',
   summaryGet: 'summary:get',
+  /** chat → main (invoke): grava o resumo em imagem (Fase 52). Arg: o PNG. Devolve ExportResult. */
+  summaryImage: 'summary:image',
   summaryShow: 'summary:show',
   /** main → mascote: tocar um som. Args: (SoundName, volume de 0 a 1). */
   mascotSound: 'mascot:sound',
@@ -696,6 +698,8 @@ export interface WispApi {
   /** O resumo da semana: o cartão no topo do histórico. */
   summary: {
     get(): Promise<WeekSummaries | null>
+    /** Grava o resumo em imagem (o PNG que o painel desenhou), onde você escolher. */
+    saveImage(png: ArrayBuffer): Promise<ExportResult>
     /** A notificação de segunda-feira pediu o resumo. */
     onShow(listener: () => void): () => void
   }
@@ -735,7 +739,7 @@ export interface WispApi {
     set(patch: Partial<Settings> & { autostart?: boolean }): Promise<SettingsResult>
     onChanged(listener: (snapshot: SettingsSnapshot) => void): () => void
     /** Abre o config.json ou o registro no app padrão (ou mostra na pasta). */
-    openFile(which: 'config' | 'log'): void
+    openFile(which: 'config' | 'log' | 'sounds'): void
     /** Fecha e abre o Wisp de novo (para o idioma novo valer). */
     relaunch(): void
     /** Roda uma tarefa agendada agora, numa aba nova. */

@@ -2571,5 +2571,45 @@ export const EN: Record<string, string> = {
   'numa cópia': 'in a copy',
   'Quadro de tarefas': 'Task board',
   'cada cartão numa cópia do projeto': 'each card in a copy of the project',
-  'kanban cartões cópias': 'kanban cards copies'
+  'kanban cartões cópias': 'kanban cards copies',
+  'Dois horários HH:MM (ex.: 22:00 e 08:00), ou null.':
+    'Two HH:MM times (e.g. 22:00 and 08:00), or null.',
+  'Clique para revisar numa conversa.': 'Click to review it in a conversation.',
+  'Os avisos do GitLab voltaram a funcionar.': 'The GitLab alerts are working again.',
+  'Para os avisos do GitLab, instale o **glab** (GitLab CLI) e rode `glab auth login`.':
+    'For the GitLab alerts, install **glab** (the GitLab CLI) and run `glab auth login`.',
+  'O **glab** não está logado no GitLab: rode `glab auth login` no terminal.':
+    "**glab** isn't logged in to GitLab: run `glab auth login` in the terminal.",
+  '{author} pediu a sua revisão no PR {repo}#{number} "{title}" ({url}). Leia o que mudou (`gh pr diff {number} --repo {repo}`) e a conversa (`gh pr view {number} --repo {repo} --comments`), e me diga os problemas (bugs, segurança, casos esquecidos) e o que está bom, com o arquivo e a linha de cada ponto. Não comente no PR: eu decido o que mandar.':
+    '{author} asked for your review on PR {repo}#{number} "{title}" ({url}). Read what changed (`gh pr diff {number} --repo {repo}`) and the conversation (`gh pr view {number} --repo {repo} --comments`), and tell me the problems (bugs, security, missed cases) and what\'s good, with the file and line of each point. Don\'t comment on the PR: I decide what to send.',
+  'O pipeline do merge request {repo}!{number} "{title}" falhou ({url}). Veja o que quebrou (`glab mr view {number} -R {repo}` e `glab ci view -R {repo}` ou `glab ci trace -R {repo}` no job que falhou), explique a causa e proponha a correção.':
+    'The pipeline of merge request {repo}!{number} "{title}" failed ({url}). See what broke (`glab mr view {number} -R {repo}` and `glab ci view -R {repo}` or `glab ci trace -R {repo}` on the failed job), explain the cause and propose the fix.',
+  'Wisp atualizado para {version}': 'Wisp updated to {version}',
+  'Antes era a {previous}. Clique para ver o que mudou.':
+    'It was {previous} before. Click to see what changed.',
+  'Salvar o resumo da semana': "Save the week's summary",
+  'Buscar nas configurações (ex.: som, atalho, voz)':
+    'Search the settings (e.g. sound, shortcut, voice)',
+  'Buscar nas configurações': 'Search the settings',
+  'Os seus sons': 'Your sounds',
+  'Abrir a pasta dos sons': 'Open the sounds folder',
+  'Um arquivo com o nome de um som (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), em .ogg, .wav, .mp3…, troca o do Wisp na hora; apagar traz o de volta.':
+    "A file named after a sound (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), as .ogg, .wav, .mp3…, replaces Wisp's right away; deleting it brings Wisp's back.",
+  'Horas de silêncio': 'Quiet hours',
+  'Todo dia, nesse horário, o Wisp fica quieto como no “não perturbe” (os cards esperam no painel).':
+    'Every day, at these times, Wisp stays quiet as in “do not disturb” (the cards wait in the panel).',
+  'Ligar as horas de silêncio': 'Turn on the quiet hours',
+  'Começa às': 'Starts at',
+  até: 'to',
+  'Acaba às': 'Ends at',
+  'Avisos do GitLab': 'GitLab alerts',
+  'O pipeline dos seus merge requests abertos (falhou, ou passou depois de rodar), a cada 3 minutos. Usa o glab (GitLab CLI) já logado: rode glab auth login antes.':
+    'The pipeline of your open merge requests (failed, or passed after running), every 3 minutes. Uses glab (the GitLab CLI), already logged in: run glab auth login first.',
+  'Salva em {path}.': 'Saved to {path}.',
+  'Salvar como imagem': 'Save as an image',
+  'linhas editadas': 'lines edited',
+  'pedidos aprovados': 'requests approved',
+  'O painel não conseguiu desenhar a imagem.': "The panel couldn't draw the image.",
+  'Minha semana com o Wisp': 'My week with Wisp',
+  'Mais usadas: {tools}': 'Most used: {tools}'
 }

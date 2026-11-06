@@ -139,6 +139,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   numa cópia do Git do projeto, vai sozinho para Revisar no fim da resposta, e Juntar leva a
   mudança para a pasta original.
 
+- **Os pequenos** (Fase 52): revisar um PR pelo aviso do pedido de revisão; `/todas` manda a
+  mesma mensagem às conversas da grade; horas de silêncio; busca nas configurações; o botão da
+  pasta dos seus sons; o resumo da semana em imagem; as notas depois de atualizar; e os avisos de
+  CI do GitLab, pelo `glab`.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

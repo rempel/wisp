@@ -1025,3 +1025,19 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Descartar:** **Descartar** → **Descartar de vez?** no segundo: a aba fecha, a cópia sai e
       o cartão volta para A fazer.
 - [ ] **Sem Git:** um cartão numa pasta sem Git roda nela mesma, e o cartão diz "Sem cópia".
+
+## Os pequenos (Fase 52)
+
+- [ ] **Revisar um PR:** peça a alguém (ou a uma conta de teste) a sua revisão num PR: o clique
+      no aviso abre a aba com o pedido de revisar pelo `gh pr diff`.
+- [ ] **/todas:** com duas conversas lado a lado (uma com Sonnet, outra com Opus),
+      `/todas explique o que é um closure`: as duas respondem.
+- [ ] **Silêncio:** ligue as horas de silêncio com o horário de agora: um card não toca som nem
+      notifica; desligue: volta.
+- [ ] **Busca:** nas configurações, "atalho" deixa só as seções com atalhos.
+- [ ] **Sons:** **Abrir a pasta dos sons**, ponha um `pronto.ogg`: o fim da resposta toca ele.
+- [ ] **Imagem:** no histórico, **Salvar como imagem**: o PNG abre com as contagens da semana.
+- [ ] **Notas:** depois de atualizar o Wisp, a notificação "Wisp atualizado para …" abre a página
+      da versão.
+- [ ] **GitLab:** com o `glab` logado e **Avisos do GitLab** ligados, quebre o pipeline de um MR
+      seu: o aviso chega, e o clique abre a aba com o pedido de investigar pelo `glab`.

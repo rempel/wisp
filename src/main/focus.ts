@@ -121,3 +121,24 @@ export function setFocusMode(mode: FocusMode | null): void {
 
 /** O foco está ligado agora (as notificações e os sons ficam quietos). */
 export const focusActive = (): boolean => current?.active() ?? false
+
+const minutesOf = (time: string): number | null => {
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(time)
+  return match ? Number(match[1]) * 60 + Number(match[2]) : null
+}
+
+/**
+ * As horas de silêncio (Fase 52): de `from` a `to` (HH:MM), todo dia, o Wisp fica quieto como no
+ * foco. Um intervalo que passa da meia-noite (22:00 a 08:00) vale nos dois dias.
+ */
+export function inQuietHours(
+  hours: { from: string; to: string } | null,
+  now = new Date()
+): boolean {
+  if (!hours) return false
+  const from = minutesOf(hours.from)
+  const to = minutesOf(hours.to)
+  if (from === null || to === null || from === to) return false
+  const minute = now.getHours() * 60 + now.getMinutes()
+  return from < to ? minute >= from && minute < to : minute >= from || minute < to
+}

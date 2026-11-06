@@ -49,6 +49,7 @@ src/
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
 │  ├─ agents.ts      # os subagentes do Claude Code: listar, a prévia, gravar e apagar (Fase 50)
 │  ├─ board.ts       # o quadro de tarefas: os cartões, cada um numa cópia do Git (Fase 51)
+│  ├─ gitlab.ts      # os avisos de CI do GitLab, pelo glab, no mesmo vigia do GitHub (Fase 52)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1148,3 +1149,21 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   Revisar. Juntar e Descartar são os da barra da cópia (o patch conferido e o `git worktree
 remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou volta em Revisar.
   A página recebe os cartões pelo `board:changed` a cada mudança.
+- **Os pequenos (Fase 52):**
+  - **revisar um PR:** o pedido de revisão do GitHub ganhou o seu pedido pronto (o `gh pr diff` e
+    os comentários), como o CI vermelho da Fase 41;
+  - **para todas as conversas:** o `/todas` manda a mensagem a cada conversa da grade pelo mesmo
+    caminho da caixa (a página mostra e o main manda), uma por painel;
+  - **as horas de silêncio:** o `inQuietHours` (um intervalo que passa da meia-noite vale nos dois
+    dias) entra no mesmo "quieto" do não perturbe e do foco;
+  - **a busca nas configurações:** a página esconde as seções cujo texto (sem acento nem caixa)
+    não tem o procurado;
+  - **os seus sons:** a pasta já existia (`~/.config/wisp/sounds`, Fase 8); o botão a cria e abre;
+  - **o resumo em imagem:** o painel desenha num canvas (só as contagens) e o main grava o PNG onde
+    você escolher;
+  - **as notas da versão:** a versão que abriu da última vez fica em `ultima-versao.txt`; uma mais
+    nova avisa, com o clique na página da versão no GitHub. O mascote fica animado com ela e com o
+    aviso de versão nova (Fase 20);
+  - **o GitLab:** o vigia do GitHub ganhou a leitura trocável (`parse`); o do GitLab pergunta ao
+    `glab api` quem é você, os seus merge requests abertos e, de cada um (até 20), o pipeline do
+    commit mais novo, e o que muda vira o mesmo aviso (com o `!` do GitLab e o pedido pelo `glab`).
