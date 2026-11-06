@@ -3,7 +3,7 @@
 // numa conversa nova e expandir um prompt salvo (Fase 26).
 
 import { setupWorktrees } from './worktrees-ipc'
-import { app, clipboard, ipcMain } from 'electron'
+import { clipboard, ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { writeFileSync } from 'fs'
 import { homedir } from 'os'
@@ -17,7 +17,10 @@ import { setPinned } from './history'
 import type { History, SavedConversation } from './history'
 import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
-import { pickFolder, pickSaveFile } from './pick'
+import { setupRemoteChat } from './remote-chat'
+import { setupBoard } from './board'
+import { setupUsageReport } from './usage-report'
+import { pickFolder, pickSaveFile, userDir } from './pick'
 import { IPC } from '../shared/ipc'
 import type {
   ChatEvent,
@@ -69,6 +72,8 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   const conversations = (): Conversation[] => tabs.conversations()
   const win = (): BrowserWindow | null => ctx.window()
   const index = new SearchIndex(store)
+  // O painel de uso (Fase 49): os tokens e o custo, lidos dos .jsonl do Claude Code.
+  setupUsageReport(ctx.fromChat, win)
   const openIds = (): Set<string> =>
     new Set(conversations().flatMap((c) => (c.historyId ? [c.historyId] : [])))
 
@@ -77,7 +82,7 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     if (!saved) return { ok: false, message: t('Esta conversa ainda não tem mensagens guardadas.') }
     const file = await pickSaveFile(
       t('Exportar a conversa'),
-      join(app.getPath('documents'), exportFileName(saved.title)),
+      join(userDir('documents'), exportFileName(saved.title)),
       [{ name: 'Markdown', extensions: ['md'] }],
       win()
     )
@@ -146,6 +151,19 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   })
   // As cópias do Git (Fase 43): as guardadas, sem aba, entram na lista para reabrir.
   const copies = setupWorktrees({ fromChat, tabs })
+  // Conversar pelo celular na rede local (Fase 54): liga e desliga com o config.
+  setupRemoteChat(fromChat, tabs)
+  // O quadro de tarefas (Fase 51): cada cartão numa cópia, com o pedido.
+  setupBoard(
+    fromChat,
+    {
+      tabs,
+      worktrees: copies.worktrees,
+      open: (folder) => tabs.addChat(ctx.makeConversation(undefined, undefined, folder)),
+      show: ctx.show
+    },
+    () => win()?.webContents ?? null
+  )
   const projects = (): FolderChoice[] => [
     ...listProjects(getConfig().projectRoots).map(({ nome, caminho }) => ({
       name: nome,

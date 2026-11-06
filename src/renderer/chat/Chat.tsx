@@ -20,8 +20,13 @@ import type {
 import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
+import { UsageView } from './UsageView'
+import { AgentsView } from './AgentsView'
+import { BoardView } from './BoardView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
+import { MarkdownPreview, PreviewBar } from './Preview'
+import { markdownOpen } from './preview-store'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
@@ -29,13 +34,14 @@ import { HistoryView } from './HistoryView'
 import {
   Avatar,
   BackIcon,
+  BoardIcon,
   CloseIcon,
-  DockIcon,
-  MaximizeIcon,
-  RestoreIcon,
   DemoIcon,
+  DockIcon,
   HistoryIcon,
+  MaximizeIcon,
   PaperclipIcon,
+  RestoreIcon,
   SettingsIcon,
   TerminalIcon
 } from './icons'
@@ -99,14 +105,25 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   settings: [t('Configurações'), t('gravadas no config.json')],
   sessions: [t('Sessões'), t('do Claude Code no terminal')],
   diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
-  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')]
+  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
+  usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
+  agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
+  board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
 }
 
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<
-    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome'
+    | 'chat'
+    | 'history'
+    | 'sessions'
+    | 'settings'
+    | 'diagnostics'
+    | 'welcome'
+    | 'usage'
+    | 'agents'
+    | 'board'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
@@ -159,6 +176,10 @@ export default function Chat(): JSX.Element {
     const id = state.panes[state.focused]
     return state.tabs.find((tab) => tab.id === id)?.kind === 'chat' ? id : null
   }, [])
+
+  // A pasta da conversa em foco (os subagentes do projeto, Fase 50).
+  const focusedPane = tabs.panes[tabs.focused]
+  const focusedFolder = (focusedPane ? conversations.get(focusedPane)?.folder : null) ?? null
 
   const apply = useCallback((conversation: string, action: Action): void => {
     setConversations((current) => {
@@ -364,7 +385,7 @@ export default function Chat(): JSX.Element {
   useEffect(() => {
     const onKey = (event: globalThis.KeyboardEvent): void => {
       // Com a paleta ou um arquivo aberto (Fase 34), as teclas são deles.
-      if (paletteRef.current || fileViewOpen()) return
+      if (paletteRef.current || fileViewOpen() || markdownOpen()) return
       // No terminal, as teclas são do Claude Code (o Esc interrompe), menos as das abas.
       if (
         fromTerminal(event.target) &&
@@ -519,6 +540,25 @@ export default function Chat(): JSX.Element {
     [apply]
   )
 
+  /**
+   * A mesma mensagem em todas as conversas da grade (Fase 52: comparar modelos lado a lado).
+   * Devolve em quantas foi.
+   */
+  const broadcast = useCallback(
+    (text: string): number => {
+      const state = tabsRef.current
+      const ids = state.panes.filter(
+        (id) => state.tabs.find((tab) => tab.id === id)?.kind === 'chat'
+      )
+      for (const id of ids) {
+        apply(id, { type: 'user-message', text, attachments: [] })
+        window.wisp.chat.send(id, text, [])
+      }
+      return ids.length
+    },
+    [apply]
+  )
+
   // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
   const statuses = new Map<string, TabStatus>()
   for (const tab of tabs.tabs) {
@@ -613,6 +653,7 @@ export default function Chat(): JSX.Element {
         demo={demo}
         agenda={agendaNext}
         onSent={onSent(id)}
+        onBroadcast={broadcast}
       />
     )
   }
@@ -736,7 +777,7 @@ export default function Chat(): JSX.Element {
             (focusedState?.provider === 'openrouter' ? (
               <CostPill cost={focusedState.cost} />
             ) : (
-              usage && <UsagePill usage={usage} />
+              usage && <UsagePill usage={usage} onPanel={() => setView('usage')} />
             ))}
           <button
             type="button"
@@ -755,6 +796,16 @@ export default function Chat(): JSX.Element {
           >
             <TerminalIcon />
             {requests > 0 && <span className="badge">{requests}</span>}
+          </button>
+          <button
+            type="button"
+            className={`icon-button${view === 'board' ? ' active' : ''}`}
+            onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
+            title={t('Quadro de tarefas')}
+            aria-label={t('Quadro de tarefas')}
+            aria-pressed={view === 'board'}
+          >
+            <BoardIcon />
           </button>
           <button
             type="button"
@@ -809,6 +860,7 @@ export default function Chat(): JSX.Element {
 
         {view === 'settings' ? (
           <SettingsView
+            onAgents={() => setView('agents')}
             onDiagnostics={() => setView('diagnostics')}
             onWelcome={() => setView('welcome')}
           />
@@ -818,6 +870,12 @@ export default function Chat(): JSX.Element {
           <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
         ) : view === 'history' ? (
           <HistoryView onClose={() => setView('chat')} />
+        ) : view === 'usage' ? (
+          <UsageView />
+        ) : view === 'board' ? (
+          <BoardView onShow={() => setView('chat')} />
+        ) : view === 'agents' ? (
+          <AgentsView folder={focusedFolder} />
         ) : view === 'sessions' ? (
           <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
         ) : (
@@ -825,6 +883,7 @@ export default function Chat(): JSX.Element {
             {tabs.tabs.length > 0 && (
               <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
             )}
+            <PreviewBar />
             <div className="panes">
               <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
             </div>
@@ -832,6 +891,7 @@ export default function Chat(): JSX.Element {
         )}
         {palette && <CommandPalette actions={actions} onClose={closePalette} />}
         <FileViewer />
+        <MarkdownPreview />
       </div>
     </AvatarContext.Provider>
   )

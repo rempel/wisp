@@ -71,7 +71,7 @@ jobs:
       - name: X virtual, D-Bus, as bibliotecas do Electron e o EDS (agenda)
         timeout-minutes: 25
         run: |
-          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool xclip openbox evolution-data-server \
+          scripts/ci-apt.sh xvfb xauth dbus dbus-x11 xdotool xclip openbox xterm evolution-data-server \
             libgtk-3-0t64 libnss3 libasound2t64 libgbm1 libxss1 libxtst6 fonts-dejavu-core
       - run: npm ci
       - run: npx install-electron
@@ -246,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island
+        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island pontos preview uso janela agentes quadro pequenos ditado celular-rede
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}
@@ -282,6 +282,30 @@ jobs:
         if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/revisar.mjs
+      - name: Ponta a ponta (voltar, ramificar e a pergunta lateral)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/pontos.mjs
+      - name: Ponta a ponta (a pré-visualização)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/preview.mjs
+      - name: Ponta a ponta (o painel de uso)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/uso.mjs
+      - name: Ponta a ponta (os subagentes)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/agentes.mjs
+      - name: Ponta a ponta (o quadro de tarefas)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/quadro.mjs
+      - name: Ponta a ponta (os pequenos da Fase 52)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/pequenos.mjs
       - name: Ponta a ponta (recortar uma área da tela)
         if: ${{ !cancelled() }}
         timeout-minutes: 10

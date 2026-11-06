@@ -1,14 +1,14 @@
 // Levar o Wisp junto nas configurações (Fase 31): exportar para um arquivo (escolhido no diálogo
 // do sistema) e importar, com a prévia antes e o backup do config.json.
 
-import { app, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import type { WebContents } from 'electron'
 import { chmodSync, existsSync, readFileSync, statSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { backupFile, stamp } from './backup'
 import { CONFIG_PATH, getConfig, notifyConfigChange, updateConfig } from './config'
 import { tilde } from './folders'
-import { pickOpenFile, pickSaveFile } from './pick'
+import { pickOpenFile, pickSaveFile, userDir } from './pick'
 import {
   applyPortable,
   buildExport,
@@ -51,7 +51,7 @@ export function setupPortableIpc({ isSender, version }: PortableIpcOptions): voi
       const today = new Date().toISOString().slice(0, 10)
       const path = await pickSaveFile(
         t('Exportar o Wisp'),
-        join(app.getPath('documents'), `wisp-${today}.json`),
+        join(userDir('documents'), `wisp-${today}.json`),
         FILTERS,
         null
       )

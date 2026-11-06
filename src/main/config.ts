@@ -113,6 +113,14 @@ export interface WispConfig {
   areaShortcut: string | null
   /** Atalho global que leva o texto selecionado para uma conversa (Fase 45); null desliga. */
   selectionShortcut: string | null
+  /** Atalho global que mostra a janela da frente ao Wisp (Fase 48); null desliga. */
+  windowShortcut: string | null
+  /** Atalho global do ditado em qualquer programa (Fase 53, segurar); null desliga. */
+  dictationShortcut: string | null
+  /** As trocas do ditado (Fase 53): o que o whisper escreve e o que você quer. */
+  dictationReplacements: { from: string; to: string }[]
+  /** As horas de silêncio (Fase 52): de `from` a `to` (HH:MM) o Wisp fica quieto; null desliga. */
+  quietHours: { from: string; to: string } | null
   /** O painel oferece um chip para usar o que você copiou. */
   clipboardChip: boolean
   /**
@@ -163,6 +171,10 @@ export interface WispConfig {
   islandCovers: boolean
   /** Alertas do GitHub (CI e revisões dos seus PRs), pelo `gh` já logado. Desligado por padrão. */
   github: boolean
+  /** Os avisos de CI do GitLab, pelo glab (Fase 52). */
+  gitlab: boolean
+  /** Conversar pelo celular, numa página da rede local (Fase 54). */
+  phoneChat: boolean
   /** Agenda: os próximos compromissos (Evolution Data Server e .ics). Desligada por padrão. */
   calendar: boolean
   /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
@@ -240,6 +252,10 @@ function defaults(): WispConfig {
     islandShortcut: 'Ctrl+Alt+K',
     areaShortcut: 'Ctrl+Alt+R',
     selectionShortcut: 'Ctrl+Alt+E',
+    windowShortcut: 'Ctrl+Alt+J',
+    dictationShortcut: null,
+    dictationReplacements: [],
+    quietHours: null,
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
@@ -264,6 +280,8 @@ function defaults(): WispConfig {
     islandHoverOpen: false,
     islandCovers: false,
     github: false,
+    gitlab: false,
+    phoneChat: false,
     calendar: false,
     calendarFiles: [],
     calendarLinks: [],
@@ -365,6 +383,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   islandShortcut: z.string().max(60).nullable(),
   areaShortcut: z.string().max(60).nullable(),
   selectionShortcut: z.string().max(60).nullable(),
+  windowShortcut: z.string().max(60).nullable(),
+  dictationShortcut: z.string().max(60).nullable(),
+  dictationReplacements: z
+    .array(z.object({ from: z.string().min(1).max(100), to: z.string().max(200) }))
+    .max(100),
+  quietHours: z
+    .object({
+      from: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      to: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    })
+    .nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
   browserAutomation: z.boolean(),
@@ -385,6 +414,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   islandHoverOpen: z.boolean(),
   islandCovers: z.boolean(),
   github: z.boolean(),
+  gitlab: z.boolean(),
+  phoneChat: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
   calendarLinks: z
@@ -553,6 +584,10 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   islandShortcut: t('O atalho tem no máximo 60 caracteres.'),
   areaShortcut: t('O atalho tem no máximo 60 caracteres.'),
   selectionShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  windowShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  dictationShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  dictationReplacements: t('Até 100 trocas, cada uma com o dito (até 100 caracteres) e o escrito.'),
+  quietHours: t('Dois horários HH:MM (ex.: 22:00 e 08:00), ou null.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),

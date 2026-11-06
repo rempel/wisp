@@ -14,6 +14,11 @@ export interface RawWindow {
   title: string
   minimized: boolean
   active: boolean
+  /** Onde ela está, em pixels da tela (Fase 48). */
+  x?: number
+  y?: number
+  width?: number
+  height?: number
 }
 
 // O código C# das funções do Windows (compilado pelo Add-Type a cada vez, em menos de um segundo).
@@ -34,6 +39,10 @@ const NATIVE =
   '[DllImport("user32.dll")] static extern int GetWindowLongW(IntPtr h, int i); ' +
   '[DllImport("dwmapi.dll")] static extern int DwmGetWindowAttribute(IntPtr h, int a, out int v, int s); ' +
   '[DllImport("user32.dll")] static extern IntPtr GetForegroundWindow(); ' +
+  // O retângulo de cada janela (Fase 48), em pixels de verdade (o script declara que entende DPI).
+  '[StructLayout(LayoutKind.Sequential)] struct Retangulo { public int L; public int T; public int R; public int B; } ' +
+  '[DllImport("user32.dll")] static extern bool GetWindowRect(IntPtr h, out Retangulo r); ' +
+  '[DllImport("user32.dll")] static extern bool SetProcessDpiAwarenessContext(IntPtr v); ' +
   '[DllImport("user32.dll")] static extern bool SetForegroundWindow(IntPtr h); ' +
   '[DllImport("user32.dll")] static extern bool BringWindowToTop(IntPtr h); ' +
   '[DllImport("user32.dll")] static extern bool ShowWindow(IntPtr h, int c); ' +
@@ -47,8 +56,9 @@ const NATIVE =
   '[DllImport("kernel32.dll")] static extern bool CloseHandle(IntPtr h); ' +
   '[DllImport("kernel32.dll")] static extern IntPtr OpenProcess(uint a, bool h, uint p); ' +
   '[DllImport("kernel32.dll")] static extern bool GetProcessTimes(IntPtr h, out long c, out long e, out long k, out long u); ' +
-  'public class Janela { public long Id; public uint Processo; public string Titulo; public bool Minimizada; public bool Ativa; } ' +
+  'public class Janela { public long Id; public uint Processo; public string Titulo; public bool Minimizada; public bool Ativa; public int X; public int Y; public int Largura; public int Altura; } ' +
   'public static List<Janela> Listar() { ' +
+  'try { SetProcessDpiAwarenessContext(new IntPtr(-4)); } catch {} ' +
   'var lista = new List<Janela>(); var ativa = GetForegroundWindow(); ' +
   'EnumWindows(delegate (IntPtr h, IntPtr p) { ' +
   // Só as da barra de tarefas: visíveis, sem dona (GW_OWNER), sem WS_EX_TOOLWINDOW, não
@@ -61,7 +71,8 @@ const NATIVE =
   'if (classe.ToString() == "Progman" || classe.ToString() == "WorkerW") return true; ' +
   'var titulo = new StringBuilder(n + 1); GetWindowTextW(h, titulo, n + 1); ' +
   'uint processo; GetWindowThreadProcessId(h, out processo); ' +
-  'lista.Add(new Janela { Id = h.ToInt64(), Processo = processo, Titulo = titulo.ToString(), Minimizada = IsIconic(h), Ativa = h == ativa }); ' +
+  'Retangulo r; GetWindowRect(h, out r); ' +
+  'lista.Add(new Janela { Id = h.ToInt64(), Processo = processo, Titulo = titulo.ToString(), Minimizada = IsIconic(h), Ativa = h == ativa, X = r.L, Y = r.T, Largura = r.R - r.L, Altura = r.B - r.T }); ' +
   'return true; }, IntPtr.Zero); ' +
   'return lista; } ' +
   // Tira do minimizado e traz para a frente. Junto da fila de entrada da janela da frente, o
@@ -105,7 +116,8 @@ const LIST =
   'if (-not $nome) { $nome = $p.ProcessName } }; ' +
   '$nomes[$j.Processo] = $nome }; ' +
   '[pscustomobject]@{ id = $j.Id; pid = $j.Processo; app = $nomes[$j.Processo]; ' +
-  'title = $j.Titulo; minimized = $j.Minimizada; active = $j.Ativa } }; ' +
+  'title = $j.Titulo; minimized = $j.Minimizada; active = $j.Ativa; ' +
+  'x = $j.X; y = $j.Y; width = $j.Largura; height = $j.Altura } }; ' +
   'ConvertTo-Json -InputObject @($saida) -Compress'
 
 const ACTIVATE =

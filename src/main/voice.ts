@@ -21,7 +21,7 @@ import { t } from '../shared/i18n'
 // Por voz dá para negar um pedido de permissão, nunca aprovar: o "sim" de alguém na sala, ou
 // de um vídeo tocando, não pode liberar nada.
 
-export type VoiceSource = 'panel' | 'shortcut' | 'test' | 'island'
+export type VoiceSource = 'panel' | 'shortcut' | 'test' | 'island' | 'dictation'
 
 /** Uma transcrição que passa disto (ms) é lenta: vale um modelo menor. */
 const SLOW_MS = 8000
@@ -157,7 +157,7 @@ export class Voice {
    * enquanto ele estiver apertado; sem isso, ou num toque rápido, até o silêncio depois da fala.
    * Apertar de novo durante a escuta encerra.
    */
-  press(releases: boolean): void {
+  press(releases: boolean, source: 'shortcut' | 'dictation' = 'shortcut'): void {
     if (this.state === 'listening') {
       // A repetição do teclado, com a tecla ainda presa.
       if (this.holding) return
@@ -166,7 +166,8 @@ export class Voice {
     if (this.state === 'transcribing') return
     this.holding = releases
     this.pressedAt = Date.now()
-    this.start('shortcut', releases ? 'hold' : 'auto')
+    // O ditado (Fase 53) é o mesmo segurar para falar; só o destino do texto muda.
+    this.start(source, releases ? 'hold' : 'auto')
   }
 
   /** O atalho de voz foi solto. */
@@ -373,6 +374,11 @@ export class Voice {
             }) + t('configurações, ajuda a achar o problema.')
           : t('Não entendi o que você disse. Tente de novo, mais perto do microfone.')
       )
+      return
+    }
+    // O ditado (Fase 53): o texto vai para o programa da frente, sem comandos nem conversa.
+    if (source === 'dictation') {
+      this.deps.deliver(text, source)
       return
     }
     if (this.deps.pendingApprovals() > 0) {

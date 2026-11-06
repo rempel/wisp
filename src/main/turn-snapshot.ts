@@ -13,6 +13,7 @@ import {
   openSync,
   readdirSync,
   readFileSync,
+  renameSync,
   rmSync,
   statSync,
   unlinkSync,
@@ -140,6 +141,37 @@ export function readSnapshots(dir: string): Snapshot[] {
 /** Começa um turno novo: as cópias do anterior saem. */
 export function clearSnapshots(dir: string): void {
   rmSync(dir, { recursive: true, force: true })
+}
+
+/**
+ * Guarda as cópias de um turno em `into` (Fase 46: voltar a um ponto da conversa). Se `into` já
+ * tem cópias (o mesmo turno, retomado depois de compactar ou de editar a mensagem), as de lá
+ * ficam: a mais antiga de cada arquivo é a que vale.
+ */
+export function archiveSnapshots(dir: string, into: string): void {
+  if (!existsSync(dir)) return
+  if (!existsSync(into)) {
+    mkdirSync(join(into, '..'), { recursive: true, mode: 0o700 })
+    try {
+      renameSync(dir, into)
+      return
+    } catch {
+      // Outro disco ou outro problema: copia arquivo por arquivo, abaixo.
+    }
+  }
+  mkdirSync(into, { recursive: true, mode: 0o700 })
+  for (const name of readdirSync(dir)) {
+    if (!name.endsWith('.json') || existsSync(join(into, name))) continue
+    const orig = name.replace(/\.json$/, '.orig')
+    try {
+      if (existsSync(join(dir, orig)))
+        writeFileSync(join(into, orig), readFileSync(join(dir, orig)), { mode: 0o600 })
+      writeFileSync(join(into, name), readFileSync(join(dir, name)), { mode: 0o600 })
+    } catch {
+      // Uma cópia que não passou fica de fora.
+    }
+  }
+  clearSnapshots(dir)
 }
 
 /** O conteúdo de agora (null se o arquivo não existe). */

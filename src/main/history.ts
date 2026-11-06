@@ -150,8 +150,11 @@ export interface SavedConversation {
 
 /** A próxima conversa vem de uma sessão do terminal: pasta e o que mostrar antes das mensagens. */
 export interface ConversationSeed {
-  cwd: string
+  /** Sem ela, o workspace do Wisp (uma conversa ramificada dele, Fase 46). */
+  cwd?: string
   preface: ChatEvent[]
+  /** O título (uma conversa ramificada leva o da original); sem ele, a primeira mensagem. */
+  title?: string
 }
 
 /**
@@ -359,9 +362,10 @@ export class History {
     return join(this.dir, `${id}.jsonl`)
   }
 
-  private start(sessionId: string, title: string): void {
+  private start(sessionId: string, firstLine: string): void {
     const seed = this.seed
     this.seed = null
+    const title = seed?.title ?? firstLine
     // Uma sessão do terminal ganha um id de conversa próprio: o dela pode já ter outra conversa.
     const id = seed ? randomUUID() : sessionId
     this.current = { id, sessionId, file: this.file(id) }
@@ -371,7 +375,7 @@ export class History {
       id,
       createdAt: Date.now(),
       title,
-      ...(seed ? { cwd: seed.cwd } : this.cwd ? { cwd: this.cwd } : {}),
+      ...(seed?.cwd ? { cwd: seed.cwd } : this.cwd ? { cwd: this.cwd } : {}),
       ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
     } satisfies Header)
     if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)
@@ -392,18 +396,18 @@ export class History {
   }
 }
 
-/** O índice da mensagem que começa o último turno (a que dá para editar); -1 se não há. */
-function lastTurnStart(events: ChatEvent[]): number {
-  for (let i = events.length - 1; i >= 0; i--) {
-    const event = events[i]
-    if (event.type === 'user' && !event.queued && !event.inTurn) return i
-  }
-  return -1
+/** Os índices das mensagens que começam um turno (as que dá para editar ou voltar). */
+export function turnStarts(events: ChatEvent[]): number[] {
+  const starts: number[] = []
+  events.forEach((event, i) => {
+    if (event.type === 'user' && !event.queued && !event.inTurn) starts.push(i)
+  })
+  return starts
 }
 
 /**
  * Os eventos com as edições aplicadas: cada 'rewind' tira a mensagem que começou o último
- * turno e tudo o que veio depois dela.
+ * turno e tudo o que veio depois dela; com `keep` (Fase 46), tudo a partir do turno `keep`.
  */
 export function applyRewinds(events: ChatEvent[]): ChatEvent[] {
   const out: ChatEvent[] = []
@@ -412,35 +416,67 @@ export function applyRewinds(events: ChatEvent[]): ChatEvent[] {
       out.push(event)
       continue
     }
-    const start = lastTurnStart(out)
-    if (start >= 0) out.length = start
+    const starts = turnStarts(out)
+    const cut = event.keep === undefined ? starts.at(-1) : starts[event.keep]
+    if (cut !== undefined) out.length = cut
   }
   return out
 }
 
+/** Um ponto da conversa no Claude Code: até a resposta `at` (null: antes de tudo). */
+export interface ConversationPoint {
+  at: string | null
+  text: string
+  attachments: AttachmentPreview[]
+}
+
+/** O uuid da última resposta guardada nestes eventos (undefined: nenhuma). */
+function lastAnswer(events: ChatEvent[]): string | undefined {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const event = events[i]
+    if (event.type === 'turn-end') return event.at
+  }
+  return undefined
+}
+
 /**
- * Para onde voltar a conversa no Claude Code para trocar a última mensagem: o uuid da última
- * resposta do turno anterior (`at`), ou null se ela é a primeira (a conversa recomeça numa
- * sessão nova). Devolve undefined quando não dá: não há mensagem, ou o turno anterior é de antes
- * de o Wisp guardar esse ponto.
+ * Para onde voltar a conversa no Claude Code para refazer o turno `turn` (Fase 46; o último, na
+ * Fase 21): o uuid da última resposta do turno anterior (`at`), ou null se ele é o primeiro (a
+ * conversa recomeça numa sessão nova). Devolve undefined quando não dá: não há esse turno, ou o
+ * anterior é de antes de o Wisp guardar esse ponto.
  */
-export function rewindPoint(
-  events: ChatEvent[]
-): { at: string | null; text: string; attachments: AttachmentPreview[] } | undefined {
+export function pointBefore(events: ChatEvent[], turn: number): ConversationPoint | undefined {
   const done = applyRewinds(events)
-  const start = lastTurnStart(done)
-  if (start < 0) return undefined
+  const start = turnStarts(done)[turn]
+  if (start === undefined) return undefined
   const user = done[start] as Extract<ChatEvent, { type: 'user' }>
   const before = done.slice(0, start)
-  const ends = before.filter(
-    (event): event is Extract<ChatEvent, { type: 'turn-end' }> => event.type === 'turn-end'
-  )
-  const last = ends.at(-1)
   if (!before.some((event) => event.type === 'user')) {
     return { at: null, text: user.text, attachments: user.attachments }
   }
-  if (!last?.at) return undefined
-  return { at: last.at, text: user.text, attachments: user.attachments }
+  const at = lastAnswer(before)
+  return at ? { at, text: user.text, attachments: user.attachments } : undefined
+}
+
+/** O ponto para trocar a última mensagem (Fase 21). */
+export function rewindPoint(events: ChatEvent[]): ConversationPoint | undefined {
+  return pointBefore(events, turnStarts(applyRewinds(events)).length - 1)
+}
+
+/**
+ * Para ramificar no fim do turno `turn` (Fase 46): os eventos até ali e o uuid da última
+ * resposta dele. Undefined se o turno não acabou com um ponto guardado.
+ */
+export function forkPoint(
+  events: ChatEvent[],
+  turn: number
+): { at: string; events: ChatEvent[] } | undefined {
+  const done = applyRewinds(events)
+  const starts = turnStarts(done)
+  if (starts[turn] === undefined) return undefined
+  const kept = done.slice(0, starts[turn + 1] ?? done.length)
+  const at = lastAnswer(kept.slice(starts[turn]))
+  return at ? { at, events: kept } : undefined
 }
 
 /** As conversas fixadas. */

@@ -1,0 +1,466 @@
+/* Fase 46 em diante: voltar e ramificar a conversa, a pergunta lateral. */
+
+.turn-actions {
+  display: flex;
+  gap: 4px;
+  align-self: flex-end;
+}
+
+.turn-actions .edit-last {
+  margin-bottom: 0;
+}
+
+.user-turn.has-actions {
+  position: relative;
+}
+
+.turn-action {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.user-turn:hover .turn-action,
+.user-turn.has-actions:hover .edit-last,
+.turn-action:focus-visible {
+  opacity: 1;
+}
+
+.turn-action:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 12px 0;
+}
+
+.rewind-card,
+.aside-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.rewind-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rewind-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.points-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aside-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.aside-head small {
+  flex: 1;
+  color: var(--muted);
+}
+
+.aside-answer {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.aside-question {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.aside-form {
+  display: flex;
+  gap: 6px;
+}
+
+.aside-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+/* Fase 47: a pré-visualização. */
+
+.preview-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 6px 12px 0;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.preview-what {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.markdown-preview-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 18px;
+  max-width: none;
+}
+
+/* Fase 49: o painel de uso. */
+
+.spend-view {
+  overflow-y: auto;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.spend-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.spend-periods {
+  display: flex;
+  gap: 4px;
+}
+
+.spend-periods .active {
+  border-color: var(--accent);
+  color: var(--text);
+}
+
+.spend-tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.spend-tile {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.spend-tile strong {
+  font-size: 18px;
+  color: var(--text);
+}
+
+.spend-tile small {
+  color: var(--muted);
+}
+
+.spend-chart {
+  margin: 0;
+}
+
+.spend-chart svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.spend-grid {
+  stroke: var(--border);
+  stroke-width: 1;
+  stroke-dasharray: 2 3;
+}
+
+.spend-axis {
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.spend-hit {
+  fill: transparent;
+}
+
+.spend-bar {
+  fill: var(--accent);
+  opacity: 0.85;
+}
+
+.spend-bar.on {
+  opacity: 1;
+}
+
+.spend-tick {
+  fill: var(--muted);
+  font-size: 11px;
+}
+
+.spend-tip {
+  min-height: 1.2em;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.spend-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+}
+
+.spend-table caption {
+  text-align: left;
+  font-weight: 600;
+  padding-bottom: 4px;
+}
+
+.spend-table th,
+.spend-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid var(--border);
+  text-align: right;
+  white-space: nowrap;
+}
+
+.spend-table th:first-child {
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+  font-weight: normal;
+}
+
+.spend-table thead th {
+  color: var(--muted);
+  font-weight: normal;
+}
+
+/* Fase 50: os subagentes. */
+
+.agents-view {
+  overflow-y: auto;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.agents-new {
+  align-self: flex-start;
+}
+
+.agent-form {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.agent-form label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.agent-form input,
+.agent-form textarea,
+.agent-form select {
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.agent-form textarea {
+  resize: vertical;
+  font-family: var(--mono, monospace);
+}
+
+.agent-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.agent-row label {
+  flex: 1;
+  min-width: 160px;
+}
+
+.agent-preview {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12.5px;
+}
+
+.link.danger {
+  color: var(--danger, #dc2626);
+}
+
+/* Fase 51: o quadro de tarefas. */
+
+.board-view {
+  overflow-y: auto;
+  gap: 10px;
+  padding: 12px 16px;
+}
+
+.board-head {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.board-head p {
+  flex: 1;
+  margin: 0;
+}
+
+.board-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 8px;
+  align-items: start;
+}
+
+.board-column {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 80px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.board-column h3 {
+  margin: 0;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.board-count {
+  font-weight: normal;
+}
+
+.board-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.board-running .board-card {
+  border-color: var(--accent);
+}
+
+.board-project {
+  color: var(--muted);
+}
+
+.board-prompt {
+  margin: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  white-space: pre-wrap;
+}
+
+.board-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Fase 52: as horas de silêncio e a busca nas configurações. */
+
+.quiet-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quiet-hours input[type='time'] {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.settings-search {
+  margin: 8px 16px 0;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+/* Fase 54: conversar pelo celular na rede local. */
+
+.remote-chat {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 10px 0;
+}
+
+.remote-chat-pair {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.remote-chat-link {
+  word-break: break-all;
+}

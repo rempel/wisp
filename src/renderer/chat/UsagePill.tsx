@@ -55,7 +55,14 @@ function Row({
  * cartão com as duas barras e quando cada uma reinicia. Os números vêm do Claude Code, a cada
  * resposta.
  */
-export function UsagePill({ usage }: { usage: PlanUsage }): JSX.Element {
+export function UsagePill({
+  usage,
+  onPanel
+}: {
+  usage: PlanUsage
+  /** Abre o painel de uso (Fase 49). */
+  onPanel?: () => void
+}): JSX.Element {
   const [open, setOpen] = useState(false)
   const [openedAt, setOpenedAt] = useState(0)
   const root = useRef<HTMLDivElement>(null)
@@ -111,6 +118,18 @@ export function UsagePill({ usage }: { usage: PlanUsage }): JSX.Element {
             {t('Atualizado às')} {updated}
             {t(', na última resposta.')}
           </div>
+          {onPanel && (
+            <button
+              type="button"
+              className="link"
+              onClick={() => {
+                setOpen(false)
+                onPanel()
+              }}
+            >
+              {t('Tokens e custo por dia, projeto e modelo')}
+            </button>
+          )}
         </div>
       )}
     </div>
