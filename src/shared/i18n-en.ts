@@ -2483,5 +2483,58 @@ export const EN: Record<string, string> = {
     "The cost is what these replies would cost through the Anthropic API (November 2026 prices); on a subscription, you don't pay per token. Everything comes from the Claude Code files on this machine, with no network.",
   'Sem preço (fora do custo): {models}.': 'No price (left out of the cost): {models}.',
   'Painel de uso': 'Usage panel',
-  'tokens custo gastos': 'tokens cost spending'
+  'tokens custo gastos': 'tokens cost spending',
+  'O nome: só minúsculas, números e hífens (ex.: revisor-de-codigo).':
+    'The name: only lowercase letters, numbers and hyphens (e.g. code-reviewer).',
+  'Diga quando o Claude deve usar este subagente.': 'Say when Claude should use this subagent.',
+  'A descrição está longa demais.': 'The description is too long.',
+  'Escreva o prompt do subagente.': "Write the subagent's prompt.",
+  'O prompt está longo demais.': 'The prompt is too long.',
+  'Modelo desconhecido.': 'Unknown model.',
+  'Uma das ferramentas tem um nome inválido.': 'One of the tools has an invalid name.',
+  'Esta conversa não está numa pasta de projeto.': "This conversation isn't in a project folder.",
+  'O arquivo mudou depois da prévia: veja o que muda de novo.':
+    'The file changed after the preview: look at what changes again.',
+  'Gravado. O arquivo de antes ficou em {backup}.': 'Saved. The previous file is at {backup}.',
+  'Criado. O Claude Code o usa nas conversas novas (Ctrl+K).':
+    'Created. Claude Code uses it in new conversations (Ctrl+K).',
+  'Não consegui gravar: {message}': "I couldn't save: {message}",
+  'Esse subagente não existe mais.': "That subagent doesn't exist anymore.",
+  'Não consegui mandar para a lixeira: {message}': "I couldn't move it to the trash: {message}",
+  '"{name}" foi para a lixeira.': '"{name}" went to the trash.',
+  'O da conversa': "The conversation's",
+  seu: 'yours',
+  'deste projeto': "this project's",
+  'Os subagentes são ajudantes que o Claude chama sozinho para uma parte do trabalho (revisar código, escrever testes, pesquisar), cada um com o seu prompt, o seu modelo e as suas ferramentas. Os seus ficam em ~/.claude/agents; os do projeto, em .claude/agents da pasta da conversa.':
+    "Subagents are helpers Claude calls on its own for part of the work (reviewing code, writing tests, researching), each with its own prompt, model and tools. Yours are in ~/.claude/agents; the project's, in .claude/agents of the conversation's folder.",
+  'Quando usar (a descrição que o Claude lê para escolher)':
+    'When to use (the description Claude reads to choose)',
+  'Revisa o código depois de uma mudança: bugs, segurança e clareza.':
+    'Reviews the code after a change: bugs, security and clarity.',
+  'O prompt do subagente': "The subagent's prompt",
+  'Você é um revisor de código cuidadoso. Leia o diff e…':
+    'You are a careful code reviewer. Read the diff and…',
+  Onde: 'Where',
+  'Seus (todas as conversas)': 'Yours (every conversation)',
+  'Deste projeto ({folder})': "This project's ({folder})",
+  'Deste projeto (abra uma pasta)': "This project's (open a folder)",
+  'Ferramentas, separadas por vírgula (vazio: todas as da conversa)':
+    "Tools, separated by commas (empty: all of the conversation's)",
+  'O que muda': 'What changes',
+  'Nada muda em {path}.': 'Nothing changes in {path}.',
+  'Muda {path} (o de antes ganha um backup ao lado):':
+    'Changes {path} (the previous one gets a backup next to it):',
+  'Cria {path}:': 'Creates {path}:',
+  Criar: 'Create',
+  'Novo subagente': 'New subagent',
+  'Nenhum subagente ainda.': 'No subagents yet.',
+  'Mandar para a lixeira?': 'Move to the trash?',
+  'Apagar {name}': 'Delete {name}',
+  'Ferramentas:': 'Tools:',
+  Subagentes: 'Subagents',
+  'os ajudantes que o Claude chama sozinho': 'the helpers Claude calls on its own',
+  'Ajudantes com o próprio prompt, modelo e ferramentas, que o Claude chama sozinho.':
+    'Helpers with their own prompt, model and tools, which Claude calls on its own.',
+  'Ver e editar os subagentes': 'See and edit the subagents',
+  'agentes ajudantes': 'agents helpers'
 }

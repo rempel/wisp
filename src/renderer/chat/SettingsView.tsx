@@ -69,9 +69,12 @@ const LANGUAGES: Record<string, string> = {
  * hora (sem mexer no resto dele) e vale como uma edição no próprio arquivo.
  */
 export function SettingsView({
+  onAgents,
   onDiagnostics,
   onWelcome
 }: {
+  /** Abre a tela dos subagentes (Fase 50). */
+  onAgents: () => void
   onDiagnostics: () => void
   onWelcome: () => void
 }): JSX.Element {
@@ -551,6 +554,15 @@ export function SettingsView({
 
         <Section title={t('Skills')}>
           <SkillsSection />
+        </Section>
+
+        <Section title={t('Subagentes')}>
+          <p className="settings-hint">
+            {t('Ajudantes com o próprio prompt, modelo e ferramentas, que o Claude chama sozinho.')}
+          </p>
+          <button type="button" className="settings-button" onClick={onAgents}>
+            {t('Ver e editar os subagentes')}
+          </button>
         </Section>
 
         <Section title={t('Servidores MCP')}>

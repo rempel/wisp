@@ -215,6 +215,13 @@ const api: WispApi = {
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
   },
+  agents: {
+    list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),
+    preview: (spec, folder) => ipcRenderer.invoke(IPC.agentsPreview, spec, folder),
+    save: (spec, folder, fingerprint) =>
+      ipcRenderer.invoke(IPC.agentsSave, spec, folder, fingerprint),
+    remove: (scope, file, folder) => ipcRenderer.invoke(IPC.agentsRemove, scope, file, folder)
+  },
   usage: {
     report: (days) => ipcRenderer.invoke(IPC.usageReport, days),
     export: (days) => ipcRenderer.invoke(IPC.usageExport, days)

@@ -999,3 +999,17 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Período:** **7 dias** e **90 dias** mudam o gráfico e os totais.
 - [ ] **CSV:** **Exportar CSV** grava o arquivo; ele abre numa planilha com uma linha por dia,
       projeto e modelo.
+
+## Os subagentes pelo Wisp (Fase 50)
+
+- [ ] **Criar:** em **Configurações → Subagentes**, **Novo subagente** "revisor", com uma
+      descrição, um prompt e o modelo Sonnet: **Ver o que muda** mostra o arquivo; **Criar** grava
+      `~/.claude/agents/revisor.md`.
+- [ ] **Usar:** numa conversa nova (Ctrl+K), peça "use o subagente revisor para revisar este
+      arquivo": o card do Agente mostra o revisor trabalhando. No terminal, o `/agents` do Claude
+      Code o lista.
+- [ ] **Editar:** troque o modelo para Opus: o diff mostra a linha; **Gravar** deixa o
+      `revisor.md.backup-wisp-…` ao lado.
+- [ ] **Do projeto:** numa conversa numa pasta, **Onde → Deste projeto**: o arquivo vai para
+      `.claude/agents` da pasta.
+- [ ] **Apagar:** **Apagar** → **Mandar para a lixeira?**: o arquivo vai para a lixeira.

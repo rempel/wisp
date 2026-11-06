@@ -132,6 +132,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **O painel de uso** (Fase 49): os tokens e o custo estimado por dia, por projeto e por
   modelo, lidos dos arquivos que o Claude Code grava na sua máquina, com um gráfico e o CSV.
 
+- **Os subagentes pelo Wisp** (Fase 50): listar, criar, editar e apagar os subagentes do Claude
+  Code (os seus e os do projeto), com o diff antes de gravar e o backup do arquivo de antes.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.
