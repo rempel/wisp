@@ -20,6 +20,7 @@ import type {
 import { reducedMotion, setAppearance } from '../common/appearance'
 import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
+import { UsageView } from './UsageView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
 import { MarkdownPreview, PreviewBar } from './Preview'
@@ -101,14 +102,15 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   settings: [t('Configurações'), t('gravadas no config.json')],
   sessions: [t('Sessões'), t('do Claude Code no terminal')],
   diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
-  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')]
+  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
+  usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')]
 }
 
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<
-    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome'
+    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome' | 'usage'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
@@ -738,7 +740,7 @@ export default function Chat(): JSX.Element {
             (focusedState?.provider === 'openrouter' ? (
               <CostPill cost={focusedState.cost} />
             ) : (
-              usage && <UsagePill usage={usage} />
+              usage && <UsagePill usage={usage} onPanel={() => setView('usage')} />
             ))}
           <button
             type="button"
@@ -820,6 +822,8 @@ export default function Chat(): JSX.Element {
           <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
         ) : view === 'history' ? (
           <HistoryView onClose={() => setView('chat')} />
+        ) : view === 'usage' ? (
+          <UsageView />
         ) : view === 'sessions' ? (
           <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
         ) : (

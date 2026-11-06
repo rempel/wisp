@@ -129,6 +129,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **O mascote numa janela** (Fase 48): arraste o mascote com o Ctrl e solte numa janela, ou
   aperte Ctrl+Alt+J, e o print dela vai para a conversa, com o título e o programa na caixa.
 
+- **O painel de uso** (Fase 49): os tokens e o custo estimado por dia, por projeto e por
+  modelo, lidos dos arquivos que o Claude Code grava na sua máquina, com um gráfico e o CSV.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

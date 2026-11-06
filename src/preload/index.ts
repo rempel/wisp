@@ -215,6 +215,10 @@ const api: WispApi = {
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
   },
+  usage: {
+    report: (days) => ipcRenderer.invoke(IPC.usageReport, days),
+    export: (days) => ipcRenderer.invoke(IPC.usageExport, days)
+  },
   preview: {
     open: (target, folder) => ipcRenderer.invoke(IPC.previewOpen, target, folder),
     capture: () => ipcRenderer.invoke(IPC.previewCapture),

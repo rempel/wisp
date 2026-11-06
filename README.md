@@ -594,6 +594,13 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   padrão do seu Claude Code) no meio da conversa, sem perder o contexto.
 - **Uso do plano:** depois da primeira resposta, uma pílula no cabeçalho mostra quanto da sua
   assinatura já foi usado (a janela de 5 horas e a da semana).
+- **Painel de uso** (Fase 49): pela paleta (**Painel de uso**) ou pelo cartão da pílula do plano,
+  os tokens (entrada, saída e cache) e o custo estimado dos últimos 7, 30 ou 90 dias: os totais, um
+  gráfico por dia e as tabelas por projeto e por modelo, com **Exportar CSV**. Os números vêm dos
+  `.jsonl` que o próprio Claude Code grava em `~/.claude/projects` (inclusive o das conversas do
+  terminal e dos subagentes), lidos na sua máquina, sem rede. O custo é o que essas respostas
+  custariam pela API da Anthropic, pelos preços de novembro de 2026; numa assinatura, você não paga
+  por token. Um modelo sem preço na tabela (um da OpenRouter) entra só nos tokens.
 - **Anexos:** o **+** à esquerda da caixa tem **Anexar arquivos** e **Print da tela**; dá também para
   arrastar arquivos para o painel, colar uma imagem com Ctrl+V ou soltar um arquivo em cima do
   mascote. Imagens, PDFs e textos são lidos pelo Claude. Até 20 arquivos por mensagem, de até 50 MB.

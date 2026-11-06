@@ -989,3 +989,13 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       conversa (o mascote e o painel não aparecem nele).
 - [ ] **Windows:** o mesmo no Windows, com uma tela em 150%: o print é o da janela certa.
 - [ ] **Wayland:** no GNOME com Wayland, o atalho avisa que o sistema não deixa ver as janelas.
+
+## O painel de uso (Fase 49)
+
+- [ ] **Abrir:** Ctrl+P → **Painel de uso**: os números, o gráfico dos últimos 30 dias e as
+      tabelas por projeto e por modelo aparecem (com as suas sessões do terminal também).
+- [ ] **Conferir:** compare o total de um dia com o `npx ccusage daily` (se você usa): os tokens
+      batem.
+- [ ] **Período:** **7 dias** e **90 dias** mudam o gráfico e os totais.
+- [ ] **CSV:** **Exportar CSV** grava o arquivo; ele abre numa planilha com uma linha por dia,
+      projeto e modelo.

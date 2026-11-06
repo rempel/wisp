@@ -1898,7 +1898,8 @@ Notas da entrega:
 
 ### Fase 49: o painel de uso
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/uso.test.ts`; `e2e/uso.mjs`, no job do
+Linux e no **Windows** do CI).
 
 - **Os números (M):** tokens (entrada, saída e cache) e o custo estimado por dia, por projeto e por
   modelo, lidos dos `.jsonl` que o Claude Code grava na sua máquina, sem rede.
@@ -1906,6 +1907,18 @@ Notas da entrega:
 
 **Aceite:** com sessões de dois projetos e dois modelos nos `.jsonl`, o painel mostra os totais
 certos por dia, projeto e modelo, e o CSV tem as mesmas linhas.
+
+Notas da entrega:
+
+- os números: dos `.jsonl` do próprio Claude Code (o mesmo que o ccusage lê), cada resposta uma
+  vez (ele grava uma linha por bloco, com o mesmo uso), com os subagentes. Só quando o painel
+  abre, e cada arquivo lido fica guardado pelo tamanho e pela data;
+- o custo: pela tabela de preços da API (novembro de 2026), com a escrita do cache de 5 minutos e
+  a de 1 hora com o preço de cada uma; é o que as respostas custariam pela API, não o que a
+  assinatura cobra. Os modelos da OpenRouter ficam só nos tokens (o custo deles já aparece na
+  pílula do custo, Fase 14);
+- a tela é uma vista do painel, como o histórico, aberta pela paleta e pelo cartão da pílula do
+  plano.
 
 ### Fase 50: os subagentes pelo Wisp
 

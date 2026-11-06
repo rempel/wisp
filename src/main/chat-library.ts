@@ -17,6 +17,7 @@ import { setPinned } from './history'
 import type { History, SavedConversation } from './history'
 import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
+import { setupUsageReport } from './usage-report'
 import { pickFolder, pickSaveFile } from './pick'
 import { IPC } from '../shared/ipc'
 import type {
@@ -69,6 +70,8 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   const conversations = (): Conversation[] => tabs.conversations()
   const win = (): BrowserWindow | null => ctx.window()
   const index = new SearchIndex(store)
+  // O painel de uso (Fase 49): os tokens e o custo, lidos dos .jsonl do Claude Code.
+  setupUsageReport(ctx.fromChat, win)
   const openIds = (): Set<string> =>
     new Set(conversations().flatMap((c) => (c.historyId ? [c.historyId] : [])))
 
