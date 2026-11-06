@@ -1,7 +1,7 @@
 // O resumo da semana (Fase 13): o registro do que aconteceu (só contagens e nomes, nada do
 // conteúdo), a ferramenta do Claude, o pedido do painel e o aviso de segunda.
 
-import { app, BrowserWindow, ipcMain } from 'electron'
+import { BrowserWindow, ipcMain } from 'electron'
 import { readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import {
@@ -18,7 +18,7 @@ import type { Chat } from './chat'
 import { getConfig } from './config'
 import type { Notify } from './notify'
 import { DATA_DIR } from './paths'
-import { pickSaveFile } from './pick'
+import { pickSaveFile, userDir } from './pick'
 import { tilde } from './folders'
 import type { ExportResult } from '../shared/ipc'
 import { IPC } from '../shared/ipc'
@@ -110,7 +110,7 @@ export function setupWeekly(notify: Notify, chat: () => Chat | null): Weekly {
     if (data.byteLength > 10 * 1024 * 1024) return { ok: false, message: t('pedido inválido') }
     const file = await pickSaveFile(
       t('Salvar o resumo da semana'),
-      join(app.getPath('pictures'), `wisp-semana-${new Date().toISOString().slice(0, 10)}.png`),
+      join(userDir('pictures'), `wisp-semana-${new Date().toISOString().slice(0, 10)}.png`),
       [{ name: 'PNG', extensions: ['png'] }],
       BrowserWindow.fromWebContents(event.sender)
     )

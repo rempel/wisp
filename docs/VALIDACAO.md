@@ -1041,3 +1041,14 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       da versão.
 - [ ] **GitLab:** com o `glab` logado e **Avisos do GitLab** ligados, quebre o pipeline de um MR
       seu: o aviso chega, e o clique abre a aba com o pedido de investigar pelo `glab`.
+
+## Ditar em qualquer programa (Fase 53)
+
+- [ ] **Ligar:** em **Configurações → Atalhos e sistema**, **Ditar em qualquer programa** com
+      Ctrl+Alt+D.
+- [ ] **Ditar:** no editor de texto, segure Ctrl+Alt+D, diga uma frase e solte: a frase aparece
+      no editor; o que estava copiado antes continua lá (cole para conferir).
+- [ ] **Trocas:** em **Trocas do ditado**, `uisp = Wisp`; dite "abra o uisp": sai "abra o Wisp".
+- [ ] **Sem colar sozinho:** sem o `xdotool` (ou, no Wayland, sem o `wtype`), a notificação diz
+      que copiou; Ctrl+V cola.
+- [ ] **Windows:** o mesmo no Bloco de Notas.

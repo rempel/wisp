@@ -10,9 +10,32 @@
   margin-bottom: 0;
 }
 
-.user-turn.editable:hover .turn-actions .edit-last,
-.turn-actions .edit-last:focus-visible {
+.user-turn.has-actions {
+  position: relative;
+}
+
+.turn-action {
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--muted);
+  font: inherit;
+  font-size: 11.5px;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.user-turn:hover .turn-action,
+.user-turn.has-actions:hover .edit-last,
+.turn-action:focus-visible {
   opacity: 1;
+}
+
+.turn-action:hover {
+  border-color: var(--accent);
+  color: var(--text);
 }
 
 .points {

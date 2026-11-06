@@ -246,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island pontos preview uso janela agentes quadro pequenos
+        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island pontos preview uso janela agentes quadro pequenos ditado
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}

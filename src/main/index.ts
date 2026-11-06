@@ -98,6 +98,7 @@ import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
 import { releaseShortcuts } from './shortcut'
 import { setupGlobalShortcuts } from './shortcuts-setup'
+import { dictate } from './dictation'
 import { attachFrontWindow, attachWindowAt } from './window-context'
 import { usageAlertsFor } from './usage-alerts'
 import { createFocus } from './focus'
@@ -437,6 +438,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     quickCommands: () => getConfig().quickCommands,
     runQuick: quick.run,
     deliver: (text, source) => {
+      // O ditado (Fase 53): colado no programa da frente, sem passar pela conversa.
+      if (source === 'dictation') {
+        void dictate(text, getConfig().dictationReplacements, notify)
+        return null
+      }
       if (!chat) return null
       // Pelo botão de falar da ilha (Fase 38): vai pela ilha, sem abrir o painel.
       if (source === 'island') return island?.askByVoice(text) ?? null
@@ -844,6 +850,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     activity: () => presence.activity(),
     island: { isOpen: islandIsOpen, close: closeIsland, ask: () => showIslandTab('ask') },
     notify,
+    dictation: {
+      press: (releases) => voice?.press(releases, 'dictation'),
+      release: () => voice?.release()
+    },
     bound: (next) => {
       shortcuts = next
       menu?.refresh()

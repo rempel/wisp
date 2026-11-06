@@ -8,11 +8,11 @@
 import { createReadStream, readdirSync, statSync } from 'fs'
 import { basename, join } from 'path'
 import { createInterface } from 'readline'
-import { app, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent } from 'electron'
 import { writeFile } from 'fs/promises'
 import { OPENROUTER_CONFIG_DIR } from './openrouter'
-import { pickSaveFile } from './pick'
+import { pickSaveFile, userDir } from './pick'
 import { claudeConfigDir } from './skills'
 import { tilde } from './folders'
 import { IPC } from '../shared/ipc'
@@ -305,7 +305,7 @@ export function setupUsageReport(
     const report = await usageReport(valid(days))
     const file = await pickSaveFile(
       t('Exportar o uso'),
-      join(app.getPath('documents'), `wisp-uso-${report.since}.csv`),
+      join(userDir('documents'), `wisp-uso-${report.since}.csv`),
       [{ name: 'CSV', extensions: ['csv'] }],
       window()
     )

@@ -2005,7 +2005,9 @@ Notas da entrega:
 
 ### Fase 53: ditar em qualquer programa
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/ditado.test.ts`; `e2e/ditado.mjs`, com o atalho
+de verdade pelo xdotool, o microfone falso do Chromium e um xdotool de mentira que anota o que
+foi colado, no job do Linux do CI).
 
 - **Segurar, falar e soltar (M):** um atalho de ditado; o que você disse (transcrito na máquina,
   pelo whisper.cpp da voz) é colado no programa da frente.
@@ -2013,6 +2015,18 @@ Notas da entrega:
 
 **Aceite:** com o editor de texto na frente, segurar o atalho, dizer uma frase e soltar cola a
 frase nele; a área de transferência volta a ser a de antes.
+
+Notas da entrega:
+
+- o ditado é o segurar para falar da voz (Fase 10) com outro destino: nada de outro microfone nem
+  de outro modelo, e o atalho vem desligado;
+- colar: pela área de transferência e o Ctrl+V de quem estiver instalado (o `xdotool` no X11, o
+  `wtype` ou o `ydotool` no Wayland; no Windows, o próprio Windows). Digitar letra por letra
+  ficou de fora: é lento e se perde com acentos em layouts diferentes. A área de transferência
+  volta depois (todos os formatos; no X11, o texto de reserva, que o e2e pegou faltando);
+- num terminal, colar é Ctrl+Shift+V: o README avisa;
+- a revisão do ditado pelo Claude (o "clean-up" do Coucou) ficou de fora: o ditado não passa
+  pela rede.
 
 ### Fase 54: conversar pelo celular, na rede local
 

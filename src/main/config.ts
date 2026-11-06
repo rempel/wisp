@@ -117,6 +117,8 @@ export interface WispConfig {
   windowShortcut: string | null
   /** Atalho global do ditado em qualquer programa (Fase 53, segurar); null desliga. */
   dictationShortcut: string | null
+  /** As trocas do ditado (Fase 53): o que o whisper escreve e o que você quer. */
+  dictationReplacements: { from: string; to: string }[]
   /** As horas de silêncio (Fase 52): de `from` a `to` (HH:MM) o Wisp fica quieto; null desliga. */
   quietHours: { from: string; to: string } | null
   /** O painel oferece um chip para usar o que você copiou. */
@@ -250,6 +252,7 @@ function defaults(): WispConfig {
     selectionShortcut: 'Ctrl+Alt+E',
     windowShortcut: 'Ctrl+Alt+J',
     dictationShortcut: null,
+    dictationReplacements: [],
     quietHours: null,
     clipboardChip: true,
     terminalCommand: null,
@@ -379,6 +382,9 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   selectionShortcut: z.string().max(60).nullable(),
   windowShortcut: z.string().max(60).nullable(),
   dictationShortcut: z.string().max(60).nullable(),
+  dictationReplacements: z
+    .array(z.object({ from: z.string().min(1).max(100), to: z.string().max(200) }))
+    .max(100),
   quietHours: z
     .object({
       from: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
@@ -576,6 +582,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   selectionShortcut: t('O atalho tem no máximo 60 caracteres.'),
   windowShortcut: t('O atalho tem no máximo 60 caracteres.'),
   dictationShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  dictationReplacements: t('Até 100 trocas, cada uma com o dito (até 100 caracteres) e o escrito.'),
   quietHours: t('Dois horários HH:MM (ex.: 22:00 e 08:00), ou null.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),

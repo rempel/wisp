@@ -929,6 +929,19 @@ traz). Para o Piper, o `piper.exe` vai em `%LOCALAPPDATA%\Wisp\Voz\piper` (ou no
 Windows precisa deixar os apps usarem o microfone (Configurações → Privacidade → Microfone →
 **Permitir que aplicativos da área de trabalho acessem o microfone**).
 
+#### Ditar em qualquer programa (Fase 53)
+
+Com a voz instalada, em **Configurações → Atalhos e sistema → Ditar em qualquer programa**,
+escolha um atalho (por exemplo, Ctrl+Alt+D; vem desligado). Segure o atalho, fale e solte: o que
+você disse, transcrito na sua máquina, é colado no programa da frente (o editor, o navegador, o
+chat), sem passar pela conversa. **Trocas do ditado**, logo abaixo, corrige o que o whisper erra
+sempre: uma por linha, `dito = escrito` (por exemplo, `uisp = Wisp`), como palavra inteira.
+
+O Wisp cola pela área de transferência e aperta o Ctrl+V: no X11 pelo `xdotool`, no Wayland pelo
+`wtype` (ou o `ydotool`) e no Windows pelo próprio Windows; logo depois, a área de transferência
+volta a ser a de antes. Sem nenhum deles instalado, o texto fica copiado e uma notificação diz para
+colar. Num terminal, onde colar é Ctrl+Shift+V, cole à mão.
+
 ### OpenRouter (experimental)
 
 Em vez da assinatura do Claude, uma conversa pode ir pela [OpenRouter](https://openrouter.ai),
