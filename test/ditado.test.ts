@@ -39,34 +39,39 @@ test('ditado: as trocas uma por linha', () => {
   assert.equal(parseReplacements(Array(150).fill('a = b').join('\n')).length, 100)
 })
 
-test('ditado: quem aperta o Ctrl+V', () => {
-  const bin = join(tmpdir(), `wisp-ditado-${process.pid}`)
-  mkdirSync(bin, { recursive: true })
-  for (const name of ['xdotool', 'wtype']) {
-    writeFileSync(join(bin, name), '#!/bin/sh\n')
-    chmodSync(join(bin, name), 0o755)
+// No Windows, o Ctrl+V é do próprio Windows (o PowerShell): este é o do Linux.
+test(
+  'ditado: quem aperta o Ctrl+V',
+  { skip: process.platform === 'win32' && 'só no Linux' },
+  () => {
+    const bin = join(tmpdir(), `wisp-ditado-${process.pid}`)
+    mkdirSync(bin, { recursive: true })
+    for (const name of ['xdotool', 'wtype']) {
+      writeFileSync(join(bin, name), '#!/bin/sh\n')
+      chmodSync(join(bin, name), 0o755)
+    }
+    const saved = process.env.PATH
+    process.env.PATH = bin
+    try {
+      assert.deepEqual(pasteCommand({ DISPLAY: ':0', PATH: bin })?.args, [
+        'key',
+        '--clearmodifiers',
+        'ctrl+v'
+      ])
+      assert.deepEqual(pasteCommand({ XDG_SESSION_TYPE: 'wayland', PATH: bin })?.args, [
+        '-M',
+        'ctrl',
+        'v',
+        '-m',
+        'ctrl'
+      ])
+      // Sem o X e sem os do Wayland, ninguém (o texto fica copiado).
+      assert.equal(pasteCommand({ PATH: bin }), null)
+    } finally {
+      process.env.PATH = saved
+    }
   }
-  const saved = process.env.PATH
-  process.env.PATH = bin
-  try {
-    assert.deepEqual(pasteCommand({ DISPLAY: ':0', PATH: bin })?.args, [
-      'key',
-      '--clearmodifiers',
-      'ctrl+v'
-    ])
-    assert.deepEqual(pasteCommand({ XDG_SESSION_TYPE: 'wayland', PATH: bin })?.args, [
-      '-M',
-      'ctrl',
-      'v',
-      '-m',
-      'ctrl'
-    ])
-    // Sem o X e sem os do Wayland, ninguém (o texto fica copiado).
-    assert.equal(pasteCommand({ PATH: bin }), null)
-  } finally {
-    process.env.PATH = saved
-  }
-})
+)
 
 test('ditado: o texto vai para o programa da frente, sem comandos nem conversa', async () => {
   const delivered: [string, string][] = []
