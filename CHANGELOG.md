@@ -182,6 +182,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   aberta uma caixa "Error" do Electron; agora ele só sai.
 - No Windows, as skills pessoais não entravam nas conversas pela OpenRouter: o link para elas
   pedia o modo de desenvolvedor ou o administrador (EPERM). Agora é uma junction.
+- Os pacotes (o instalador do Windows e, pela mesma configuração, os do Linux) levavam o projeto
+  inteiro junto do app: o código-fonte, os testes, os roteiros e a documentação. Agora levam só o
+  app montado, e a conferência dos pacotes reclama se voltar.
 - No modo terminal, uma mensagem mandada pelo `wisp --ask` ou pela voz a um Claude Code que
   acabou de subir podia ficar na caixa sem enviar (o Enter chegava antes de ele ligar o modo cru
   do terminal, como uma quebra de linha): agora a colagem espera ele mostrar alguma coisa.

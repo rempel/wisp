@@ -25,8 +25,10 @@ files:
   - '!out/test/**'
   # O Electron de ARM64 baixado para montar os pacotes ARM64 (scripts/electron-arm64.mjs).
   - '!.cache/**'
-  # Do node-pty (o modo terminal), o código-fonte em C fica de fora; os binários de cada sistema
-  # vão no pacote de cada um (linux.files e win.files).
+  # Do node-pty (o modo terminal), o código-fonte em C fica de fora; os binários de outros sistemas
+  # saem no afterPack. Nada de `files` em linux: ou win: o electron-builder não junta essa lista
+  # com esta, e uma lista só de exclusões vira "**/*": o pacote levava o projeto inteiro (src,
+  # test, e2e, docs).
   - '!node_modules/node-pty/{deps,third_party,src,scripts,typings}/**'
 # O node-pty usa a N-API: o pty.node compilado no npm install serve para o Electron sem
 # recompilar (e recompilar baixaria os cabeçalhos do Electron).
@@ -43,9 +45,8 @@ linux:
   target:
     - deb
     - AppImage
-  # No Linux, o pty.node compilado no npm install: os binários de Windows e macOS ficam de fora.
-  files:
-    - '!node_modules/node-pty/prebuilds/**'
+  # No Linux, o pty.node compilado no npm install: os binários de Windows e macOS (prebuilds) o
+  # afterPack tira.
   category: Utility
   icon: build/icons
   maintainer: rempel <rempel@users.noreply.github.com>
@@ -89,7 +90,8 @@ toolsets:
   appimage: 1.0.3
 # O Windows (Fase 33): um instalador por usuário (sem pedir administrador), no menu Iniciar e na
 # área de trabalho. O node-pty traz o binário dele pronto (prebuilds/win32-x64 e win32-arm64; o
-# afterPack tira o da outra arquitetura). O de ARM64 (Fase 40) sai com --arm64 e o Electron de
+# afterPack tira o da outra arquitetura, os de outros sistemas e o build/ compilado no npm
+# install). O de ARM64 (Fase 40) sai com --arm64 e o Electron de
 # ARM64 (scripts/electron-arm64.mjs ... win32), no job do Windows do CI. Com um certificado nos
 # segredos do CI (WIN_CSC_LINK e WIN_CSC_KEY_PASSWORD), o electron-builder assina os dois.
 win:
@@ -99,9 +101,6 @@ win:
         - x64
   icon: build/icons/256x256.png
   artifactName: Wisp-${version}-Setup-${arch}.${ext}
-  files:
-    - '!node_modules/node-pty/prebuilds/{darwin-*,linux-*}/**'
-    - '!node_modules/node-pty/build/**'
 nsis:
   oneClick: true
   perMachine: false
