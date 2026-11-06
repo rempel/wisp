@@ -27,7 +27,8 @@ import type { SlashCommand } from './slash'
 import type { SavedPrompt } from '../../shared/prompts'
 import { SlashMenu } from './SlashMenu'
 import { FindBar } from './FindBar'
-import { awaitingPermission, lastTurnStart } from './state'
+import { awaitingPermission, lastTurnStart, turnStartsOf } from './state'
+import { usePoints } from './Points'
 import type { ChatState, Item } from './state'
 import { Message } from './Message'
 import { NextEvent } from './NextEvent'
@@ -134,6 +135,11 @@ export function Pane({
   onSent
 }: PaneProps): JSX.Element {
   const [draft, setDraft] = useState(() => drafts.get(conversation) ?? state.draft ?? '')
+  // Voltar, ramificar e a pergunta lateral (Fase 46): o texto que saiu volta para a caixa.
+  const points = usePoints(conversation, (text) => {
+    setDraft(text)
+    requestAnimationFrame(() => input.current?.focus())
+  })
   // O rascunho guardado chega do main depois de o painel abrir: entra se a caixa está vazia.
   const [seenDraft, setSeenDraft] = useState(state.draft)
   if (state.draft !== seenDraft) {
@@ -352,6 +358,13 @@ export function Pane({
       pickCommand({ name: saved[1], description: '', prompt: true })
       return true
     }
+    // A pergunta lateral (Fase 46), como o /btw do Claude Code.
+    const btw = /^\/btw(?:\s+([\s\S]*))?$/.exec(text)
+    if (btw && !attachments.pending.length) {
+      points.aside(btw[1] ?? '')
+      setDraft('')
+      return true
+    }
     const match = /^\/(compact|clear)(?:\s+([\s\S]*))?$/.exec(text)
     if (!match || attachments.pending.length) return false
     if (match[1] === 'compact') window.wisp.chat.compact(conversation, match[2]?.trim() ?? '')
@@ -362,6 +375,10 @@ export function Pane({
 
   // A última mensagem dá para editar com o Claude parado, no chat (no terminal, o Esc Esc dele).
   const editIndex = !state.busy && !terminalView && !demo ? lastTurnStart(state.items) : -1
+  // Cada mensagem que começa um turno dá para voltar ou ramificar (Fase 46), com o Claude parado.
+  const turnAt = new Map(
+    (editIndex >= 0 ? turnStartsOf(state.items) : []).map((position, turn) => [position, turn])
+  )
   // Só o fim de uma conversa longa fica na página (Fase 23).
   const hiddenItems = finding ? 0 : Math.max(0, state.items.length - PAGE_ITEMS * (earlier + 1))
 
@@ -696,6 +713,16 @@ export function Pane({
               item={item}
               streaming={state.busy && item === last}
               onEdit={position === editIndex && !editing ? startEdit : undefined}
+              onRewind={
+                turnAt.has(position) && !editing
+                  ? () => points.rewind(turnAt.get(position) as number)
+                  : undefined
+              }
+              onFork={
+                turnAt.has(position) && !editing
+                  ? () => points.fork(turnAt.get(position) as number)
+                  : undefined
+              }
               conversation={conversation}
             />
           )
@@ -709,6 +736,7 @@ export function Pane({
         )}
       </div>
 
+      {points.panel}
       <form
         className="composer"
         onSubmit={(event) => {
@@ -820,6 +848,7 @@ export function Pane({
             onAttach={() => picker.current?.click()}
             onCapture={() => void captureScreen()}
             onCaptureArea={() => void captureScreen(true)}
+            onAside={demo ? undefined : () => points.aside()}
             capturing={capturing}
           />
           <button

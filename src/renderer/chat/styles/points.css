@@ -1,0 +1,88 @@
+/* Fase 46 em diante: voltar e ramificar a conversa, a pergunta lateral. */
+
+.turn-actions {
+  display: flex;
+  gap: 4px;
+  align-self: flex-end;
+}
+
+.turn-actions .edit-last {
+  margin-bottom: 0;
+}
+
+.user-turn.editable:hover .turn-actions .edit-last,
+.turn-actions .edit-last:focus-visible {
+  opacity: 1;
+}
+
+.points {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 6px 12px 0;
+}
+
+.rewind-card,
+.aside-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 10px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.rewind-card p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.rewind-actions {
+  display: flex;
+  gap: 6px;
+}
+
+.points-note {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.aside-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.aside-head small {
+  flex: 1;
+  color: var(--muted);
+}
+
+.aside-answer {
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.aside-question {
+  margin: 0 0 4px;
+  font-weight: 600;
+}
+
+.aside-form {
+  display: flex;
+  gap: 6px;
+}
+
+.aside-form input {
+  flex: 1;
+  min-width: 0;
+  padding: 4px 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}

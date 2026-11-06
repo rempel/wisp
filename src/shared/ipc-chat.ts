@@ -111,6 +111,33 @@ export interface ReviewUndoResult {
   problems: string[]
 }
 
+/** O que voltar a um ponto da conversa muda nos arquivos (Fase 46), antes de confirmar. */
+export interface RewindPreview {
+  ok: boolean
+  /** Por que não dá (com ok false). */
+  message?: string
+  /** Os arquivos que voltam a ser como eram antes daquela mensagem. */
+  files: ReviewFile[]
+  /** Algumas respostas dali em diante são de antes de o Wisp abrir: sem as cópias delas. */
+  partial: boolean
+}
+
+/** O que voltar a um ponto conseguiu: o texto da mensagem volta para a caixa. */
+export interface RewindResult {
+  ok: boolean
+  message?: string
+  text: string
+  attachments: AttachmentPreview[]
+  undone: string[]
+  problems: string[]
+}
+
+/** A resposta da pergunta lateral (Fase 46). */
+export interface AsideResult {
+  ok: boolean
+  text: string
+}
+
 /** Uma conversa guardada no histórico. */
 export interface ConversationSummary {
   id: string
@@ -231,8 +258,11 @@ export type ChatEvent =
    * anterior chega depois dele.
    */
   | { type: 'reset' }
-  /** A última mensagem (e o que veio depois dela) saiu: ela foi editada (Fase 21). */
-  | { type: 'rewind' }
+  /**
+   * Mensagens saíram: a última (e o que veio depois dela), editada (Fase 21), ou, com `keep`,
+   * tudo a partir da mensagem que começa o turno número `keep` (Fase 46: voltar a um ponto).
+   */
+  | { type: 'rewind'; keep?: number }
   /** O rascunho da caixa, guardado da última vez. */
   | { type: 'draft'; text: string }
   /**

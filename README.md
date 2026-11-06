@@ -546,6 +546,16 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   dela saem da conversa e do contexto do Claude, que responde de novo. Por baixo, o Wisp volta a
   sessão do Claude Code até a resposta anterior, numa cópia (a sessão original continua inteira).
   Os arquivos que a resposta velha mudou continuam como ficaram.
+- **Voltar a um ponto e ramificar** (Fase 46): com o Claude parado, passe o mouse numa mensagem sua
+  qualquer. **Voltar aqui** tira ela e o que veio depois (da conversa e do contexto do Claude) e
+  devolve o texto dela para a caixa. Antes, um card mostra os arquivos que as respostas dali em
+  diante mudaram, com +N −M, e **Voltar também os arquivos** os deixa como eram antes daquela
+  mensagem (das respostas desde que o Wisp abriu: as cópias de antes ficam por 30 respostas).
+  **Ramificar** abre uma aba nova com a conversa até a resposta daquela mensagem, para tentar outro
+  caminho; a original continua como estava.
+- **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
+  Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
+  entrar no histórico e sem parar o Claude, mesmo com ele trabalhando.
 - **Buscar:** Ctrl+F busca na conversa da aba, com os trechos marcados; Enter e Shift+Enter andam
   entre eles, Esc fecha.
 - **Rascunho:** o que ficou escrito na caixa de texto de cada aba volta quando você fecha e abre o

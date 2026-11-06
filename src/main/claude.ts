@@ -18,6 +18,7 @@ import {
 } from './claude-settings'
 import type { TerminalLaunch } from './claude-settings'
 import { StreamReader } from './claude-stream'
+import type { AsideLaunch } from './aside'
 import { openrouterEnv, seedTerminalConfig } from './openrouter'
 import { t } from '../shared/i18n'
 
@@ -318,14 +319,39 @@ export class ClaudeSession extends StreamReader {
    * Volta a uma conversa do histórico: encerra o processo atual, e a próxima mensagem sobe
    * outro com `--resume <sessionId>`.
    */
-  resume(sessionId: string, options: { cwd?: string; fork?: boolean } = {}): void {
+  resume(sessionId: string, options: { cwd?: string; fork?: boolean; at?: string } = {}): void {
     this.clear()
     this.sessionId = sessionId
     this.sessionSaved = true
     this.restored = true
     this.cwd = options.cwd ?? null
     this.fork = options.fork ?? false
+    // Ramificar (Fase 46): só até a resposta `at`, numa cópia.
+    this.resumeAt = options.at ?? null
     this.emit({ type: 'reset' })
+  }
+
+  /**
+   * O que a pergunta lateral (Fase 46) precisa para subir um Claude Code à parte: o CLI, o
+   * ambiente, a pasta e a sessão para retomar numa cópia (null antes da primeira resposta). Null
+   * sem como subir (na demonstração, sem o CLI ou, pela OpenRouter, sem a chave).
+   */
+  asideLaunch(): AsideLaunch | null {
+    if (this.options.demo?.()) return null
+    const bin = this.bin ?? resolveCommand(this.options.claudePath)
+    if (!bin) return null
+    const env = claudeEnv(bin)
+    if (this.provider === 'openrouter') {
+      if (!this.secret || !this.model) return null
+      Object.assign(env, openrouterEnv(this.secret, this.model))
+    }
+    return {
+      bin,
+      env,
+      cwd: this.cwd ?? this.folder ?? this.options.workspace(),
+      sessionId: this.sessionId && this.sessionSaved ? this.sessionId : null,
+      model: this.model
+    }
   }
 
   /** Encerra o processo sem esperar (o app está fechando). */

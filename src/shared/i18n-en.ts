@@ -202,8 +202,8 @@ export const EN: Record<string, string> = {
     "I didn't trust {v1}: Claude Code doesn't run in it. To continue, send the ",
   'mensagem de novo e clique em **Confiar nesta pasta**, ou abra outra pasta.':
     'message again and click **Trust this folder**, or open another folder.',
-  'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar ':
-    "I couldn't edit the last message of this conversation: it's from before Wisp saved ",
+  'Não deu para voltar a conversa a este ponto: ele é de antes de o Wisp guardar ':
+    "I couldn't take the conversation back to this point: it's from before Wisp saved ",
   'onde voltar, ou veio do terminal. Mande a mensagem como uma nova.':
     'where to go back to, or it came from the terminal. Send the message as a new one.',
   'Espere a resposta terminar para compactar.': 'Wait for the reply to finish to compact.',
@@ -2365,5 +2365,53 @@ export const EN: Record<string, string> = {
     'Select some text in any program and press the shortcut again.',
   'Explicar a seleção': 'Explain the selection',
   'De qualquer lugar: o texto selecionado vai para uma conversa nova, com o pedido de explicar na caixa (troque por "traduza", "corrija"… e mande).':
-    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).'
+    'From anywhere: the selected text goes to a new conversation, with a request to explain it in the box (change it to "translate", "fix"… and send).',
+  'O Claude não respondeu à pergunta.': "Claude didn't answer the question.",
+  'Escreva a pergunta.': 'Write the question.',
+  'Espere a resposta acabar (ou pare-a) para voltar a conversa.':
+    'Wait for the reply to finish (or stop it) to take the conversation back.',
+  'No modo terminal, use o Esc Esc do Claude Code.': "In terminal mode, use Claude Code's Esc Esc.",
+  'Essa mensagem não está no histórico da conversa.':
+    "That message isn't in the conversation's history.",
+  'Não deu para voltar a conversa a este ponto.':
+    "I couldn't take the conversation back to this point.",
+  'Não deu para ramificar daqui: a resposta dessa mensagem é de antes de o Wisp guardar ':
+    "I couldn't branch from here: this message's reply is from before Wisp saved ",
+  'onde voltar, ou veio do terminal.': 'where to go back to, or it came from the terminal.',
+  'As abas estão cheias: feche uma para ramificar a conversa.':
+    'The tabs are full: close one to branch the conversation.',
+  'A pergunta lateral precisa do Claude Code (e, pela OpenRouter, da chave e do modelo).':
+    'The side question needs Claude Code (and, through OpenRouter, the key and the model).',
+  '{title} (ramo)': '{title} (branch)',
+  'Pergunta lateral': 'Side question',
+  'uma dúvida rápida, sem entrar na conversa (/btw)':
+    'a quick question that stays out of the conversation (/btw)',
+  'A conversa volta para antes desta mensagem (e os arquivos, se quiser)':
+    'The conversation goes back to before this message (and the files, if you want)',
+  'Voltar a este ponto': 'Go back to this point',
+  'Voltar aqui': 'Go back here',
+  'Uma aba nova com a conversa até a resposta desta mensagem':
+    "A new tab with the conversation up to this message's reply",
+  'Ramificar daqui': 'Branch from here',
+  Ramificar: 'Branch',
+  'Não deu para voltar.': "I couldn't go back.",
+  '1 arquivo voltou a ser como era.': '1 file is back to how it was.',
+  '{count} arquivos voltaram a ser como eram.': '{count} files are back to how they were.',
+  'Os anexos da mensagem não voltam: anexe de novo se precisar.':
+    "The message's attachments don't come back: attach them again if you need them.",
+  'Voltar para antes desta mensagem?': 'Go back to before this message?',
+  'Ela e o que veio depois saem da conversa (o Claude esquece), e o texto dela volta para a caixa.':
+    'It and everything after it leave the conversation (Claude forgets them), and its text goes back to the box.',
+  'Voltar também o arquivo que mudou daí em diante':
+    'Also restore the file that changed from then on',
+  'Voltar também os {count} arquivos que mudaram daí em diante':
+    'Also restore the {count} files that changed from then on',
+  'sem a cópia de antes': 'no copy from before',
+  'Parte dessas respostas é de antes de o Wisp abrir: os arquivos que elas mudaram ficam como estão.':
+    'Some of these replies are from before Wisp opened: the files they changed stay as they are.',
+  'não entra na conversa nem para o Claude':
+    "stays out of the conversation and doesn't stop Claude",
+  'Fechar a pergunta lateral': 'Close the side question',
+  'Pergunte sem interromper o Claude…': 'Ask without interrupting Claude…',
+  'A pergunta lateral': 'The side question'
 }
