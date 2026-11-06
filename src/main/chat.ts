@@ -6,7 +6,7 @@ import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
 import { saveIncoming, savePasted } from './attachments'
 import { captureArea } from './area-capture'
-import { setupTurnReviews } from './turn-review'
+import { registerPoints } from './chat-points'
 import type { TurnReviews } from './turn-review'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
@@ -320,8 +320,8 @@ export function setupChat({
     id: unknown
   ): Conversation | undefined =>
     fromChat(event) && typeof id === 'string' ? conversationById(id) : undefined
-  // O card do fim do turno, com o desfazer (Fase 42).
-  reviews = setupTurnReviews(fromChat, () => getConfig().turnReview)
+  // O card do fim do turno, com o desfazer (Fase 42); voltar, ramificar e a pergunta lateral (46).
+  reviews = registerPoints({ fromChat, tabs, toPage, enabled: () => getConfig().turnReview })
 
   ipcMain.on(IPC.chatReady, (event) => {
     if (!fromChat(event) || !win) return

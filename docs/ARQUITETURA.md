@@ -40,6 +40,9 @@ src/
 │  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
 │  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
 │  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
+│  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
+│  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
+│  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1046,3 +1049,24 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     painel, abre na linha da mudança, marca as linhas que a edição pôs e fecha com o Esc (pego na
     captura, antes de chegar ao painel, que se esconderia; com a busca do editor aberta, o Esc
     fecha só a busca). Com ele aberto, os atalhos do painel esperam.
+- **Voltar, ramificar e a pergunta lateral (Fase 46):**
+  - **o turno:** a página manda o número do turno (contado das mensagens que começam um turno,
+    como no `turnStarts` do histórico) e o main confere com o histórico. O `rewind` do histórico
+    ganhou o `keep`: tira tudo a partir do turno `keep`. O Claude Code retoma com
+    `--resume-session-at` na última resposta do turno anterior, numa cópia (`--fork-session`),
+    como a edição da última mensagem (Fase 21);
+  - **os arquivos:** as cópias de antes das edições (Fase 42) deixam de sair no turno seguinte:
+    no começo de cada turno, a pasta das cópias vai para `<pasta>.turnos/<turno>` (o número da
+    mensagem que começou o turno, pelo histórico). Voltar ao turno `k` junta as cópias dos turnos
+    `k` em diante, a mais antiga de cada arquivo, e mostra o diff de agora até ela; confirmado,
+    cada arquivo só volta se ainda estiver como a prévia mostrou. Ficam as dos últimos 30 turnos;
+    os turnos de antes de o Wisp abrir não têm cópias, e a prévia avisa (`partial`);
+  - **ramificar:** uma aba nova (`forkOf`) com os eventos da conversa até o fim do turno, como o
+    preâmbulo do histórico dela (o mesmo caminho de uma sessão trazida do terminal), e a sessão
+    retomada só até a última resposta do turno, numa cópia. A conversa nova ganha o id dela no
+    histórico na primeira mensagem;
+  - **a pergunta lateral:** `claude -p --output-format json --no-session-persistence --max-turns
+1`, com as ferramentas no `--disallowedTools`, `--strict-mcp-config` e, se a conversa já tem
+    sessão, `--resume <sessão> --fork-session`. A pergunta vai pela entrada padrão, nunca pela
+    linha de comando. Nada vai para o histórico nem para a sessão da conversa, que segue como
+    estava, mesmo trabalhando.

@@ -2,10 +2,10 @@ import { createHash, randomUUID } from 'crypto'
 import { homedir } from 'os'
 import { BROWSER_PREFIX, BrowserPolicy } from './browser-policy'
 import { ClaudeSession } from './claude'
-import type { ClaudeOptions } from './claude'
-import { History, rewindPoint, titleOf } from './history'
-import type { ConversationSeed, SavedConversation } from './history'
+import { History, pointBefore, rewindPoint, titleOf } from './history'
+import type { ConversationPoint, ConversationSeed, SavedConversation } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
+import type { ConversationOptions } from './conversation-types'
 import { folderRisks, isTrusted, tilde, trustFolder } from './folders'
 import { expandHome } from './paths'
 import { EDIT_TOOLS, editAllowed, editedPath, permissionScope } from './permission-scope'
@@ -36,45 +36,16 @@ export const PLAN_TOOL = 'ExitPlanMode'
 /** O card do Wisp para confiar numa pasta antes de o Claude Code rodar nela (Fase 15). */
 export const TRUST_TOOL = 'wisp_trust_folder'
 
-/** Para onde vão os eventos de uma conversa e o que ela pede ao painel. */
-export interface ConversationHost {
-  /**
-   * Um evento da conversa. `live`: aconteceu agora (o mascote e os sons acompanham); senão, é a
-   * reabertura de uma conversa guardada, que só vai para a página.
-   */
-  emit(conversation: Conversation, event: ChatEvent, live: boolean): void
-  /** Chegou um card: o painel aparece, sem roubar o foco, com esta aba à vista. */
-  attention(conversation: Conversation): void
-  /** O título ou a pasta mudaram (a aba acompanha). */
-  changed(conversation: Conversation): void
-  /** Saída do terminal do modo terminal, para a página (o xterm.js). */
-  terminalData(conversation: Conversation, chunk: string): void
-}
+export type { ConversationHost, ConversationOptions } from './conversation-types'
 
-export interface ConversationOptions {
-  id: string
-  host: ConversationHost
-  /** O que vale para todo processo do Claude Code: CLI, ferramentas liberadas, persona. */
-  claude: Omit<ClaudeOptions, 'mcpConfig' | 'modeFile' | 'permissionMode' | 'model' | 'provider'>
-  /** O --mcp-config desta conversa (o servidor desktop com o endereço dela). */
-  mcpConfig?: () => string | undefined
-  /** O arquivo do modo, que o hook do Bash lê. */
-  modeFile?: string
-  permissionMode: PermissionMode
-  /** O modelo de cada provedor (o do config.json: model ou openrouterModel). */
-  modelFor: (provider: Provider) => string | null
-  /** Por onde a conversa começa. */
+/** De onde vem uma conversa ramificada (Fase 46). */
+export interface ForkSource {
+  sessionId: string
+  at: string
+  folder: string | null
   provider: Provider
-  /** A pasta onde a conversa roda (um projeto aberto numa aba); sem ela, o workspace do Wisp. */
-  folder?: string | null
-  /** Onde fica a lista das pastas confiáveis (os testes trocam). */
-  trustFile?: string
-  /** Pastas onde o Aceitar edições libera edições (as de projetos, do config.json). */
-  projectRoots: () => string[]
-  /** Pastas que valem mesmo sendo ocultas (o workspace do Wisp, os anexos). */
-  trustedDirs: string[]
-  /** Modo demonstração: as respostas são gravadas, e a conversa não vai para o histórico. */
-  demo?: () => boolean
+  title: string
+  events: ChatEvent[]
 }
 
 /** Uma prévia de anexo, para a conversa mostrar o que foi enviado. */
@@ -309,24 +280,65 @@ export class Conversation {
    */
   editLast(text: string, files: OutgoingAttachment[], preview: PreviewOf): boolean {
     if (!text.trim() && !files.length) return false
-    if (this.viewMode === 'terminal' || this.session.isBusy()) return false
-    const point = rewindPoint(this.history.events())
-    if (!point) {
-      this.notice(
-        'warning',
-        t(
-          'Não deu para editar a última mensagem desta conversa: ela é de antes de o Wisp guardar '
-        ) + t('onde voltar, ou veio do terminal. Mande a mensagem como uma nova.')
-      )
-      return false
-    }
-    if (!this.session.rewind(point.at)) return false
-    this.history.record({ type: 'rewind' })
+    const point = this.rewindTo(null)
+    if (!point) return false
     if (point.at === null) {
       this.title = titleOf(text, files.map(preview))
       this.options.host.changed(this)
     }
     return this.send(text, files, preview)
+  }
+
+  /**
+   * Volta a conversa para antes do turno `turn` (Fase 46; null: o último, a edição da Fase 21):
+   * no Claude Code, a próxima mensagem retoma só até a resposta de antes dele, numa cópia, e o
+   * histórico ganha o 'rewind'. Devolve o ponto (o texto e os anexos da mensagem que saiu) ou
+   * null, com um aviso, se não deu.
+   */
+  rewindTo(turn: number | null): ConversationPoint | null {
+    if (this.viewMode === 'terminal' || this.session.isBusy()) return null
+    const events = this.history.events()
+    const point = turn === null ? rewindPoint(events) : pointBefore(events, turn)
+    if (!point) {
+      this.notice(
+        'warning',
+        t('Não deu para voltar a conversa a este ponto: ele é de antes de o Wisp guardar ') +
+          t('onde voltar, ou veio do terminal. Mande a mensagem como uma nova.')
+      )
+      return null
+    }
+    if (!this.session.rewind(point.at)) return null
+    this.history.record(turn === null ? { type: 'rewind' } : { type: 'rewind', keep: turn })
+    // De volta ao começo: a próxima mensagem dá o nome à aba.
+    if (turn !== null && point.at === null) {
+      this.title = null
+      this.options.host.changed(this)
+    }
+    return point
+  }
+
+  /**
+   * Começa nesta aba uma cópia de outra conversa até o fim de um turno dela (Fase 46): o que ela
+   * mostrava até ali volta, e a próxima mensagem retoma a sessão dela só até a resposta `at`, numa
+   * cópia. Devolve os eventos para a página.
+   */
+  forkOf(source: ForkSource): ChatEvent[] {
+    this.setProvider(source.provider)
+    this.setFolder(source.folder)
+    this.session.resume(source.sessionId, {
+      ...(source.folder ? { cwd: source.folder } : {}),
+      fork: true,
+      at: source.at
+    })
+    this.title = t('{title} (ramo)', { title: source.title })
+    this.history.prepare({
+      ...(source.folder ? { cwd: source.folder } : {}),
+      preface: source.events,
+      title: this.title
+    })
+    this.options.host.changed(this)
+    this.restartTerminal(true)
+    return source.events
   }
 
   /** Mostra na página uma mensagem que não veio da caixa (o --ask, a voz, a ilha). */
@@ -414,7 +426,7 @@ export class Conversation {
 
   /** Continua aqui uma sessão do terminal. */
   continueSession(
-    seed: ConversationSeed & { sessionId: string; alive: boolean; project: string }
+    seed: ConversationSeed & { cwd: string; sessionId: string; alive: boolean; project: string }
   ): void {
     // As sessões do terminal são do Claude Code da assinatura.
     this.setProvider('subscription')

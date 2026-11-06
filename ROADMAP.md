@@ -1807,7 +1807,8 @@ que bate com os princípios (rotinas na nuvem, outros provedores por fora do Cla
 
 ### Fase 46: voltar, ramificar e a pergunta lateral
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/pontos.test.ts`, com o Claude Code
+de mentira na pergunta lateral; `e2e/pontos.mjs`, no job do Linux e no **Windows** do CI).
 
 - **Voltar a este ponto (M):** em qualquer mensagem sua (não só na última, como na Fase 21), a
   conversa volta para antes dela no Claude Code, e a mensagem volta para a caixa. Os arquivos que
@@ -1821,6 +1822,27 @@ que bate com os princípios (rotinas na nuvem, outros provedores por fora do Cla
 tira ela e o que veio depois, devolve o texto à caixa e, confirmado, o arquivo volta a ser o de
 antes; ramificar a terceira abre uma aba com três mensagens e a original fica com quatro; a
 pergunta lateral responde sem a conversa ganhar mensagens.
+
+Notas da entrega:
+
+- o turno: a página manda o número do turno (contado das mensagens que começam um turno) e o
+  main confere com o histórico; o `rewind` ganhou o `keep`, e o Claude Code volta com o
+  `--resume-session-at` da Fase 21, numa cópia da sessão;
+- os arquivos: as cópias da Fase 42 passaram a ficar por turno (`<pasta>.turnos/<turno>`, os
+  últimos 30). Voltar junta as dos turnos dali em diante, a mais antiga de cada arquivo; um
+  arquivo mexido depois da prévia fica como está. Os turnos de antes de o Wisp abrir (uma conversa
+  do histórico) não têm cópias, e a prévia avisa. O `--rewind-files` do Claude Code ficou de fora:
+  ele depende do checkpoint ligado desde o começo da sessão e do uuid de cada mensagem, e as
+  cópias do Wisp já existiam;
+- ramificar: a aba nova leva o que a original mostrava até ali como o começo do histórico dela,
+  e o título com "(ramo)". Ela só ganha o arquivo no histórico na primeira mensagem (fechar o
+  Wisp antes perde o ramo, a original fica);
+- a pergunta lateral: um `claude -p` à parte, com `--no-session-persistence`, `--max-turns 1` e
+  as ferramentas negadas, retomando a sessão numa cópia que não é gravada. Funciona com o Claude
+  trabalhando (a sessão gravada até ali). Na demonstração, não aparece;
+- o `conversation.ts` e o `chat.ts` estavam perto das 1.000 linhas: as opções da conversa foram
+  para o `conversation-types.ts`, e o IPC dos pontos (com a montagem das revisões) para o
+  `chat-points.ts`.
 
 ### Fase 47: a pré-visualização no painel
 

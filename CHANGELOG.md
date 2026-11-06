@@ -118,6 +118,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Explicar a seleção e o modo foco** (Fase 45): Ctrl+Alt+E leva o texto marcado em qualquer
   programa para uma conversa; o modo foco deixa o Wisp quieto por 25 ou 50 minutos.
 
+- **Voltar, ramificar e a pergunta lateral** (Fase 46): voltar a conversa (e, se quiser, os
+  arquivos) para antes de qualquer mensagem sua; ramificar uma conversa numa aba nova a partir de
+  uma resposta; e o `/btw`, uma pergunta rápida que não entra na conversa.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

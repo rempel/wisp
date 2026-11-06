@@ -24,6 +24,9 @@ import type {
   PermissionMode,
   Provider,
   ReviewUndoResult,
+  RewindPreview,
+  RewindResult,
+  AsideResult,
   TabsState,
   WorktreeResult,
   WorktreeStatus,
@@ -148,6 +151,21 @@ export const IPC = {
    * antes dela e a nova vai no lugar. Args: (conversa, texto, anexos). Devolve boolean.
    */
   chatEditLast: 'chat:edit-last',
+  /**
+   * chat → main (invoke): o que voltar ao turno `turn` (contado das mensagens que começam um
+   * turno, a partir de 0) faria nos arquivos (Fase 46). Args: (conversa, turno). Devolve
+   * RewindPreview.
+   */
+  chatRewindPreview: 'chat:rewind-preview',
+  /**
+   * chat → main (invoke): volta a conversa para antes do turno `turn` (Fase 46); com `files`, os
+   * arquivos ([{ path, hash }] da prévia) voltam também. Devolve RewindResult.
+   */
+  chatRewind: 'chat:rewind',
+  /** chat → main (invoke): uma aba nova com a conversa até o fim do turno `turn`. Devolve boolean. */
+  chatFork: 'chat:fork',
+  /** chat → main (invoke): a pergunta lateral (Fase 46). Args: (conversa, pergunta). Devolve AsideResult. */
+  chatAside: 'chat:aside',
   /** chat → main: o rascunho da caixa de uma aba, para voltar ao reabrir. Args: (conversa, texto). */
   chatDraft: 'chat:draft',
   /** chat → main (invoke): exporta a conversa da aba em Markdown. Arg: conversa. Devolve ExportResult. */
@@ -491,6 +509,18 @@ export interface WispApi {
       text: string,
       attachments: OutgoingAttachment[]
     ): Promise<boolean>
+    /** O que voltar ao turno `turn` faria nos arquivos (Fase 46). */
+    rewindPreview(conversation: string, turn: number): Promise<RewindPreview>
+    /** Volta a conversa para antes do turno `turn`; com `files`, os arquivos também (Fase 46). */
+    rewind(
+      conversation: string,
+      turn: number,
+      files: { path: string; hash: string }[] | null
+    ): Promise<RewindResult>
+    /** Uma aba nova com a conversa até o fim do turno `turn` (Fase 46). */
+    fork(conversation: string, turn: number): Promise<boolean>
+    /** Uma pergunta rápida com o contexto da conversa, sem entrar nela (Fase 46). */
+    aside(conversation: string, question: string): Promise<AsideResult>
     /** Guarda o rascunho da caixa da aba. */
     saveDraft(conversation: string, text: string): void
     /** Exporta a conversa da aba em Markdown (o diálogo do sistema escolhe onde). */

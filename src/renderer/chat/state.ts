@@ -175,9 +175,22 @@ export function lastTurnStart(items: Item[]): number {
   return -1
 }
 
-/** Tira a última mensagem e o que veio depois dela (ela foi editada). */
-function rewound(state: ChatState): ChatState {
-  const start = lastTurnStart(state.items)
+/** As posições das mensagens que começam um turno (Fase 46: dá para voltar a cada uma). */
+export function turnStartsOf(items: Item[]): number[] {
+  const starts: number[] = []
+  items.forEach((item, i) => {
+    if (item.kind === 'user' && !item.midTurn) starts.push(i)
+  })
+  return starts
+}
+
+/**
+ * Tira a última mensagem e o que veio depois dela (ela foi editada); com `keep` (Fase 46), tudo
+ * a partir do turno `keep`.
+ */
+function rewound(state: ChatState, keep?: number): ChatState {
+  const start =
+    keep === undefined ? lastTurnStart(state.items) : (turnStartsOf(state.items)[keep] ?? -1)
   return start < 0 ? state : { ...state, items: state.items.slice(0, start) }
 }
 
@@ -218,7 +231,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'folder':
       return { ...state, folder: event.folder }
     case 'rewind':
-      return rewound(state)
+      return rewound(state, event.keep)
     case 'draft':
       return { ...state, draft: event.text }
     case 'context':

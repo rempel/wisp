@@ -86,6 +86,12 @@ const api: WispApi = {
     stop: (conversation) => ipcRenderer.send(IPC.chatStop, conversation),
     editLast: (conversation, text, attachments) =>
       ipcRenderer.invoke(IPC.chatEditLast, conversation, text, attachments),
+    rewindPreview: (conversation, turn) =>
+      ipcRenderer.invoke(IPC.chatRewindPreview, conversation, turn),
+    rewind: (conversation, turn, files) =>
+      ipcRenderer.invoke(IPC.chatRewind, conversation, turn, files),
+    fork: (conversation, turn) => ipcRenderer.invoke(IPC.chatFork, conversation, turn),
+    aside: (conversation, question) => ipcRenderer.invoke(IPC.chatAside, conversation, question),
     saveDraft: (conversation, text) => ipcRenderer.send(IPC.chatDraft, conversation, text),
     exportMarkdown: (conversation) => ipcRenderer.invoke(IPC.chatExport, conversation),
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),

@@ -951,3 +951,16 @@ Com **Ilha no topo** ligada:
 - [ ] **Foco:** botão direito no mascote → **Modo foco** → **25 minutos**: o menu passa a mostrar
       "Parar o foco (até …)"; peça um comando: o card não toca som nem notifica.
 - [ ] **Fim do foco:** no fim do bloco, o mascote comemora e sai a notificação "Foco concluído".
+
+## Voltar, ramificar e a pergunta lateral (Fase 46)
+
+- [ ] **Voltar com arquivos:** numa pasta de teste, peça "crie o arquivo a.txt com oi", depois
+      "troque oi por olá" e "quanto é 2+2?". Passe o mouse na primeira mensagem → **Voltar aqui**:
+      o card mostra `a.txt`; **Voltar**: a conversa fica vazia, o pedido volta para a caixa e o
+      `a.txt` some.
+- [ ] **Voltar sem arquivos:** **Voltar aqui** na terceira: o card não mostra arquivos, e a
+      conversa fica com as duas primeiras.
+- [ ] **Ramificar:** **Ramificar** na primeira de duas mensagens: abre a aba "… (ramo)" com uma
+      mensagem; pergunte "o que eu pedi até agora?": o Claude só lembra da primeira.
+- [ ] **Pergunta lateral:** com o Claude trabalhando numa resposta longa, `/btw o que você está
+    fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
