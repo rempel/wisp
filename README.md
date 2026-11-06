@@ -167,7 +167,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 - **Validação:** as Fases 6 a 45 foram validadas com o uso, menos os pacotes de ARM64 (os do Linux,
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
-  [Publicando uma versão](#publicando-uma-versão)).
+  [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
+  ferramentas parecidas) estão prontas, com os testes de unidade e de ponta a ponta, e esperam a
+  validação com o uso (os roteiros em [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
 ## Requisitos
 
