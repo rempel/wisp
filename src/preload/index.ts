@@ -165,6 +165,7 @@ const api: WispApi = {
   },
   summary: {
     get: () => ipcRenderer.invoke(IPC.summaryGet),
+    saveImage: (png) => ipcRenderer.invoke(IPC.summaryImage, png),
     onShow: (listener) => subscribe<[]>(IPC.summaryShow, listener)
   },
   skills: {

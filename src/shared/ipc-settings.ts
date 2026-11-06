@@ -73,6 +73,7 @@ export interface Settings {
   selectionShortcut: string | null
   windowShortcut: string | null
   dictationShortcut: string | null
+  quietHours: { from: string; to: string } | null
   voiceShortcut: string | null
   clipboardChip: boolean
   browserAutomation: boolean
@@ -83,6 +84,7 @@ export interface Settings {
   demo: boolean
   compact: boolean
   github: boolean
+  gitlab: boolean
   calendar: boolean
   calendarFiles: string[]
   calendarAlertMinutes: number
@@ -126,6 +128,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'selectionShortcut',
   'windowShortcut',
   'dictationShortcut',
+  'quietHours',
   'voiceShortcut',
   'clipboardChip',
   'browserAutomation',
@@ -136,6 +139,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'demo',
   'compact',
   'github',
+  'gitlab',
   'calendar',
   'calendarFiles',
   'calendarAlertMinutes',

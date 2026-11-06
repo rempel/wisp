@@ -619,6 +619,8 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   ela está trabalhando, esperando você ou com resposta nova. Ctrl+Tab e Ctrl+1…9 trocam; Ctrl+W fecha.
   Uma aba parada há 20 minutos dorme: o Claude Code dela sai, e a próxima mensagem o acorda na
   mesma conversa, com alguns segundos a mais (**Configurações → Conversas**).
+- **Para todas as conversas da grade** (Fase 52): `/todas sua mensagem` manda a mesma mensagem a
+  cada conversa à vista, para comparar modelos (ou pastas) lado a lado.
 - **Conversas longas:** só o fim fica na página; **Mostrar anteriores**, no topo, traz o resto aos
   poucos (o Ctrl+F busca na conversa inteira). O histórico mostra 50 conversas por vez.
 
@@ -1000,6 +1002,8 @@ então o login da assinatura nunca é tocado.
   ligada, vão para o celular como sempre. O Wisp fica sabendo na hora em que você liga ou desliga
   (sem ficar conferindo), e o menu da bandeja mostra quando ele está quieto. Dá para desligar em
   **Configurações → Atalhos e sistema → Ficar quieto no "não perturbe"**.
+- **Horas de silêncio** (Fase 52, `quietHours`): no mesmo lugar, um horário de todo dia (por
+  exemplo, das 22:00 às 08:00) em que o Wisp fica quieto do mesmo jeito.
 
 ### Aprovar pelo celular
 
@@ -1045,6 +1049,11 @@ Em **Configurações → Integrações**:
   passou, aprovação, pedido de mudanças, comentário, pedido de revisão. O clique na notificação abre o
   PR; num CI vermelho ou num pedido de mudanças (Fase 41), ele abre uma aba nova com o pedido de
   investigar já na caixa (o PR, o link e como ler o log pelo `gh`), para você revisar e mandar. Pergunte "como estão meus PRs?".
+  Num pedido de revisão (Fase 52), o clique abre a aba com o pedido de revisar o PR pelo `gh pr
+diff` e pelos comentários, sem baixar nada nem comentar no PR.
+- **Avisos do GitLab** (Fase 52, `gitlab`): o pipeline dos seus merge requests abertos, pelo
+  `glab` já logado, a cada 3 minutos: falhou, ou passou depois de rodar. O clique num pipeline
+  vermelho abre a aba com o pedido de investigar pelo `glab`.
 - **Agenda:** as agendas do GNOME (as ligadas no app Agenda, inclusive Google, Microsoft e Nextcloud
   pelas Contas Online), arquivos `.ics` ou pastas do vdirsyncer e, desde a Fase 40, o endereço
   iCal de uma agenda do Google, do Outlook ou do iCloud (é assim que a agenda chega no Windows). O
@@ -1056,7 +1065,9 @@ Em **Configurações → Integrações**:
     chaveiro do sistema; o `config.json` fica só com o nome. Ele baixa cada agenda de 15 em 15
     minutos no máximo, só por https.
 - **Resumo da semana:** só contagens (conversas, tempo do Claude, linhas editadas, aprovações), no
-  topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?".
+  topo do histórico e numa notificação na segunda. Pergunte "como foi minha semana?". **Salvar
+  como imagem** (Fase 52) grava um PNG de 1080 × 1350 para compartilhar, só com as contagens (sem
+  projetos nem apps).
 - **Aviso do uso do plano** (Fase 41, `usageAlerts`, ligado por padrão): uma notificação ao passar
   de 80% e de 95% da janela de 5 horas ou da semana, com a hora em que ela reinicia e a sugestão de
   um modelo que gasta menos. Uma vez por janela (fica guardado em `aviso-do-plano.json`).
@@ -1212,6 +1223,7 @@ E reage a quem mexe com ele:
 | Lembrete      | Chegou a hora de um lembrete                  | Faísca âmbar, um sininho tocando ao lado e um chacoalhão         |
 | Dança         | Um player de música está tocando              | Dança no ritmo (a escolhida nas configurações), com notas        |
 | Recado        | Arrastado com o Ctrl e solto numa janela      | Leva o print da janela para a conversa e volta para o lugar      |
+| Novidade      | Há versão nova, ou o Wisp acabou de atualizar | Fica animado (Fase 52); a notificação leva ao que mudou          |
 
 As cores ficam em variáveis no topo de `src/renderer/mascot/styles/body.css`, então cada estado só
 precisa trocá-las. O desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação

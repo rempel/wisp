@@ -117,6 +117,8 @@ export interface WispConfig {
   windowShortcut: string | null
   /** Atalho global do ditado em qualquer programa (Fase 53, segurar); null desliga. */
   dictationShortcut: string | null
+  /** As horas de silêncio (Fase 52): de `from` a `to` (HH:MM) o Wisp fica quieto; null desliga. */
+  quietHours: { from: string; to: string } | null
   /** O painel oferece um chip para usar o que você copiou. */
   clipboardChip: boolean
   /**
@@ -167,6 +169,8 @@ export interface WispConfig {
   islandCovers: boolean
   /** Alertas do GitHub (CI e revisões dos seus PRs), pelo `gh` já logado. Desligado por padrão. */
   github: boolean
+  /** Os avisos de CI do GitLab, pelo glab (Fase 52). */
+  gitlab: boolean
   /** Agenda: os próximos compromissos (Evolution Data Server e .ics). Desligada por padrão. */
   calendar: boolean
   /** Arquivos .ics, ou pastas com eles (vdirsyncer), além das agendas do GNOME. */
@@ -246,6 +250,7 @@ function defaults(): WispConfig {
     selectionShortcut: 'Ctrl+Alt+E',
     windowShortcut: 'Ctrl+Alt+J',
     dictationShortcut: null,
+    quietHours: null,
     clipboardChip: true,
     terminalCommand: null,
     browserAutomation: false,
@@ -270,6 +275,7 @@ function defaults(): WispConfig {
     islandHoverOpen: false,
     islandCovers: false,
     github: false,
+    gitlab: false,
     calendar: false,
     calendarFiles: [],
     calendarLinks: [],
@@ -373,6 +379,12 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   selectionShortcut: z.string().max(60).nullable(),
   windowShortcut: z.string().max(60).nullable(),
   dictationShortcut: z.string().max(60).nullable(),
+  quietHours: z
+    .object({
+      from: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+      to: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/)
+    })
+    .nullable(),
   clipboardChip: z.boolean(),
   terminalCommand: z.string().max(300).nullable(),
   browserAutomation: z.boolean(),
@@ -393,6 +405,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   islandHoverOpen: z.boolean(),
   islandCovers: z.boolean(),
   github: z.boolean(),
+  gitlab: z.boolean(),
   calendar: z.boolean(),
   calendarFiles: z.array(z.string().trim().min(1).max(500)).max(20),
   calendarLinks: z
@@ -563,6 +576,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   selectionShortcut: t('O atalho tem no máximo 60 caracteres.'),
   windowShortcut: t('O atalho tem no máximo 60 caracteres.'),
   dictationShortcut: t('O atalho tem no máximo 60 caracteres.'),
+  quietHours: t('Dois horários HH:MM (ex.: 22:00 e 08:00), ou null.'),
   voiceShortcut: t('O atalho tem no máximo 60 caracteres.'),
   terminalCommand: t('O comando do terminal tem no máximo 300 caracteres.'),
   voiceLanguage: t('Um código de idioma (pt, en, es…) ou auto.'),

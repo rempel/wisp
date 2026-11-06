@@ -670,7 +670,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   const { updates, selfUpdate } = setupUpdates({
     kind,
     notify,
-    showDiagnostics: () => chat?.showView('diagnostics')
+    showDiagnostics: () => chat?.showView('diagnostics'),
+    announce: () => actMascot({ kind: 'feel', emotion: 'excited', ms: 3000 })
   })
   // O diagnóstico e os primeiros passos (Fase 20).
   const diagnostics = setupDiagnostics({

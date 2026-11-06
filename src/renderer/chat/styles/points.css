@@ -394,3 +394,30 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+/* Fase 52: as horas de silêncio e a busca nas configurações. */
+
+.quiet-hours {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.quiet-hours input[type='time'] {
+  padding: 2px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+.settings-search {
+  margin: 8px 16px 0;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}

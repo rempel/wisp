@@ -222,7 +222,11 @@ test('investigar (Fase 41): o CI vermelho e o pedido de mudanças viram um pedid
     investigatePrompt({ kind: 'review', pr: s.mine[0], author: 'bia', state: 'APPROVED' }),
     null
   )
-  assert.equal(investigatePrompt({ kind: 'review-requested', request: s.reviewRequests[0] }), null)
+  // Revisar um PR (Fase 52): pelo diff e pelos comentários, sem mudar nada no PR.
+  const asked = investigatePrompt({ kind: 'review-requested', request: s.reviewRequests[0] }) ?? ''
+  assert.match(asked, /^ana pediu a sua revisão no PR time\/api#3/)
+  assert.match(asked, /gh pr diff 3 --repo time\/api/)
+  assert.match(asked, /Não comente no PR/)
 })
 
 const calls = (): { args: string[]; apiKey: boolean; prompt: string | null }[] => {

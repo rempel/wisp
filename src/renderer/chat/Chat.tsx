@@ -540,6 +540,25 @@ export default function Chat(): JSX.Element {
     [apply]
   )
 
+  /**
+   * A mesma mensagem em todas as conversas da grade (Fase 52: comparar modelos lado a lado).
+   * Devolve em quantas foi.
+   */
+  const broadcast = useCallback(
+    (text: string): number => {
+      const state = tabsRef.current
+      const ids = state.panes.filter(
+        (id) => state.tabs.find((tab) => tab.id === id)?.kind === 'chat'
+      )
+      for (const id of ids) {
+        apply(id, { type: 'user-message', text, attachments: [] })
+        window.wisp.chat.send(id, text, [])
+      }
+      return ids.length
+    },
+    [apply]
+  )
+
   // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
   const statuses = new Map<string, TabStatus>()
   for (const tab of tabs.tabs) {
@@ -634,6 +653,7 @@ export default function Chat(): JSX.Element {
         demo={demo}
         agenda={agendaNext}
         onSent={onSent(id)}
+        onBroadcast={broadcast}
       />
     )
   }

@@ -18,6 +18,9 @@ import type { GithubAlert } from './github'
 import { islandMessage, reactMascot } from './mascot'
 import type { Signals } from './notify'
 import { findProgram } from './programs'
+import { gitlabSnapshot, parseGitlab } from './gitlab'
+import { DATA_DIR } from './paths'
+import { join } from 'path'
 import { t } from '../shared/i18n'
 
 export interface GithubAlerts {
@@ -43,7 +46,11 @@ export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAl
       const prompt = investigatePrompt(alert)
       const panel = prompt ? chat() : null
       if (prompt && panel) {
-        notify(title, `${body}\n${t('Clique para investigar numa conversa.')}`, () => {
+        const action =
+          alert.kind === 'review-requested'
+            ? t('Clique para revisar numa conversa.')
+            : t('Clique para investigar numa conversa.')
+        notify(title, `${body}\n${action}`, () => {
           panel.newConversation()
           panel.compose(prompt)
         })
@@ -97,12 +104,36 @@ export function setupGithub(signals: Signals, chat: () => Chat | null): GithubAl
       )
     }
   })
+  // O GitLab (Fase 52): o mesmo vigia, pelo glab, com a leitura dos merge requests.
+  const gitlab = new GithubWatcher({
+    gh: () =>
+      findProgram(
+        'glab',
+        ['glab'],
+        ['/usr/local/bin', '/snap/bin', '/home/linuxbrew/.linuxbrew/bin']
+      ),
+    query: (glab) => gitlabSnapshot(glab),
+    parse: parseGitlab,
+    snapshotPath: join(DATA_DIR, 'gitlab.json'),
+    onAlerts: alerted,
+    onProblem: (problem) => {
+      if (!problem) return chat()?.notice('info', t('Os avisos do GitLab voltaram a funcionar.'))
+      chat()?.notice(
+        'warning',
+        problem.kind === 'missing'
+          ? t('Para os avisos do GitLab, instale o **glab** (GitLab CLI) e rode `glab auth login`.')
+          : t('O **glab** não está logado no GitLab: rode `glab auth login` no terminal.')
+      )
+    }
+  })
   return {
     watcher,
     onAlerts: (listener) => void listeners.push(listener),
     update: () => {
       if (getConfig().github) watcher.start()
       else watcher.stop()
+      if (getConfig().gitlab) gitlab.start()
+      else gitlab.stop()
     },
     describe: async () => {
       if (!getConfig().github) {
