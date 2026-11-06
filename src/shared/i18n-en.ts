@@ -2413,5 +2413,28 @@ export const EN: Record<string, string> = {
     "stays out of the conversation and doesn't stop Claude",
   'Fechar a pergunta lateral': 'Close the side question',
   'Pergunte sem interromper o Claude…': 'Ask without interrupting Claude…',
-  'A pergunta lateral': 'The side question'
+  'A pergunta lateral': 'The side question',
+  'Diga o endereço (localhost) ou o arquivo.': 'Give the address (localhost) or the file.',
+  'Só arquivos e endereços desta máquina (localhost).':
+    'Only files and addresses on this machine (localhost).',
+  'Use o caminho inteiro do arquivo.': "Use the file's full path.",
+  'A pré-visualização mostra HTML, PDF, imagens e Markdown.':
+    'The preview shows HTML, PDF, images and Markdown.',
+  'Esse endereço não é válido.': "That address isn't valid.",
+  'Pré-visualização: {what}': 'Preview: {what}',
+  'A pré-visualização está fechada.': 'The preview is closed.',
+  'A página ainda não apareceu.': "The page hasn't shown up yet.",
+  'Pré-visualização': 'Preview',
+  'Pré-visualizar': 'Preview',
+  'um HTML, PDF, imagem, Markdown ou o localhost (/preview)':
+    'an HTML, PDF, image, Markdown or localhost (/preview)',
+  'Não deu para abrir a pré-visualização.': "I couldn't open the preview.",
+  'pré-visualização': 'preview',
+  'Pré-visualização:': 'Preview:',
+  Recarregar: 'Reload',
+  'Um print da pré-visualização vai como anexo para a conversa em foco':
+    'A screenshot of the preview goes as an attachment to the focused conversation',
+  'Não deu para tirar o print da pré-visualização.': "I couldn't take a screenshot of the preview.",
+  'Mostrar ao Claude': 'Show Claude',
+  'Abrir {url} na pré-visualização': 'Open {url} in the preview'
 }

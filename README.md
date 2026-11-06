@@ -553,6 +553,17 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   mensagem (das respostas desde que o Wisp abriu: as cópias de antes ficam por 30 respostas).
   **Ramificar** abre uma aba nova com a conversa até a resposta daquela mensagem, para tentar outro
   caminho; a original continua como estava.
+- **Pré-visualização** (Fase 47): no **+** da caixa, **Pré-visualizar**, ou `/preview` com o
+  arquivo ou o endereço: `/preview index.html` (relativo à pasta da conversa), `/preview
+~/site/relatorio.pdf`, `/preview localhost:5173` ou só `/preview 5173`. HTML, PDF e imagens abrem
+  numa janela ao lado do painel; um Markdown abre no próprio painel. O card de uma edição de HTML
+  (ou de Markdown, PDF, imagem) tem **Pré-visualizar**, e o de um comando que subiu um servidor
+  ("Local: http://localhost:5173") tem **Abrir … na pré-visualização**. Um arquivo recarrega sozinho
+  quando a pasta dele muda; a barra acima das abas tem **Recarregar**, **Mostrar ao Claude** (um
+  print da janela vai como anexo na conversa em foco) e **Fechar**. Só arquivos e endereços desta
+  máquina: um endereço da internet é recusado, e a página não sai do servidor (ou da pasta) em que
+  abriu. A janela é isolada do Wisp: sem os cookies do painel e sem permissões (câmera, microfone,
+  notificações).
 - **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
   Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
   entrar no histórico e sem parar o Claude, mesmo com ele trabalhando.

@@ -132,6 +132,21 @@ export interface RewindResult {
   problems: string[]
 }
 
+/** O que abrir a pré-visualização deu (Fase 47): o Markdown abre no painel, pelo `path`. */
+export interface PreviewResult {
+  ok: boolean
+  message?: string
+  kind?: 'url' | 'file' | 'markdown'
+  path?: string
+}
+
+/** A janela da pré-visualização (Fase 47): aberta e com o quê. */
+export interface PreviewState {
+  open: boolean
+  display: string
+  kind: 'url' | 'file' | 'markdown' | null
+}
+
 /** A resposta da pergunta lateral (Fase 46). */
 export interface AsideResult {
   ok: boolean

@@ -4,6 +4,7 @@ import { IPC } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
+  PreviewState,
   Accessory,
   AgendaItem,
   ChatEvent,
@@ -213,6 +214,14 @@ const api: WispApi = {
   },
   files: {
     view: (path) => ipcRenderer.invoke(IPC.filesView, path)
+  },
+  preview: {
+    open: (target, folder) => ipcRenderer.invoke(IPC.previewOpen, target, folder),
+    capture: () => ipcRenderer.invoke(IPC.previewCapture),
+    reload: () => ipcRenderer.send(IPC.previewReload),
+    close: () => ipcRenderer.send(IPC.previewClose),
+    get: () => ipcRenderer.invoke(IPC.previewGet),
+    onState: (listener) => subscribe<[PreviewState]>(IPC.previewState, listener)
   },
   portable: {
     export: (withHistory) => ipcRenderer.invoke(IPC.portableExport, withHistory),

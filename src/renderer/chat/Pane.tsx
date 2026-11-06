@@ -29,6 +29,7 @@ import { SlashMenu } from './SlashMenu'
 import { FindBar } from './FindBar'
 import { awaitingPermission, lastTurnStart, turnStartsOf } from './state'
 import { usePoints } from './Points'
+import { openPreview } from './preview-store'
 import type { ChatState, Item } from './state'
 import { Message } from './Message'
 import { NextEvent } from './NextEvent'
@@ -356,6 +357,15 @@ export function Pane({
     const saved = /^\/([a-z0-9-]+)$/.exec(text.trim())
     if (saved && savedPrompts.some((prompt) => prompt.name === saved[1])) {
       pickCommand({ name: saved[1], description: '', prompt: true })
+      return true
+    }
+    // A pré-visualização (Fase 47): /preview com o endereço ou o arquivo.
+    const preview = /^\/preview(?:\s+([\s\S]*))?$/.exec(text)
+    if (preview && !attachments.pending.length) {
+      void openPreview(preview[1]?.trim() ?? '', state.folder).then((problem) => {
+        if (problem) points.say(problem)
+      })
+      setDraft('')
       return true
     }
     // A pergunta lateral (Fase 46), como o /btw do Claude Code.
@@ -849,6 +859,10 @@ export function Pane({
             onCapture={() => void captureScreen()}
             onCaptureArea={() => void captureScreen(true)}
             onAside={demo ? undefined : () => points.aside()}
+            onPreview={() => {
+              setDraft('/preview ')
+              input.current?.focus()
+            }}
             capturing={capturing}
           />
           <button

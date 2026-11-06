@@ -246,7 +246,7 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - name: Testes de unidade que valem no Windows
-        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island pontos
+        run: npm test -- windows segurar copias revisar gatilhos paleta busca conversa diagnostics notificacoes editor island pontos preview
       - name: Ponta a ponta (o essencial)
         # Cada roteiro roda mesmo que um anterior falhe: um ciclo mostra todas as falhas.
         if: ${{ !cancelled() }}
@@ -286,6 +286,10 @@ jobs:
         if: ${{ !cancelled() }}
         timeout-minutes: 10
         run: node e2e/pontos.mjs
+      - name: Ponta a ponta (a pré-visualização)
+        if: ${{ !cancelled() }}
+        timeout-minutes: 10
+        run: node e2e/preview.mjs
       - name: Ponta a ponta (recortar uma área da tela)
         if: ${{ !cancelled() }}
         timeout-minutes: 10

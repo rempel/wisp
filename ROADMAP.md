@@ -1846,15 +1846,30 @@ Notas da entrega:
 
 ### Fase 47: a pré-visualização no painel
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/preview.test.ts`; `e2e/preview.mjs`,
+no job do Linux e no **Windows** do CI).
 
 - **Ver o resultado (M):** um HTML, um PDF, uma imagem, um Markdown ou o servidor local do
-  projeto (`localhost`) numa aba do painel, ao lado da conversa.
+  projeto (`localhost`) ao lado da conversa.
 - **Recarregar sozinho (P):** quando o Claude edita um arquivo da pasta, o preview recarrega.
 - **Mostrar ao Claude (P):** um print do preview vai como anexo para a conversa.
 
 **Aceite:** pedir uma página HTML e abri-la no preview mostra a página; uma edição do Claude
 recarrega o preview; **Mostrar ao Claude** põe o print na caixa.
+
+Notas da entrega:
+
+- a janela: o HTML, o PDF, as imagens e o localhost abrem numa janela ao lado do painel, e não
+  numa aba dele: uma página de fora dentro do painel precisaria de um `<webview>` (ou de uma
+  `WebContentsView` acompanhando a grade), com o CSP e o preload do painel por perto. Uma janela à
+  parte, noutra sessão, sem preload, no sandbox e sem permissões, isola melhor. O Markdown abre no
+  painel (é o mesmo desenho das respostas);
+- só desta máquina: um endereço da internet é recusado, e a página não sai da origem (ou da pasta)
+  em que abriu. Um arquivo de segredos nunca abre, mesmo com a extensão de HTML;
+- recarregar: o vigia da pasta do arquivo, sem descer nas de dentro; o localhost fica com o
+  recarregar do próprio servidor de desenvolvimento (e o Recarregar da barra);
+- o "Mostrar ao Claude" usa o print da própria janela (o `capturePage`), sem o painel sair da
+  frente.
 
 ### Fase 48: o mascote numa janela
 
