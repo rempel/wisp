@@ -50,6 +50,7 @@ src/
 │  ├─ agents.ts      # os subagentes do Claude Code: listar, a prévia, gravar e apagar (Fase 50)
 │  ├─ board.ts       # o quadro de tarefas: os cartões, cada um numa cópia do Git (Fase 51)
 │  ├─ gitlab.ts      # os avisos de CI do GitLab, pelo glab, no mesmo vigia do GitHub (Fase 52)
+│  ├─ dictation.ts   # ditar em qualquer programa: as trocas, o Ctrl+V e a volta da área de transferência (Fase 53)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1167,3 +1168,14 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
   - **o GitLab:** o vigia do GitHub ganhou a leitura trocável (`parse`); o do GitLab pergunta ao
     `glab api` quem é você, os seus merge requests abertos e, de cada um (até 20), o pipeline do
     commit mais novo, e o que muda vira o mesmo aviso (com o `!` do GitLab e o pedido pelo `glab`).
+- **Ditar em qualquer programa (Fase 53):** o atalho do ditado (`dictationShortcut`) é o mesmo
+  segurar para falar da voz, com a fonte `dictation`: o microfone, o whisper.cpp e o "Não
+  entendi" são os de sempre, e o texto vai direto para o `deliver` (sem os comandos rápidos, o
+  "não" dos cards e a conversa). O `dictate` aplica as trocas (`shared/dictation.ts`: palavras
+  inteiras, sem ligar para maiúsculas, com letras e números de qualquer língua), guarda a área de
+  transferência (todos os formatos e, de reserva, o texto: no X11 a leitura dos formatos pode vir
+  vazia), escreve o texto e aperta o Ctrl+V: no X11, o `xdotool key --clearmodifiers ctrl+v` (o
+  Ctrl+Alt do atalho ainda apertado não entra); no Wayland, o `wtype` ou o `ydotool`; no
+  Windows, um PowerShell que espera as teclas do atalho subirem, como o da seleção (Fase 45).
+  600 ms depois, se a área de transferência ainda for o ditado, ela volta. Sem quem aperte o
+  Ctrl+V, o texto fica copiado e uma notificação diz para colar.

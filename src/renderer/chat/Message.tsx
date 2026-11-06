@@ -34,13 +34,15 @@ export function Message({
   switch (item.kind) {
     case 'user':
       return (
-        <div className={`user-turn${onEdit || onRewind || onFork ? ' editable' : ''}`}>
+        <div
+          className={`user-turn${onEdit ? ' editable' : ''}${onRewind || onFork ? ' has-actions' : ''}`}
+        >
           {(onEdit || onRewind || onFork) && (
             <span className="turn-actions">
               {onRewind && (
                 <button
                   type="button"
-                  className="edit-last"
+                  className="turn-action"
                   onClick={onRewind}
                   title={t('A conversa volta para antes desta mensagem (e os arquivos, se quiser)')}
                   aria-label={t('Voltar a este ponto')}
@@ -51,7 +53,7 @@ export function Message({
               {onFork && (
                 <button
                   type="button"
-                  className="edit-last"
+                  className="turn-action"
                   onClick={onFork}
                   title={t('Uma aba nova com a conversa até a resposta desta mensagem')}
                   aria-label={t('Ramificar daqui')}

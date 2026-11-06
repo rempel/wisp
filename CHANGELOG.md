@@ -144,6 +144,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   pasta dos seus sons; o resumo da semana em imagem; as notas depois de atualizar; e os avisos de
   CI do GitLab, pelo `glab`.
 
+- **Ditar em qualquer programa** (Fase 53): segure o atalho do ditado, fale e solte; o que você
+  disse (transcrito na sua máquina) é colado no programa da frente, com as suas trocas.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

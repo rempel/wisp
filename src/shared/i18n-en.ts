@@ -2594,7 +2594,7 @@ export const EN: Record<string, string> = {
   'Os seus sons': 'Your sounds',
   'Abrir a pasta dos sons': 'Open the sounds folder',
   'Um arquivo com o nome de um som (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), em .ogg, .wav, .mp3…, troca o do Wisp na hora; apagar traz o de volta.':
-    "A file named after a sound (abrir, fechar, enviar, pronto, pedido, erro, cutucada, tonto, carinho, oi, absorver, lembrete), as .ogg, .wav, .mp3…, replaces Wisp's right away; deleting it brings Wisp's back.",
+    "A file named after one of Wisp's sounds (the names are in the README), as .ogg, .wav, .mp3…, replaces Wisp's right away; deleting it brings Wisp's back.",
   'Horas de silêncio': 'Quiet hours',
   'Todo dia, nesse horário, o Wisp fica quieto como no “não perturbe” (os cards esperam no painel).':
     'Every day, at these times, Wisp stays quiet as in “do not disturb” (the cards wait in the panel).',
@@ -2611,5 +2611,13 @@ export const EN: Record<string, string> = {
   'pedidos aprovados': 'requests approved',
   'O painel não conseguiu desenhar a imagem.': "The panel couldn't draw the image.",
   'Minha semana com o Wisp': 'My week with Wisp',
-  'Mais usadas: {tools}': 'Most used: {tools}'
+  'Mais usadas: {tools}': 'Most used: {tools}',
+  'Até 100 trocas, cada uma com o dito (até 100 caracteres) e o escrito.':
+    'Up to 100 replacements, each with the spoken form (up to 100 characters) and the written one.',
+  'Copiei o que você disse': 'I copied what you said',
+  'Cole com Ctrl+V. (Para o Wisp colar sozinho no Linux, instale o xdotool, ou o wtype no Wayland.)':
+    'Paste it with Ctrl+V. (For Wisp to paste by itself on Linux, install xdotool, or wtype on Wayland.)',
+  'Trocas do ditado': 'Dictation replacements',
+  'Uma por linha, no formato "dito = escrito" (ex.: "uisp = Wisp"): vale como palavra inteira, sem ligar para maiúsculas.':
+    'One per line, as "spoken = written" (e.g. "uisp = Wisp"): it applies to whole words, ignoring case.'
 }

@@ -3,7 +3,7 @@
 // numa conversa nova e expandir um prompt salvo (Fase 26).
 
 import { setupWorktrees } from './worktrees-ipc'
-import { app, clipboard, ipcMain } from 'electron'
+import { clipboard, ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
 import { writeFileSync } from 'fs'
 import { homedir } from 'os'
@@ -19,7 +19,7 @@ import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
 import { setupBoard } from './board'
 import { setupUsageReport } from './usage-report'
-import { pickFolder, pickSaveFile } from './pick'
+import { pickFolder, pickSaveFile, userDir } from './pick'
 import { IPC } from '../shared/ipc'
 import type {
   ChatEvent,
@@ -81,7 +81,7 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     if (!saved) return { ok: false, message: t('Esta conversa ainda não tem mensagens guardadas.') }
     const file = await pickSaveFile(
       t('Exportar a conversa'),
-      join(app.getPath('documents'), exportFileName(saved.title)),
+      join(userDir('documents'), exportFileName(saved.title)),
       [{ name: 'Markdown', extensions: ['md'] }],
       win()
     )

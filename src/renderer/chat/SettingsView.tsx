@@ -25,6 +25,7 @@ import {
   TextInput,
   Toggle
 } from './SettingsFields'
+import { parseReplacements } from '../../shared/dictation'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -526,6 +527,24 @@ export function SettingsView({
             <ShortcutInput
               value={values.dictationShortcut}
               onCommit={(dictationShortcut) => save({ dictationShortcut })}
+            />
+          </Row>
+          <Row
+            label={t('Trocas do ditado')}
+            hint={t(
+              'Uma por linha, no formato "dito = escrito" (ex.: "uisp = Wisp"): vale como palavra inteira, sem ligar para maiúsculas.'
+            )}
+            error={errors.dictationReplacements}
+          >
+            <textarea
+              className="settings-textarea"
+              rows={3}
+              defaultValue={values.dictationReplacements
+                .map(({ from, to }) => `${from} = ${to}`)
+                .join('\n')}
+              onBlur={(event) =>
+                void save({ dictationReplacements: parseReplacements(event.target.value) })
+              }
             />
           </Row>
           <Toggle

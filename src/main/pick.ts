@@ -1,8 +1,21 @@
 // Escolher uma pasta ou um arquivo pelo diálogo do sistema. Nos testes de ponta a ponta, que não
 // têm como clicar num diálogo nativo, variáveis WISP_TEST_* respondem no lugar dele.
 
-import { dialog } from 'electron'
+import { app, dialog } from 'electron'
 import type { BrowserWindow } from 'electron'
+import { homedir } from 'os'
+
+/**
+ * Uma pasta do usuário para o diálogo começar (Documentos, Imagens). Sem ela (um usuário sem a
+ * pasta, como o do teste no Windows), a pasta pessoal.
+ */
+export function userDir(name: 'documents' | 'pictures'): string {
+  try {
+    return app.getPath(name)
+  } catch {
+    return homedir()
+  }
+}
 
 export async function pickFolder(
   title: string,

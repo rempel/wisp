@@ -73,6 +73,7 @@ export interface Settings {
   selectionShortcut: string | null
   windowShortcut: string | null
   dictationShortcut: string | null
+  dictationReplacements: { from: string; to: string }[]
   quietHours: { from: string; to: string } | null
   voiceShortcut: string | null
   clipboardChip: boolean
@@ -128,6 +129,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'selectionShortcut',
   'windowShortcut',
   'dictationShortcut',
+  'dictationReplacements',
   'quietHours',
   'voiceShortcut',
   'clipboardChip',
