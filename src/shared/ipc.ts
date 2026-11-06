@@ -463,7 +463,8 @@ export interface WispApi {
   mascot: {
     /** Começa a arrastar o mascote; o offset é o ponto agarrado dentro da janela (px CSS). */
     dragStart(offsetX: number, offsetY: number): void
-    dragEnd(): void
+    /** Soltou o mascote; `withCtrl`: com o Ctrl apertado (Fase 48: mostrar a janela de baixo). */
+    dragEnd(withCtrl?: boolean): void
     click(): void
     /** Avisa que a página está pronta. Chame depois de registrar o onState. */
     ready(): void

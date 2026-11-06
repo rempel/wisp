@@ -95,11 +95,11 @@ import { setupSessionsIpc } from './sessions-ipc'
 import { setupSettings } from './settings-ipc'
 import { setupSkillsIpc } from './skills-ipc'
 import { soundForEvent, Sounds } from './sounds'
-import { releaseShortcuts, setupShortcuts } from './shortcut'
-import { captureArea } from './area-capture'
+import { releaseShortcuts } from './shortcut'
+import { setupGlobalShortcuts } from './shortcuts-setup'
+import { attachFrontWindow, attachWindowAt } from './window-context'
 import { usageAlertsFor } from './usage-alerts'
 import { createFocus } from './focus'
-import { explainSelection } from './selection'
 import type { ShortcutStatus } from './shortcut'
 import { setupTray } from './tray'
 import type { AppMenu } from './tray'
@@ -726,6 +726,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     openSettings: () => chat?.openSettings(),
     openDiagnostics: () => chat?.showView('diagnostics'),
     openPalette: () => chat?.showView('palette'),
+    showFrontWindow: () => void attachFrontWindow(chat, notify),
     quiet,
     focusEndsAt: () => focus.endsAt(),
     startFocus: (minutes) => focus.start(minutes),
@@ -778,6 +779,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       if (voice) setMascotVoice(voice.current)
     },
     moved: () => presence.start(),
+    dropped: (point) => void attachWindowAt(point, chat, notify),
     voice: (event) => voice?.handle(event),
     ...island.handlers()
   })
@@ -832,85 +834,18 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     )
   // Os atalhos globais: um abre e fecha o painel; outro, segurado, ouve; e o da paleta (Fase 32). Trocados no
   // config.json, valem na hora (no Wayland, o desktop pergunta de novo).
-  let boundShortcuts: string | undefined
-  const bindShortcuts = async (): Promise<void> => {
-    const { shortcut, voiceShortcut, paletteShortcut, compact } = getConfig()
-    // O da ilha (Fase 38) só vale com ela ligada.
-    const islandShortcut = compact ? getConfig().islandShortcut : null
-    const { areaShortcut, selectionShortcut } = getConfig()
-    const key = JSON.stringify([
-      shortcut,
-      voiceShortcut,
-      paletteShortcut,
-      islandShortcut,
-      areaShortcut,
-      selectionShortcut
-    ])
-    if (key === boundShortcuts) return
-    boundShortcuts = key
-    shortcuts = await setupShortcuts([
-      {
-        id: 'toggle',
-        accelerator: shortcut,
-        description: t('Abrir ou fechar o painel do Wisp'),
-        press: () => {
-          presence.activity()
-          chat?.toggle()
-        }
-      },
-      {
-        id: 'voice',
-        accelerator: voiceShortcut,
-        description: t('Falar com o Wisp (segure enquanto fala)'),
-        press: () => voice?.press(shortcuts.get('voice')?.releases ?? false),
-        release: () => voice?.release()
-      },
-      {
-        id: 'palette',
-        accelerator: paletteShortcut,
-        description: t('Abrir a paleta de comandos do Wisp'),
-        press: () => {
-          presence.activity()
-          chat?.showView('palette')
-        }
-      },
-      {
-        id: 'island',
-        accelerator: islandShortcut,
-        description: t('Perguntar ao Wisp pela ilha'),
-        press: () => {
-          presence.activity()
-          if (islandIsOpen()) closeIsland()
-          else showIslandTab('ask')
-        }
-      },
-      {
-        // Recortar uma área (Fase 41): o recorte vai para a caixa da conversa em foco.
-        id: 'area',
-        accelerator: areaShortcut,
-        description: t('Recortar uma área da tela para o Wisp'),
-        press: () =>
-          void captureArea(() => chat?.capture() ?? Promise.resolve([])).then((dropped) => {
-            if (dropped.files.length || dropped.problems.length) chat?.attach(dropped)
-          })
-      },
-      {
-        // Explicar a seleção (Fase 45): o texto marcado vai para uma conversa nova, na caixa.
-        id: 'selection',
-        accelerator: selectionShortcut,
-        description: t('Explicar o texto selecionado com o Wisp'),
-        press: () => void explainSelection(chat, notify)
-      }
-    ])
-    for (const [id, status] of shortcuts) {
-      if (status.problem) console.warn(`[wisp] sem o atalho ${id}: ${status.problem}.`)
+  // Os atalhos globais (shortcuts-setup.ts), religados quando o config muda.
+  setupGlobalShortcuts({
+    chat: () => chat,
+    voice: () => voice,
+    activity: () => presence.activity(),
+    island: { isOpen: islandIsOpen, close: closeIsland, ask: () => showIslandTab('ask') },
+    notify,
+    bound: (next) => {
+      shortcuts = next
+      menu?.refresh()
     }
-    menu?.refresh()
-  }
-  void bindShortcuts().catch((err: unknown) =>
-    console.warn('[wisp] erro nos atalhos globais:', err)
-  )
-  onConfigChange(() => void bindShortcuts().catch(() => {}))
+  })
   refreshAutostart(entryIcon)
 
   ready((command) => {

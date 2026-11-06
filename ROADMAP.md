@@ -1873,7 +1873,8 @@ Notas da entrega:
 
 ### Fase 48: o mascote numa janela
 
-**Status:** em andamento.
+**Status:** pronta, esperando validação (testes: `test/janela.test.ts`; `e2e/janela.mjs`, com o
+openbox, um xterm e o arraste de verdade pelo xdotool, no job do Linux do CI).
 
 - **Soltar o mascote numa janela (M):** arrastado e solto em cima de uma janela, o mascote leva o
   print dela, com o título e o programa, para a conversa (na caixa, sem mandar).
@@ -1881,6 +1882,19 @@ Notas da entrega:
 
 **Aceite:** soltar o mascote em cima do editor anexa o print do editor com o título; o atalho faz
 o mesmo com a janela em foco.
+
+Notas da entrega:
+
+- soltar com o **Ctrl** apertado: arrastar o mascote é também o jeito de mudar ele de lugar, e
+  mandar a janela de baixo a cada arraste seria surpresa. Depois do recado, o mascote volta para
+  onde estava;
+- a janela de baixo: a primeira da pilha que contém o ponto (no X11, pelo EWMH e pela geometria
+  pedida ao servidor X; no Windows, pelo `GetWindowRect`, com o DPI). O print é o da própria
+  janela (`desktopCapturer`), então o mascote em cima dela não aparece;
+- no Wayland não há como (o sistema não deixa um app ver as janelas dos outros): o atalho avisa e
+  sugere o Print da tela ou o Recortar. No KDE com Wayland o KWin daria a geometria, mas não o
+  print da janela sem o seletor do portal;
+- os atalhos globais saíram do `index.ts` para o `shortcuts-setup.ts`.
 
 ### Fase 49: o painel de uso
 

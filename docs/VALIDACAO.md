@@ -963,7 +963,7 @@ Com **Ilha no topo** ligada:
 - [ ] **Ramificar:** **Ramificar** na primeira de duas mensagens: abre a aba "… (ramo)" com uma
       mensagem; pergunte "o que eu pedi até agora?": o Claude só lembra da primeira.
 - [ ] **Pergunta lateral:** com o Claude trabalhando numa resposta longa, `/btw o que você está
-  fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
+fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 
 ## A pré-visualização (Fase 47)
 
@@ -978,3 +978,14 @@ Com **Ilha no topo** ligada:
       `/preview ~/algum.pdf` abre o PDF na janela.
 - [ ] **Fora:** `/preview https://example.com` diz que só vale o que é desta máquina; um link
       para outro site dentro da página não navega.
+
+## O mascote numa janela (Fase 48)
+
+- [ ] **Soltar:** com o editor de texto aberto, arraste o mascote com o **Ctrl** apertado e solte
+      em cima dele: o print do editor vai como anexo, com "Na imagem, a janela …" na caixa, e o
+      mascote volta para onde estava.
+- [ ] **Sem o Ctrl:** arrastar sem o Ctrl só muda o mascote de lugar.
+- [ ] **Atalho:** com o navegador em foco, **Ctrl+Alt+J**: o print do navegador vai para a
+      conversa (o mascote e o painel não aparecem nele).
+- [ ] **Windows:** o mesmo no Windows, com uma tela em 150%: o print é o da janela certa.
+- [ ] **Wayland:** no GNOME com Wayland, o atalho avisa que o sistema não deixa ver as janelas.

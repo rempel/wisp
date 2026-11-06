@@ -44,7 +44,7 @@ const api: WispApi = {
   },
   mascot: {
     dragStart: (offsetX, offsetY) => ipcRenderer.send(IPC.mascotDragStart, offsetX, offsetY),
-    dragEnd: () => ipcRenderer.send(IPC.mascotDragEnd),
+    dragEnd: (withCtrl) => ipcRenderer.send(IPC.mascotDragEnd, withCtrl === true),
     click: () => ipcRenderer.send(IPC.mascotClick),
     ready: () => ipcRenderer.send(IPC.mascotReady),
     onState: (listener) => subscribe<[MascotView]>(IPC.mascotState, listener),

@@ -44,6 +44,8 @@ src/
 │  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
 │  ├─ preview.ts     # a pré-visualização: o que abrir e a janela isolada ao lado do painel (Fase 47)
+│  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
+│  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1093,3 +1095,18 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
   - **nos cards:** o de uma edição de um arquivo que dá para ver tem Pré-visualizar; o de um
     comando cuja saída tem um `http://localhost:porta` (sem as cores do terminal no meio) tem o
     abrir esse endereço.
+- **O mascote numa janela (Fase 48):**
+  - **qual janela:** as janelas à vista, da mais à frente para a mais atrás, sem as do Wisp: no
+    X11, as do `_NET_CLIENT_LIST_STACKING` na área de trabalho de agora, cada uma com a posição
+    (o `TranslateCoordinates` do canto dela até a raiz, que atravessa a moldura) e o tamanho (o
+    `GetGeometry`), na conexão própria do `ewmh.ts`, divididos pela escala; no Windows, a lista da
+    Fase 35 com o `GetWindowRect` de cada uma, num PowerShell que se declara ciente do DPI, e o
+    `screenToDipRect` do Electron. A janela sob o ponto é a primeira que o contém;
+  - **o print:** o `desktopCapturer` da própria janela (`window:<id>:0`; sem ele, pelo título),
+    no tamanho dela; o mascote por cima não aparece;
+  - **soltar:** a página do mascote manda o `ctrlKey` do soltar; com ele, o main pega o ponto do
+    cursor, devolve o mascote para onde o arraste começou e leva a janela para a conversa em foco
+    (o print pelo `attach`, a linha pelo `compose`);
+  - **os atalhos:** saíram do `index.ts` (que estava perto das 1.000 linhas) para o
+    `shortcuts-setup.ts`, com o da janela da frente (`windowShortcut`) e o lugar do ditado (Fase
+    53).

@@ -553,6 +553,13 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   mensagem (das respostas desde que o Wisp abriu: as cópias de antes ficam por 30 respostas).
   **Ramificar** abre uma aba nova com a conversa até a resposta daquela mensagem, para tentar outro
   caminho; a original continua como estava.
+- **Mostrar uma janela** (Fase 48): arraste o mascote com o **Ctrl** apertado e solte em cima de
+  uma janela: o print dela vai como anexo para a conversa em foco, com "Na imagem, a janela
+  "título" (programa)." na caixa, sem mandar, e o mascote volta para onde estava (sem o Ctrl, ele
+  só muda de lugar). **Ctrl+Alt+J** (`windowShortcut`) e **Mostrar a janela da frente**, no menu do
+  mascote, fazem o mesmo com a janela em foco. O print é o da própria janela, então o mascote em
+  cima dela não aparece. No X11 e no Windows; no Wayland, o sistema não deixa um app ver as
+  janelas dos outros (use o **Print da tela** ou o **Recortar**).
 - **Pré-visualização** (Fase 47): no **+** da caixa, **Pré-visualizar**, ou `/preview` com o
   arquivo ou o endereço: `/preview index.html` (relativo à pasta da conversa), `/preview
 ~/site/relatorio.pdf`, `/preview localhost:5173` ou só `/preview 5173`. HTML, PDF e imagens abrem
@@ -1116,6 +1123,9 @@ na bandeja e no botão direito do mascote.
 | Qualquer lugar | Ctrl+Alt+Espaço                 | Segure e fale; um toque ouve até você parar (`voiceShortcut`) |
 | Qualquer lugar | Ctrl+Alt+P                      | Abre a paleta de comandos (`paletteShortcut`)                 |
 | Qualquer lugar | Ctrl+Alt+K                      | Abre a ilha no Perguntar, e recolhe (`islandShortcut`)        |
+| Qualquer lugar | Ctrl+Alt+R                      | Recorta uma área da tela para a conversa (`areaShortcut`)     |
+| Qualquer lugar | Ctrl+Alt+E                      | Explica o texto selecionado (`selectionShortcut`)             |
+| Qualquer lugar | Ctrl+Alt+J                      | Mostra a janela da frente ao Claude (`windowShortcut`)        |
 | Ilha aberta    | Esc / Ctrl+← e Ctrl+→           | Recolhe (ou fecha o diff) / troca de pílula (Windows)         |
 | Caixa de texto | Enter / Shift+Enter             | Envia / quebra a linha                                        |
 | Caixa de texto | Shift+Tab                       | Passa para o próximo modo de permissão                        |
@@ -1168,6 +1178,7 @@ E reage a quem mexe com ele:
 | Gole          | Soltou o arquivo                              | O arquivo voa para dentro dele, que engole e brilha              |
 | Lembrete      | Chegou a hora de um lembrete                  | Faísca âmbar, um sininho tocando ao lado e um chacoalhão         |
 | Dança         | Um player de música está tocando              | Dança no ritmo (a escolhida nas configurações), com notas        |
+| Recado        | Arrastado com o Ctrl e solto numa janela      | Leva o print da janela para a conversa e volta para o lugar      |
 
 As cores ficam em variáveis no topo de `src/renderer/mascot/styles/body.css`, então cada estado só
 precisa trocá-las. O desenho dos olhos vem do atributo `data-eyes`, que junta o estado e a reação

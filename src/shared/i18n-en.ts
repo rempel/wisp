@@ -2436,5 +2436,25 @@ export const EN: Record<string, string> = {
     'A screenshot of the preview goes as an attachment to the focused conversation',
   'Não deu para tirar o print da pré-visualização.': "I couldn't take a screenshot of the preview.",
   'Mostrar ao Claude': 'Show Claude',
-  'Abrir {url} na pré-visualização': 'Open {url} in the preview'
+  'Abrir {url} na pré-visualização': 'Open {url} in the preview',
+  'Mostrar a janela da frente': 'Show the front window',
+  'Mostrar a janela da frente ao Wisp': 'Show the front window to Wisp',
+  'Ditar em qualquer programa (segure enquanto fala)':
+    'Dictate into any program (hold while you speak)',
+  'Na imagem, a janela "{title}" ({app}).': 'In the image, the "{title}" window ({app}).',
+  'Na imagem, a janela "{title}".': 'In the image, the "{title}" window.',
+  'No Wayland, o sistema não deixa um app ver as janelas dos outros: use o Print da tela ou o Recortar.':
+    "On Wayland, the system doesn't let an app see other apps' windows: use the Screenshot or the Crop.",
+  'Não consegui falar com o servidor X.': "I couldn't talk to the X server.",
+  'Não consegui o print da janela "{title}".':
+    'I couldn\'t get a screenshot of the "{title}" window.',
+  'Não deu para ver a janela': "Couldn't see the window",
+  'Nenhuma janela aqui': 'No window here',
+  'Solte o mascote em cima da janela que você quer mostrar.':
+    'Drop the mascot on the window you want to show.',
+  'De qualquer lugar: o print da janela em foco, com o título, vai para a conversa (o mesmo que soltar o mascote em cima dela com o Ctrl apertado).':
+    'From anywhere: a screenshot of the focused window, with its title, goes to the conversation (the same as dropping the mascot on it while holding Ctrl).',
+  'Ditar em qualquer programa': 'Dictate into any program',
+  'Segure, fale e solte: o que você disse (transcrito na sua máquina) é colado no programa da frente. Precisa do whisper.cpp da voz.':
+    "Hold, speak and release: what you said (transcribed on your machine) is pasted into the front program. Needs the voice's whisper.cpp."
 }
