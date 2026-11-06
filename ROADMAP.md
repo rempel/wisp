@@ -1797,6 +1797,132 @@ Notas da entrega:
   e os cards esperam no painel (e vão para o celular, se ligado). O temporizador confere de minuto
   em minuto, e a volta da suspensão confere na hora. Não sobrevive a fechar o Wisp.
 
+## Da avaliação de ferramentas parecidas (novembro de 2026)
+
+As Fases 46 a 54 vêm de uma segunda rodada de comparação: o Coucou (até a 0.5.9), o Claude
+Desktop e o Claude Code Desktop (o painel de preview, a pergunta lateral), o opcode (ex-Claudia:
+checkpoints, agentes e o painel de uso), o Nimbalyst (ex-Crystal) e o Vibe Kanban (tarefas em
+worktrees), o Happy e o Omnara (o Claude Code pelo celular) e o ChatGPT Desktop. Ficou de fora o
+que bate com os princípios (rotinas na nuvem, outros provedores por fora do Claude Code).
+
+### Fase 46: voltar, ramificar e a pergunta lateral
+
+**Status:** em andamento.
+
+- **Voltar a este ponto (M):** em qualquer mensagem sua (não só na última, como na Fase 21), a
+  conversa volta para antes dela no Claude Code, e a mensagem volta para a caixa. Os arquivos que
+  as respostas dali em diante editaram voltam também, depois de um card com o que muda.
+- **Ramificar daqui (M):** uma aba nova com a conversa até o fim daquela resposta, numa cópia da
+  sessão; a original segue como estava.
+- **A pergunta lateral (P):** uma dúvida rápida com o contexto da conversa, numa caixinha no
+  painel, sem ferramentas, sem entrar no histórico e sem parar o Claude.
+
+**Aceite:** numa conversa de quatro mensagens que editou um arquivo na segunda, voltar à segunda
+tira ela e o que veio depois, devolve o texto à caixa e, confirmado, o arquivo volta a ser o de
+antes; ramificar a terceira abre uma aba com três mensagens e a original fica com quatro; a
+pergunta lateral responde sem a conversa ganhar mensagens.
+
+### Fase 47: a pré-visualização no painel
+
+**Status:** em andamento.
+
+- **Ver o resultado (M):** um HTML, um PDF, uma imagem, um Markdown ou o servidor local do
+  projeto (`localhost`) numa aba do painel, ao lado da conversa.
+- **Recarregar sozinho (P):** quando o Claude edita um arquivo da pasta, o preview recarrega.
+- **Mostrar ao Claude (P):** um print do preview vai como anexo para a conversa.
+
+**Aceite:** pedir uma página HTML e abri-la no preview mostra a página; uma edição do Claude
+recarrega o preview; **Mostrar ao Claude** põe o print na caixa.
+
+### Fase 48: o mascote numa janela
+
+**Status:** em andamento.
+
+- **Soltar o mascote numa janela (M):** arrastado e solto em cima de uma janela, o mascote leva o
+  print dela, com o título e o programa, para a conversa (na caixa, sem mandar).
+- **A janela da frente (P):** pelo menu e por um atalho (Ctrl+Alt+J), o mesmo com a janela ativa.
+
+**Aceite:** soltar o mascote em cima do editor anexa o print do editor com o título; o atalho faz
+o mesmo com a janela em foco.
+
+### Fase 49: o painel de uso
+
+**Status:** em andamento.
+
+- **Os números (M):** tokens (entrada, saída e cache) e o custo estimado por dia, por projeto e por
+  modelo, lidos dos `.jsonl` que o Claude Code grava na sua máquina, sem rede.
+- **O gráfico e o CSV (P):** os últimos 30 dias num gráfico de barras, e a exportação.
+
+**Aceite:** com sessões de dois projetos e dois modelos nos `.jsonl`, o painel mostra os totais
+certos por dia, projeto e modelo, e o CSV tem as mesmas linhas.
+
+### Fase 50: os subagentes pelo Wisp
+
+**Status:** em andamento.
+
+- **A lista (P):** os subagentes do Claude Code (`~/.claude/agents/*.md` e os da pasta da
+  conversa), com o nome, a descrição, o modelo e as ferramentas.
+- **Criar e editar (M):** um formulário (nome, descrição, prompt, modelo, ferramentas), com o diff
+  antes de gravar e o backup do arquivo velho. Apagar manda para a lixeira.
+
+**Aceite:** criar um subagente pelo Wisp grava o `.md` com o cabeçalho certo e o Claude Code o
+lista; editar mostra o diff e deixa o backup; apagar some com ele.
+
+### Fase 51: o quadro de tarefas
+
+**Status:** em andamento.
+
+- **O quadro (M):** cartões em A fazer, Rodando, Revisar e Feito, cada um com um pedido e uma
+  pasta de projeto.
+- **Cada cartão numa cópia (M):** **Começar** abre uma conversa numa cópia do Git (Fase 43) com o
+  pedido; o cartão anda sozinho para Revisar quando a resposta acaba, e Juntar e Descartar ficam
+  nele.
+
+**Aceite:** dois cartões no mesmo projeto rodam ao mesmo tempo, cada um na sua cópia; o que
+acaba vai para Revisar; Juntar leva a mudança para a pasta original e o cartão vai para Feito.
+
+### Fase 52: os pequenos
+
+**Status:** em andamento.
+
+- **Revisar um PR (P):** no aviso de um PR que pede a sua revisão, abrir o ramo dele numa cópia,
+  com o pedido de revisão na caixa.
+- **Mandar para todas as abas (P):** a mesma mensagem nas conversas da grade (para comparar
+  modelos lado a lado).
+- **Horas de silêncio (P):** o Wisp fica quieto sozinho num horário (ex.: das 22h às 8h).
+- **Busca nas configurações (P):** um campo que filtra as seções.
+- **Os seus sons (P):** trocar qualquer som do Wisp por um arquivo seu.
+- **O resumo da semana em imagem (P):** um PNG para compartilhar.
+- **As notas da versão (P):** depois de atualizar, o que mudou, e o mascote avisa quando há
+  versão nova.
+- **GitLab e Gitea (P):** os avisos de CI pelo `glab` e pelo `tea`, como o `gh`.
+
+**Aceite:** cada item com o seu teste; a busca "som" deixa só as seções com sons; com o horário de
+silêncio agora, um card não toca som.
+
+### Fase 53: ditar em qualquer programa
+
+**Status:** em andamento.
+
+- **Segurar, falar e soltar (M):** um atalho de ditado; o que você disse (transcrito na máquina,
+  pelo whisper.cpp da voz) é colado no programa da frente.
+- **Trocas (P):** uma lista de "dito → escrito" (nomes, termos) aplicada antes de colar.
+
+**Aceite:** com o editor de texto na frente, segurar o atalho, dizer uma frase e soltar cola a
+frase nele; a área de transferência volta a ser a de antes.
+
+### Fase 54: conversar pelo celular, na rede local
+
+**Status:** em andamento.
+
+- **A página do celular (G):** além de aprovar pelo ntfy (Fase 18), uma página servida pelo Wisp
+  na rede local, com as conversas abertas, as respostas e a caixa para mandar.
+- **O pareamento (M):** um QR com o endereço e um token de uso único; desligado por padrão, só na
+  rede local e com o token em cada pedido.
+
+**Aceite:** ligado, o QR abre no celular a conversa em foco; uma mensagem mandada de lá aparece
+no painel e o Claude responde; sem o token, nada responde; desligado, a porta fecha.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
@@ -1807,10 +1933,11 @@ Notas da entrega:
   (alertas de CI e de revisão) e agenda (próximos compromissos) entraram na Fase 13.
 - **Monitor de vários agentes** (Codex, Gemini CLI e outros). É coisa de painel de agentes de
   código. Os passos com a contagem de linhas entraram na ilha (Fase 37), só para o Claude Code.
-- **Da ilha do Coucou** (Fase 37), o que não é da ilha ou não cabe no Wisp: o ditado e o gravador
-  de chamadas, o « OK Coucou », o WhatsApp, os apps de celular (o Wisp aprova pelo celular pelo
-  ntfy) e as integrações de negócio.
-- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18.
+- **Da ilha do Coucou** (Fase 37), o que não é da ilha ou não cabe no Wisp: o gravador de
+  chamadas, o « OK Coucou », o WhatsApp, os apps de celular (o Wisp aprova pelo celular pelo ntfy)
+  e as integrações de negócio. O ditado, deixado de fora aqui, veio na Fase 53.
+- **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18, e conversar pelo
+  celular, por uma página na rede local, a Fase 54.
 
 ## Princípios que ficam
 
