@@ -147,6 +147,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Ditar em qualquer programa** (Fase 53): segure o atalho do ditado, fale e solte; o que você
   disse (transcrito na sua máquina) é colado no programa da frente, com as suas trocas.
 
+- **Conversar pelo celular, na rede local** (Fase 54): uma página servida pelo Wisp só na rede
+  da sua casa, pareada por um QR de uso único, com as conversas abertas, as respostas e a caixa
+  para mandar. Desligada por padrão.
+
 ### Mudou
 
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.

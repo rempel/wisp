@@ -17,6 +17,7 @@ import { setPinned } from './history'
 import type { History, SavedConversation } from './history'
 import { checkTarget, SearchIndex } from './history-search'
 import { tilde, usableFolder } from './folders'
+import { setupRemoteChat } from './remote-chat'
 import { setupBoard } from './board'
 import { setupUsageReport } from './usage-report'
 import { pickFolder, pickSaveFile, userDir } from './pick'
@@ -150,6 +151,8 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   })
   // As cópias do Git (Fase 43): as guardadas, sem aba, entram na lista para reabrir.
   const copies = setupWorktrees({ fromChat, tabs })
+  // Conversar pelo celular na rede local (Fase 54): liga e desliga com o config.
+  setupRemoteChat(fromChat, tabs)
   // O quadro de tarefas (Fase 51): cada cartão numa cópia, com o pedido.
   setupBoard(
     fromChat,

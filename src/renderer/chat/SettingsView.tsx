@@ -15,6 +15,7 @@ import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
 import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
+import { RemoteChatSection } from './RemoteChatSection'
 import { PortableSection } from './PortableSection'
 import {
   ListInput,
@@ -790,6 +791,10 @@ export function SettingsView({
 
         <Section title={t('Celular')}>
           <PhoneSection status={snapshot.phone} />
+          <RemoteChatSection
+            enabled={values.phoneChat}
+            onToggle={(phoneChat) => void save({ phoneChat })}
+          />
           <Row
             label={t('Mandar depois de')}
             hint={t(

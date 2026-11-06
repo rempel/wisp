@@ -2619,5 +2619,32 @@ export const EN: Record<string, string> = {
     'Paste it with Ctrl+V. (For Wisp to paste by itself on Linux, install xdotool, or wtype on Wayland.)',
   'Trocas do ditado': 'Dictation replacements',
   'Uma por linha, no formato "dito = escrito" (ex.: "uisp = Wisp"): vale como palavra inteira, sem ligar para maiúsculas.':
-    'One per line, as "spoken = written" (e.g. "uisp = Wisp"): it applies to whole words, ignoring case.'
+    'One per line, as "spoken = written" (e.g. "uisp = Wisp"): it applies to whole words, ignoring case.',
+  'Não achei este computador numa rede local (Wi-Fi ou cabo).':
+    "I couldn't find this computer on a local network (Wi-Fi or cable).",
+  'Não consegui abrir a porta: {message}': "I couldn't open the port: {message}",
+  'O código venceu ou já foi usado: gere outro QR no computador.':
+    'The code expired or was already used: make another QR on the computer.',
+  'Este celular não está pareado.': "This phone isn't paired.",
+  'Essa conversa não está aberta.': "That conversation isn't open.",
+  'Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.':
+    'This conversation is in Auto mode: from the phone, it can only be read.',
+  'Esta conversa está no modo terminal: use o computador.':
+    'This conversation is in terminal mode: use the computer.',
+  'A conversa não pode receber agora.': "The conversation can't take a message right now.",
+  'Conversa nova': 'New conversation',
+  'Escreva para o Claude…': 'Write to Claude…',
+  'Pareie este celular pelo QR em Configurações → Celular, no computador.':
+    'Pair this phone with the QR in Settings → Phone, on the computer.',
+  'Nenhuma conversa aberta no Wisp.': 'No open conversations in Wisp.',
+  'Esta conversa está no modo Automático (ou no terminal): pelo celular, só dá para ler.':
+    'This conversation is in Auto mode (or in the terminal): from the phone, you can only read it.',
+  'Conversar pelo celular, na rede local': 'Chat from the phone, on the local network',
+  'Uma página no celular com as conversas abertas, as respostas e a caixa para mandar. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua. Os cards de permissão continuam no computador, e uma conversa no modo Automático só pode ser lida.':
+    'A page on the phone with the open conversations, the replies and the box to send. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours. The permission cards stay on the computer, and a conversation in Auto mode can only be read.',
+  'Aponte a câmera do celular para o QR (ou abra o endereço no navegador dele). O código vale uma vez, por 10 minutos.':
+    "Point the phone's camera at the QR (or open the address in its browser). The code works once, for 10 minutes.",
+  '1 celular pareado.': '1 phone paired.',
+  '{count} celulares pareados.': '{count} phones paired.',
+  'Esquecer os celulares': 'Forget the phones'
 }

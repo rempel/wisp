@@ -1053,6 +1053,23 @@ público, os pedidos passam pelo ntfy.sh; para não passarem por terceiros, use 
 (com login, a ficha de acesso também fica no chaveiro). Por enquanto, valem as conversas do
 painel; os pedidos das sessões do terminal (aba Sessões) esperam o computador.
 
+### Conversar pelo celular, na rede local
+
+Além de aprovar (acima), dá para conversar pelo celular na rede da sua casa (Fase 54). Em
+**Configurações → Celular**, ligue **Conversar pelo celular, na rede local** (`phoneChat`,
+desligado por padrão) e aponte a câmera do celular para o QR: a página abre no navegador dele com
+as conversas abertas no Wisp, as respostas e a caixa para mandar. Uma mensagem de lá aparece no
+painel como se fosse escrita nele.
+
+- **Só na rede local:** a página responde só a endereços da rede local (e pelo endereço do QR),
+  numa porta sorteada. Nada vai para a internet, e nada passa por um servidor de fora.
+- **Sem criptografia:** é HTTP na sua rede. Ligue só numa rede sua (não no Wi-Fi do café).
+- **O pareamento:** o QR leva um código que vale uma vez, por 10 minutos; o celular o troca por
+  uma chave só dele. **Esquecer os celulares** apaga as chaves (o Wisp guarda só o hash delas).
+- **O que fica no computador:** os cards de permissão (o celular não permite nada; para isso há a
+  aprovação pelo ntfy, acima) e as conversas no modo Automático ou no modo terminal, que pelo
+  celular só podem ser lidas.
+
 ### GitHub, agenda e resumo da semana
 
 Em **Configurações → Integrações**:
@@ -1600,7 +1617,9 @@ hora uma conversa apagada.
 - **Sem telemetria.** O Wisp não manda nada para lugar nenhum por conta própria. A rede é só a do
   Claude Code (para a Anthropic, ou para a OpenRouter, se você escolheu) e a do que você ligou: o
   `gh`, as agendas, o navegador do Claude, o ntfy da aprovação pelo celular e, com o aviso de
-  versão ligado, uma consulta por dia às versões do Wisp no GitHub.
+  versão ligado, uma consulta por dia às versões do Wisp no GitHub. Com a conversa pelo celular
+  ligada (Fase 54), o Wisp abre uma porta só para a rede local, sem criptografia; desligada, a
+  porta fecha.
 - **A sua assinatura, não uma chave de API.** O Claude Code roda sem `ANTHROPIC_API_KEY` no ambiente,
   para não cobrar por uso sem você saber. Se mesmo assim ele usar uma chave, a conversa avisa.
 - **Permissão antes de mudar qualquer coisa** (veja [Modos de permissão](#modos-de-permissão)). O
