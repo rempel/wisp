@@ -31,6 +31,9 @@ import type {
   PreviewState,
   UsageReport,
   AgentInfo,
+  BoardCard,
+  BoardColumn,
+  BoardResult,
   AgentPreview,
   AgentResult,
   AgentScope,
@@ -193,6 +196,17 @@ export const IPC = {
   /** chat → main (invoke): o uso em CSV (o diálogo escolhe onde). Arg: dias. Devolve ExportResult. */
   usageExport: 'usage:export',
   /** chat → main (invoke): os subagentes (Fase 50). Arg: a pasta da conversa. Devolve AgentInfo[]. */
+  /** chat → main (invoke): os cartões do quadro (Fase 51). Devolve BoardCard[]. */
+  boardList: 'board:list',
+  /** chat → main (invoke): um cartão novo. Args: (título, pedido, pasta). Devolve BoardResult. */
+  boardAdd: 'board:add',
+  /**
+   * chat → main (invoke): começar, mostrar, juntar, descartar, tirar ou mover um cartão. Args:
+   * (ação, id, coluna para o mover). Devolve BoardResult.
+   */
+  boardAction: 'board:action',
+  /** main → chat: os cartões mudaram. Arg: BoardCard[]. */
+  boardChanged: 'board:changed',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -739,6 +753,17 @@ export interface WispApi {
   /** Ver um arquivo no painel (Fase 34), só para ler. */
   files: {
     view(path: string): Promise<FileViewResult>
+  }
+  /** O quadro de tarefas (Fase 51). */
+  board: {
+    list(): Promise<BoardCard[]>
+    add(title: string, prompt: string, folder: string): Promise<BoardResult>
+    action(
+      action: 'start' | 'show' | 'join' | 'discard' | 'remove' | 'move',
+      card: string,
+      column?: BoardColumn
+    ): Promise<BoardResult>
+    onChanged(listener: (cards: BoardCard[]) => void): () => void
   }
   /** Os subagentes do Claude Code (Fase 50). */
   agents: {

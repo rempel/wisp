@@ -2536,5 +2536,40 @@ export const EN: Record<string, string> = {
   'Ajudantes com o próprio prompt, modelo e ferramentas, que o Claude chama sozinho.':
     'Helpers with their own prompt, model and tools, which Claude calls on its own.',
   'Ver e editar os subagentes': 'See and edit the subagents',
-  'agentes ajudantes': 'agents helpers'
+  'agentes ajudantes': 'agents helpers',
+  'O quadro está cheio.': 'The board is full.',
+  'Esse cartão não existe mais.': "That card doesn't exist anymore.",
+  'Espere a resposta acabar.': 'Wait for the reply to finish.',
+  'Junte ou descarte a cópia antes de tirar o cartão.':
+    'Merge or discard the copy before removing the card.',
+  'As abas estão cheias: feche uma para começar o cartão.':
+    'The tabs are full: close one to start the card.',
+  'Sem cópia ({message}): a conversa roda na própria pasta.':
+    'No copy ({message}): the conversation runs in the folder itself.',
+  'Esse cartão não está numa cópia.': "That card isn't in a copy.",
+  'Dê um título curto ao cartão.': 'Give the card a short title.',
+  'Escreva o pedido do cartão.': "Write the card's request.",
+  'Escolha uma pasta de projeto.': 'Choose a project folder.',
+  'A fazer': 'To do',
+  Rodando: 'Running',
+  Revisar: 'Review',
+  Feito: 'Done',
+  'Abrir a conversa': 'Open the conversation',
+  Juntar: 'Merge',
+  'Voltar para A fazer': 'Back to To do',
+  'Cada cartão é um pedido num projeto. Começar abre uma conversa numa cópia do Git (as tarefas não pisam uma na outra); no fim da resposta, o cartão vai para Revisar, onde você junta as mudanças na pasta original (sem commit) ou descarta.':
+    "Each card is a request in a project. Start opens a conversation in a Git copy (the tasks don't step on each other); when the reply ends, the card moves to Review, where you merge the changes into the original folder (without a commit) or discard them.",
+  'Novo cartão': 'New card',
+  Título: 'Title',
+  'Adicionar o modo escuro': 'Add dark mode',
+  'O pedido para o Claude': 'The request for Claude',
+  'Adicione um modo escuro às configurações, com testes.':
+    'Add a dark mode to the settings, with tests.',
+  'Nenhuma pasta de projeto (veja Configurações → Pastas)':
+    'No project folders (see Settings → Folders)',
+  'Pôr em A fazer': 'Add to To do',
+  'numa cópia': 'in a copy',
+  'Quadro de tarefas': 'Task board',
+  'cada cartão numa cópia do projeto': 'each card in a copy of the project',
+  'kanban cartões cópias': 'kanban cards copies'
 }

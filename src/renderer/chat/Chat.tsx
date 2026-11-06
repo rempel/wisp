@@ -22,6 +22,7 @@ import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
 import { UsageView } from './UsageView'
 import { AgentsView } from './AgentsView'
+import { BoardView } from './BoardView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
 import { MarkdownPreview, PreviewBar } from './Preview'
@@ -33,13 +34,14 @@ import { HistoryView } from './HistoryView'
 import {
   Avatar,
   BackIcon,
+  BoardIcon,
   CloseIcon,
-  DockIcon,
-  MaximizeIcon,
-  RestoreIcon,
   DemoIcon,
+  DockIcon,
   HistoryIcon,
+  MaximizeIcon,
   PaperclipIcon,
+  RestoreIcon,
   SettingsIcon,
   TerminalIcon
 } from './icons'
@@ -105,14 +107,23 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
   welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
   usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
-  agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')]
+  agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
+  board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
 }
 
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<
-    'chat' | 'history' | 'sessions' | 'settings' | 'diagnostics' | 'welcome' | 'usage' | 'agents'
+    | 'chat'
+    | 'history'
+    | 'sessions'
+    | 'settings'
+    | 'diagnostics'
+    | 'welcome'
+    | 'usage'
+    | 'agents'
+    | 'board'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
@@ -768,6 +779,16 @@ export default function Chat(): JSX.Element {
           </button>
           <button
             type="button"
+            className={`icon-button${view === 'board' ? ' active' : ''}`}
+            onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
+            title={t('Quadro de tarefas')}
+            aria-label={t('Quadro de tarefas')}
+            aria-pressed={view === 'board'}
+          >
+            <BoardIcon />
+          </button>
+          <button
+            type="button"
             className={`icon-button${view === 'history' ? ' active' : ''}`}
             onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
             title={t('Conversas anteriores')}
@@ -831,6 +852,8 @@ export default function Chat(): JSX.Element {
           <HistoryView onClose={() => setView('chat')} />
         ) : view === 'usage' ? (
           <UsageView />
+        ) : view === 'board' ? (
+          <BoardView onShow={() => setView('chat')} />
         ) : view === 'agents' ? (
           <AgentsView folder={focusedFolder} />
         ) : view === 'sessions' ? (
