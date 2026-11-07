@@ -2050,8 +2050,17 @@ Notas da entrega:
   configuração diz para ligar só numa rede sua;
 - o celular conversa, mas não aprova: os cards continuam no computador (ou no ntfy, Fase 18). Uma
   conversa no Automático, que roda comandos sem perguntar, só é lida pelo celular;
-- a página lê de 2 em 2 segundos, sem WebSocket: a resposta aparece por blocos (o histórico grava
-  o texto quando o bloco acaba), não letra a letra;
+- a página lê de 1 em 1 segundo com o Claude trabalhando e de 3 em 3 parada, sem WebSocket, e só
+  recebe a conversa quando ela mudou (uma marca do que ela tem). A resposta aparece por blocos (o
+  histórico grava o texto quando o bloco acaba), não letra a letra;
+- a primeira versão era simples demais e não dava para seguir a conversa depois de continuar no
+  PC: ela redesenhava tudo a cada leitura (a rolagem voltava ao começo), ficava na conversa
+  escolhida (uma aba nova no PC não aparecia) e a porta sorteada mudava a cada vez (o endereço e a
+  chave guardados no celular deixavam de valer). Agora a página segue a aba em foco no PC, só
+  acrescenta o que mudou (com o botão "Novas mensagens ↓" quando você lê lá em cima) e a porta é
+  guardada. E mostra a conversa inteira: Markdown, ferramentas com o resultado, pedidos que
+  esperam no PC, avisos, a atividade de agora, Parar e conversa nova; o Markdown é montado em nós
+  do DOM, sem `innerHTML`, e só aceita links http e https;
 - o e2e abre a página na janela da pré-visualização (outra sessão do Electron, como outro
   navegador). Ela pegou que um QR novo com a página já aberta não pareava: agora a página lê o
   código também no `hashchange`.

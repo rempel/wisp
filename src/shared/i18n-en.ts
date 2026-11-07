@@ -2646,5 +2646,20 @@ export const EN: Record<string, string> = {
     "Point the phone's camera at the QR (or open the address in its browser). The code works once, for 10 minutes.",
   '1 celular pareado.': '1 phone paired.',
   '{count} celulares pareados.': '{count} phones paired.',
-  'Esquecer os celulares': 'Forget the phones'
+  'Esquecer os celulares': 'Forget the phones',
+  'As abas estão cheias: feche uma no computador.': 'The tabs are full: close one on the computer.',
+  'As suas conversas com o Claude, pelo celular.':
+    'Your conversations with Claude, from the phone.',
+  'Nenhuma mensagem ainda. Escreva abaixo para começar.': 'No messages yet. Write below to start.',
+  'Sem conexão com o Wisp: o computador está ligado e na mesma rede?':
+    'No connection to Wisp: is the computer on and on the same network?',
+  'Acompanhar a conversa do computador': "Follow the computer's conversation",
+  'Novas mensagens ↓': 'New messages ↓',
+  Trabalhando: 'Working',
+  'espera você': 'waiting for you',
+  'Esperando você no computador': 'Waiting for you on the computer',
+  respondendo: 'replying',
+  'Resposta parada.': 'Reply stopped.',
+  'A resposta parou com um erro.': 'The reply stopped with an error.',
+  'Conversa compactada.': 'Conversation compacted.'
 }
