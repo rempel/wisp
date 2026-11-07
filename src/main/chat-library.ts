@@ -118,26 +118,32 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     if (!fromChat(event) || typeof query !== 'string') return []
     return index.search(query.slice(0, 200), store.list(openIds()))
   })
-  ipcMain.handle(IPC.historyOpen, (event, id: unknown, at: unknown) => {
-    if (!fromChat(event) || typeof id !== 'string') return false
-    const target = checkTarget(at)
+  /** Abre uma conversa guardada numa aba (ou mostra a aba dela); null se não deu. */
+  const openSaved = (
+    id: string,
+    target: ReturnType<typeof checkTarget> = null
+  ): Conversation | null => {
     // Já aberta numa aba: só mostra (e, pela busca, vai à mensagem).
     const open = conversations().find((conversation) => conversation.historyId === id)
     if (open) {
       tabs.show(open.id)
       if (target) toPage(open.id, { type: 'jump', target })
-      return true
+      return open
     }
     const saved = store.load(id)
-    if (!saved) return false
-    if (tabs.full && !tabs.emptyFocused()) return false
+    if (!saved) return null
+    if (tabs.full && !tabs.emptyFocused()) return null
     const conversation = tabs.fresh()
     // A conversa da aba recomeça (o 'reset' passa pelo histórico e pelos cards) e a guardada
     // volta: primeiro o que o painel mostrava, depois a próxima mensagem retoma o Claude Code.
     for (const replayed of conversation.restore(saved)) toPage(conversation.id, replayed)
     if (target) toPage(conversation.id, { type: 'jump', target })
     tabs.show(conversation.id)
-    return true
+    return conversation
+  }
+  ipcMain.handle(IPC.historyOpen, (event, id: unknown, at: unknown) => {
+    if (!fromChat(event) || typeof id !== 'string') return false
+    return openSaved(id, checkTarget(at)) !== null
   })
   ipcMain.handle(IPC.historyDelete, (event, id: unknown) => {
     if (!fromChat(event) || typeof id !== 'string') return false
@@ -151,8 +157,6 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   })
   // As cópias do Git (Fase 43): as guardadas, sem aba, entram na lista para reabrir.
   const copies = setupWorktrees({ fromChat, tabs })
-  // Conversar pelo celular na rede local (Fase 54): liga e desliga com o config.
-  setupRemoteChat(fromChat, tabs)
   // O quadro de tarefas (Fase 51): cada cartão numa cópia, com o pedido.
   setupBoard(
     fromChat,
@@ -173,6 +177,27 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     ...copies.saved()
   ]
   ipcMain.handle(IPC.tabsProjects, (event): FolderChoice[] => (fromChat(event) ? projects() : []))
+  // Conversar pelo celular na rede local (Fase 54): liga e desliga com o config.
+  setupRemoteChat(fromChat, {
+    tabs,
+    store,
+    search: (query, list) => index.search(query, list),
+    projects,
+    openFolder: (folder) => {
+      const usable = folder ? usableFolder(folder) : null
+      if (folder && !usable) return null
+      const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, usable))
+      void conversation.checkFolder()
+      return conversation
+    },
+    openSaved: (id) => openSaved(id),
+    toPage,
+    promptText: (name, folder) => {
+      const prompt = getConfig().prompts.find((item) => item.name === name)
+      // A área de transferência é a do computador: pelo celular, a variável fica vazia.
+      return prompt ? expandPrompt(prompt.text, promptValues(folder)) : null
+    }
+  })
   ipcMain.handle(
     IPC.tabsOpenFolder,
     async (event, path: unknown, worktree: unknown): Promise<FolderResult> => {

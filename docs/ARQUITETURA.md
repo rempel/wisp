@@ -52,7 +52,11 @@ src/
 │  ├─ gitlab.ts      # os avisos de CI do GitLab, pelo glab, no mesmo vigia do GitHub (Fase 52)
 │  ├─ dictation.ts   # ditar em qualquer programa: as trocas, o Ctrl+V e a volta da área de transferência (Fase 53)
 │  ├─ remote-chat.ts # conversar pelo celular na rede local: o servidor, o pareamento e a API (Fase 54)
-│  ├─ remote-page.ts # a página do celular: o HTML, o CSS e o JS que o servidor entrega (Fase 54)
+│  ├─ remote-page.ts # a página do celular: o HTML, o CSS, o ícone e os textos (Fase 54)
+│  ├─ remote-api.ts  # o que o celular pode fazer: mandar, os cards, o modelo, o modo (Fase 54)
+│  ├─ remote-app.ts  # o JS da página do celular: o Markdown seguro, os itens e os cards (Fase 54)
+│  ├─ remote-app-ui.ts # o JS da página do celular: as folhas, os anexos e a caixa (Fase 54)
+│  ├─ remote-view.ts # o que o celular mostra de uma conversa: os itens e a atividade (Fase 54)
 │  ├─ clipboard.ts   # o chip "usar o que você copiou"
 │  ├─ windows.ts     # listar e trazer janelas para a frente
 │  ├─ ewmh.ts        # janelas no X11, pelo EWMH, numa conexão própria com o servidor X
@@ -1182,7 +1186,8 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
   600 ms depois, se a área de transferência ainda for o ditado, ela volta. Sem quem aperte o
   Ctrl+V, o texto fica copiado e uma notificação diz para colar.
 - **Conversar pelo celular, na rede local (Fase 54):**
-  - **o servidor:** um `http.createServer` numa porta sorteada, ligado só com o `phoneChat` (e
+  - **o servidor:** um `http.createServer` numa porta sorteada na primeira vez e guardada
+    (`celular-porta.txt`; ocupada, outra), ligado só com o `phoneChat` (e
     desligado com ele). Cada pedido passa por duas conferências antes de tudo: o endereço de quem
     pede é da rede local (10/8, 172.16/12, 192.168/16, 169.254/16, fc00::/7, o próprio
     computador) e o `Host` é exatamente o endereço do QR, o que barra um site de fora que tente
@@ -1192,9 +1197,20 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
   - **o pareamento:** o QR leva um código de 128 bits, de uso único, que vale 10 minutos; a página
     o troca por uma chave de 256 bits, guardada no `localStorage` do celular. O Wisp guarda só o
     SHA-256 das chaves (`celular-chaves.json`, até 10 celulares) e compara em tempo constante;
-  - **a API:** as conversas abertas, os itens de uma conversa (do histórico dela: as mensagens, o
-    texto das respostas e uma linha por ferramenta) e mandar (o `showUser` e o `send` do `--ask`).
-    Uma conversa no modo Automático ou no terminal só é lida, e os cards de permissão não passam
-    por aqui;
-  - **a página:** relê de 2 em 2 segundos enquanto está à vista (o `visibilitychange`) e lê o
-    código do QR também quando ele chega com ela aberta (o `hashchange`).
+  - **a API** (`remote-api.ts`, com o `RemoteContext` que o `chat-library.ts` monta): `/api/state`
+    (as conversas abertas com o modo, o modelo, o provedor e o contexto, a que está em foco no PC,
+    os projetos e os prompts salvos), `/api/messages` (os itens de uma conversa, montados pelo
+    `remote-view.ts` do histórico dela mais o texto que ele ainda junta: as mensagens com as
+    miniaturas, as respostas, as ferramentas com o passo, o resultado e o diff, os cards com o que
+    é preciso para responder, as perguntas, os avisos; com a marca `v`, um hash, a resposta é só
+    `{ same: true }` se nada mudou) e `/api/history`. Para agir: `send` e `edit` (com os anexos de
+    `/api/upload`, guardados como as imagens coladas e citados por um token, nunca pelo caminho),
+    `stop`, `compact`, `clear`, `close`, `view`, `mode`, `model`, `provider`, `permission`,
+    `answer`, `prompt`, `new` (só numa pasta da lista de projetos) e `history/open`. Cada uma passa
+    pelo mesmo método que o IPC do painel usa, e o que o painel não fica sabendo sozinho (a edição)
+    vai pelo `toPage`. O modo terminal fica no computador;
+  - **a página:** segue a aba em foco no PC (até você escolher outra), relê de 1 em 1 segundo com
+    o Claude trabalhando e de 3 em 3 parada, enquanto está à vista (o `visibilitychange`), e
+    redesenha só os itens que mudaram, pelo número de cada um, sem mexer na rolagem de quem lê lá
+    em cima. O Markdown vira nós do DOM (nada de `innerHTML`), e os links só podem ser http ou
+    https. Lê o código do QR também quando ele chega com ela aberta (o `hashchange`).
