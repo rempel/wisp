@@ -244,6 +244,11 @@ export class History {
     this.append(event)
   }
 
+  /** O texto da resposta que ainda está sendo juntado (a página do celular o mostra ao vivo). */
+  pendingText(): { blockId: string; delta: string } | null {
+    return this.text ? { ...this.text } : null
+  }
+
   /** Grava o texto que ainda estava sendo juntado (o app está fechando). */
   flush(): void {
     if (!this.text) return

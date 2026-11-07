@@ -1060,17 +1060,40 @@ painel; os pedidos das sessões do terminal (aba Sessões) esperam o computador.
 Além de aprovar (acima), dá para conversar pelo celular na rede da sua casa (Fase 54). Em
 **Configurações → Celular**, ligue **Conversar pelo celular, na rede local** (`phoneChat`,
 desligado por padrão) e aponte a câmera do celular para o QR: a página abre no navegador dele com
-as conversas abertas no Wisp, as respostas e a caixa para mandar. Uma mensagem de lá aparece no
-painel como se fosse escrita nele.
+a conversa em foco no computador. Uma mensagem de lá aparece no painel como se fosse escrita nele.
+
+- **Acompanha o computador:** a página mostra a conversa da aba em foco no PC. Continue no PC,
+  troque de aba ou abra uma nova: o celular vai junto. Escolher outra conversa no menu (☰) desliga
+  o acompanhar; a chave **Acompanhar a conversa do computador**, no mesmo menu, religa.
+- **A conversa inteira:** as respostas em Markdown (títulos, listas, código, links), cada
+  ferramenta com o que faz (o comando, o arquivo), se deu certo e o resultado (toque para abrir),
+  os pedidos que esperam você no computador, os avisos e a linha do que o Claude está fazendo
+  agora. Lendo mais para cima, a página não pula: o botão **Novas mensagens ↓** avisa do que chegou.
+- **O que o painel faz, pelo celular:** mandar (com fotos da câmera ou da galeria, PDFs e
+  arquivos de texto), **Parar**, **Editar** a última mensagem, os comandos `/compact` e `/clear`
+  e os prompts salvos. Nas pílulas de baixo (ou no **⋯**): o **modelo**, o **modo** (Pedir,
+  Aceitar edições, Planejar, Automático), o provedor (assinatura ou OpenRouter), compactar,
+  recomeçar e fechar a aba. No menu (☰): **Nova conversa** (sem pasta ou numa pasta de projeto) e
+  o **Histórico**, com a busca, para reabrir uma conversa guardada.
+- **Os cards e as perguntas:** os pedidos de permissão aparecem no celular com o que está em jogo
+  (o comando, o trecho editado) e os mesmos botões do PC: **Permitir**, **Negar**, **Permitir
+  sempre nesta conversa**; o plano vem inteiro, com **Aprovar e aceitar edições**, **Aprovar**,
+  **Aprovar no automático** e **Continuar planejando**; as perguntas do Claude, com as opções.
+  Respondeu num, o card sai do outro.
+- **Como um app:** dá para pôr na tela inicial (a página tem ícone e nome). A resposta aparece
+  enquanto é escrita.
+- **O mesmo endereço:** a porta é sorteada na primeira vez e guardada; o endereço que o celular
+  guardou continua valendo depois de reiniciar o Wisp (se ela estiver ocupada, outra é sorteada, e
+  é preciso parear de novo).
 
 - **Só na rede local:** a página responde só a endereços da rede local (e pelo endereço do QR),
-  numa porta sorteada. Nada vai para a internet, e nada passa por um servidor de fora.
+  numa porta própria. Nada vai para a internet, e nada passa por um servidor de fora.
 - **Sem criptografia:** é HTTP na sua rede. Ligue só numa rede sua (não no Wi-Fi do café).
 - **O pareamento:** o QR leva um código que vale uma vez, por 10 minutos; o celular o troca por
   uma chave só dele. **Esquecer os celulares** apaga as chaves (o Wisp guarda só o hash delas).
-- **O que fica no computador:** os cards de permissão (o celular não permite nada; para isso há a
-  aprovação pelo ntfy, acima) e as conversas no modo Automático ou no modo terminal, que pelo
-  celular só podem ser lidas.
+- **Um celular pareado faz o que o painel faz**, aprovar os pedidos inclusive. Por isso, ligue só
+  numa rede sua e esqueça um celular que você não usa mais. O que fica no computador: as conversas
+  no modo terminal (o celular as lê e pode voltá-las para o chat) e o resto das configurações.
 
 ### GitHub, agenda e resumo da semana
 
