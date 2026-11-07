@@ -151,7 +151,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   da sua casa, pareada por um QR de uso único. Ela acompanha a conversa em foco no computador,
   mostra a conversa inteira (Markdown, ferramentas com o resultado, pedidos, avisos, o que o Claude
   está fazendo), não pula enquanto você lê lá em cima, tem Parar e conversa nova, e guarda a porta,
-  para o endereço do celular continuar valendo. Desligada por padrão.
+  para o endereço do celular continuar valendo. E faz o que o painel faz: o modelo, o modo e o
+  provedor, os cards de permissão e as perguntas do Claude, fotos e arquivos, editar a última
+  mensagem, os prompts salvos, compactar, recomeçar e fechar a aba, conversa nova numa pasta de
+  projeto e o histórico. Desligada por padrão.
 
 ### Mudou
 

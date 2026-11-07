@@ -1,5 +1,6 @@
 // Conversar pelo celular, na rede local (Fase 54): uma página servida pelo próprio Wisp, só para
-// os endereços da rede de casa, com as conversas abertas, as respostas e a caixa para mandar.
+// os endereços da rede de casa, com o que o painel do computador tem (a API fica no
+// remote-api.ts; a página, no remote-page.ts e no remote-app.ts).
 //
 // As regras:
 // - desligado por padrão (`phoneChat`); ligado, um servidor HTTP numa porta sorteada, que só
@@ -9,9 +10,9 @@
 // - o pareamento: o QR leva um código de uso único, que vale 10 minutos; a página troca o código
 //   por uma chave só daquele celular, que vai em cada pedido. "Esquecer os celulares" apaga as
 //   chaves (guardadas só como o hash, nos dados do Wisp);
-// - pelo celular dá para ler as conversas e mandar mensagens; os cards de permissão continuam só
-//   no computador (ou no ntfy, Fase 18), e uma conversa no modo Automático não recebe mensagens
-//   de lá;
+// - o celular pareado faz o que o painel faz: conversa, troca o modelo e o modo, responde aos
+//   cards e às perguntas, abre conversas. Por isso o pareamento é o que protege, e a
+//   configuração diz para ligar só numa rede sua;
 // - sem criptografia: é HTTP numa rede sua (o settings diz). Nada sai da rede local.
 
 import { app, ipcMain } from 'electron'
@@ -21,13 +22,13 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { createServer } from 'http'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import { networkInterfaces } from 'os'
-import { basename, join } from 'path'
-import type { ChatTabs } from './chat-tabs'
+import { join } from 'path'
 import { getConfig, onConfigChange } from './config'
 import { DATA_DIR } from './paths'
 import { REMOTE_JS } from './remote-app'
 import { REMOTE_CSS, REMOTE_HTML, REMOTE_ICON, remoteManifest, remoteTexts } from './remote-page'
-import { remoteView, viewVersion } from './remote-view'
+import { RemoteApi } from './remote-api'
+import type { RemoteContext } from './remote-api'
 import { IPC } from '../shared/ipc'
 import type { RemoteChatState } from '../shared/ipc'
 import { t } from '../shared/i18n'
@@ -38,7 +39,8 @@ export const REMOTE_PORT_FILE = join(DATA_DIR, 'celular-porta.txt')
 /** Quanto o código do QR vale (ms). */
 export const PAIRING_MS = 10 * 60_000
 const MAX_BODY = 64 * 1024
-const MAX_TEXT = 20_000
+/** Um anexo mandado pelo celular (uma foto da câmera passa fácil de 5 MB). */
+const MAX_UPLOAD = 25 * 1024 * 1024
 const MAX_DEVICES = 10
 
 /** Um endereço da rede local (ou o próprio computador)? */
@@ -80,22 +82,9 @@ const sameText = (a: string, b: string): boolean => {
   return left.length === right.length && timingSafeEqual(left, right)
 }
 
-/** Uma conversa, para a página do celular. */
-export interface RemoteConversation {
-  id: string
-  title: string
-  busy: boolean
-  /** Um card espera você no computador. */
-  waiting: boolean
-  /** No Automático (ou no terminal): o celular só lê. */
-  readOnly: boolean
-  /** O modo de permissão e a pasta (o nome), para a página mostrar. */
-  mode: string
-  folder: string | null
-}
-
 export interface RemoteChatOptions {
-  tabs: ChatTabs
+  /** O que a API do celular usa do resto do Wisp. */
+  context: RemoteContext
   /** O estado mudou (o QR, os celulares): a tela de configurações acompanha. */
   changed(): void
   keysFile?: string
@@ -113,10 +102,12 @@ export class RemoteChat {
   private pairing: { code: string; until: number } | null = null
   private keys: string[]
   private readonly file: string
+  private readonly api: RemoteApi
 
   constructor(private readonly options: RemoteChatOptions) {
     this.file = options.keysFile ?? REMOTE_KEYS_FILE
     this.keys = this.load()
+    this.api = new RemoteApi(options.context)
   }
 
   get running(): boolean {
@@ -253,57 +244,24 @@ export class RemoteChat {
     }
     if (!url.pathname.startsWith('/api/')) return send(404, { error: 'not found' })
     if (!this.authorized(req)) return send(401, { error: t('Este celular não está pareado.') })
-    const tabs = this.options.tabs
-    if (req.method === 'GET' && url.pathname === '/api/state') {
-      // A conversa em foco no computador: a página a acompanha (até você escolher outra).
-      const state = tabs.state()
-      const focused = tabs.conversationById(state.panes[state.focused])?.id ?? null
-      return send(200, { conversations: this.conversations(), focused })
+    if (req.method === 'GET') {
+      const result = this.api.get(url.pathname, url.searchParams)
+      return send(result.status, result.body)
     }
-    if (req.method === 'GET' && url.pathname === '/api/messages') {
-      const conversation = tabs.conversationById(url.searchParams.get('c') ?? '')
-      if (!conversation) return send(404, { error: t('Essa conversa não está aberta.') })
-      const view = remoteView(conversation.history.events())
-      const version = viewVersion(view, conversation.busy)
-      // Nada mudou desde a última leitura: a página não redesenha nada.
-      if (url.searchParams.get('v') === version) return send(200, { v: version, same: true })
-      return send(200, {
-        v: version,
-        busy: conversation.busy,
-        activity: conversation.busy ? view.activity : null,
-        items: view.items
-      })
+    if (req.method === 'POST' && url.pathname === '/api/upload') {
+      const data = await readBody(req, MAX_UPLOAD)
+      if (!data)
+        return send(413, { error: t('O arquivo é grande demais para mandar pelo celular.') })
+      const result = await this.api.upload(
+        data,
+        (req.headers['content-type'] ?? '').split(';')[0].trim().toLowerCase(),
+        url.searchParams.get('name') ?? ''
+      )
+      return send(result.status, result.body)
     }
     if (req.method === 'POST') {
-      const body = await readJson(req)
-      if (url.pathname === '/api/new') {
-        if (tabs.full)
-          return send(409, { error: t('As abas estão cheias: feche uma no computador.') })
-        return send(200, { c: tabs.addChat().id })
-      }
-      const conversation = tabs.conversationById(typeof body?.c === 'string' ? body.c : '')
-      if (!conversation) return send(404, { error: t('Essa conversa não está aberta.') })
-      if (url.pathname === '/api/stop') {
-        conversation.stop()
-        return send(200, { ok: true })
-      }
-      if (url.pathname === '/api/send') {
-        const text = typeof body?.text === 'string' ? body.text.trim().slice(0, MAX_TEXT) : ''
-        if (!text) return send(400, { error: t('pedido inválido') })
-        if (conversation.mode === 'auto') {
-          return send(403, {
-            error: t('Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.')
-          })
-        }
-        if (conversation.view === 'terminal') {
-          return send(403, { error: t('Esta conversa está no modo terminal: use o computador.') })
-        }
-        conversation.showUser(text, false)
-        const sent = conversation.send(text, [], () => ({ name: '', size: 0 }))
-        return sent
-          ? send(200, { ok: true })
-          : send(409, { error: t('A conversa não pode receber agora.') })
-      }
+      const result = this.api.post(url.pathname, await readJson(req))
+      return send(result.status, result.body)
     }
     return send(404, { error: 'not found' })
   }
@@ -314,18 +272,6 @@ export class RemoteChat {
     if (!key) return false
     const wanted = hash(key)
     return this.keys.some((stored) => sameText(stored, wanted))
-  }
-
-  private conversations(): RemoteConversation[] {
-    return this.options.tabs.conversations().map((conversation) => ({
-      id: conversation.id,
-      title: conversation.title ?? t('Conversa nova'),
-      busy: conversation.busy,
-      waiting: conversation.pendingCount() > 0,
-      readOnly: conversation.mode === 'auto' || conversation.view === 'terminal',
-      mode: conversation.mode,
-      folder: conversation.folder ? basename(conversation.folder) : null
-    }))
   }
 
   private savedPort(): number | null {
@@ -372,40 +318,45 @@ export class RemoteChat {
   }
 }
 
-/** O corpo JSON de um pedido (até 64 KB); null se não for um objeto. */
-function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+/** O corpo de um pedido, até `max` bytes; null se passar disso ou der erro. */
+function readBody(req: IncomingMessage, max: number): Promise<Buffer | null> {
   return new Promise((resolve) => {
     let size = 0
     const chunks: Buffer[] = []
     req.on('data', (chunk: Buffer) => {
       size += chunk.length
-      if (size > MAX_BODY) {
+      if (size > max) {
         req.destroy()
         resolve(null)
       } else chunks.push(chunk)
     })
-    req.on('end', () => {
-      try {
-        const parsed = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
-        resolve(parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null)
-      } catch {
-        resolve(null)
-      }
-    })
+    req.on('end', () => resolve(Buffer.concat(chunks)))
     req.on('error', () => resolve(null))
   })
+}
+
+/** O corpo JSON de um pedido (até 64 KB); null se não for um objeto. */
+async function readJson(req: IncomingMessage): Promise<Record<string, unknown> | null> {
+  const data = await readBody(req, MAX_BODY)
+  if (!data) return null
+  try {
+    const parsed = JSON.parse(data.toString('utf8')) as unknown
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : null
+  } catch {
+    return null
+  }
 }
 
 /** Liga a página do celular conforme o config (`phoneChat`) e responde à tela de configurações. */
 export function setupRemoteChat(
   fromChat: (event: IpcMainInvokeEvent) => boolean,
-  tabs: ChatTabs
+  context: RemoteContext
 ): RemoteChat {
   let error: string | null = null
   // Nos testes de ponta a ponta, sem uma rede local de verdade, o endereço vem do ambiente.
   const testAddress = process.env.WISP_TEST_LAN_ADDRESS
   const remote = new RemoteChat({
-    tabs,
+    context,
     changed: () => undefined,
     ...(testAddress ? { address: () => testAddress } : {})
   })

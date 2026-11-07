@@ -1069,7 +1069,19 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       conversa** abre uma aba no PC.
 - [ ] **Reiniciar:** feche e abra o Wisp: a página aberta no celular volta a funcionar, sem parear
       de novo.
-- [ ] **Automático:** ponha uma conversa no modo Automático: no celular, a caixa fica desligada.
+- [ ] **Permitir pelo celular:** peça "crie o arquivo /tmp/teste-celular": o card aparece no
+      celular com o comando; toque em **Permitir**: o card sai também do PC, e o arquivo existe.
+- [ ] **Plano:** no modo Planejar, peça uma mudança: o plano aparece inteiro no celular; **Aprovar
+      e aceitar edições** passa o PC para Aceitar edições.
+- [ ] **Modelo e modo:** toque na pílula do modelo, escolha outro: a pílula do PC muda. O mesmo
+      com o modo.
+- [ ] **Foto:** toque em **+**, tire uma foto e pergunte o que tem nela: a miniatura aparece no
+      celular e no PC, e o Claude descreve a foto.
+- [ ] **Editar:** toque em **Editar** na última mensagem, mude e mande: a velha sai nos dois.
+- [ ] **Histórico e conversa nova:** no menu (☰), **Histórico**: busque e abra uma conversa
+      guardada (ela abre numa aba no PC). **Nova conversa** numa pasta de projeto: a aba abre nela.
+- [ ] **Terminal:** ponha uma conversa no modo terminal: no celular, a caixa fica desligada, e o ⋯
+      tem **Voltar para o chat**.
 - [ ] **Uso único:** abra o mesmo endereço do QR noutro aparelho: ele não pareia (o código já foi
       usado); gere outro QR (feche e abra as configurações depois de 10 minutos).
 - [ ] **Esquecer:** **Esquecer os celulares**: o celular volta a pedir o pareamento.
