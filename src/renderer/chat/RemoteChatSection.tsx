@@ -40,7 +40,7 @@ export function RemoteChatSection({
       </label>
       <small className="settings-hint">
         {t(
-          'Uma página no celular com as conversas abertas, as respostas e a caixa para mandar. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua. Os cards de permissão continuam no computador, e uma conversa no modo Automático só pode ser lida.'
+          'Uma página no celular com o que o painel tem: as conversas, o modelo e o modo, os cards de permissão, fotos, o histórico e conversas novas. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua, porque um celular pareado aprova o que o Claude pede.'
         )}
       </small>
       {enabled && state?.error && (

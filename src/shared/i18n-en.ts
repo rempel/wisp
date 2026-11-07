@@ -2627,8 +2627,6 @@ export const EN: Record<string, string> = {
     'The code expired or was already used: make another QR on the computer.',
   'Este celular não está pareado.': "This phone isn't paired.",
   'Essa conversa não está aberta.': "That conversation isn't open.",
-  'Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.':
-    'This conversation is in Auto mode: from the phone, it can only be read.',
   'Esta conversa está no modo terminal: use o computador.':
     'This conversation is in terminal mode: use the computer.',
   'A conversa não pode receber agora.': "The conversation can't take a message right now.",
@@ -2637,11 +2635,7 @@ export const EN: Record<string, string> = {
   'Pareie este celular pelo QR em Configurações → Celular, no computador.':
     'Pair this phone with the QR in Settings → Phone, on the computer.',
   'Nenhuma conversa aberta no Wisp.': 'No open conversations in Wisp.',
-  'Esta conversa está no modo Automático (ou no terminal): pelo celular, só dá para ler.':
-    'This conversation is in Auto mode (or in the terminal): from the phone, you can only read it.',
   'Conversar pelo celular, na rede local': 'Chat from the phone, on the local network',
-  'Uma página no celular com as conversas abertas, as respostas e a caixa para mandar. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua. Os cards de permissão continuam no computador, e uma conversa no modo Automático só pode ser lida.':
-    'A page on the phone with the open conversations, the replies and the box to send. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours. The permission cards stay on the computer, and a conversation in Auto mode can only be read.',
   'Aponte a câmera do celular para o QR (ou abra o endereço no navegador dele). O código vale uma vez, por 10 minutos.':
     "Point the phone's camera at the QR (or open the address in its browser). The code works once, for 10 minutes.",
   '1 celular pareado.': '1 phone paired.',
@@ -2657,9 +2651,41 @@ export const EN: Record<string, string> = {
   'Novas mensagens ↓': 'New messages ↓',
   Trabalhando: 'Working',
   'espera você': 'waiting for you',
-  'Esperando você no computador': 'Waiting for you on the computer',
   respondendo: 'replying',
   'Resposta parada.': 'Reply stopped.',
   'A resposta parou com um erro.': 'The reply stopped with an error.',
-  'Conversa compactada.': 'Conversation compacted.'
+  'Conversa compactada.': 'Conversation compacted.',
+  'Pelo celular dá para mandar imagens, PDFs e arquivos de texto.':
+    'From the phone you can send images, PDFs and text files.',
+  'Não deu para abrir essa conversa: feche uma aba no computador.':
+    "Couldn't open that conversation: close a tab on the computer.",
+  'Esse pedido já foi respondido.': 'That request was already answered.',
+  'Responda a todas as perguntas.': 'Answer all the questions.',
+  'Espere a resposta terminar.': 'Wait for the reply to finish.',
+  'Não deu para editar a última mensagem agora.': "Couldn't edit the last message right now.",
+  'O arquivo é grande demais para mandar pelo celular.':
+    'The file is too big to send from the phone.',
+  Histórico: 'History',
+  'Opções da conversa': 'Conversation options',
+  'Editando a última mensagem': 'Editing the last message',
+  'Enviando…': 'Sending…',
+  'o modelo padrão do Claude Code': "Claude Code's default model",
+  'provedor/modelo': 'provider/model',
+  'Por onde a conversa vai': 'Where the conversation goes',
+  Ações: 'Actions',
+  'Voltar para o chat': 'Back to the chat',
+  '{n}% do contexto': '{n}% of the context',
+  'Escolher põe o texto na caixa, para você revisar e mandar.':
+    'Picking one puts the text in the box, for you to review and send.',
+  'Começar de novo nesta aba? A conversa atual fica no histórico.':
+    'Start over in this tab? The current conversation stays in the history.',
+  'Fechar esta aba no computador? A conversa fica no histórico.':
+    'Close this tab on the computer? The conversation stays in the history.',
+  'Onde a conversa roda': 'Where the conversation runs',
+  'no espaço de trabalho do Wisp': "in Wisp's workspace",
+  'Buscar nas conversas': 'Search the conversations',
+  'Nenhuma conversa guardada.': 'No saved conversations.',
+  'aberta numa aba': 'open in a tab',
+  'Uma página no celular com o que o painel tem: as conversas, o modelo e o modo, os cards de permissão, fotos, o histórico e conversas novas. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua, porque um celular pareado aprova o que o Claude pede.':
+    'A page on the phone with what the panel has: the conversations, the model and mode, the permission cards, photos, the history and new conversations. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours, because a paired phone approves what Claude asks.'
 }

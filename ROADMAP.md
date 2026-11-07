@@ -2048,8 +2048,6 @@ Notas da entrega:
   cada vez, e não dá para fixar um certificado numa página aberta pelo QR. Em troca, a porta só
   existe com a opção ligada, só responde a endereços da rede local e pelo endereço do QR, e a
   configuração diz para ligar só numa rede sua;
-- o celular conversa, mas não aprova: os cards continuam no computador (ou no ntfy, Fase 18). Uma
-  conversa no Automático, que roda comandos sem perguntar, só é lida pelo celular;
 - a página lê de 1 em 1 segundo com o Claude trabalhando e de 3 em 3 parada, sem WebSocket, e só
   recebe a conversa quando ela mudou (uma marca do que ela tem). A resposta aparece por blocos (o
   histórico grava o texto quando o bloco acaba), não letra a letra;
@@ -2061,6 +2059,17 @@ Notas da entrega:
   guardada. E mostra a conversa inteira: Markdown, ferramentas com o resultado, pedidos que
   esperam no PC, avisos, a atividade de agora, Parar e conversa nova; o Markdown é montado em nós
   do DOM, sem `innerHTML`, e só aceita links http e https;
+- depois, o pedido foi ter no celular tudo o que o chat do PC tem. A página ganhou o modelo, o
+  modo e o provedor (nas pílulas, como no painel), os cards de permissão com os mesmos botões (o
+  plano inteiro, as perguntas do Claude com as opções), anexos (fotos viram JPEG de até 2048 px
+  no celular, com a miniatura), editar a última mensagem, `/compact` e `/clear`, os prompts
+  salvos, compactar, recomeçar e fechar a aba, conversa nova numa pasta de projeto, o histórico com
+  a busca e a resposta enquanto é escrita (o texto que o histórico ainda junta). Com isso, a regra
+  de antes ("o celular conversa, mas não aprova", e o Automático só lido) caiu: o pareamento é o
+  que protege, e a configuração diz que um celular pareado aprova o que o Claude pede. Cada ação
+  passa pelo mesmo caminho do painel (o `answer`, o `setMode`, o `setModel` com o
+  `updateConfig`), e o painel acompanha. Ficaram de fora o modo terminal (um xterm no celular não
+  serve) e voltar a um ponto ou ramificar (Fase 46);
 - o e2e abre a página na janela da pré-visualização (outra sessão do Electron, como outro
   navegador). Ela pegou que um QR novo com a página já aberta não pareava: agora a página lê o
   código também no `hashchange`.
