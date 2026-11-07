@@ -1059,7 +1059,29 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       Com o celular no mesmo Wi-Fi, aponte a câmera: a página abre com as conversas.
 - [ ] **Mandar:** escreva "oi" no celular: a mensagem aparece no painel, e a resposta aparece no
       celular.
-- [ ] **Automático:** ponha uma conversa no modo Automático: no celular, a caixa fica desligada.
+- [ ] **Continuar no PC:** escreva no painel do PC: a mensagem e a resposta aparecem no celular.
+      Abra uma aba nova no PC e escreva nela: o celular passa para ela, com o título.
+- [ ] **Ler lá em cima:** com uma conversa longa, role para cima no celular e espere uma resposta:
+      a página não pula, e aparece **Novas mensagens ↓**; toque nele para descer.
+- [ ] **Ferramentas:** peça para ler um arquivo: o celular mostra a ferramenta com o arquivo e, ao
+      tocar, o resultado; enquanto roda, a linha de baixo diz o que o Claude está fazendo.
+- [ ] **Parar e nova:** com uma resposta longa, toque em **Parar**: ela para. No menu (☰), **Nova
+      conversa** abre uma aba no PC.
+- [ ] **Reiniciar:** feche e abra o Wisp: a página aberta no celular volta a funcionar, sem parear
+      de novo.
+- [ ] **Permitir pelo celular:** peça "crie o arquivo /tmp/teste-celular": o card aparece no
+      celular com o comando; toque em **Permitir**: o card sai também do PC, e o arquivo existe.
+- [ ] **Plano:** no modo Planejar, peça uma mudança: o plano aparece inteiro no celular; **Aprovar
+      e aceitar edições** passa o PC para Aceitar edições.
+- [ ] **Modelo e modo:** toque na pílula do modelo, escolha outro: a pílula do PC muda. O mesmo
+      com o modo.
+- [ ] **Foto:** toque em **+**, tire uma foto e pergunte o que tem nela: a miniatura aparece no
+      celular e no PC, e o Claude descreve a foto.
+- [ ] **Editar:** toque em **Editar** na última mensagem, mude e mande: a velha sai nos dois.
+- [ ] **Histórico e conversa nova:** no menu (☰), **Histórico**: busque e abra uma conversa
+      guardada (ela abre numa aba no PC). **Nova conversa** numa pasta de projeto: a aba abre nela.
+- [ ] **Terminal:** ponha uma conversa no modo terminal: no celular, a caixa fica desligada, e o ⋯
+      tem **Voltar para o chat**.
 - [ ] **Uso único:** abra o mesmo endereço do QR noutro aparelho: ele não pareia (o código já foi
       usado); gere outro QR (feche e abra as configurações depois de 10 minutos).
 - [ ] **Esquecer:** **Esquecer os celulares**: o celular volta a pedir o pareamento.
