@@ -1060,11 +1060,23 @@ painel; os pedidos das sessões do terminal (aba Sessões) esperam o computador.
 Além de aprovar (acima), dá para conversar pelo celular na rede da sua casa (Fase 54). Em
 **Configurações → Celular**, ligue **Conversar pelo celular, na rede local** (`phoneChat`,
 desligado por padrão) e aponte a câmera do celular para o QR: a página abre no navegador dele com
-as conversas abertas no Wisp, as respostas e a caixa para mandar. Uma mensagem de lá aparece no
-painel como se fosse escrita nele.
+a conversa em foco no computador. Uma mensagem de lá aparece no painel como se fosse escrita nele.
+
+- **Acompanha o computador:** a página mostra a conversa da aba em foco no PC. Continue no PC,
+  troque de aba ou abra uma nova: o celular vai junto. Escolher outra conversa no menu (☰) desliga
+  o acompanhar; a chave **Acompanhar a conversa do computador**, no mesmo menu, religa.
+- **A conversa inteira:** as respostas em Markdown (títulos, listas, código, links), cada
+  ferramenta com o que faz (o comando, o arquivo), se deu certo e o resultado (toque para abrir),
+  os pedidos que esperam você no computador, os avisos e a linha do que o Claude está fazendo
+  agora. Lendo mais para cima, a página não pula: o botão **Novas mensagens ↓** avisa do que chegou.
+- **Pelo celular:** mandar, **Parar** uma resposta e abrir uma conversa nova. Dá para pôr na tela
+  inicial (a página tem ícone e nome, como um app).
+- **O mesmo endereço:** a porta é sorteada na primeira vez e guardada; o endereço que o celular
+  guardou continua valendo depois de reiniciar o Wisp (se ela estiver ocupada, outra é sorteada, e
+  é preciso parear de novo).
 
 - **Só na rede local:** a página responde só a endereços da rede local (e pelo endereço do QR),
-  numa porta sorteada. Nada vai para a internet, e nada passa por um servidor de fora.
+  numa porta própria. Nada vai para a internet, e nada passa por um servidor de fora.
 - **Sem criptografia:** é HTTP na sua rede. Ligue só numa rede sua (não no Wi-Fi do café).
 - **O pareamento:** o QR leva um código que vale uma vez, por 10 minutos; o celular o troca por
   uma chave só dele. **Esquecer os celulares** apaga as chaves (o Wisp guarda só o hash delas).

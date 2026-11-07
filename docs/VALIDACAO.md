@@ -1059,6 +1059,16 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       Com o celular no mesmo Wi-Fi, aponte a câmera: a página abre com as conversas.
 - [ ] **Mandar:** escreva "oi" no celular: a mensagem aparece no painel, e a resposta aparece no
       celular.
+- [ ] **Continuar no PC:** escreva no painel do PC: a mensagem e a resposta aparecem no celular.
+      Abra uma aba nova no PC e escreva nela: o celular passa para ela, com o título.
+- [ ] **Ler lá em cima:** com uma conversa longa, role para cima no celular e espere uma resposta:
+      a página não pula, e aparece **Novas mensagens ↓**; toque nele para descer.
+- [ ] **Ferramentas:** peça para ler um arquivo: o celular mostra a ferramenta com o arquivo e, ao
+      tocar, o resultado; enquanto roda, a linha de baixo diz o que o Claude está fazendo.
+- [ ] **Parar e nova:** com uma resposta longa, toque em **Parar**: ela para. No menu (☰), **Nova
+      conversa** abre uma aba no PC.
+- [ ] **Reiniciar:** feche e abra o Wisp: a página aberta no celular volta a funcionar, sem parear
+      de novo.
 - [ ] **Automático:** ponha uma conversa no modo Automático: no celular, a caixa fica desligada.
 - [ ] **Uso único:** abra o mesmo endereço do QR noutro aparelho: ele não pareia (o código já foi
       usado); gere outro QR (feche e abra as configurações depois de 10 minutos).

@@ -148,8 +148,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   disse (transcrito na sua máquina) é colado no programa da frente, com as suas trocas.
 
 - **Conversar pelo celular, na rede local** (Fase 54): uma página servida pelo Wisp só na rede
-  da sua casa, pareada por um QR de uso único, com as conversas abertas, as respostas e a caixa
-  para mandar. Desligada por padrão.
+  da sua casa, pareada por um QR de uso único. Ela acompanha a conversa em foco no computador,
+  mostra a conversa inteira (Markdown, ferramentas com o resultado, pedidos, avisos, o que o Claude
+  está fazendo), não pula enquanto você lê lá em cima, tem Parar e conversa nova, e guarda a porta,
+  para o endereço do celular continuar valendo. Desligada por padrão.
 
 ### Mudou
 

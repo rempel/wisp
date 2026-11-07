@@ -21,17 +21,20 @@ import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { createServer } from 'http'
 import type { IncomingMessage, Server, ServerResponse } from 'http'
 import { networkInterfaces } from 'os'
-import { join } from 'path'
+import { basename, join } from 'path'
 import type { ChatTabs } from './chat-tabs'
 import { getConfig, onConfigChange } from './config'
-import { applyRewinds } from './history'
 import { DATA_DIR } from './paths'
-import { REMOTE_CSS, REMOTE_HTML, REMOTE_JS, remoteTexts } from './remote-page'
+import { REMOTE_JS } from './remote-app'
+import { REMOTE_CSS, REMOTE_HTML, REMOTE_ICON, remoteManifest, remoteTexts } from './remote-page'
+import { remoteView, viewVersion } from './remote-view'
 import { IPC } from '../shared/ipc'
-import type { ChatEvent, RemoteChatState } from '../shared/ipc'
+import type { RemoteChatState } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 export const REMOTE_KEYS_FILE = join(DATA_DIR, 'celular-chaves.json')
+/** A porta da página, a mesma de uma vez para a outra. */
+export const REMOTE_PORT_FILE = join(DATA_DIR, 'celular-porta.txt')
 /** Quanto o código do QR vale (ms). */
 export const PAIRING_MS = 10 * 60_000
 const MAX_BODY = 64 * 1024
@@ -82,29 +85,13 @@ export interface RemoteConversation {
   id: string
   title: string
   busy: boolean
-  /** A conversa está no Automático: o celular só lê. */
+  /** Um card espera você no computador. */
+  waiting: boolean
+  /** No Automático (ou no terminal): o celular só lê. */
   readOnly: boolean
-}
-
-/** Um item da conversa, como a página mostra: só o texto (as ferramentas viram uma linha). */
-export interface RemoteItem {
-  kind: 'user' | 'assistant' | 'tool' | 'notice'
-  text: string
-}
-
-/** Os itens de uma conversa, a partir do histórico dela (os últimos 200). */
-export function remoteItems(events: ChatEvent[]): RemoteItem[] {
-  const out: RemoteItem[] = []
-  for (const event of applyRewinds(events)) {
-    if (event.type === 'user') out.push({ kind: 'user', text: event.text })
-    else if (event.type === 'text') {
-      const last = out.at(-1)
-      if (last?.kind === 'assistant') last.text += event.delta
-      else out.push({ kind: 'assistant', text: event.delta })
-    } else if (event.type === 'tool-start') out.push({ kind: 'tool', text: event.name })
-    else if (event.type === 'notice') out.push({ kind: 'notice', text: event.text })
-  }
-  return out.slice(-200)
+  /** O modo de permissão e a pasta (o nome), para a página mostrar. */
+  mode: string
+  folder: string | null
 }
 
 export interface RemoteChatOptions {
@@ -112,6 +99,8 @@ export interface RemoteChatOptions {
   /** O estado mudou (o QR, os celulares): a tela de configurações acompanha. */
   changed(): void
   keysFile?: string
+  /** Onde guardar a porta (os testes trocam). */
+  portFile?: string
   /** O endereço da rede (os testes trocam). */
   address?: () => string | null
 }
@@ -140,14 +129,35 @@ export class RemoteChat {
     const address = (this.options.address ?? lanAddress)()
     if (!address) return t('Não achei este computador numa rede local (Wi-Fi ou cabo).')
     const server = createServer((req, res) => void this.handle(req, res))
-    await new Promise<void>((resolve, reject) => {
-      server.once('error', reject)
-      server.listen(0, '0.0.0.0', () => resolve())
-    }).catch((err: Error) => {
-      throw new Error(t('Não consegui abrir a porta: {message}', { message: err.message }))
-    })
+    const listen = (port: number): Promise<void> =>
+      new Promise<void>((resolve, reject) => {
+        server.once('error', reject)
+        server.listen(port, '0.0.0.0', () => {
+          server.off('error', reject)
+          resolve()
+        })
+      })
+    // A mesma porta de sempre: o endereço guardado no celular (e a chave dele, que o navegador
+    // guarda por endereço) continua valendo depois de reiniciar. Ocupada, outra, guardada.
+    const saved = this.savedPort()
+    try {
+      await listen(saved ?? 0)
+    } catch (err) {
+      if (saved === null) {
+        throw new Error(
+          t('Não consegui abrir a porta: {message}', { message: (err as Error).message }),
+          { cause: err }
+        )
+      }
+      await listen(0).catch((again: Error) => {
+        throw new Error(t('Não consegui abrir a porta: {message}', { message: again.message }), {
+          cause: again
+        })
+      })
+    }
     const info = server.address()
     this.port = typeof info === 'object' && info ? info.port : 0
+    if (this.port && this.port !== saved) this.savePort(this.port)
     this.host = address
     this.server = server
     this.newPairing()
@@ -198,7 +208,7 @@ export class RemoteChat {
         ...(type === 'text/html'
           ? {
               'Content-Security-Policy':
-                "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+                "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' data:; manifest-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
             }
           : {})
       })
@@ -218,6 +228,12 @@ export class RemoteChat {
     if (req.method === 'GET' && url.pathname === '/app.css')
       return send(200, REMOTE_CSS, 'text/css')
     if (req.method === 'GET' && url.pathname === '/texts.json') return send(200, remoteTexts())
+    // Para "Adicionar à tela inicial": o nome, as cores e o ícone.
+    if (req.method === 'GET' && url.pathname === '/manifest.webmanifest') {
+      return send(200, remoteManifest(), 'application/manifest+json')
+    }
+    if (req.method === 'GET' && url.pathname === '/icon.svg')
+      return send(200, REMOTE_ICON, 'image/svg+xml')
     if (req.method === 'POST' && url.pathname === '/api/pair') {
       const body = await readJson(req)
       const code = typeof body?.code === 'string' ? body.code : ''
@@ -237,37 +253,57 @@ export class RemoteChat {
     }
     if (!url.pathname.startsWith('/api/')) return send(404, { error: 'not found' })
     if (!this.authorized(req)) return send(401, { error: t('Este celular não está pareado.') })
-    if (req.method === 'GET' && url.pathname === '/api/conversations') {
-      return send(200, { conversations: this.conversations() })
+    const tabs = this.options.tabs
+    if (req.method === 'GET' && url.pathname === '/api/state') {
+      // A conversa em foco no computador: a página a acompanha (até você escolher outra).
+      const state = tabs.state()
+      const focused = tabs.conversationById(state.panes[state.focused])?.id ?? null
+      return send(200, { conversations: this.conversations(), focused })
     }
     if (req.method === 'GET' && url.pathname === '/api/messages') {
-      const conversation = this.options.tabs.conversationById(url.searchParams.get('c') ?? '')
+      const conversation = tabs.conversationById(url.searchParams.get('c') ?? '')
       if (!conversation) return send(404, { error: t('Essa conversa não está aberta.') })
+      const view = remoteView(conversation.history.events())
+      const version = viewVersion(view, conversation.busy)
+      // Nada mudou desde a última leitura: a página não redesenha nada.
+      if (url.searchParams.get('v') === version) return send(200, { v: version, same: true })
       return send(200, {
+        v: version,
         busy: conversation.busy,
-        items: remoteItems(conversation.history.events())
+        activity: conversation.busy ? view.activity : null,
+        items: view.items
       })
     }
-    if (req.method === 'POST' && url.pathname === '/api/send') {
+    if (req.method === 'POST') {
       const body = await readJson(req)
-      const conversation = this.options.tabs.conversationById(
-        typeof body?.c === 'string' ? body.c : ''
-      )
-      const text = typeof body?.text === 'string' ? body.text.trim().slice(0, MAX_TEXT) : ''
-      if (!conversation || !text) return send(400, { error: t('pedido inválido') })
-      if (conversation.mode === 'auto') {
-        return send(403, {
-          error: t('Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.')
-        })
+      if (url.pathname === '/api/new') {
+        if (tabs.full)
+          return send(409, { error: t('As abas estão cheias: feche uma no computador.') })
+        return send(200, { c: tabs.addChat().id })
       }
-      if (conversation.view === 'terminal') {
-        return send(403, { error: t('Esta conversa está no modo terminal: use o computador.') })
+      const conversation = tabs.conversationById(typeof body?.c === 'string' ? body.c : '')
+      if (!conversation) return send(404, { error: t('Essa conversa não está aberta.') })
+      if (url.pathname === '/api/stop') {
+        conversation.stop()
+        return send(200, { ok: true })
       }
-      conversation.showUser(text, false)
-      const sent = conversation.send(text, [], () => ({ name: '', size: 0 }))
-      return sent
-        ? send(200, { ok: true })
-        : send(409, { error: t('A conversa não pode receber agora.') })
+      if (url.pathname === '/api/send') {
+        const text = typeof body?.text === 'string' ? body.text.trim().slice(0, MAX_TEXT) : ''
+        if (!text) return send(400, { error: t('pedido inválido') })
+        if (conversation.mode === 'auto') {
+          return send(403, {
+            error: t('Esta conversa está no modo Automático: pelo celular, ela só pode ser lida.')
+          })
+        }
+        if (conversation.view === 'terminal') {
+          return send(403, { error: t('Esta conversa está no modo terminal: use o computador.') })
+        }
+        conversation.showUser(text, false)
+        const sent = conversation.send(text, [], () => ({ name: '', size: 0 }))
+        return sent
+          ? send(200, { ok: true })
+          : send(409, { error: t('A conversa não pode receber agora.') })
+      }
     }
     return send(404, { error: 'not found' })
   }
@@ -285,8 +321,30 @@ export class RemoteChat {
       id: conversation.id,
       title: conversation.title ?? t('Conversa nova'),
       busy: conversation.busy,
-      readOnly: conversation.mode === 'auto' || conversation.view === 'terminal'
+      waiting: conversation.pendingCount() > 0,
+      readOnly: conversation.mode === 'auto' || conversation.view === 'terminal',
+      mode: conversation.mode,
+      folder: conversation.folder ? basename(conversation.folder) : null
     }))
+  }
+
+  private savedPort(): number | null {
+    try {
+      const port = Number(readFileSync(this.options.portFile ?? REMOTE_PORT_FILE, 'utf8').trim())
+      return Number.isInteger(port) && port >= 1024 && port <= 65535 ? port : null
+    } catch {
+      return null
+    }
+  }
+
+  private savePort(port: number): void {
+    try {
+      const file = this.options.portFile ?? REMOTE_PORT_FILE
+      mkdirSync(join(file, '..'), { recursive: true, mode: 0o700 })
+      writeFileSync(file, String(port), { mode: 0o600 })
+    } catch {
+      // Sem guardar: na próxima vez, outra porta (e o celular pareia de novo).
+    }
   }
 
   private load(): string[] {

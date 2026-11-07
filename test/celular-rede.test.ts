@@ -4,9 +4,11 @@
 import { HOME } from './helpers/home'
 import assert from 'node:assert/strict'
 import { request } from 'node:http'
+import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { isLocalAddress, lanAddress, RemoteChat, remoteItems } from '../src/main/remote-chat'
+import { isLocalAddress, lanAddress, RemoteChat } from '../src/main/remote-chat'
+import { remoteView, viewVersion } from '../src/main/remote-view'
 import type { ChatTabs } from '../src/main/chat-tabs'
 import type { ChatEvent } from '../src/shared/ipc'
 
@@ -43,17 +45,51 @@ test('rede local: quais endereços valem', () => {
 
 test('rede local: a conversa como a página mostra', () => {
   const events: ChatEvent[] = [
-    { type: 'user', text: 'oi', attachments: [] },
+    { type: 'user', text: 'oi', attachments: [{ name: 'print.png', size: 10 }] },
     { type: 'text', blockId: 'b1', delta: 'Olá' },
     { type: 'text', blockId: 'b1', delta: ', tudo bem?' },
     { type: 'tool-start', id: 't1', name: 'Bash' },
-    { type: 'turn-end', outcome: 'done' }
+    { type: 'tool-input', id: 't1', name: 'Bash', input: { command: 'npm test' } },
+    { type: 'tool-result', id: 't1', isError: false, output: 'ok' },
+    { type: 'tool-start', id: 't2', name: 'mcp__desktop__open_app' },
+    { type: 'permission-request', id: 'p1', toolName: 'Bash', input: { command: 'git push' } },
+    { type: 'text', blockId: 'b2', delta: 'Feito.' }
   ]
-  assert.deepEqual(remoteItems(events), [
-    { kind: 'user', text: 'oi' },
-    { kind: 'assistant', text: 'Olá, tudo bem?' },
-    { kind: 'tool', text: 'Bash' }
+  const view = remoteView(events)
+  assert.deepEqual(
+    view.items.map((item) => [
+      item.id,
+      item.kind,
+      item.text,
+      item.detail ?? null,
+      item.status ?? null
+    ]),
+    [
+      [0, 'user', 'oi', null, null],
+      [1, 'assistant', 'Olá, tudo bem?', null, null],
+      [3, 'tool', 'Bash', 'npm test', 'done'],
+      [6, 'tool', 'open_app', null, 'running'],
+      [7, 'permission', 'Bash', 'git push', 'waiting'],
+      [8, 'assistant', 'Feito.', null, null]
+    ]
+  )
+  assert.deepEqual(view.items[0].attachments, ['print.png'])
+  assert.equal(view.items[2].output, 'ok')
+  // O que roda agora; o pedido respondido e o fim da resposta.
+  assert.equal(view.activity, 'open_app')
+  const later = remoteView([
+    ...events,
+    { type: 'permission-resolved', id: 'p1', decision: 'deny' },
+    { type: 'turn-end', outcome: 'stopped' }
   ])
+  assert.equal(later.items.find((item) => item.kind === 'permission')?.status, 'denied')
+  assert.equal(later.items.find((item) => item.text === 'open_app')?.status, 'error')
+  assert.equal(later.items.at(-1)?.kind, 'end')
+  assert.equal(later.activity, null)
+  // A marca muda com o que muda, e não muda à toa.
+  assert.equal(viewVersion(view, true), viewVersion(remoteView(events), true))
+  assert.notEqual(viewVersion(view, true), viewVersion(view, false))
+  assert.notEqual(viewVersion(view, true), viewVersion(later, true))
 })
 
 /** Um pedido HTTP ao servidor (com o Host que quisermos). */
@@ -98,12 +134,16 @@ function call(
 
 test('rede local: parear, ler, mandar e esquecer', async () => {
   const sent: string[] = []
+  const stopped: string[] = []
   const conversation = (id: string, mode: string) => ({
     id,
     title: `Conversa ${id}`,
     busy: false,
     mode,
     view: 'chat',
+    folder: id === 'a' ? '/home/eu/loja' : null,
+    pendingCount: () => (id === 'b' ? 1 : 0),
+    stop: () => stopped.push(id),
     history: { events: (): ChatEvent[] => [{ type: 'user', text: `oi ${id}`, attachments: [] }] },
     showUser: () => undefined,
     send: (text: string) => {
@@ -113,13 +153,21 @@ test('rede local: parear, ler, mandar e esquecer', async () => {
   })
   const list = [conversation('a', 'default'), conversation('b', 'auto')]
   const tabs = {
+    full: false,
     conversations: () => list,
-    conversationById: (id: string) => list.find((c) => c.id === id)
+    conversationById: (id: string) => list.find((c) => c.id === id),
+    state: () => ({ panes: ['b'], focused: 0 }),
+    addChat: () => {
+      const fresh = conversation(`n${list.length}`, 'default')
+      list.push(fresh)
+      return fresh
+    }
   } as unknown as ChatTabs
   const remote = new RemoteChat({
     tabs,
     changed: () => undefined,
     keysFile: join(HOME, 'chaves.json'),
+    portFile: join(HOME, 'porta.txt'),
     address: () => '127.0.0.1'
   })
   assert.equal(await remote.start(), null)
@@ -132,7 +180,7 @@ test('rede local: parear, ler, mandar e esquecer', async () => {
     assert.equal(page.status, 200)
     assert.equal((await call(port, '/', { host: 'evil.example:80' })).status, 403)
     // Sem chave, nada; um código errado também não.
-    assert.equal((await call(port, '/api/conversations')).status, 401)
+    assert.equal((await call(port, '/api/state')).status, 401)
     assert.equal((await call(port, '/api/pair', { body: { code: 'errado' } })).status, 403)
     const paired = await call(port, '/api/pair', { body: { code } })
     assert.equal(paired.status, 200)
@@ -141,19 +189,32 @@ test('rede local: parear, ler, mandar e esquecer', async () => {
     assert.equal((await call(port, '/api/pair', { body: { code } })).status, 403)
     assert.equal(remote.devices(), 1)
 
-    const conversations = await call(port, '/api/conversations', { key })
+    // As conversas, com a do computador em foco, a pasta, o modo e quem espera você.
+    const state = await call(port, '/api/state', { key })
+    assert.equal(state.data.focused, 'b')
     assert.deepEqual(
-      (conversations.data.conversations as { id: string; readOnly: boolean }[]).map((c) => [
-        c.id,
-        c.readOnly
-      ]),
+      (
+        state.data.conversations as {
+          id: string
+          readOnly: boolean
+          waiting: boolean
+          folder: string | null
+        }[]
+      ).map((c) => [c.id, c.readOnly, c.waiting, c.folder]),
       [
-        ['a', false],
-        ['b', true]
+        ['a', false, false, 'loja'],
+        ['b', true, true, null]
       ]
     )
     const messages = await call(port, '/api/messages?c=a', { key })
-    assert.deepEqual(messages.data.items, [{ kind: 'user', text: 'oi a' }])
+    assert.deepEqual(messages.data.items, [{ id: 0, kind: 'user', text: 'oi a' }])
+    // Com a mesma marca, nada a redesenhar.
+    const same = await call(
+      port,
+      `/api/messages?c=a&v=${encodeURIComponent(String(messages.data.v))}`,
+      { key }
+    )
+    assert.deepEqual(same.data, { v: messages.data.v, same: true })
     assert.equal(
       (await call(port, '/api/send', { key, body: { c: 'a', text: 'pelo celular' } })).status,
       200
@@ -164,6 +225,11 @@ test('rede local: parear, ler, mandar e esquecer', async () => {
       403
     )
     assert.deepEqual(sent, ['a:pelo celular'])
+    // Parar e uma conversa nova.
+    assert.equal((await call(port, '/api/stop', { key, body: { c: 'a' } })).status, 200)
+    assert.deepEqual(stopped, ['a'])
+    const fresh = await call(port, '/api/new', { key, body: {} })
+    assert.equal(fresh.data.c, 'n2')
 
     // A chave fica guardada (só o hash) e vale depois de abrir de novo; esquecer a desliga.
     const again = new RemoteChat({
@@ -173,8 +239,23 @@ test('rede local: parear, ler, mandar e esquecer', async () => {
     })
     assert.equal(again.devices(), 1)
     remote.forget()
-    assert.equal((await call(port, '/api/conversations', { key })).status, 401)
+    assert.equal((await call(port, '/api/state', { key })).status, 401)
   } finally {
     remote.stop()
+  }
+  // Abrir de novo usa a mesma porta (o endereço do celular continua valendo).
+  const reopened = new RemoteChat({
+    tabs,
+    changed: () => undefined,
+    keysFile: join(HOME, 'chaves.json'),
+    portFile: join(HOME, 'porta.txt'),
+    address: () => '127.0.0.1'
+  })
+  const before = Number(readFileSync(join(HOME, 'porta.txt'), 'utf8'))
+  await reopened.start()
+  try {
+    assert.match(reopened.pairingLink() ?? '', new RegExp(`:${before}/`))
+  } finally {
+    reopened.stop()
   }
 })
