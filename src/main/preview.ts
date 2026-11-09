@@ -1,23 +1,24 @@
 // A pré-visualização (Fase 47): um HTML, um PDF, uma imagem ou o servidor local do projeto
-// (localhost) numa janela ao lado do painel, para ver o resultado do que o Claude fez. A janela é
+// (localhost), para ver o resultado do que o Claude fez. Desde a Fase 55 ela é o navegador da
+// bancada: uma WebContentsView dentro da janela do painel, no lugar que a página diz. A vista é
 // isolada: outra sessão do Electron (sem os cookies do painel), sem preload, no sandbox, sem
-// permissões (câmera, notificações...), sem abrir janelas e sem sair do lugar (um link para
-// outro site não navega). Só endereços desta máquina: nada da internet entra por aqui. O
-// Markdown abre no próprio painel (o renderer o desenha). Um arquivo recarrega sozinho quando a
-// pasta dele muda; "Mostrar ao Claude" anexa um print da janela na conversa.
+// permissões (câmera, notificações...), sem abrir janelas, sem baixar arquivos e sem sair do
+// lugar (um link para outro site não navega). Só endereços desta máquina: nada da internet
+// entra por aqui. O Markdown abre no próprio painel (o renderer o desenha). Um arquivo recarrega
+// sozinho quando a pasta dele muda; "Mostrar ao Claude" anexa um print da página na conversa.
 
-import { BrowserWindow, ipcMain, screen, session } from 'electron'
-import type { IpcMainInvokeEvent, WebContents } from 'electron'
+import { ipcMain, session, shell, WebContentsView } from 'electron'
+import type { BrowserWindow, IpcMainInvokeEvent, WebContents } from 'electron'
 import { existsSync, statSync, watch } from 'fs'
 import type { FSWatcher } from 'fs'
 import { dirname, extname, isAbsolute, resolve } from 'path'
-import { pathToFileURL } from 'url'
+import { fileURLToPath, pathToFileURL } from 'url'
 import { saveIncoming } from './attachments'
 import { isSensitivePath } from './claude-settings'
 import { expandHome } from './paths'
 import { thumbnailOf } from './screenshot'
 import { IPC } from '../shared/ipc'
-import type { DroppedFiles, PreviewResult, PreviewState } from '../shared/ipc'
+import type { DroppedFiles, PreviewResult, PreviewState, ViewBounds } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 /** As extensões que a janela mostra (o Markdown vai para o painel). */
@@ -110,41 +111,122 @@ export function allowedNavigation(target: PreviewTarget, next: string): boolean 
   return url.href.startsWith(folder)
 }
 
-/** A janela da pré-visualização (uma por vez) e o vigia da pasta do arquivo aberto. */
-class PreviewWindow {
-  private win: BrowserWindow | null = null
+/** O que a pré-visualização pede a quem a hospeda (a bancada). */
+export interface PreviewHost {
+  /** O IPC veio da página do painel? */
+  isSender(sender: WebContents): boolean
+  /** A janela do painel (null: ainda não abriu). */
+  window(): BrowserWindow | null
+  /** Um print da página, para a conversa em foco. */
+  attach(dropped: DroppedFiles): void
+  /** Abriu uma página (a bancada aparece, na aba do navegador). `input`: o que foi pedido. */
+  opened(input: string): void
+  /** O Ctrl+Shift+B com o foco na página: a bancada fecha, como pelo painel. */
+  toggle(): void
+}
+
+const CLOSED: PreviewState = { open: false, display: '', kind: null }
+
+/** O lugar da vista na janela: o da página, vezes o zoom do painel, em pixels inteiros. */
+export function viewRect(bounds: ViewBounds, zoom: number): ViewBounds {
+  const scale = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
+  return {
+    x: Math.max(0, Math.round(bounds.x * scale)),
+    y: Math.max(0, Math.round(bounds.y * scale)),
+    width: Math.max(0, Math.round(bounds.width * scale)),
+    height: Math.max(0, Math.round(bounds.height * scale))
+  }
+}
+
+/** O que a página mandou como lugar da vista vale? (Quatro números, de um tamanho razoável.) */
+export function saneBounds(value: unknown): ViewBounds | null {
+  if (!value || typeof value !== 'object') return null
+  const { x, y, width, height } = value as Record<string, unknown>
+  const numbers = [x, y, width, height]
+  if (!numbers.every((n) => typeof n === 'number' && Number.isFinite(n) && n >= 0 && n < 20000)) {
+    return null
+  }
+  if ((width as number) < 1 || (height as number) < 1) return null
+  return { x: x as number, y: y as number, width: width as number, height: height as number }
+}
+
+/** A página do navegador da bancada (uma por vez) e o vigia da pasta do arquivo aberto. */
+class PreviewPane {
+  private view: WebContentsView | null = null
+  private home: BrowserWindow | null = null
   private target: PreviewTarget | null = null
   private watcher: FSWatcher | null = null
   private reloadTimer: NodeJS.Timeout | null = null
-  private owner: WebContents | null = null
+  /** Onde a página do painel quer a vista (null: escondida). */
+  private bounds: ViewBounds | null = null
+  /** A página do painel recarregou: o lugar antigo não vale até ela mandar o novo. */
+  private readonly forget = (): void => {
+    this.bounds = null
+    this.layout()
+  }
 
-  open(target: PreviewTarget, owner: WebContents): void {
-    if (target.kind === 'markdown') return
+  constructor(private readonly host: PreviewHost) {}
+
+  open(target: PreviewTarget): boolean {
+    if (target.kind === 'markdown') return true
+    const win = this.host.window()
+    if (!win) return false
     this.target = target
-    this.owner = owner
-    const win = this.win ?? this.create(owner)
-    void win.loadURL(target.url).catch(() => {
-      // O servidor ainda não subiu (ou caiu): a janela mostra o erro do Chromium; Recarregar tenta de novo.
+    const view = this.view ?? this.create(win)
+    void view.webContents.loadURL(target.url).catch(() => {
+      // O servidor ainda não subiu (ou caiu): a vista mostra o erro do Chromium; Recarregar tenta de novo.
     })
-    win.setTitle(t('Pré-visualização: {what}', { what: target.display }))
-    win.show()
     this.watch()
+    this.layout()
     this.notify()
+    return true
   }
 
   reload(): void {
-    this.win?.webContents.reloadIgnoringCache()
+    this.view?.webContents.reloadIgnoringCache()
+  }
+
+  go(step: -1 | 1): void {
+    const history = this.view?.webContents.navigationHistory
+    if (!history) return
+    if (step < 0 && history.canGoBack()) history.goBack()
+    else if (step > 0 && history.canGoForward()) history.goForward()
+  }
+
+  /** O que a vista mostra, no navegador (ou no programa) do sistema. */
+  external(): void {
+    const url = this.view?.webContents.getURL()
+    if (!url || !this.target || !allowedNavigation(this.target, url)) return
+    if (url.startsWith('file:')) void shell.openPath(fileURLToPath(url))
+    else void shell.openExternal(url)
   }
 
   close(): void {
-    this.win?.close()
+    const view = this.view
+    if (!view) return
+    this.view = null
+    this.target = null
+    this.unwatch()
+    if (this.home && !this.home.isDestroyed()) {
+      this.home.webContents.off('did-start-loading', this.forget)
+      this.home.contentView.removeChildView(view)
+    }
+    this.home = null
+    if (!view.webContents.isDestroyed()) view.webContents.close()
+    this.notify()
   }
 
-  /** Um print da janela, salvo como anexo. */
+  /** A página do painel diz onde a vista fica (ou que ela some: outra aba, algo por cima). */
+  place(bounds: ViewBounds | null): void {
+    this.bounds = bounds
+    this.layout()
+  }
+
+  /** Um print da página, salvo como anexo. */
   async capture(): Promise<DroppedFiles> {
-    if (!this.win) return { files: [], problems: [t('A pré-visualização está fechada.')] }
+    if (!this.view) return { files: [], problems: [t('A pré-visualização está fechada.')] }
     try {
-      const image = await this.win.webContents.capturePage()
+      const image = await this.view.webContents.capturePage()
       if (image.isEmpty()) return { files: [], problems: [t('A página ainda não apareceu.')] }
       const saved = await saveIncoming(image.toPNG(), 'preview', 'png')
       const thumbnail = thumbnailOf(image)
@@ -155,34 +237,40 @@ class PreviewWindow {
   }
 
   state(): PreviewState {
-    return this.win && this.target
-      ? { open: true, display: this.target.display, kind: this.target.kind }
-      : { open: false, display: '', kind: null }
+    const contents = this.view?.webContents
+    if (!contents || !this.target || this.target.kind === 'markdown') return CLOSED
+    return {
+      open: true,
+      display: this.showing(contents.getURL()) ?? this.target.display,
+      kind: this.target.kind,
+      title: contents.getTitle(),
+      loading: contents.isLoading(),
+      canGoBack: contents.navigationHistory.canGoBack(),
+      canGoForward: contents.navigationHistory.canGoForward()
+    }
   }
 
-  private create(owner: WebContents): BrowserWindow {
-    const parent = BrowserWindow.fromWebContents(owner)
-    const area = screen.getDisplayMatching(
-      parent?.getBounds() ?? screen.getPrimaryDisplay().bounds
-    ).workArea
-    const at = parent?.getBounds()
-    const width = Math.min(960, Math.round(area.width * 0.5))
-    const height = at ? at.height : Math.round(area.height * 0.8)
-    // Do lado do painel que tem mais espaço.
-    const x = at
-      ? at.x - area.x > area.x + area.width - (at.x + at.width)
-        ? Math.max(area.x, at.x - width)
-        : Math.min(area.x + area.width - width, at.x + at.width)
-      : area.x + Math.round((area.width - width) / 2)
-    const y = at ? at.y : area.y + Math.round((area.height - height) / 2)
-    const win = new BrowserWindow({
-      x,
-      y,
-      width,
-      height,
-      show: false,
-      autoHideMenuBar: true,
-      title: t('Pré-visualização'),
+  /** O endereço (ou o arquivo) que a vista mostra agora, se ele é dos que ela pode mostrar. */
+  private showing(url: string): string | null {
+    if (!url || !this.target || !allowedNavigation(this.target, url)) return null
+    if (!url.startsWith('file:')) return url
+    try {
+      return fileURLToPath(url)
+    } catch {
+      return null
+    }
+  }
+
+  private layout(): void {
+    const view = this.view
+    if (!view || !this.home || this.home.isDestroyed()) return
+    if (!this.bounds) return view.setVisible(false)
+    view.setBounds(viewRect(this.bounds, this.home.webContents.getZoomFactor()))
+    view.setVisible(true)
+  }
+
+  private create(win: BrowserWindow): WebContentsView {
+    const view = new WebContentsView({
       webPreferences: {
         partition: PARTITION,
         sandbox: true,
@@ -195,29 +283,46 @@ class PreviewWindow {
     const isolated = session.fromPartition(PARTITION)
     isolated.setPermissionRequestHandler((_wc, _permission, callback) => callback(false))
     isolated.setPermissionCheckHandler(() => false)
-    win.webContents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    isolated.removeAllListeners('will-download')
+    isolated.on('will-download', (event) => event.preventDefault())
+    const contents = view.webContents
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }))
     const guard = (event: { preventDefault(): void }, url: string): void => {
       if (this.target && !allowedNavigation(this.target, url)) event.preventDefault()
     }
-    win.webContents.on('will-navigate', guard)
-    win.webContents.on('will-redirect', guard)
-    win.webContents.on('before-input-event', (event, input) => {
-      if (
-        input.type === 'keyDown' &&
-        (input.key === 'F5' || (input.control && input.key === 'r'))
-      ) {
+    contents.on('will-navigate', guard)
+    contents.on('will-redirect', guard)
+    contents.on('before-input-event', (event, input) => {
+      if (input.type !== 'keyDown') return
+      if (input.key === 'F5' || (input.control && !input.shift && input.key === 'r')) {
         event.preventDefault()
         this.reload()
+      } else if (input.control && input.shift && input.key.toLowerCase() === 'b') {
+        event.preventDefault()
+        this.host.toggle()
       }
     })
-    win.on('closed', () => {
-      this.win = null
+    const changed = (): void => this.notify()
+    contents.on('did-start-loading', changed)
+    contents.on('did-stop-loading', changed)
+    contents.on('did-navigate', changed)
+    contents.on('did-navigate-in-page', changed)
+    contents.on('page-title-updated', changed)
+    // Uma página sem fundo próprio (um SVG, um texto) fica legível nos dois temas.
+    view.setBackgroundColor('#ffffff')
+    view.setVisible(false)
+    win.contentView.addChildView(view)
+    win.webContents.on('did-start-loading', this.forget)
+    win.once('closed', () => {
+      if (this.view !== view) return
+      this.view = null
+      this.home = null
       this.target = null
       this.unwatch()
-      this.notify()
     })
-    this.win = win
-    return win
+    this.view = view
+    this.home = win
+    return view
   }
 
   /** Um arquivo recarrega quando a pasta dele muda (sem descer nas de dentro: um node_modules). */
@@ -245,39 +350,45 @@ class PreviewWindow {
   }
 
   private notify(): void {
-    if (this.owner && !this.owner.isDestroyed()) this.owner.send(IPC.previewState, this.state())
+    const win = this.host.window()
+    if (win && !win.isDestroyed()) win.webContents.send(IPC.previewState, this.state())
   }
 }
 
 /** O IPC da pré-visualização: só o painel pede. */
-export function setupPreview(
-  isSender: (sender: WebContents) => boolean,
-  attach: (dropped: DroppedFiles) => void
-): void {
-  const preview = new PreviewWindow()
-  const from = (event: IpcMainInvokeEvent): boolean => isSender(event.sender)
+export function setupPreview(host: PreviewHost): void {
+  const preview = new PreviewPane(host)
+  const from = (event: IpcMainInvokeEvent): boolean => host.isSender(event.sender)
   ipcMain.handle(IPC.previewOpen, (event, input: unknown, base: unknown): PreviewResult => {
     if (!from(event) || typeof input !== 'string')
       return { ok: false, message: t('pedido inválido') }
     const target = previewTarget(input.slice(0, 4096), typeof base === 'string' ? base : null)
     if (typeof target === 'string') return { ok: false, message: target }
     if (target.kind === 'markdown') return { ok: true, kind: 'markdown', path: target.path }
-    preview.open(target, event.sender)
+    if (!preview.open(target)) return { ok: false, message: t('pedido inválido') }
+    host.opened(target.display)
     return { ok: true, kind: target.kind }
   })
   ipcMain.handle(IPC.previewCapture, async (event): Promise<boolean> => {
     if (!from(event)) return false
     const dropped = await preview.capture()
-    attach(dropped)
+    host.attach(dropped)
     return dropped.files.length > 0
   })
   ipcMain.on(IPC.previewReload, (event) => {
-    if (isSender(event.sender)) preview.reload()
+    if (host.isSender(event.sender)) preview.reload()
   })
   ipcMain.on(IPC.previewClose, (event) => {
-    if (isSender(event.sender)) preview.close()
+    if (host.isSender(event.sender)) preview.close()
   })
-  ipcMain.handle(IPC.previewGet, (event): PreviewState =>
-    from(event) ? preview.state() : { open: false, display: '', kind: null }
-  )
+  ipcMain.on(IPC.previewGo, (event, step: unknown) => {
+    if (host.isSender(event.sender) && (step === -1 || step === 1)) preview.go(step)
+  })
+  ipcMain.on(IPC.previewExternal, (event) => {
+    if (host.isSender(event.sender)) preview.external()
+  })
+  ipcMain.on(IPC.previewBounds, (event, bounds: unknown) => {
+    if (host.isSender(event.sender)) preview.place(saneBounds(bounds))
+  })
+  ipcMain.handle(IPC.previewGet, (event): PreviewState => (from(event) ? preview.state() : CLOSED))
 }

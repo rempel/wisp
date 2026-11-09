@@ -5,6 +5,7 @@ import type { AvatarName } from './avatars'
 import type { MascotAct, MascotPreview } from './emotions'
 import type { DropZone } from './layout'
 import type { SavedPrompt } from './prompts'
+import type { ViewBounds, WorkbenchChange, WorkbenchState } from './ipc-workbench'
 import type {
   ChatEvent,
   ClipboardOffer,
@@ -90,6 +91,7 @@ export * from './ipc-mascot'
 export * from './ipc-island'
 export * from './ipc-sessions'
 export * from './ipc-settings'
+export * from './ipc-workbench'
 
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
@@ -194,6 +196,27 @@ export const IPC = {
   previewGet: 'preview:get',
   /** main → chat: a pré-visualização abriu, mudou ou fechou. Arg: PreviewState. */
   previewState: 'preview:state',
+  /** chat → main: voltar (-1) ou avançar (1) no navegador da bancada (Fase 55). */
+  previewGo: 'preview:go',
+  /** chat → main: o que o navegador mostra abre no navegador do sistema. */
+  previewExternal: 'preview:external',
+  /** chat → main: onde o navegador fica na página (ViewBounds), ou null (escondido). */
+  previewBounds: 'preview:bounds',
+  /** chat → main (invoke): a bancada (WorkbenchState). */
+  workbenchGet: 'workbench:get',
+  /** chat → main: abrir, fechar, trocar de aba ou a largura da bancada. Arg: WorkbenchChange. */
+  workbenchSet: 'workbench:set',
+  /** main → chat: a bancada mudou. Arg: WorkbenchState. */
+  workbenchState: 'workbench:state',
+  /** chat → main (invoke): um terminal novo. Arg: pasta ou null. Devolve o id, ou { error }. */
+  shellCreate: 'shell:create',
+  /** chat → main: fechar um terminal da bancada. Arg: id. */
+  shellClose: 'shell:close',
+  /** O terminal da bancada, como o tui:* do modo terminal. Args: (id, ...). */
+  shellAttach: 'shell:attach',
+  shellInput: 'shell:input',
+  shellResize: 'shell:resize',
+  shellData: 'shell:data',
   /** chat → main (invoke): o uso dos últimos dias (Fase 49). Arg: dias. Devolve UsageReport. */
   usageReport: 'usage:report',
   /** chat → main (invoke): o uso em CSV (o diálogo escolhe onde). Arg: dias. Devolve ExportResult. */
@@ -799,6 +822,27 @@ export interface WispApi {
     close(): void
     get(): Promise<PreviewState>
     onState(listener: (state: PreviewState) => void): () => void
+    /** Voltar (-1) ou avançar (1) no navegador da bancada (Fase 55). */
+    go(step: -1 | 1): void
+    /** Abre o que o navegador mostra no navegador do sistema. */
+    external(): void
+    /** Onde o navegador fica na página, ou null (escondido: outra aba, algo por cima). */
+    bounds(bounds: ViewBounds | null): void
+  }
+  /** A bancada (Fase 55): o navegador e o terminal ao lado da conversa. */
+  workbench: {
+    get(): Promise<WorkbenchState>
+    set(change: WorkbenchChange): void
+    onState(listener: (state: WorkbenchState) => void): () => void
+  }
+  /** Os terminais da bancada: o seu shell, na pasta da conversa. */
+  shell: {
+    create(folder: string | null): Promise<string | { error: string }>
+    close(id: string): void
+    attach(id: string): Promise<string>
+    input(id: string, data: string): void
+    resize(id: string, cols: number, rows: number): void
+    onData(listener: (id: string, data: string) => void): () => void
   }
   /** Levar o Wisp junto (Fase 31): exportar e importar. */
   portable: {

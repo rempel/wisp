@@ -1,7 +1,8 @@
-// A pré-visualização (Fase 47), de ponta a ponta: /preview com um HTML abre a janela ao lado do
-// painel com a página; mudar o arquivo a recarrega sozinha; "Mostrar ao Claude" põe o print como
-// anexo na caixa; um Markdown abre no próprio painel; um endereço da internet é recusado; e o
-// card de uma edição de HTML oferece "Pré-visualizar".
+// A pré-visualização (Fase 47), de ponta a ponta: /preview com um HTML abre a página no navegador
+// da bancada (Fase 55; o e2e/bancada.mjs confere a bancada em si); mudar o arquivo a recarrega
+// sozinha; "Mostrar ao Claude" põe o print como anexo na caixa; um Markdown abre no próprio
+// painel; um endereço da internet é recusado; e o card de uma edição de HTML oferece
+// "Pré-visualizar".
 // Uso: node e2e/preview.mjs (veja e2e/run.sh).
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -30,16 +31,16 @@ const say = async (text) => {
 console.log('== /preview com um HTML')
 await say(`/preview ${page}`)
 const preview = await connect('index.html', 10000).catch(() => null)
-check('V1 a janela abre com a página', !!preview)
+check('V1 a página abre', !!preview)
 const heading = preview
   ? await waitFor(() => preview.evaluate(`document.querySelector('h1')?.textContent ?? null`), 5000)
   : null
 check('V2 o HTML aparece', heading === 'Olá, prévia', heading)
 const bar = await waitFor(
-  () => ev(`document.querySelector('.preview-bar')?.innerText ?? null`),
+  () => ev(`document.querySelector('.workbench .workbench-address')?.value || null`),
   5000
 )
-check('V3 a barra da pré-visualização aparece no painel', /index\.html/.test(bar ?? ''), bar)
+check('V3 o navegador da bancada mostra o endereço', /index\.html/.test(bar ?? ''), bar)
 check(
   'V4 a caixa fica vazia (o /preview não vai para o Claude)',
   (await ev(`document.querySelector('.pane .composer textarea').value`)) === '' &&
@@ -68,9 +69,7 @@ if (!again) {
 check('V5 a página recarrega sozinha', again === 'Mudou', again)
 
 console.log('== Mostrar ao Claude')
-await ev(
-  `[...document.querySelectorAll('.preview-bar button')].find((b) => b.textContent.trim() === 'Mostrar ao Claude').click()`
-)
+await ev(`document.querySelector('.workbench button[aria-label="Mostrar ao Claude"]').click()`)
 const attached = await waitFor(
   () =>
     ev(
@@ -112,11 +111,12 @@ const offer = await waitFor(
   5000
 )
 check('V9 o card oferece Pré-visualizar', !!offer)
-await ev(
-  `[...document.querySelectorAll('.preview-bar button')].find((b) => b.textContent.trim() === 'Fechar').click()`
+await ev(`document.querySelector('.workbench .workbench-page-close').click()`)
+const closed = await waitFor(
+  () => ev(`!!document.querySelector('.workbench .workbench-empty')`),
+  5000
 )
-const closed = await waitFor(() => ev(`!document.querySelector('.preview-bar')`), 5000)
-check('V10 Fechar fecha a janela e a barra', !!closed)
+check('V10 fechar a página volta o navegador ao começo', !!closed)
 check(
   'V11 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,

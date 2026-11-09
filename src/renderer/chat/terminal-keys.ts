@@ -22,6 +22,8 @@ export function isWispTerminalShortcut(event: Keys): boolean {
   if (ctrl && event.code === 'Backslash') return true
   // A paleta de comandos (Fase 32): no terminal, o Ctrl+P é do Claude Code; o Ctrl+Shift+P, não.
   if (ctrl && event.shiftKey && key === 'p') return true
+  // A bancada (Fase 55): abrir e fechar, também com o foco num terminal dela.
+  if (ctrl && event.shiftKey && key === 'b') return true
   return event.altKey && event.shiftKey && !event.ctrlKey && !event.metaKey && ARROWS.has(event.key)
 }
 

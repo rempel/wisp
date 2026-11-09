@@ -155,9 +155,17 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   provedor, os cards de permissão e as perguntas do Claude, fotos e arquivos, editar a última
   mensagem, os prompts salvos, compactar, recomeçar e fechar a aba, conversa nova numa pasta de
   projeto e o histórico. Desligada por padrão.
+- **A bancada** (Fase 55): o navegador e o terminal ao lado da conversa, na mesma janela, como a
+  janela dividida do Claude Desktop (o botão do cabeçalho ou Ctrl+Shift+B). O navegador é a
+  pré-visualização, com voltar, avançar, o endereço e os últimos abertos; o terminal é o seu
+  shell, na pasta da conversa, com **Seleção para a conversa** e o atalho para abrir no navegador
+  o localhost que apareceu na saída.
 
 ### Mudou
 
+- A pré-visualização (Fase 47) deixou a janela à parte e abre no navegador da bancada (Fase 55),
+  dentro da janela do painel; a barra dela acima das abas saiu (os botões estão na bancada). Ela
+  também deixou de baixar arquivos.
 - A gotinha robô saiu: quem a usava abre no fogo-fátuo.
 - O tipo de instalação no diagnóstico pode ser `flatpak`.
 - Manutenção (Fase 28): o código ficou em módulos menores (nenhum arquivo do `src/` passa de 1.000

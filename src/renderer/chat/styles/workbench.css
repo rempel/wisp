@@ -1,0 +1,270 @@
+/* A bancada (Fase 55): o navegador e o terminal ao lado das conversas. */
+
+/* As conversas à esquerda, a bancada à direita. */
+.workspace {
+  flex: 1;
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workspace > .panes {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.workbench {
+  position: relative;
+  flex: 0 1 auto;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  min-width: 260px;
+  max-width: calc(100% - 200px);
+  min-height: 0;
+  border-left: 1px solid var(--border);
+  background: var(--bg);
+}
+
+/* A divisória: a linha é a borda; a área que pega o cursor é mais larga. */
+.workbench-divider {
+  position: absolute;
+  z-index: 6;
+  top: 0;
+  bottom: 0;
+  left: -4px;
+  width: 7px;
+  cursor: col-resize;
+}
+
+.workbench-divider:hover,
+.workbench-divider:active {
+  background: linear-gradient(to right, transparent 3px, var(--accent) 3px 4px, transparent 4px);
+}
+
+.workbench-head {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 6px 0 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.workbench-close {
+  margin-left: auto;
+}
+
+.workbench-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.workbench-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border);
+}
+
+.workbench-bar .icon-button {
+  flex: none;
+  width: 26px;
+  height: 26px;
+}
+
+.workbench-bar .icon-button:disabled {
+  cursor: default;
+  opacity: 0.4;
+}
+
+.workbench-bar .icon-button.loading svg {
+  animation: workbench-spin 0.9s linear infinite;
+}
+
+@keyframes workbench-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.workbench-address {
+  flex: 1;
+  box-sizing: border-box;
+  min-width: 60px;
+  height: 26px;
+  margin: 0 4px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.workbench-address:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.workbench-note {
+  flex: none;
+  padding: 4px 12px;
+}
+
+/* O lugar da página: o main põe a vista do navegador em cima (branco, como ela). */
+.workbench-page {
+  flex: 1;
+  min-height: 0;
+  background: var(--surface);
+}
+
+.workbench-empty {
+  margin: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  padding: 16px;
+  color: var(--muted);
+  font-size: 12.5px;
+  text-align: center;
+}
+
+.workbench-empty svg {
+  width: 28px;
+  height: 28px;
+}
+
+.workbench-empty strong {
+  color: var(--text);
+  font-size: 13.5px;
+}
+
+.workbench-recent {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+  width: 100%;
+  margin-top: 6px;
+}
+
+.workbench-chip {
+  overflow: hidden;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.workbench-chip:hover {
+  border-color: var(--accent);
+}
+
+.workbench-served {
+  flex: none;
+  display: flex;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.workbench-served .workbench-chip {
+  max-width: 100%;
+}
+
+/* Os terminais: uma aba pequena para cada um. */
+.workbench-shell-list {
+  flex: 1;
+  display: flex;
+  gap: 2px;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.workbench-shell {
+  flex: 0 1 auto;
+  display: flex;
+  align-items: center;
+  min-width: 48px;
+  border-radius: 8px;
+  color: var(--muted);
+}
+
+.workbench-shell:hover,
+.workbench-shell.active {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.workbench-shell.exited {
+  font-style: italic;
+}
+
+.workbench-shell button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.workbench-shell > button:first-child {
+  overflow: hidden;
+  min-width: 0;
+  max-width: 140px;
+  padding: 4px 2px 4px 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-shell-close {
+  display: grid;
+  place-items: center;
+  padding: 3px;
+  border-radius: 6px;
+  opacity: 0.6;
+}
+
+.workbench-shell-close:hover {
+  background: var(--border);
+  opacity: 1;
+}
+
+.workbench-shell-close svg {
+  width: 11px;
+  height: 11px;
+}
+
+.workbench-shells .settings-button {
+  flex: none;
+  padding: 3px 9px;
+  font-size: 11.5px;
+}
+
+/* O terminal é sempre escuro, como o do modo terminal. */
+.workbench .terminal-view {
+  background: #0b1418;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workbench-bar .icon-button.loading svg {
+    animation: none;
+  }
+}

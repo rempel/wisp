@@ -43,7 +43,9 @@ src/
 │  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
 │  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
-│  ├─ preview.ts     # a pré-visualização: o que abrir e a janela isolada ao lado do painel (Fase 47)
+│  ├─ preview.ts     # a pré-visualização: o que abrir e a vista isolada, no navegador da bancada (Fases 47 e 55)
+│  ├─ workbench.ts   # a bancada: o que ela guarda (aberta, a aba, a largura, os últimos) e o IPC (Fase 55)
+│  ├─ shells.ts      # os terminais da bancada: o seu shell num pseudo-terminal (Fase 55)
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
@@ -1090,22 +1092,55 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     também) ou um arquivo (absoluto, com `~` ou relativo à pasta da conversa) com uma extensão de
     HTML, PDF, imagem ou Markdown, nunca um dos arquivos de segredos do `isSensitivePath`. Um
     endereço da internet ou outro protocolo é recusado;
-  - **a janela:** um `BrowserWindow` noutra sessão (`partition: wisp-preview`, sem os cookies do
-    painel), sem preload, no sandbox, com o `contextIsolation`, sem permissões (o
-    `setPermissionRequestHandler` nega tudo), sem janelas novas (`setWindowOpenHandler`) e sem
-    navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta dele.
-    Abre do lado do painel que tem mais espaço, com a altura dele. O `plugins: true` liga o leitor
-    de PDF do Chromium;
+  - **a vista:** uma `WebContentsView` (desde a Fase 55; antes, um `BrowserWindow` ao lado)
+    noutra sessão (`partition: wisp-preview`, sem os cookies do painel), sem preload, no sandbox,
+    com o `contextIsolation`, sem permissões (o `setPermissionRequestHandler` nega tudo), sem
+    janelas novas (`setWindowOpenHandler`), sem baixar arquivos (o `will-download` é cancelado) e
+    sem navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta
+    dele. O `plugins: true` liga o leitor de PDF do Chromium;
   - **recarregar:** o `fs.watch` da pasta do arquivo (sem descer nas de dentro, para um
     `node_modules` não pesar), com 300 ms de espera; num endereço, o servidor de desenvolvimento
-    já recarrega sozinho. F5 e Ctrl+R na janela, e o Recarregar da barra;
-  - **mostrar ao Claude:** o `capturePage` da janela vira um anexo (`preview-<data>.png`), pelo
+    já recarrega sozinho. F5 e Ctrl+R na página, e o Recarregar da barra do navegador;
+  - **mostrar ao Claude:** o `capturePage` da vista vira um anexo (`preview-<data>.png`), pelo
     mesmo caminho dos prints, na conversa em foco;
   - **o Markdown:** abre no painel, por cima da conversa, com o `Markdown` das respostas, lido pelo
     `files:view` (Fase 34: até 2 MB, sem segredos) de 1,5 em 1,5 s enquanto está aberto;
   - **nos cards:** o de uma edição de um arquivo que dá para ver tem Pré-visualizar; o de um
     comando cuja saída tem um `http://localhost:porta` (sem as cores do terminal no meio) tem o
     abrir esse endereço.
+- **A bancada (Fase 55):**
+  - **o estado:** `workbench.ts` guarda em `bancada.json` (na pasta de dados) se ela está aberta,
+    a aba (`browser` ou `terminal`), a largura e os cinco últimos endereços do navegador; o que
+    volta do arquivo é conferido (`restoreWorkbench`). A página pede as mudanças
+    (`workbench:set`) e recebe o estado inteiro (`workbench:state`), com a lista dos terminais;
+  - **a janela:** o `PanelPlacement` ganhou o `side`, a largura da bancada: ao lado do mascote,
+    abrir e fechar alarga e estreita a janela (os painéis ficam como estavam); arrastar a
+    divisória só muda a divisão; solta ou maximizada, a janela não muda. O tamanho mínimo da
+    janela conta com ela;
+  - **o navegador na página:** a `WebContentsView` é filha do `contentView` da janela do painel.
+    A página do painel desenha um lugar vazio (`.workbench-page`) e manda os limites dele
+    (`preview:bounds`, do `getBoundingClientRect`, a cada mudança de tamanho); o main multiplica
+    pelo zoom do painel (`viewRect`) e posiciona a vista. `null` esconde a vista: outra aba da
+    bancada, outra tela do painel, a paleta, um arquivo ou um Markdown por cima, um arraste. Se
+    a página do painel recarrega, o lugar antigo deixa de valer até ela mandar o novo;
+  - **o histórico da página:** voltar e avançar pelo `navigationHistory`; o endereço mostrado é
+    o da vista, se ele é dos que ela pode mostrar (`allowedNavigation`). Abrir no navegador do
+    sistema usa o `shell.openExternal` (um endereço) ou o `shell.openPath` (um arquivo);
+  - **os terminais:** `shells.ts` sobe o shell com o `TerminalProcess` do modo terminal
+    (`tui.ts`): o `$SHELL` se for um caminho inteiro que existe, senão o bash ou o sh; no
+    Windows, o `powershell.exe`; no Flatpak, `flatpak-spawn --host sh -c 'exec "${SHELL:-/bin/bash}"'`
+    (o texto do `sh -c` é fixo). A pasta é a da conversa em foco, conferida (`usableFolder`), ou
+    a pessoal. O ambiente é o do app sem `npm_*`, `ELECTRON_*` e `CHROME_DESKTOP`, com
+    `TERM_PROGRAM=Wisp`; ele não leva a marca dos processos do Wisp, então um `claude` rodado ali
+    aparece na aba Sessões. Até 4 (`MAX_SHELLS`); cada um guarda o fim do que mostrou (512 KB),
+    para a tela voltar ao reabrir a bancada. Fechar o Wisp encerra todos;
+  - **o terminal na página:** o `TerminalView` do modo terminal recebe o `link` (attach, input,
+    resize, onData): o `tui:*` de uma conversa ou o `shell:*` de um terminal da bancada. As
+    teclas são do shell, menos os atalhos do Wisp que já valiam no modo terminal e o
+    Ctrl+Shift+B;
+  - **o que o Claude não alcança:** nenhuma ferramenta lê ou escreve nos terminais da bancada, e
+    a página do navegador não fala com o painel (sem preload). O que vai para a conversa passa
+    pela sua mão: o print (**Mostrar ao Claude**) e a seleção do terminal.
 - **O mascote numa janela (Fase 48):**
   - **qual janela:** as janelas à vista, da mais à frente para a mais atrás, sem as do Wisp: no
     X11, as do `_NET_CLIENT_LIST_STACKING` na área de trabalho de agora, cada uma com a posição

@@ -19,6 +19,18 @@ export function localhostIn(text: string): string | null {
   return match ? match[0] : null
 }
 
+/** O último endereço desta máquina num texto (o servidor que subiu por último). */
+export function lastLocalhost(text: string): string | null {
+  let found: string | null = null
+  let rest = text
+  for (;;) {
+    const url = localhostIn(rest)
+    if (!url) return found
+    found = url
+    rest = rest.slice(rest.indexOf(url) + url.length)
+  }
+}
+
 let markdown: string | null = null
 const listeners = new Set<() => void>()
 const notify = (): void => listeners.forEach((listener) => listener())

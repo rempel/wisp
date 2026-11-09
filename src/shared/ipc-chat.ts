@@ -140,11 +140,16 @@ export interface PreviewResult {
   path?: string
 }
 
-/** A janela da pré-visualização (Fase 47): aberta e com o quê. */
+/** A pré-visualização (Fase 47; na bancada desde a Fase 55): aberta e com o quê. */
 export interface PreviewState {
   open: boolean
   display: string
   kind: 'url' | 'file' | 'markdown' | null
+  /** O título da página e o que os botões de voltar e avançar podem fazer (Fase 55). */
+  title?: string
+  loading?: boolean
+  canGoBack?: boolean
+  canGoForward?: boolean
 }
 
 /** Uma linha do painel de uso (Fase 49): um dia, um projeto e um modelo. */
