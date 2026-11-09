@@ -84,7 +84,7 @@ const background = await ev(
 await shoot(chat, 'diff-em-linha')
 check(
   'M6 no tema do Wisp (o fundo do código do painel)',
-  background === 'rgb(240, 246, 248)',
+  background === 'rgb(236, 239, 241)',
   background
 )
 // O tema escuro das configurações: o Monaco acompanha, sem reabrir o diff.
@@ -93,7 +93,7 @@ const darkBackground = await waitFor(async () => {
   const value = await ev(
     `getComputedStyle(document.querySelector('.pane .code-diff .editor.modified .monaco-editor-background')).backgroundColor`
   )
-  return value === 'rgb(7, 16, 21)' ? value : null
+  return value === 'rgb(11, 13, 14)' ? value : null
 }, 5000)
 await shoot(chat, 'diff-escuro')
 await ev(`window.wisp.settings.set({ theme: 'system' })`)
