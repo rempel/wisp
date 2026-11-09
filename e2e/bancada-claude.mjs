@@ -10,7 +10,8 @@ import { join } from 'node:path'
 import { checks, connect, startApp, stopApp, testHome, waitFor, wisp } from './lib.mjs'
 
 const { check, failed } = checks()
-const home = testHome()
+// As páginas da internet desligadas (Fase 58): aqui se confere que elas ficam de fora.
+const home = testHome({ previewWeb: false })
 const site = join(home.home, 'site')
 mkdirSync(site, { recursive: true })
 const page = join(site, 'index.html')

@@ -164,8 +164,9 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       description:
         'Abre um link http ou https no navegador padrão do usuário (fora do Wisp). Para pesquisar ' +
         'algo no navegador, monte a URL de busca (ex.: https://www.google.com/search?q=termo). ' +
-        'Para o projeto do usuário (um endereço localhost ou um arquivo HTML local), use o ' +
-        'preview_open: ele abre no navegador embutido do Wisp, ao lado da conversa.',
+        'Use só quando ele pedir o navegador dele ("no meu navegador", "no Firefox"). Para abrir ' +
+        'dentro do Wisp, ao lado da conversa (o projeto num localhost, um arquivo HTML ou um ' +
+        'site), use o preview_open.',
       inputSchema: { url: z.string() },
       annotations: { openWorldHint: true },
       _meta: ALWAYS_LOAD

@@ -7,6 +7,7 @@ import { ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, WebContents } from 'electron'
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { getConfig } from './config'
 import { DATA_DIR } from './paths'
 import { setupPreview } from './preview'
 import type { PreviewControl } from './preview'
@@ -141,6 +142,7 @@ export function setupWorkbench(host: WorkbenchHost): {
       state = { ...state, recent: withRecent(state.recent, input) }
       apply({ open: true, tab: 'browser' })
     },
+    web: () => getConfig().previewWeb,
     toggle() {
       apply({ open: false })
       host.window()?.webContents.focus()

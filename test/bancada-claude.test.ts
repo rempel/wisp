@@ -89,6 +89,7 @@ test('as ferramentas da bancada no servidor desktop', async () => {
   mkdirSync(join(HOME, 'run'), { recursive: true, mode: 0o700 })
   const calls: unknown[] = []
   let open = false
+  let remote = false
   const control: WorkbenchControl = {
     folderOf: (conversation) => (conversation === 't1' ? '/projeto' : null),
     preview: {
@@ -102,6 +103,7 @@ test('as ferramentas da bancada no servidor desktop', async () => {
         open
           ? { open: true, display: 'http://localhost:5173/', kind: 'url' }
           : { open: false, display: '', kind: null },
+      remote: () => remote,
       image: async () => 'sem tela aqui',
       async evaluate(code) {
         calls.push(['eval', code.includes('innerText') ? 'ler' : code])
@@ -194,6 +196,13 @@ test('as ferramentas da bancada no servidor desktop', async () => {
     const [missing, missingFailed] = await call('preview_click', { texto: 'Comprar' })
     assert.ok(missingFailed && /Comprar/.test(missing), missing)
     assert.equal((await call('preview_click'))[1], true)
+
+    // De uma página da internet, o que vem vai com o aviso de que é conteúdo de fora.
+    assert.ok(!/conteúdo de terceiros/.test(page))
+    remote = true
+    assert.match((await call('preview_read'))[0], /conteúdo de terceiros/)
+    assert.match((await call('preview_console'))[0], /conteúdo de terceiros/)
+    remote = false
 
     const [ran, ranFailed] = await call('terminal_run', { comando: 'npm run dev', espera: 3 })
     assert.ok(!ranFailed && /servidor no ar/.test(ran) && /terminal_read/.test(ran), ran)
