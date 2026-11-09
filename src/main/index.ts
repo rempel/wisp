@@ -78,6 +78,7 @@ import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
 import { setupWorkbench } from './workbench'
+import type { WorkbenchControl } from './workbench'
 import { setupAgentsIpc } from './agents'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
@@ -267,8 +268,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   const calendar = setupAgenda(signals, () => chat)
 
   let desktop: DesktopServer | null = null
+  // A bancada sobe depois do servidor: as ferramentas dela a leem a cada chamada.
+  let workbenchControl: WorkbenchControl | null = null
   try {
     desktop = await startDesktopServer({
+      workbench: () => workbenchControl,
       requestApproval: (request) =>
         chat
           ? chat.requestApproval(request)
@@ -645,8 +649,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     isSender: (sender) => chat?.isSender(sender) ?? false,
     window: () => chat?.window() ?? null,
     attach: (dropped) => chat?.attach(dropped),
-    sideWidth: (px, grow) => chat?.sideWidth(px, grow)
+    sideWidth: (px, grow) => chat?.sideWidth(px, grow),
+    folderOf: (conversation) => chat?.folderOf(conversation) ?? null
   })
+  workbenchControl = workbench.control
   // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,

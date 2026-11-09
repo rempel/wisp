@@ -160,6 +160,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   pré-visualização, com voltar, avançar, o endereço e os últimos abertos; o terminal é o seu
   shell, na pasta da conversa, com **Seleção para a conversa** e o atalho para abrir no navegador
   o localhost que apareceu na saída.
+- **O Claude usa a bancada** (Fase 57): pedir ao Wisp para abrir, ver ou testar o projeto usa o
+  navegador embutido (`preview_open`, o print, o texto e o console da página, clicar e
+  preencher), e pedir para rodar algo que você acompanha usa um terminal do Claude na bancada
+  (`terminal_run` e `terminal_read`), em vez do navegador do sistema ou do Playwright. Abrir, ver
+  e ler não pedem permissão; clicar, preencher e rodar passam pelo card.
 
 ### Mudou
 

@@ -1817,7 +1817,6 @@ export const EN: Record<string, string> = {
   Abrir: 'Open',
   'O mascote do Wisp tem emoções: de vez em quando, se combinar com o momento, mostre uma com a ':
     'The Wisp mascot has emotions: now and then, when it fits the moment, show one with the ',
-  'ferramenta express (sem anunciar).': 'express tool (without announcing it).',
   Emoções: 'Emotions',
   'Clique para ver no mascote. O Claude também mostra uma emoção quando combina com a conversa (um agradecimento, um teste que passou, uma ideia).':
     'Click to see it on the mascot. Claude also shows an emotion when it fits the conversation (a thank-you, a passing test, an idea).',
@@ -2725,5 +2724,33 @@ export const EN: Record<string, string> = {
   'preview pré-visualização localhost página dividir': 'preview localhost page split browser',
   'Bancada: terminal': 'Workbench: terminal',
   'shell console comandos dividir': 'shell console commands split',
-  'Telas do painel': 'Panel screens'
+  'Telas do painel': 'Panel screens',
+  'ferramenta express (sem anunciar). ': 'express tool (without announcing it). ',
+  'O Wisp tem uma bancada ao lado da conversa, com um navegador e um terminal embutidos. Para ':
+    'Wisp has a workbench beside the conversation, with a built-in browser and terminal. To ',
+  'mostrar, ver ou testar o projeto (um endereço localhost ou um arquivo HTML, PDF ou imagem), ':
+    'show, view or test the project (a localhost address or an HTML, PDF or image file), ',
+  'use preview_open e as outras preview_* (screenshot, read, console, click, fill), e não o ':
+    'use preview_open and the other preview_* tools (screenshot, read, console, click, fill), not ',
+  'open_url nem o navegador do Playwright; para rodar o que o usuário deve acompanhar ou que ':
+    'open_url or the Playwright browser; to run what the user should follow or what ',
+  'continua rodando (o servidor do projeto, testes demorados), use terminal_run e terminal_read.':
+    "keeps running (the project's server, long tests), use terminal_run and terminal_read.",
+  'a página não respondeu em 10 segundos': 'the page did not answer within 10 seconds',
+  'O painel do Wisp está fechado.': 'The Wisp panel is closed.',
+  'O terminal não está aberto.': 'The terminal is not open.',
+  'O terminal do Claude nesta conversa: ele roda e lê aqui ({cwd})':
+    "Claude's terminal for this conversation: it runs and reads here ({cwd})",
+  'Rodar um comando no terminal da bancada': 'Run a command in the workbench terminal',
+  'O comando roda à sua vista, no terminal do Claude, ao lado da conversa.':
+    "The command runs in plain sight, in Claude's terminal, beside the conversation.",
+  'Clicar na página do navegador da bancada': 'Click on the workbench browser page',
+  'Preencher um campo da página do navegador da bancada':
+    'Fill a field on the workbench browser page',
+  'Rodar JavaScript na página do navegador da bancada':
+    'Run JavaScript on the workbench browser page',
+  'abrindo no navegador da bancada…': 'opening in the workbench browser…',
+  'mexendo na página…': 'working on the page…',
+  'rodando no terminal da bancada…': 'running in the workbench terminal…',
+  'lendo o terminal…': 'reading the terminal…'
 }

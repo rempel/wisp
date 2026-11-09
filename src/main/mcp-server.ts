@@ -17,6 +17,8 @@ import type { MediaAction, MediaPlayers } from './media'
 import { describeIn, describeWhen, parseWhen } from './reminders'
 import type { Reminder } from './reminders'
 import { activateWindow, describeWindow, findWindows, listWindows } from './windows'
+import { registerWorkbenchTools } from './mcp-workbench'
+import type { WorkbenchControl } from './workbench'
 
 /** Um pedido de permissão que o Claude Code faz pelo --permission-prompt-tool. */
 export interface ApprovalRequest {
@@ -77,6 +79,8 @@ export interface DesktopServerOptions {
   agenda?: (days: number, from?: string) => Promise<string>
   /** O resumo da semana em texto: a atual (até agora) ou a anterior. */
   weekly?: (which: 'atual' | 'anterior') => string
+  /** A bancada (Fase 57): o navegador e o terminal embutidos, para as ferramentas preview_* e terminal_*. */
+  workbench?: () => WorkbenchControl | null
   /** Mostra uma emoção ou uma dança no mascote, por `seconds` segundos (Fase 27). */
   express?: (act: { emotion?: Emotion; dance?: Dance; seconds?: number }) => void
 }
@@ -158,8 +162,10 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
     {
       title: 'Abrir link',
       description:
-        'Abre um link http ou https no navegador padrão do usuário. Para pesquisar algo no ' +
-        'navegador, monte a URL de busca (ex.: https://www.google.com/search?q=termo).',
+        'Abre um link http ou https no navegador padrão do usuário (fora do Wisp). Para pesquisar ' +
+        'algo no navegador, monte a URL de busca (ex.: https://www.google.com/search?q=termo). ' +
+        'Para o projeto do usuário (um endereço localhost ou um arquivo HTML local), use o ' +
+        'preview_open: ele abre no navegador embutido do Wisp, ao lado da conversa.',
       inputSchema: { url: z.string() },
       annotations: { openWorldHint: true },
       _meta: ALWAYS_LOAD
@@ -207,9 +213,10 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
     {
       title: 'Abrir terminal',
       description:
-        'Abre a janela de um terminal para o usuário trabalhar nela, numa pasta: a de um ' +
-        'projeto (veja list_projects) ou outra dentro da pasta pessoal. Sem `path`, na pasta ' +
-        'pessoal. Não roda comandos: para rodar um comando, use o Bash.',
+        'Abre a janela de um terminal do sistema (fora do Wisp) para o usuário trabalhar nela, ' +
+        'numa pasta: a de um projeto (veja list_projects) ou outra dentro da pasta pessoal. Sem ' +
+        '`path`, na pasta pessoal. Não roda comandos: para rodar um comando à vista do usuário, ' +
+        'no terminal embutido do Wisp, use o terminal_run; para os outros, o Bash.',
       inputSchema: { path: z.string().optional() },
       _meta: ALWAYS_LOAD
     },
@@ -292,6 +299,8 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
       return text('Notificação mostrada.')
     }
   )
+
+  if (options.workbench) registerWorkbenchTools(server, options.workbench, conversation)
 
   const screenshot = options.screenshot
   if (screenshot) {

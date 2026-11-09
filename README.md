@@ -170,7 +170,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) e as Fases 55 (a bancada) e 56 (o desenho novo) estão prontas, com os testes de unidade e de
+  ferramentas parecidas) e as Fases 55 (a bancada), 56 (o desenho novo) e 57 (o Claude na bancada) estão prontas, com os testes de unidade e de
   ponta a ponta, e esperam a validação com o uso (os roteiros em
   [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
@@ -689,11 +689,16 @@ do Claude Desktop.
   mostra os últimos endereços abertos. Só o que está nesta máquina: nada da internet abre aqui.
 - **Terminal:** o seu shell (o `$SHELL`; no Windows, o PowerShell), na pasta da conversa em foco
   (sem pasta, na sua pasta pessoal). O **+** abre outro (até 4), cada um numa abinha com o nome da
-  pasta. É você quem digita: o Claude não lê nem escreve neste terminal, e o que ele roda continua
-  passando pelos cards. **Seleção para a conversa** põe o texto marcado na caixa da conversa em
+  pasta. Nos seus terminais é você quem digita: o Claude não lê nem escreve neles. **Seleção para a conversa** põe o texto marcado na caixa da conversa em
   foco, num bloco de código, para você completar e mandar. Quando a saída mostra um
   `http://localhost:porta`, aparece **Abrir … no navegador da bancada**. Fechar a bancada não
   para os terminais; fechar a abinha de um (ou o Wisp) para o que roda nele.
+- **O Claude usa a bancada** (Fase 57): peça "sobe o servidor e me mostra a página" ou "abre o
+  index.html e vê se tem erro no console". Ele abre a página no navegador da bancada
+  (`preview_open`), olha o print, o texto e o console dela e, com a sua permissão no card, clica
+  e preenche. Os comandos que você deve acompanhar (o servidor, testes demorados) rodam num
+  terminal do Claude na bancada, com **Claude · pasta** na abinha, depois do card de sempre; ele
+  lê a saída de lá. Os terminais que você abriu continuam só seus: o Claude não os lê.
 - **Não é o modo terminal:** o botão **Chat | Terminal** de cada aba troca a conversa para o
   Claude Code de verdade; o terminal da bancada é um shell comum, ao lado de qualquer conversa.
 - Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente

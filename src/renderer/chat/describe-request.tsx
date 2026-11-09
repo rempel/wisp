@@ -263,6 +263,46 @@ export function describe(
       }
     case 'mcp__desktop__open_project':
       return { title: t('Abrir um projeto no editor'), body: path('path') }
+    case 'mcp__desktop__terminal_run': {
+      // O terminal da bancada (Fase 57): o comando, explicado pela mesma tabela do Bash.
+      const explained = explainCommand(str(input, 'comando'))
+      return {
+        title: t('Rodar um comando no terminal da bancada'),
+        body: (
+          <>
+            <pre>{str(input, 'comando')}</pre>
+            {explained && (
+              <p className="permission-explain">
+                <span className="permission-explain-label">{t('O que faz:')}</span> {explained}
+              </p>
+            )}
+            <p>{t('O comando roda à sua vista, no terminal do Claude, ao lado da conversa.')}</p>
+          </>
+        )
+      }
+    }
+    case 'mcp__desktop__preview_click':
+      return {
+        title: t('Clicar na página do navegador da bancada'),
+        body: (
+          <code className="permission-path">{str(input, 'seletor') || str(input, 'texto')}</code>
+        )
+      }
+    case 'mcp__desktop__preview_fill':
+      return {
+        title: t('Preencher um campo da página do navegador da bancada'),
+        body: (
+          <>
+            <code className="permission-path">{str(input, 'seletor')}</code>
+            <pre>{str(input, 'valor')}</pre>
+          </>
+        )
+      }
+    case 'mcp__desktop__preview_eval':
+      return {
+        title: t('Rodar JavaScript na página do navegador da bancada'),
+        body: <pre>{str(input, 'codigo')}</pre>
+      }
     case 'mcp__desktop__open_terminal':
       return {
         title: t('Abrir um terminal'),

@@ -38,7 +38,14 @@ export const SAFE_TOOLS = [
   'mcp__desktop__list_events',
   'mcp__desktop__weekly_summary',
   // Fase 27: as emoções e as danças do mascote só mexem no desenho dele.
-  'mcp__desktop__express'
+  'mcp__desktop__express',
+  // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
+  // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
+  'mcp__desktop__preview_open',
+  'mcp__desktop__preview_screenshot',
+  'mcp__desktop__preview_read',
+  'mcp__desktop__preview_console',
+  'mcp__desktop__terminal_read'
 ]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */

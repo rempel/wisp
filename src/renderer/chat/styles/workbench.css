@@ -212,6 +212,11 @@
   color: var(--text);
 }
 
+/* O terminal do Claude: na cor de destaque, para não se confundir com os seus. */
+.workbench-shell.claude {
+  color: var(--accent);
+}
+
 .workbench-shell.exited {
   font-style: italic;
 }
