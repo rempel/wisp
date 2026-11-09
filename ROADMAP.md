@@ -2184,8 +2184,40 @@ Notas da entrega:
   último lugar que ela teve;
 - a saída do terminal vai para o Claude em texto: sem as cores e os controles do terminal, e
   com cada linha como ficou na tela (uma barra de progresso vira a última versão dela);
-- continua de fora: páginas da internet no navegador da bancada (o `preview_open` recusa e
-  aponta o `open_url`) e o Claude ler os terminais que você abriu.
+- continua de fora: o Claude ler os terminais que você abriu. As páginas da internet, recusadas
+  aqui, vieram na Fase 58.
+
+### Fase 58: páginas da internet no navegador da bancada
+
+**Status:** pronta, esperando validação (testes: `test/preview.test.ts`; `e2e/bancada.mjs`, com um
+servidor alcançado pelo endereço da rede no papel do site de fora). Veio de um pedido de uso: o
+navegador da bancada só abria o que estava na máquina, e pedir um site caía no navegador do
+sistema.
+
+- **A opção (P):** `previewWeb`, ligada por padrão, em Configurações → Conversas. Ligada, o
+  navegador da bancada abre endereços http e https de qualquer lugar (com ou sem o `https://` na
+  frente) e segue os links; desligada, volta a regra da Fase 47 (só esta máquina).
+- **O Claude (P):** o `preview_open` abre sites, e o `open_url` fica para quando você pede o seu
+  navegador. O que o Claude lê de uma página de fora (o texto, o console, o print) vai com o
+  aviso de que é conteúdo de terceiros, não um pedido seu; clicar, preencher e rodar JavaScript
+  continuam passando pelo card.
+
+**Aceite:** "abre a documentação do Vite aqui" mostra o site no navegador da bancada, e não no do
+sistema; um link dentro dela navega; com a opção desligada, o mesmo pedido diz que os sites estão
+desligados e onde ligar.
+
+Notas da entrega:
+
+- isto estava em "Ideias avaliadas e deixadas de fora", por o navegador da bancada não ser um
+  navegador completo. Continua não sendo: uma página por vez, sem senhas salvas, sem downloads,
+  sem permissões (câmera, microfone, notificações) e numa sessão à parte, sem os cookies do
+  painel. Para o dia a dia, o do sistema é melhor; para ver uma página ao lado da conversa, este
+  serve;
+- o risco que a regra antiga evitava é a página dar instruções ao Claude (injeção de prompt).
+  Ler um site sem card já era possível pelo WebFetch; aqui vale o mesmo, com o aviso junto do
+  conteúdo e o card em tudo o que mexe na página;
+- um link que abriria uma janela nova navega na mesma página; de um site, a página nunca
+  navega para um arquivo do computador.
 
 ## Da revisão do projeto (novembro de 2026): o que vem depois
 
@@ -2194,11 +2226,11 @@ propostas: cada uma vira uma fase, com o aceite dela, quando for a vez.
 
 **Para a bancada**
 
-- **Fase 58: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
+- **Fase 59: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
   porta), lidos do `.claude/launch.json` (o arquivo que o Claude Code Desktop usa) ou guardados
   pelo Wisp: um botão **Rodar** na bancada sobe o comando num terminal e abre o navegador quando
   a porta responde. Um comando lido da pasta só roda depois de mostrado e confirmado.
-- **Fase 59: a aba Mudanças (M).** Uma terceira aba na bancada: os arquivos que a conversa mexeu
+- **Fase 60: a aba Mudanças (M).** Uma terceira aba na bancada: os arquivos que a conversa mexeu
   (as cópias da Fase 42 e o `git status` da pasta), com o diff no Monaco e o desfazer por arquivo.
   O card do fim do turno resume; a aba deixa acompanhar durante.
 - **Pequenos, para a bancada (P cada):** tamanhos de tela no navegador (celular, tablet, largura
@@ -2206,8 +2238,7 @@ propostas: cada uma vira uma fase, com o aceite dela, quando for a vez.
   no terminal (`@xterm/addon-search`) e os links clicáveis (`@xterm/addon-web-links`, o localhost
   no navegador da bancada); **Rodar no terminal** nos blocos de código das respostas (cola sem
   enviar: o Enter é seu); a bancada embaixo, e não só à direita; destacar o navegador numa janela
-  (o que a Fase 47 fazia); uma lista de sites de documentação permitidos, escolhida por você
-  (`previewAllowedHosts`), para ler a documentação ao lado sem abrir a internet inteira.
+  (o que a Fase 47 fazia); abas no navegador da bancada (hoje é uma página por vez).
 
 **Para o código**
 
@@ -2239,13 +2270,13 @@ esquema, função)` que confere o remetente e os argumentos tira umas centenas d
 
 **Funcionalidades novas**
 
-- **Fase 60: o plano à vista (M).** No modo Planejar, o plano num painel próprio (na bancada),
+- **Fase 61: o plano à vista (M).** No modo Planejar, o plano num painel próprio (na bancada),
   com os passos marcados conforme o Claude avança (os `TodoWrite` da conversa), editar o plano
   antes de aceitar e voltar a ele depois.
-- **Fase 61: projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume, os servidores
-  da Fase 58 e as instruções dela: a barra de abas agrupa por projeto, o histórico filtra, e
+- **Fase 62: projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume, os servidores
+  da Fase 59 e as instruções dela: a barra de abas agrupa por projeto, o histórico filtra, e
   **Conversa nova** num projeto já vem pronta. Hoje a pasta é escolhida a cada conversa.
-- **Fase 62: revisar um PR (M).** De um alerta do GitHub (Fase 13) ou de um endereço: a conversa
+- **Fase 63: revisar um PR (M).** De um alerta do GitHub (Fase 13) ou de um endereço: a conversa
   abre numa cópia do Git (Fase 43) com o diff do PR na aba Mudanças, e os comentários do Claude
   viram um rascunho de revisão que você confere antes de mandar pelo `gh`.
 - **Pequenos (P cada):** a memória do Wisp à vista (o que o `CLAUDE.md` do workspace e os das
@@ -2265,10 +2296,6 @@ esquema, função)` que confere o remetente e os argumentos tira umas centenas d
 - **Da ilha do Coucou** (Fase 37), o que não é da ilha ou não cabe no Wisp: o gravador de
   chamadas, o « OK Coucou », o WhatsApp, os apps de celular (o Wisp aprova pelo celular pelo ntfy)
   e as integrações de negócio. O ditado, deixado de fora aqui, veio na Fase 53.
-- **Páginas da internet no navegador da bancada** (Fase 55). Um navegador de verdade dentro do
-  Wisp pede o que um navegador pede (abas, senhas, downloads, atualizações de segurança no ritmo
-  do Chromium), e o do sistema já faz isso. O navegador da bancada mostra o que está nesta
-  máquina; uma lista de sites de documentação, escolhida por você, é uma proposta à parte.
 - **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18, e conversar pelo
   celular, por uma página na rede local, a Fase 54.
 

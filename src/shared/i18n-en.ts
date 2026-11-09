@@ -2413,9 +2413,6 @@ export const EN: Record<string, string> = {
   'Fechar a pergunta lateral': 'Close the side question',
   'Pergunte sem interromper o Claude…': 'Ask without interrupting Claude…',
   'A pergunta lateral': 'The side question',
-  'Diga o endereço (localhost) ou o arquivo.': 'Give the address (localhost) or the file.',
-  'Só arquivos e endereços desta máquina (localhost).':
-    'Only files and addresses on this machine (localhost).',
   'Use o caminho inteiro do arquivo.': "Use the file's full path.",
   'A pré-visualização mostra HTML, PDF, imagens e Markdown.':
     'The preview shows HTML, PDF, images and Markdown.',
@@ -2691,15 +2688,11 @@ export const EN: Record<string, string> = {
   Navegador: 'Browser',
   Avançar: 'Forward',
   'Recarregar (F5)': 'Reload (F5)',
-  'localhost:5173 ou um arquivo (HTML, PDF, imagem)': 'localhost:5173 or a file (HTML, PDF, image)',
-  'Endereço desta máquina ou arquivo': 'Address on this machine, or a file',
   'Mostrar ao Claude: um print da página vai como anexo para a conversa em foco':
     'Show Claude: a screenshot of the page is attached to the focused conversation',
   'Abrir no navegador do sistema': 'Open in the system browser',
   'Fechar a página': 'Close the page',
   'O que o Claude fez, ao lado da conversa': 'What Claude made, beside the conversation',
-  'Abra o servidor do projeto (localhost) ou um arquivo: HTML, PDF ou imagem. Só desta máquina: nada da internet entra por aqui.':
-    "Open the project's server (localhost) or a file: HTML, PDF or image. This machine only: nothing from the internet comes in here.",
   'Abertos por último': 'Recently opened',
   Terminais: 'Terminals',
   'Fechar este terminal (o que roda nele para)': 'Close this terminal (whatever runs in it stops)',
@@ -2728,14 +2721,8 @@ export const EN: Record<string, string> = {
   'ferramenta express (sem anunciar). ': 'express tool (without announcing it). ',
   'O Wisp tem uma bancada ao lado da conversa, com um navegador e um terminal embutidos. Para ':
     'Wisp has a workbench beside the conversation, with a built-in browser and terminal. To ',
-  'mostrar, ver ou testar o projeto (um endereço localhost ou um arquivo HTML, PDF ou imagem), ':
-    'show, view or test the project (a localhost address or an HTML, PDF or image file), ',
   'use preview_open e as outras preview_* (screenshot, read, console, click, fill), e não o ':
     'use preview_open and the other preview_* tools (screenshot, read, console, click, fill), not ',
-  'open_url nem o navegador do Playwright; para rodar o que o usuário deve acompanhar ou que ':
-    'open_url or the Playwright browser; to run what the user should follow or what ',
-  'continua rodando (o servidor do projeto, testes demorados), use terminal_run e terminal_read.':
-    "keeps running (the project's server, long tests), use terminal_run and terminal_read.",
   'a página não respondeu em 10 segundos': 'the page did not answer within 10 seconds',
   'O painel do Wisp está fechado.': 'The Wisp panel is closed.',
   'O terminal não está aberto.': 'The terminal is not open.',
@@ -2752,5 +2739,22 @@ export const EN: Record<string, string> = {
   'abrindo no navegador da bancada…': 'opening in the workbench browser…',
   'mexendo na página…': 'working on the page…',
   'rodando no terminal da bancada…': 'running in the workbench terminal…',
-  'lendo o terminal…': 'reading the terminal…'
+  'lendo o terminal…': 'reading the terminal…',
+  'Diga o endereço ou o arquivo.': 'Give the address or the file.',
+  'Só endereços http e https, e arquivos.': 'Only http and https addresses, and files.',
+  'Só arquivos e endereços desta máquina (localhost): as páginas da internet estão desligadas nas configurações.':
+    'Only files and addresses on this machine (localhost): internet pages are turned off in the settings.',
+  'Páginas da internet no navegador da bancada': 'Internet pages in the workbench browser',
+  'Desligado, o navegador da bancada só abre o que está nesta máquina (localhost e arquivos). Ligado, o Claude também pode abrir e ler sites nele; clicar e preencher continuam pedindo permissão.':
+    'Off, the workbench browser only opens what is on this machine (localhost and files). On, Claude can also open and read websites in it; clicking and filling still ask for permission.',
+  'abrir, mostrar ou testar uma página (o localhost do projeto, um arquivo HTML ou um site), ':
+    "open, show or test a page (the project's localhost, an HTML file or a website), ",
+  'open_url (que abre o navegador do sistema, só se ele pedir) nem o do Playwright; para rodar ':
+    'open_url (which opens the system browser, only if they ask for it) or the Playwright one; to run ',
+  'o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read.':
+    'what the user should follow or what keeps running, use terminal_run and terminal_read.',
+  'localhost:5173, um site ou um arquivo': 'localhost:5173, a website or a file',
+  'Endereço ou arquivo': 'Address or file',
+  'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.':
+    "Open the project's server (localhost), a file (HTML, PDF or image) or a website. Claude also opens pages here when you ask."
 }

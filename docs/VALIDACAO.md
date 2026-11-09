@@ -976,8 +976,9 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       tem **Abrir http://localhost:5173/ na pré-visualização**.
 - [ ] **Markdown e PDF:** `/preview README.md` abre o Markdown no painel (Esc fecha);
       `/preview ~/algum.pdf` abre o PDF no navegador da bancada.
-- [ ] **Fora:** `/preview https://example.com` diz que só vale o que é desta máquina; um link
-      para outro site dentro da página não navega.
+- [ ] **Fora:** com **Páginas da internet no navegador da bancada** desligada nas configurações,
+      `/preview https://example.com` diz que os sites estão desligados; um link para outro site
+      dentro da página não navega.
 
 ## O mascote numa janela (Fase 48)
 
@@ -1138,5 +1139,16 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Mexer:** "clica no botão Entrar": o card do clique aparece; permitido, a página reage.
 - [ ] **Os seus terminais:** abra um terminal seu na bancada e rode algo; peça "o que tem no meu
       terminal?": o Claude só lê o dele.
-- [ ] **Fora:** "abre o google.com no navegador daqui": ele diz que a bancada só mostra o que é
-      desta máquina e oferece o navegador do sistema.
+- [ ] **Um site:** "abre o google.com aqui": a página abre no navegador da bancada (Fase 58), e
+      não no do sistema.
+
+## Páginas da internet no navegador da bancada (Fase 58)
+
+- [ ] **Abrir:** no campo do endereço da bancada, `example.com` e Enter: o site abre; um link
+      dentro dele navega, e voltar e avançar funcionam.
+- [ ] **O Claude:** "abre a documentação do Vite aqui e me diz como configurar a porta": a página
+      abre na bancada e ele responde pelo que leu, sem card.
+- [ ] **Mexer pede:** "clica em Get Started": o card aparece antes do clique.
+- [ ] **O seu navegador:** "abre o youtube no meu navegador": abre no do sistema.
+- [ ] **Desligar:** em Configurações → Conversas, desligue **Páginas da internet no navegador da
+      bancada**: `example.com` passa a ser recusado, com o motivo; `localhost` continua abrindo.

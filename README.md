@@ -170,7 +170,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) e as Fases 55 (a bancada), 56 (o desenho novo) e 57 (o Claude na bancada) estão prontas, com os testes de unidade e de
+  ferramentas parecidas) e as Fases 55 a 58 (a bancada, o desenho novo, o Claude na bancada e as páginas da internet nela) estão prontas, com os testes de unidade e de
   ponta a ponta, e esperam a validação com o uso (os roteiros em
   [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
@@ -580,9 +580,10 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   no navegador da [bancada](#a-bancada-navegador-e-terminal), ao lado da conversa; um Markdown abre
   no próprio painel. O card de uma edição de HTML (ou de Markdown, PDF, imagem) tem
   **Pré-visualizar**, e o de um comando que subiu um servidor ("Local: http://localhost:5173") tem
-  **Abrir … na pré-visualização**. Um arquivo recarrega sozinho quando a pasta dele muda. Só
-  arquivos e endereços desta máquina: um endereço da internet é recusado, e a página não sai do
-  servidor (ou da pasta) em que abriu. A página é isolada do Wisp: sem os cookies do painel, sem
+  **Abrir … na pré-visualização**. Um arquivo recarrega sozinho quando a pasta dele muda. Sites
+  da internet abrem também (Fase 58, `previewWeb`; desligada nas configurações, só arquivos e
+  endereços desta máquina, e a página não sai do servidor em que abriu). A página é isolada do
+  Wisp: sem os cookies do painel, sem
   permissões (câmera, microfone, notificações) e sem baixar arquivos.
 - **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
   Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
@@ -686,7 +687,7 @@ do Claude Desktop.
   imagem) e Enter; o `/preview` e os botões **Pré-visualizar** dos cards abrem aqui também. A
   barra tem voltar, avançar, recarregar (F5), **Mostrar ao Claude** (um print da página vai como
   anexo para a conversa em foco), abrir no navegador do sistema e fechar a página. Vazio, ele
-  mostra os últimos endereços abertos. Só o que está nesta máquina: nada da internet abre aqui.
+  mostra os últimos endereços abertos. Sites da internet abrem também (`exemplo.com`); em Configurações → Conversas, **Páginas da internet no navegador da bancada** desliga isso e deixa só o que está nesta máquina.
 - **Terminal:** o seu shell (o `$SHELL`; no Windows, o PowerShell), na pasta da conversa em foco
   (sem pasta, na sua pasta pessoal). O **+** abre outro (até 4), cada um numa abinha com o nome da
   pasta. Nos seus terminais é você quem digita: o Claude não lê nem escreve neles. **Seleção para a conversa** põe o texto marcado na caixa da conversa em

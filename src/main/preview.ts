@@ -3,8 +3,9 @@
 // bancada: uma WebContentsView dentro da janela do painel, no lugar que a página diz. A vista é
 // isolada: outra sessão do Electron (sem os cookies do painel), sem preload, no sandbox, sem
 // permissões (câmera, notificações...), sem abrir janelas, sem baixar arquivos e sem sair do
-// lugar (um link para outro site não navega). Só endereços desta máquina: nada da internet
-// entra por aqui. O Markdown abre no próprio painel (o renderer o desenha). Um arquivo recarrega
+// lugar (com as páginas da internet desligadas, um link para outro site não navega). Desde a
+// Fase 58, as páginas da internet abrem também, se a opção `previewWeb` estiver ligada (o
+// padrão). O Markdown abre no próprio painel (o renderer o desenha). Um arquivo recarrega
 // sozinho quando a pasta dele muda; "Mostrar ao Claude" anexa um print da página na conversa.
 
 import { ipcMain, session, shell, WebContentsView } from 'electron'
@@ -51,18 +52,22 @@ export type PreviewTarget =
 export function previewTarget(
   input: string,
   base: string | null,
-  home?: string
+  home?: string,
+  web = false
 ): PreviewTarget | string {
   const raw = input.trim()
-  if (!raw) return t('Diga o endereço (localhost) ou o arquivo.')
+  if (!raw) return t('Diga o endereço ou o arquivo.')
   const port = /^(?:localhost)?:(\d{2,5})(\/.*)?$/.exec(raw) ?? /^(\d{2,5})$/.exec(raw)
   if (port) return localUrl(`http://localhost:${port[1]}${port[2] ?? '/'}`)
   if (/^localhost(:\d+)?(\/|$)/.test(raw)) return localUrl(`http://${raw}`)
-  if (/^https?:\/\//i.test(raw)) return localUrl(raw)
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw))
-    return t('Só arquivos e endereços desta máquina (localhost).')
+  if (/^https?:\/\//i.test(raw)) return localUrl(raw, web)
+  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return t('Só endereços http e https, e arquivos.')
   const expanded = expandHome(raw.replace(/^file:\/\//, ''))
   const root = base ? expandHome(base) : null
+  // Um site sem o https:// na frente ("exemplo.com/docs"), se não for um arquivo da pasta.
+  if (web && looksLikeSite(raw) && !(root && existsSync(resolve(root, expanded)))) {
+    return localUrl(`https://${raw}`, web)
+  }
   if (!isAbsolute(expanded) && !root) return t('Use o caminho inteiro do arquivo.')
   const path = isAbsolute(expanded) ? expanded : resolve(root as string, expanded)
   if (isSensitivePath(path, home)) return t('Este arquivo guarda segredos: o painel não mostra.')
@@ -81,7 +86,32 @@ export function previewTarget(
   return { kind: 'file', path, url: pathToFileURL(path).href, display: path }
 }
 
-function localUrl(raw: string): PreviewTarget | string {
+/** O aviso de quando as páginas da internet estão desligadas nas configurações. */
+const WEB_OFF = (): string =>
+  t(
+    'Só arquivos e endereços desta máquina (localhost): as páginas da internet estão desligadas nas configurações.'
+  )
+
+/** Parece o endereço de um site ("exemplo.com", "docs.exemplo.com/guia"), e não um arquivo? */
+export function looksLikeSite(raw: string): boolean {
+  const match = /^((?:[a-z0-9-]+\.)+([a-z]{2,}))(?::\d+)?(?:[/?#].*)?$/i.exec(raw)
+  if (!match) return false
+  // "index.html" e "notas.md" têm cara de domínio, mas são arquivos.
+  const ending = `.${match[2].toLowerCase()}`
+  return !PREVIEW_EXTENSIONS.includes(ending) && !MARKDOWN_EXTENSIONS.includes(ending)
+}
+
+/** O endereço é desta máquina (localhost)? */
+export function isLocalAddress(raw: string): boolean {
+  try {
+    const url = new URL(raw)
+    return url.protocol === 'file:' || LOCAL_HOSTS.has(url.hostname)
+  } catch {
+    return false
+  }
+}
+
+function localUrl(raw: string, web = false): PreviewTarget | string {
   let url: URL
   try {
     url = new URL(raw)
@@ -89,22 +119,30 @@ function localUrl(raw: string): PreviewTarget | string {
     return t('Esse endereço não é válido.')
   }
   if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return t('Só arquivos e endereços desta máquina (localhost).')
+    return t('Só endereços http e https, e arquivos.')
   }
-  if (!LOCAL_HOSTS.has(url.hostname)) return t('Só arquivos e endereços desta máquina (localhost).')
+  if (!LOCAL_HOSTS.has(url.hostname)) {
+    // Uma página da internet (Fase 58): só com a opção ligada nas configurações.
+    return web ? { kind: 'url', url: url.href, display: url.href } : WEB_OFF()
+  }
   // O 0.0.0.0 de um servidor de desenvolvimento quer dizer "todas as interfaces": abre por aqui.
   if (url.hostname === '0.0.0.0') url.hostname = 'localhost'
   return { kind: 'url', url: url.href, display: url.href }
 }
 
-/** Uma navegação dentro da janela vale? (Mesmo servidor; num arquivo, outro arquivo da pasta.) */
-export function allowedNavigation(target: PreviewTarget, next: string): boolean {
+/**
+ * Uma navegação dentro da página vale? Com as páginas da internet ligadas (`web`), qualquer
+ * endereço http ou https; sem elas, só o mesmo servidor. De um arquivo, outro arquivo da pasta
+ * dele (e nunca de um endereço para um arquivo).
+ */
+export function allowedNavigation(target: PreviewTarget, next: string, web = false): boolean {
   let url: URL
   try {
     url = new URL(next)
   } catch {
     return false
   }
+  if (web && (url.protocol === 'http:' || url.protocol === 'https:')) return true
   if (target.kind === 'url') return url.origin === new URL(target.url).origin
   if (target.kind !== 'file' || url.protocol !== 'file:') return false
   const folder = pathToFileURL(dirname(target.path) + '/').href
@@ -123,6 +161,8 @@ export interface PreviewHost {
   opened(input: string): void
   /** O Ctrl+Shift+B com o foco na página: a bancada fecha, como pelo painel. */
   toggle(): void
+  /** As páginas da internet estão ligadas nas configurações (`previewWeb`, Fase 58)? */
+  web(): boolean
 }
 
 const CLOSED: PreviewState = { open: false, display: '', kind: null }
@@ -211,7 +251,7 @@ class PreviewPane {
   /** O que a vista mostra, no navegador (ou no programa) do sistema. */
   external(): void {
     const url = this.view?.webContents.getURL()
-    if (!url || !this.target || !allowedNavigation(this.target, url)) return
+    if (!url || !this.target || !allowedNavigation(this.target, url, this.host.web())) return
     if (url.startsWith('file:')) void shell.openPath(fileURLToPath(url))
     else void shell.openExternal(url)
   }
@@ -236,6 +276,12 @@ class PreviewPane {
   place(bounds: ViewBounds | null): void {
     this.bounds = bounds
     this.layout()
+  }
+
+  /** A página à vista é da internet (e não desta máquina)? O que vem dela não é de confiança. */
+  remote(): boolean {
+    const url = this.view?.webContents.getURL()
+    return !!url && !isLocalAddress(url)
   }
 
   /** O console da página (as últimas linhas, a mais nova no fim). */
@@ -340,7 +386,7 @@ class PreviewPane {
 
   /** O endereço (ou o arquivo) que a vista mostra agora, se ele é dos que ela pode mostrar. */
   private showing(url: string): string | null {
-    if (!url || !this.target || !allowedNavigation(this.target, url)) return null
+    if (!url || !this.target || !allowedNavigation(this.target, url, this.host.web())) return null
     if (!url.startsWith('file:')) return url
     try {
       return fileURLToPath(url)
@@ -375,9 +421,16 @@ class PreviewPane {
     isolated.removeAllListeners('will-download')
     isolated.on('will-download', (event) => event.preventDefault())
     const contents = view.webContents
-    contents.setWindowOpenHandler(() => ({ action: 'deny' }))
+    // Sem janelas novas: um link que abriria outra navega aqui mesmo, se puder.
+    contents.setWindowOpenHandler(({ url }) => {
+      if (this.target && allowedNavigation(this.target, url, this.host.web())) {
+        void contents.loadURL(url).catch(() => undefined)
+      }
+      return { action: 'deny' }
+    })
     const guard = (event: { preventDefault(): void }, url: string): void => {
-      if (this.target && !allowedNavigation(this.target, url)) event.preventDefault()
+      if (this.target && !allowedNavigation(this.target, url, this.host.web()))
+        event.preventDefault()
     }
     contents.on('will-navigate', guard)
     contents.on('will-redirect', guard)
@@ -474,6 +527,8 @@ export interface PreviewControl {
   /** Abre um endereço desta máquina ou um arquivo (`base`: a pasta para um caminho relativo). */
   open(input: string, base: string | null): PreviewResult
   state(): PreviewState
+  /** A página à vista é da internet (o conteúdo dela não é de confiança). */
+  remote(): boolean
   image(): Promise<NativeImage | string>
   evaluate(code: string): Promise<{ ok: true; value: string } | { ok: false; message: string }>
   console(): string[]
@@ -484,7 +539,7 @@ export function setupPreview(host: PreviewHost): PreviewControl {
   const preview = new PreviewPane(host)
   const from = (event: IpcMainInvokeEvent): boolean => host.isSender(event.sender)
   const open = (input: string, base: string | null): PreviewResult => {
-    const target = previewTarget(input.slice(0, 4096), base)
+    const target = previewTarget(input.slice(0, 4096), base, undefined, host.web())
     if (typeof target === 'string') return { ok: false, message: target }
     if (target.kind === 'markdown') return { ok: true, kind: 'markdown', path: target.path }
     if (!preview.open(target)) return { ok: false, message: t('O painel do Wisp está fechado.') }
@@ -521,6 +576,7 @@ export function setupPreview(host: PreviewHost): PreviewControl {
   return {
     open,
     state: () => preview.state(),
+    remote: () => preview.remote(),
     image: () => preview.image(),
     evaluate: (code) => preview.evaluate(code),
     console: () => preview.console()

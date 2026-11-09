@@ -1092,13 +1092,18 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     `[::1]`; o `0.0.0.0` de um servidor de desenvolvimento vira `localhost`; `:5173` e `5173`
     também) ou um arquivo (absoluto, com `~` ou relativo à pasta da conversa) com uma extensão de
     HTML, PDF, imagem ou Markdown, nunca um dos arquivos de segredos do `isSensitivePath`. Um
-    endereço da internet ou outro protocolo é recusado;
+    endereço da internet só com a opção `previewWeb` ligada (Fase 58: o padrão; aí um endereço
+    com cara de site, sem o `https://`, vira https, a não ser que seja um arquivo da pasta);
+    outro protocolo é recusado;
   - **a vista:** uma `WebContentsView` (desde a Fase 55; antes, um `BrowserWindow` ao lado)
     noutra sessão (`partition: wisp-preview`, sem os cookies do painel), sem preload, no sandbox,
     com o `contextIsolation`, sem permissões (o `setPermissionRequestHandler` nega tudo), sem
     janelas novas (`setWindowOpenHandler`), sem baixar arquivos (o `will-download` é cancelado) e
-    sem navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta
-    dele. O `plugins: true` liga o leitor de PDF do Chromium;
+    sem navegar para fora com a `previewWeb` desligada: num endereço, só a mesma origem; num
+    arquivo, só os arquivos da pasta dele. Ligada, qualquer endereço http ou https (um link que
+    abriria uma janela navega na mesma vista), e nunca de um site para um arquivo. O que as
+    ferramentas do Claude leem de uma página que não é desta máquina (`isLocalAddress`) vai com o
+    aviso de que é conteúdo de terceiros. O `plugins: true` liga o leitor de PDF do Chromium;
   - **recarregar:** o `fs.watch` da pasta do arquivo (sem descer nas de dentro, para um
     `node_modules` não pesar), com 300 ms de espera; num endereço, o servidor de desenvolvimento
     já recarrega sozinho. F5 e Ctrl+R na página, e o Recarregar da barra do navegador;
