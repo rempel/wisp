@@ -2421,19 +2421,14 @@ export const EN: Record<string, string> = {
   'A pré-visualização mostra HTML, PDF, imagens e Markdown.':
     'The preview shows HTML, PDF, images and Markdown.',
   'Esse endereço não é válido.': "That address isn't valid.",
-  'Pré-visualização: {what}': 'Preview: {what}',
   'A pré-visualização está fechada.': 'The preview is closed.',
   'A página ainda não apareceu.': "The page hasn't shown up yet.",
-  'Pré-visualização': 'Preview',
   'Pré-visualizar': 'Preview',
   'um HTML, PDF, imagem, Markdown ou o localhost (/preview)':
     'an HTML, PDF, image, Markdown or localhost (/preview)',
   'Não deu para abrir a pré-visualização.': "I couldn't open the preview.",
   'pré-visualização': 'preview',
-  'Pré-visualização:': 'Preview:',
   Recarregar: 'Reload',
-  'Um print da pré-visualização vai como anexo para a conversa em foco':
-    'A screenshot of the preview goes as an attachment to the focused conversation',
   'Não deu para tirar o print da pré-visualização.': "I couldn't take a screenshot of the preview.",
   'Mostrar ao Claude': 'Show Claude',
   'Abrir {url} na pré-visualização': 'Open {url} in the preview',
@@ -2687,5 +2682,47 @@ export const EN: Record<string, string> = {
   'Nenhuma conversa guardada.': 'No saved conversations.',
   'aberta numa aba': 'open in a tab',
   'Uma página no celular com o que o painel tem: as conversas, o modelo e o modo, os cards de permissão, fotos, o histórico e conversas novas. Só na rede da sua casa (Wi-Fi ou cabo), sem criptografia: ligue só numa rede sua, porque um celular pareado aprova o que o Claude pede.':
-    'A page on the phone with what the panel has: the conversations, the model and mode, the permission cards, photos, the history and new conversations. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours, because a paired phone approves what Claude asks.'
+    'A page on the phone with what the panel has: the conversations, the model and mode, the permission cards, photos, the history and new conversations. Only on your home network (Wi-Fi or cable), without encryption: turn it on only on a network of yours, because a paired phone approves what Claude asks.',
+  'A bancada tem no máximo {max} terminais.': 'The workbench holds at most {max} terminals.',
+  'O shell saiu.': 'The shell exited.',
+  'Não deu para abrir o terminal: {why}': "Couldn't open the terminal: {why}",
+  'Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)':
+    'Workbench: browser and terminal beside the conversation (Ctrl+Shift+B)',
+  'Bancada: navegador e terminal': 'Workbench: browser and terminal',
+  Navegador: 'Browser',
+  Avançar: 'Forward',
+  'Recarregar (F5)': 'Reload (F5)',
+  'localhost:5173 ou um arquivo (HTML, PDF, imagem)': 'localhost:5173 or a file (HTML, PDF, image)',
+  'Endereço desta máquina ou arquivo': 'Address on this machine, or a file',
+  'Mostrar ao Claude: um print da página vai como anexo para a conversa em foco':
+    'Show Claude: a screenshot of the page is attached to the focused conversation',
+  'Abrir no navegador do sistema': 'Open in the system browser',
+  'Fechar a página': 'Close the page',
+  'O que o Claude fez, ao lado da conversa': 'What Claude made, beside the conversation',
+  'Abra o servidor do projeto (localhost) ou um arquivo: HTML, PDF ou imagem. Só desta máquina: nada da internet entra por aqui.':
+    "Open the project's server (localhost) or a file: HTML, PDF or image. This machine only: nothing from the internet comes in here.",
+  'Abertos por último': 'Recently opened',
+  Terminais: 'Terminals',
+  'Fechar este terminal (o que roda nele para)': 'Close this terminal (whatever runs in it stops)',
+  'Fechar o terminal {title}': 'Close the terminal {title}',
+  'Terminal novo, na pasta da conversa em foco':
+    "New terminal, in the focused conversation's folder",
+  'Terminal novo': 'New terminal',
+  'O texto selecionado no terminal vai para a caixa da conversa em foco':
+    "The text selected in the terminal goes to the focused conversation's box",
+  'Selecione no terminal o que mandar para a conversa.':
+    'Select in the terminal what to send to the conversation.',
+  'Seleção para a conversa': 'Selection to conversation',
+  'Abrir {url} no navegador da bancada': 'Open {url} in the workbench browser',
+  'Nenhum terminal aberto': 'No terminal open',
+  'Arraste para ajustar (duplo clique volta ao tamanho de começo)':
+    'Drag to resize (double-click restores the initial size)',
+  Bancada: 'Workbench',
+  'Fechar a bancada (Ctrl+Shift+B); os terminais continuam rodando':
+    'Close the workbench (Ctrl+Shift+B); the terminals keep running',
+  'Fechar a bancada': 'Close the workbench',
+  'Bancada: navegador': 'Workbench: browser',
+  'preview pré-visualização localhost página dividir': 'preview localhost page split browser',
+  'Bancada: terminal': 'Workbench: terminal',
+  'shell console comandos dividir': 'shell console commands split'
 }

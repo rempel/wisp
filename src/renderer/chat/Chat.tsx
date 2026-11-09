@@ -25,7 +25,7 @@ import { AgentsView } from './AgentsView'
 import { BoardView } from './BoardView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
-import { MarkdownPreview, PreviewBar } from './Preview'
+import { MarkdownPreview } from './Preview'
 import { markdownOpen } from './preview-store'
 import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
@@ -43,7 +43,8 @@ import {
   PaperclipIcon,
   RestoreIcon,
   SettingsIcon,
-  TerminalIcon
+  TerminalIcon,
+  WorkbenchIcon
 } from './icons'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
@@ -59,6 +60,8 @@ import type { TabStatus } from './TabBar'
 import { CostPill } from './CostPill'
 import { UsagePill } from './UsagePill'
 import { useSessions } from './useSessions'
+import { Workbench } from './Workbench'
+import { toggleWorkbench, useWorkbench } from './workbench-store'
 import { t } from '../../shared/i18n'
 
 /** De quanto em quanto tempo (ms), no máximo, o painel avisa que o usuário está mexendo nele. */
@@ -158,6 +161,12 @@ export default function Chat(): JSX.Element {
   }, [palette])
   const root = useRef<HTMLDivElement>(null)
   const [bus] = useState(() => new PaneBus())
+  // A bancada (Fase 55): o navegador e o terminal ao lado das conversas.
+  const workbench = useWorkbench()
+  const workbenchRef = useRef(workbench)
+  useEffect(() => {
+    workbenchRef.current = workbench
+  }, [workbench])
   // O que os atalhos e os eventos precisam ler sem esperar o render.
   const tabsRef = useRef(tabs)
   const viewRef = useRef(view)
@@ -402,6 +411,11 @@ export default function Chat(): JSX.Element {
         // A paleta de comandos (Fase 32): Ctrl+P (no terminal, que usa o Ctrl+P, Ctrl+Shift+P).
         event.preventDefault()
         setPalette(true)
+      } else if (ctrl && event.shiftKey && key === 'b') {
+        // A bancada (Fase 55): abre e fecha.
+        event.preventDefault()
+        setView('chat')
+        toggleWorkbench(workbenchRef.current)
       } else if (event.key === 'Escape') {
         // Ouvindo, transcrevendo ou falando, o Esc só desiste disso.
         if (voiceRef.current.state !== 'idle') window.wisp.voice.cancel()
@@ -674,6 +688,11 @@ export default function Chat(): JSX.Element {
       sessions: sessions?.sessions ?? [],
       sound: sound?.enabled ?? null,
       canSplit: tabs.panes.length < MAX_PANES,
+      workbench: (tab) => {
+        setView('chat')
+        toggleWorkbench(workbench, tab)
+      },
+      workbenchOpen: workbench?.open ? workbench.tab : null,
       setView,
       find: (id) => {
         setView('chat')
@@ -702,6 +721,7 @@ export default function Chat(): JSX.Element {
     settings,
     sessions,
     sound,
+    workbench,
     bus,
     exportConversation,
     toggleSound,
@@ -799,6 +819,19 @@ export default function Chat(): JSX.Element {
           </button>
           <button
             type="button"
+            className={`icon-button workbench-toggle${view === 'chat' && workbench?.open ? ' active' : ''}`}
+            onClick={() => {
+              if (view !== 'chat') setView('chat')
+              if (view === 'chat' || !workbench?.open) toggleWorkbench(workbench)
+            }}
+            title={t('Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)')}
+            aria-label={t('Bancada: navegador e terminal')}
+            aria-pressed={view === 'chat' && !!workbench?.open}
+          >
+            <WorkbenchIcon />
+          </button>
+          <button
+            type="button"
             className={`icon-button${view === 'board' ? ' active' : ''}`}
             onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
             title={t('Quadro de tarefas')}
@@ -883,9 +916,21 @@ export default function Chat(): JSX.Element {
             {tabs.tabs.length > 0 && (
               <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
             )}
-            <PreviewBar />
-            <div className="panes">
-              <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
+            <div className="workspace">
+              <div className="panes">
+                <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
+              </div>
+              {workbench?.open && (
+                <Workbench
+                  state={workbench}
+                  folder={focusedFolder}
+                  covered={palette || dragging || draggingTab !== null}
+                  onCompose={(text) => {
+                    const conversation = focusedConversation()
+                    if (conversation) bus.emit(conversation, { type: 'compose', text })
+                  }}
+                />
+              )}
             </div>
           </>
         )}

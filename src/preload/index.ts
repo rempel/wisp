@@ -24,7 +24,8 @@ import type {
   VoiceCommand,
   VoiceStatus,
   WindowState,
-  WispApi
+  WispApi,
+  WorkbenchState
 } from '../shared/ipc'
 
 /** Liga um listener a um canal do main e devolve a função que o desliga. */
@@ -244,7 +245,23 @@ const api: WispApi = {
     reload: () => ipcRenderer.send(IPC.previewReload),
     close: () => ipcRenderer.send(IPC.previewClose),
     get: () => ipcRenderer.invoke(IPC.previewGet),
-    onState: (listener) => subscribe<[PreviewState]>(IPC.previewState, listener)
+    onState: (listener) => subscribe<[PreviewState]>(IPC.previewState, listener),
+    go: (step) => ipcRenderer.send(IPC.previewGo, step),
+    external: () => ipcRenderer.send(IPC.previewExternal),
+    bounds: (bounds) => ipcRenderer.send(IPC.previewBounds, bounds)
+  },
+  workbench: {
+    get: () => ipcRenderer.invoke(IPC.workbenchGet),
+    set: (change) => ipcRenderer.send(IPC.workbenchSet, change),
+    onState: (listener) => subscribe<[WorkbenchState]>(IPC.workbenchState, listener)
+  },
+  shell: {
+    create: (folder) => ipcRenderer.invoke(IPC.shellCreate, folder),
+    close: (id) => ipcRenderer.send(IPC.shellClose, id),
+    attach: (id) => ipcRenderer.invoke(IPC.shellAttach, id),
+    input: (id, data) => ipcRenderer.send(IPC.shellInput, id, data),
+    resize: (id, cols, rows) => ipcRenderer.send(IPC.shellResize, id, cols, rows),
+    onData: (listener) => subscribe<[string, string]>(IPC.shellData, listener)
   },
   portable: {
     export: (withHistory) => ipcRenderer.invoke(IPC.portableExport, withHistory),

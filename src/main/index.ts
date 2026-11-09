@@ -77,7 +77,7 @@ import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
-import { setupPreview } from './preview'
+import { setupWorkbench } from './workbench'
 import { setupAgentsIpc } from './agents'
 import { synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
@@ -640,10 +640,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   setupFileViewIpc((sender) => chat?.isSender(sender) ?? false)
   setupAgentsIpc((sender) => chat?.isSender(sender) ?? false)
-  setupPreview(
-    (sender) => chat?.isSender(sender) ?? false,
-    (dropped) => chat?.attach(dropped)
-  )
+  // A bancada (Fase 55): o navegador (a pré-visualização) e os terminais ao lado da conversa.
+  const workbench = setupWorkbench({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    window: () => chat?.window() ?? null,
+    attach: (dropped) => chat?.attach(dropped),
+    sideWidth: (px, grow) => chat?.sideWidth(px, grow)
+  })
   // A tela de configurações do painel (e a pílula do modo demonstração).
   const settings = setupSettings({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -901,6 +904,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     mood.dispose()
     sessions.dispose()
     hooks?.close()
+    workbench.dispose()
     chat?.dispose()
     desktop?.close()
   })

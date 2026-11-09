@@ -26,24 +26,42 @@ const CONTRAST_THEME = {
 }
 const theme = (): typeof THEME => (highContrast() ? CONTRAST_THEME : THEME)
 
+/** De onde vem e para onde vai o que o terminal mostra: o modo terminal, ou um shell da bancada. */
+export interface TerminalLink {
+  attach(id: string): Promise<string>
+  input(id: string, data: string): void
+  resize(id: string, cols: number, rows: number): void
+  onData(listener: (id: string, data: string) => void): () => void
+}
+
 /**
  * O modo terminal de uma aba (Fase 17): o Claude Code de verdade, pelo xterm.js. O que se digita
  * vai para o processo no main; a saída chega pelo IPC. Ao abrir (ou trocar de aba), a tela
- * volta com o que o terminal já tinha mostrado.
+ * volta com o que o terminal já tinha mostrado. Com `link`, é um terminal da bancada (Fase 55):
+ * o mesmo desenho, ligado a um shell; `onTerminal` entrega o xterm (para ler a seleção).
  */
 export function TerminalView({
   conversation,
-  focused
+  focused,
+  link,
+  onTerminal
 }: {
   conversation: string
   focused: boolean
+  link?: TerminalLink
+  onTerminal?: (terminal: Terminal | null) => void
 }): JSX.Element {
   const host = useRef<HTMLDivElement>(null)
   const term = useRef<Terminal | null>(null)
+  const ready = useRef(onTerminal)
+  useEffect(() => {
+    ready.current = onTerminal
+  }, [onTerminal])
 
   useEffect(() => {
     const element = host.current
     if (!element) return
+    const io = link ?? window.wisp.tui
     const terminal = new Terminal({
       fontFamily: getComputedStyle(document.documentElement).getPropertyValue('--mono').trim(),
       fontSize: 13,
@@ -57,6 +75,7 @@ export function TerminalView({
     terminal.loadAddon(fit)
     terminal.open(element)
     term.current = terminal
+    ready.current?.(terminal)
     // Os atalhos das abas e da grade continuam do Wisp; Ctrl+Shift+C copia a seleção.
     terminal.attachCustomKeyEventHandler((event) => {
       if (event.type !== 'keydown') return true
@@ -76,18 +95,18 @@ export function TerminalView({
     const pending: string[] = []
     let attached = false
     // A saída que chega antes da tela antiga voltar espera por ela.
-    const offData = window.wisp.tui.onData((id, data) => {
+    const offData = io.onData((id, data) => {
       if (id !== conversation) return
       if (attached) terminal.write(data)
       else pending.push(data)
     })
-    void window.wisp.tui.attach(conversation).then((snapshot) => {
+    void io.attach(conversation).then((snapshot) => {
       if (!alive) return
       if (snapshot) terminal.write(snapshot)
       for (const data of pending.splice(0)) terminal.write(data)
       attached = true
     })
-    const input = terminal.onData((data) => window.wisp.tui.input(conversation, data))
+    const input = terminal.onData((data) => io.input(conversation, data))
     const offAppearance = onAppearance(() => (terminal.options.theme = theme()))
     const resize = (): void => {
       if (!element.clientWidth || !element.clientHeight) return
@@ -96,7 +115,7 @@ export function TerminalView({
       } catch {
         return
       }
-      window.wisp.tui.resize(conversation, terminal.cols, terminal.rows)
+      io.resize(conversation, terminal.cols, terminal.rows)
     }
     const observer = new ResizeObserver(() => requestAnimationFrame(resize))
     observer.observe(element)
@@ -109,8 +128,9 @@ export function TerminalView({
       input.dispose()
       terminal.dispose()
       term.current = null
+      ready.current?.(null)
     }
-  }, [conversation])
+  }, [conversation, link])
 
   // Em foco (clique, troca de aba), o cursor vai para o terminal.
   useEffect(() => {
