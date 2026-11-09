@@ -7,15 +7,16 @@
  * as do island.ts, que recorta a janela do mesmo tamanho.
  */
 .island {
-  --island-bg: #0b1418;
-  --island-card: rgb(255 255 255 / 0.045);
-  --island-line: rgb(103 232 249 / 0.14);
-  --island-text: #e6fbff;
-  --island-muted: #8fb6c0;
-  --island-accent: #67e8f9;
-  --island-ok: #5eead4;
-  --island-warn: #fcd34d;
-  --island-bad: #f87171;
+  /* As mesmas cores do painel no escuro (plano: tons de fundo, sem degradê nem brilho). */
+  --island-bg: #101214;
+  --island-card: #181b1e;
+  --island-line: #262c31;
+  --island-text: #eceff1;
+  --island-muted: #8f9aa1;
+  --island-accent: #2ed3ee;
+  --island-ok: #4fd8c4;
+  --island-warn: #f5b83d;
+  --island-bad: #f2555a;
 
   position: absolute;
   top: 0;
@@ -29,7 +30,7 @@
   padding: 0 12px 0 6px;
   border-radius: 0 0 19px 19px;
   background: var(--island-bg);
-  box-shadow: inset 0 -1px 0 rgb(103 232 249 / 0.18);
+  box-shadow: inset 0 -1px 0 var(--island-line);
   color: var(--island-text);
   font:
     13px/1.25 system-ui,
@@ -195,14 +196,10 @@
 @keyframes island-pulse {
   0%,
   100% {
-    box-shadow:
-      inset 0 -1px 0 rgb(252 211 77 / 0.35),
-      0 0 0 0 rgb(252 211 77 / 0);
+    box-shadow: inset 0 -1px 0 rgb(245 184 61 / 0.35);
   }
   50% {
-    box-shadow:
-      inset 0 -1px 0 rgb(252 211 77 / 0.6),
-      0 2px 14px 0 rgb(252 211 77 / 0.35);
+    box-shadow: inset 0 -2px 0 rgb(245 184 61 / 0.9);
   }
 }
 
@@ -454,7 +451,7 @@
   height: 76px;
   place-items: center;
   border-radius: 12px;
-  background: linear-gradient(135deg, rgb(94 234 212 / 0.25), rgb(34 211 238 / 0.08));
+  background: #14323a;
   color: var(--island-ok);
   overflow: hidden;
 }
@@ -723,10 +720,8 @@
 
 /* O pedido: quem pede, o que está em jogo, os botões. */
 .island-card.alert {
-  border-color: rgb(252 211 77 / 0.35);
-  background:
-    radial-gradient(120% 140% at 0% 100%, rgb(252 211 77 / 0.09), transparent 60%),
-    var(--island-card);
+  border-color: transparent;
+  background: #2c2412;
 }
 
 .alert-detail {

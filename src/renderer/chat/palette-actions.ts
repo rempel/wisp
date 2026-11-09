@@ -9,7 +9,8 @@ import type {
   PermissionMode,
   Provider,
   SettingsSnapshot,
-  TabInfo
+  TabInfo,
+  WorkbenchTab
 } from '../../shared/ipc'
 import { promptPreview } from '../../shared/prompts'
 import { t } from '../../shared/i18n'
@@ -34,6 +35,10 @@ export interface PaletteContext {
   sound: boolean | null
   /** Pode dividir o painel em foco (ainda cabe outro). */
   canSplit: boolean
+  /** Abre a bancada numa aba (Fase 55); na que já está à vista, fecha. */
+  workbench(tab: WorkbenchTab): void
+  /** A aba da bancada à vista (null: fechada). */
+  workbenchOpen: WorkbenchTab | null
   setView(view: PaletteView): void
   find(conversation: string): void
   exportMarkdown(conversation: string): void
@@ -209,6 +214,20 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
       title,
       keywords,
       run: () => ctx.setView(view)
+    })
+  }
+  for (const [tab, title, keywords] of [
+    ['browser', t('Bancada: navegador'), t('preview pré-visualização localhost página dividir')],
+    ['terminal', t('Bancada: terminal'), t('shell console comandos dividir')]
+  ] as const) {
+    items.push({
+      id: `workbench-${tab}`,
+      group: 'action',
+      title,
+      shortcut: ctx.workbenchOpen === tab ? 'Ctrl+Shift+B' : undefined,
+      keywords,
+      current: ctx.workbenchOpen === tab,
+      run: () => ctx.workbench(tab)
     })
   }
   if (ctx.sound !== null) {

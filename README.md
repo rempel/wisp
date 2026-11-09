@@ -76,6 +76,8 @@ Em resumo:
   como no Konsole ou no VS Code.
 - O **modo terminal**: com um botão, a aba mostra o Claude Code de verdade, num terminal dentro do
   painel, na mesma conversa, com tudo o que o Wisp faz (os cards, a voz, o provedor, o modelo).
+- A **bancada**: o navegador (o preview do que o Claude fez) e o seu terminal ao lado da
+  conversa, na mesma janela, como a janela dividida do Claude Desktop.
 - Mandar mais instruções com o Claude trabalhando: a mensagem entra na próxima pausa, sem parar a
   resposta. Os passos dos subagentes aparecem no card do Agente, e os comandos com barra (`/`)
   trazem as skills e os comandos do Claude Code.
@@ -168,8 +170,9 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) estão prontas, com os testes de unidade e de ponta a ponta, e esperam a
-  validação com o uso (os roteiros em [docs/VALIDACAO.md](docs/VALIDACAO.md)).
+  ferramentas parecidas) e as Fases 55 (a bancada) e 56 (o desenho novo) estão prontas, com os testes de unidade e de
+  ponta a ponta, e esperam a validação com o uso (os roteiros em
+  [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
 ## Requisitos
 
@@ -574,14 +577,13 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
 - **Pré-visualização** (Fase 47): no **+** da caixa, **Pré-visualizar**, ou `/preview` com o
   arquivo ou o endereço: `/preview index.html` (relativo à pasta da conversa), `/preview
 ~/site/relatorio.pdf`, `/preview localhost:5173` ou só `/preview 5173`. HTML, PDF e imagens abrem
-  numa janela ao lado do painel; um Markdown abre no próprio painel. O card de uma edição de HTML
-  (ou de Markdown, PDF, imagem) tem **Pré-visualizar**, e o de um comando que subiu um servidor
-  ("Local: http://localhost:5173") tem **Abrir … na pré-visualização**. Um arquivo recarrega sozinho
-  quando a pasta dele muda; a barra acima das abas tem **Recarregar**, **Mostrar ao Claude** (um
-  print da janela vai como anexo na conversa em foco) e **Fechar**. Só arquivos e endereços desta
-  máquina: um endereço da internet é recusado, e a página não sai do servidor (ou da pasta) em que
-  abriu. A janela é isolada do Wisp: sem os cookies do painel e sem permissões (câmera, microfone,
-  notificações).
+  no navegador da [bancada](#a-bancada-navegador-e-terminal), ao lado da conversa; um Markdown abre
+  no próprio painel. O card de uma edição de HTML (ou de Markdown, PDF, imagem) tem
+  **Pré-visualizar**, e o de um comando que subiu um servidor ("Local: http://localhost:5173") tem
+  **Abrir … na pré-visualização**. Um arquivo recarrega sozinho quando a pasta dele muda. Só
+  arquivos e endereços desta máquina: um endereço da internet é recusado, e a página não sai do
+  servidor (ou da pasta) em que abriu. A página é isolada do Wisp: sem os cookies do painel, sem
+  permissões (câmera, microfone, notificações) e sem baixar arquivos.
 - **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
   Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
   entrar no histórico e sem parar o Claude, mesmo com ele trabalhando.
@@ -669,6 +671,33 @@ reparte o espaço que ela tem.
 **Caixa de texto:** o **+** à esquerda da caixa tem **Anexar arquivos** e **Print da tela**
 (arrastar arquivos e colar imagens continuam valendo). A linha das pílulas (provedor, modelo,
 modo) rola de lado quando o painel fica estreito.
+
+### A bancada: navegador e terminal
+
+A bancada (Fase 55) é uma coluna à direita das conversas, na mesma janela, com o navegador e o
+terminal: para ver o que o Claude fez e rodar o projeto sem sair do Wisp, como na janela dividida
+do Claude Desktop.
+
+- **Abrir e fechar:** o botão da janela dividida no pé da barra lateral, **Ctrl+Shift+B**, ou **Bancada:
+  navegador** e **Bancada: terminal** na paleta de comandos. Ao lado do mascote, a janela alarga
+  para a bancada caber; solta ou maximizada, ela reparte o espaço com as conversas. A divisória se
+  arrasta (duplo clique volta ao tamanho de começo). A bancada volta como estava ao abrir o Wisp.
+- **Navegador:** escreva o endereço (`localhost:5173`, ou só `5173`) ou o arquivo (HTML, PDF,
+  imagem) e Enter; o `/preview` e os botões **Pré-visualizar** dos cards abrem aqui também. A
+  barra tem voltar, avançar, recarregar (F5), **Mostrar ao Claude** (um print da página vai como
+  anexo para a conversa em foco), abrir no navegador do sistema e fechar a página. Vazio, ele
+  mostra os últimos endereços abertos. Só o que está nesta máquina: nada da internet abre aqui.
+- **Terminal:** o seu shell (o `$SHELL`; no Windows, o PowerShell), na pasta da conversa em foco
+  (sem pasta, na sua pasta pessoal). O **+** abre outro (até 4), cada um numa abinha com o nome da
+  pasta. É você quem digita: o Claude não lê nem escreve neste terminal, e o que ele roda continua
+  passando pelos cards. **Seleção para a conversa** põe o texto marcado na caixa da conversa em
+  foco, num bloco de código, para você completar e mandar. Quando a saída mostra um
+  `http://localhost:porta`, aparece **Abrir … no navegador da bancada**. Fechar a bancada não
+  para os terminais; fechar a abinha de um (ou o Wisp) para o que roda nele.
+- **Não é o modo terminal:** o botão **Chat | Terminal** de cada aba troca a conversa para o
+  Claude Code de verdade; o terminal da bancada é um shell comum, ao lado de qualquer conversa.
+- Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente
+  e volta quando eles fecham.
 
 ### Modos de permissão
 
@@ -1243,6 +1272,8 @@ na bandeja e no botão direito do mascote.
 | Painel         | Ctrl+\\ / Ctrl+Shift+\\         | Divide o painel em foco ao lado / embaixo                     |
 | Painel         | Alt+Shift+setas                 | Vai para o painel vizinho                                     |
 | Painel         | Ctrl+M                          | Liga e desliga os sons                                        |
+| Painel         | Ctrl+Shift+B                    | Abre e fecha a bancada (navegador e terminal)                 |
+| Bancada        | F5, Ctrl+R (no navegador)       | Recarrega a página                                            |
 | Modo terminal  | Esc, Ctrl+C                     | Interrompe o Claude Code (as teclas são dele)                 |
 | Modo terminal  | Ctrl+Shift+C / Ctrl+Shift+V     | Copia a seleção / cola                                        |
 

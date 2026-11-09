@@ -1,11 +1,10 @@
-// A pré-visualização (Fase 47), do lado do painel: a barra da janela aberta (recarregar, mostrar
-// ao Claude, fechar), o Markdown desenhado no próprio painel e o que os cards oferecem abrir (um
-// arquivo que dá para ver, um localhost na saída de um comando).
+// A pré-visualização (Fase 47), do lado do painel: o Markdown desenhado no próprio painel e o que
+// os cards oferecem abrir (um arquivo que dá para ver, um localhost na saída de um comando). A
+// página em si fica no navegador da bancada (Fase 55, Workbench.tsx).
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { Markdown } from './Markdown'
 import { closeMarkdown, openPreview, useMarkdown } from './preview-store'
-import type { PreviewState } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
 
 /** O Markdown no painel, relido de 1,5 em 1,5 s enquanto aberto (o Claude pode estar editando). */
@@ -67,54 +66,6 @@ function MarkdownView({ path }: { path: string }): JSX.Element {
 export function MarkdownPreview(): JSX.Element | null {
   const path = useMarkdown()
   return path ? <MarkdownView key={path} path={path} /> : null
-}
-
-/** A barra da janela da pré-visualização, quando ela está aberta. */
-export function PreviewBar(): JSX.Element | null {
-  const [state, setState] = useState<PreviewState>({ open: false, display: '', kind: null })
-  const [note, setNote] = useState<string | null>(null)
-  useEffect(() => {
-    void window.wisp.preview.get().then(setState)
-    return window.wisp.preview.onState((next) => {
-      setState(next)
-      setNote(null)
-    })
-  }, [])
-  if (!state.open) return null
-  return (
-    <div className="preview-bar" role="region" aria-label={t('Pré-visualização')}>
-      <span className="preview-what" title={state.display}>
-        {t('Pré-visualização:')} <code>{state.display}</code>
-      </span>
-      <button
-        type="button"
-        className="settings-button"
-        onClick={() => window.wisp.preview.reload()}
-      >
-        {t('Recarregar')}
-      </button>
-      <button
-        type="button"
-        className="settings-button"
-        title={t('Um print da pré-visualização vai como anexo para a conversa em foco')}
-        onClick={() =>
-          void window.wisp.preview.capture().then((ok) => {
-            if (!ok) setNote(t('Não deu para tirar o print da pré-visualização.'))
-          })
-        }
-      >
-        {t('Mostrar ao Claude')}
-      </button>
-      <button type="button" className="link" onClick={() => window.wisp.preview.close()}>
-        {t('Fechar')}
-      </button>
-      {note && (
-        <small className="settings-error" role="alert">
-          {note}
-        </small>
-      )}
-    </div>
-  )
 }
 
 /** O botão de um card: abre o arquivo ou o endereço na pré-visualização. */

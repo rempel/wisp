@@ -54,7 +54,7 @@ import { t } from '../shared/i18n'
 import { expandPrompt } from '../shared/prompts'
 
 /** Fundo da janela antes de a página pintar; igual ao --bg do chat (styles/base.css). */
-const BACKGROUND = { dark: '#0b1418', light: '#f5fafb' }
+const BACKGROUND = { dark: '#101214', light: '#f4f5f6' }
 /** Quanto esperar o painel sumir da tela (inclusive a animação do desktop) antes do print. */
 const PANEL_AWAY_MS = 350
 /** De quanto em quanto tempo, no máximo, a área de transferência é conferida. */
@@ -885,6 +885,8 @@ export function setupChat({
     isSender(sender) {
       return win !== null && sender === win.webContents
     },
+    window: () => win,
+    sideWidth: (px, grow) => placement.setSide(win, tabs.layout, px, grow),
     notifySessions() {
       if (win && pageReady) win.webContents.send(IPC.sessionsChanged)
     },

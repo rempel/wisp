@@ -968,14 +968,14 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 ## A pré-visualização (Fase 47)
 
 - [ ] **HTML:** numa conversa numa pasta, peça "crie um index.html com uma página de boas-vindas".
-      No card do Write, **Pré-visualizar**: a janela abre ao lado do painel com a página.
-- [ ] **Recarregar:** peça "mude o título para Olá": a janela recarrega sozinha com o título novo.
-- [ ] **Mostrar ao Claude:** na barra acima das abas, **Mostrar ao Claude**: o print vai para a
+      No card do Write, **Pré-visualizar**: a bancada abre no navegador, com a página.
+- [ ] **Recarregar:** peça "mude o título para Olá": a página recarrega sozinha com o título novo.
+- [ ] **Mostrar ao Claude:** na barra do navegador, **Mostrar ao Claude**: o print vai para a
       caixa como anexo; mande "o que você vê?".
 - [ ] **Servidor:** num projeto Vite, peça "rode npm run dev em segundo plano": o card do comando
       tem **Abrir http://localhost:5173/ na pré-visualização**.
 - [ ] **Markdown e PDF:** `/preview README.md` abre o Markdown no painel (Esc fecha);
-      `/preview ~/algum.pdf` abre o PDF na janela.
+      `/preview ~/algum.pdf` abre o PDF no navegador da bancada.
 - [ ] **Fora:** `/preview https://example.com` diz que só vale o que é desta máquina; um link
       para outro site dentro da página não navega.
 
@@ -1086,3 +1086,42 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       usado); gere outro QR (feche e abra as configurações depois de 10 minutos).
 - [ ] **Esquecer:** **Esquecer os celulares**: o celular volta a pedir o pareamento.
 - [ ] **Desligar:** desligue: a página para de responder.
+
+## A bancada: navegador e terminal (Fase 55)
+
+- [ ] **Abrir:** com o painel ao lado do mascote, **Ctrl+Shift+B** (ou o botão da janela dividida
+      no pé da barra lateral): a bancada aparece à direita da conversa e a janela alarga. De
+      novo: ela fecha e a janela volta à largura de antes.
+- [ ] **Terminal:** numa conversa numa pasta de projeto, aba **Terminal**: o shell abre nessa
+      pasta (`pwd`). Rode `npm run dev` (ou `python3 -m http.server 8000`): aparece **Abrir
+      http://localhost:… no navegador da bancada**, e o clique mostra a página.
+- [ ] **O Claude muda, a página acompanha:** peça uma mudança visível na página: com o servidor
+      de desenvolvimento, ela recarrega sozinha; **Mostrar ao Claude** põe o print na caixa.
+- [ ] **Navegar:** clique num link da página e use voltar e avançar; o endereço acompanha. Um
+      link para outro site não navega. **Abrir no navegador do sistema** abre lá.
+- [ ] **Seleção:** marque um erro no terminal e **Seleção para a conversa**: o texto vai para a
+      caixa, num bloco de código, sem mandar.
+- [ ] **Vários:** o **+** abre outro terminal (até 4); feche a bancada com um servidor rodando e
+      abra de novo: ele continua lá, com o que tinha mostrado.
+- [ ] **Divisória e janela:** arraste a divisória; maximize a janela e divida a conversa em dois
+      painéis (Ctrl+\\): a bancada continua à direita, e a página do navegador fica no lugar.
+- [ ] **Por cima:** com uma página aberta, Ctrl+P: a paleta aparece inteira (a página sai da
+      frente) e a página volta ao fechar. O mesmo com um arquivo aberto no visualizador.
+- [ ] **Zoom:** Ctrl+mais duas vezes: a página do navegador continua no lugar reservado.
+- [ ] **Voltar:** feche e abra o Wisp: a bancada volta aberta, na mesma aba e largura, e o
+      navegador vazio mostra os últimos endereços.
+- [ ] **Windows:** o terminal abre o PowerShell na pasta da conversa; o navegador mostra um HTML.
+
+## O desenho novo (Fase 56)
+
+- [ ] **Escuro e claro:** troque o tema nas configurações: a conversa, um card de permissão, as
+      configurações, o histórico e o quadro aparecem sem contornos nem degradês, com o texto
+      legível nos dois.
+- [ ] **A barra lateral:** sessões, quadro e histórico em cima; a bancada e as configurações no
+      pé. A tela aberta fica com o botão na cor de destaque; o título do cabeçalho aparece
+      inteiro num painel estreito.
+- [ ] **O humor:** com um pedido esperando, a linha do cabeçalho fica âmbar; com o Claude
+      trabalhando, ciano.
+- [ ] **Alto contraste:** ligue nas configurações: os contornos voltam em tudo.
+- [ ] **Janela larga:** maximize: a conversa e a caixa de texto ficam numa coluna no meio.
+- [ ] **A ilha e o celular:** a ilha aberta e a página do celular usam as mesmas cores.
