@@ -112,7 +112,9 @@ async function play(lines: Line[], turn: string): Promise<void> {
       await say(line.say, turn)
     } else if (line.approve) {
       const { tool, input } = line.approve as { tool: string; input: unknown }
-      const toolUseId = `toolu_${turn}_${++blocks}`
+      // Já com o turno no fim, como os ids da gravação depois do withTurn: o resultado da
+      // ferramenta (que passa por ele de novo) chega com o mesmo id do pedido.
+      const toolUseId = `toolu_${++blocks}-${turn}`
       const messageId = `${turn}-${blocks}`
       out({ type: 'stream_event', event: { type: 'message_start', message: { id: messageId } } })
       out({
@@ -144,12 +146,17 @@ async function play(lines: Line[], turn: string): Promise<void> {
   }
 }
 
-/** Os ids das mensagens e das ferramentas da gravação ganham o número do turno (não se repetem). */
+/**
+ * Os ids das mensagens e das ferramentas da gravação ganham o número do turno (não se repetem). Um
+ * id que já tem o turno fica como está: o de um pedido aprovado volta por aqui no resultado dele.
+ */
 function withTurn(line: Line, turn: string): Line {
+  const suffix = (match: string, id: string): string =>
+    id.endsWith(`-${turn}`) ? match : `"${id}-${turn}"`
   return JSON.parse(
     JSON.stringify(line)
-      .replace(/"(msg_[\w-]+)"/g, `"$1-${turn}"`)
-      .replace(/"(toolu_[\w-]+)"/g, `"$1-${turn}"`)
+      .replace(/"(msg_[\w-]+)"/g, suffix)
+      .replace(/"(toolu_[\w-]+)"/g, suffix)
   ) as Line
 }
 
