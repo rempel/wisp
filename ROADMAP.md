@@ -2074,6 +2074,151 @@ Notas da entrega:
   navegador). Ela pegou que um QR novo com a página já aberta não pareava: agora a página lê o
   código também no `hashchange`.
 
+### Fase 55: a bancada (navegador e terminal ao lado da conversa)
+
+**Status:** pronta, esperando validação (testes: `test/bancada.test.ts`, com um shell de verdade
+num pseudo-terminal; `e2e/bancada.mjs`, no job do Linux do CI; o `e2e/preview.mjs` passou a
+conferir a página dentro do painel, no Linux e no **Windows**). Veio de um pedido de uso: a janela
+dividida do Claude Desktop, com o preview e o terminal ao lado da conversa.
+
+- **A bancada (G):** uma coluna à direita das conversas, na mesma janela, com duas abas:
+  **Navegador** e **Terminal**. Abre e fecha no botão do cabeçalho, com **Ctrl+Shift+B** e pela
+  paleta; a divisória se arrasta (duplo clique volta ao tamanho de começo). Ao lado do mascote, a
+  janela alarga para ela caber, como faz com os painéis da grade; solta ou maximizada, a bancada
+  reparte o espaço. Aberta ou não, a aba e a largura voltam ao abrir o Wisp.
+- **O navegador (M):** a pré-visualização da Fase 47 sai da janela à parte e passa a morar na
+  bancada, com voltar, avançar, recarregar, o campo do endereço, **Mostrar ao Claude**, abrir no
+  navegador do sistema e os últimos endereços abertos. As regras são as mesmas: só arquivos e
+  endereços desta máquina, sem cookies do painel, sem permissões e sem sair do servidor (ou da
+  pasta) em que abriu; e agora também sem baixar arquivos.
+- **O terminal (M):** o seu shell, num terminal de verdade (node-pty e xterm.js, os mesmos do
+  modo terminal), na pasta da conversa em foco. Até 4, cada um numa abinha. É você quem digita: o
+  Claude não lê nem escreve ali. **Seleção para a conversa** põe o que você marcou na caixa de
+  texto, num bloco de código; um `http://localhost:porta` na saída vira um atalho para abrir no
+  navegador da bancada. Com a bancada fechada, os terminais continuam rodando.
+
+**Aceite:** com uma conversa numa pasta de projeto, o **Ctrl+Shift+B** abre a bancada; no
+terminal, `npm run dev` sobe o servidor e o atalho abre a página no navegador, ao lado da
+conversa; um pedido ao Claude que muda a página aparece nela (o servidor recarrega); **Mostrar ao
+Claude** põe o print na caixa; fechar e abrir o Wisp traz a bancada de volta como estava.
+
+Notas da entrega:
+
+- a página do navegador é uma `WebContentsView` dentro da janela do painel, e não um `<webview>`:
+  ela fica noutra sessão, sem preload e no sandbox, como a janela da Fase 47, e o CSP do painel
+  não precisa abrir nada. A página do painel reserva o lugar e diz ao main onde ele fica (com o
+  zoom do painel na conta);
+- uma vista nativa fica por cima de tudo o que a página do painel desenha: com a paleta, um
+  arquivo aberto, um Markdown, um arraste (de arquivo, de aba ou da divisória), a página do
+  navegador sai da frente e volta depois. Um menu de uma pílula que passasse por cima dela ficaria
+  escondido; os de hoje cabem no painel deles;
+- o terminal da bancada é um shell, e não o Claude Code: o modo terminal (Fase 17) continua na
+  aba da conversa. O `claude` rodado ali à mão aparece na aba Sessões, como o de qualquer
+  terminal. O shell é o `$SHELL` (ou o bash; no Windows, o PowerShell; no Flatpak, o do sistema,
+  pelo `flatpak-spawn --host`), com o ambiente do app sem as variáveis do npm e do Electron;
+- o que ficou de fora desta fase: o Claude ver a bancada sozinho (o console da página, a saída
+  do terminal), páginas da internet e mais de uma página aberta. Estão nas propostas abaixo.
+
+### Fase 56: o desenho novo (plano)
+
+**Status:** pronta, esperando validação (os testes de ponta a ponta do painel rodam com o desenho
+novo). Veio de um pedido de uso: um visual moderno, bonito e plano, e o layout ajustado.
+
+- **As cores (M):** uma paleta neutra, clara e escura, com uma cor de destaque (o ciano do
+  fogo-fátuo). Três tons de fundo: o painel (`--bg`), o que fica em cima dele (`--surface`) e os
+  controles (`--raised`).
+- **Plano (M):** as formas são preenchidas, sem contorno (o `--border` só aparece no alto
+  contraste); as áreas se separam por uma linha fina (`--line`). Saíram o degradê do alto do
+  painel (o humor do Wisp tinge a linha do cabeçalho), o brilho que passava pelo texto do estado
+  e o halo dos pontinhos. O que flutua (os menus, a paleta) tem um fio e uma sombra curta.
+- **O layout (M):** a navegação saiu do cabeçalho, onde espremia o título, para uma barra fina à
+  esquerda: sessões, quadro e histórico em cima; a bancada e as configurações no pé. As abas são
+  formas preenchidas; a caixa de texto e os botões ficaram maiores; numa janela larga, a conversa
+  e a caixa ficam numa coluna de até 820 px no meio.
+- **O resto (P):** os raios dos cantos em quatro tamanhos (`--r-xs` a `--r-lg`), as barras de
+  rolagem finas e sem setas em todo o painel, e as mesmas cores na ilha, no terminal, no editor e
+  na página do celular.
+
+**Aceite:** no claro e no escuro, a conversa, os cards, as configurações, o histórico, o quadro,
+a paleta e a bancada aparecem sem contornos nem degradês, com o texto legível; no alto contraste,
+os contornos voltam; num painel de 420 px, o título do cabeçalho aparece inteiro.
+
+Notas da entrega:
+
+- os botões da navegação continuam filhos do cabeçalho no HTML (um `<nav>` que o CSS põe na
+  lateral): o leitor de tela e os testes os acham no mesmo lugar;
+- o mascote não mudou: o brilho dele é o personagem, não a interface.
+
+## Da revisão do projeto (novembro de 2026): o que vem depois
+
+Uma revisão do código, dos testes e da documentação, junto com o pedido da Fase 55. São
+propostas: cada uma vira uma fase, com o aceite dela, quando for a vez.
+
+**Para a bancada**
+
+- **Fase 57: o Claude vê a bancada (M).** Duas ferramentas no servidor `desktop`, com card: o
+  print e os erros do console da página aberta no navegador, e as últimas linhas de um terminal.
+  Hoje é você quem mostra (o **Mostrar ao Claude**, a **Seleção para a conversa**); com elas, o
+  Claude confere sozinho o que acabou de mudar, como no preview do Claude Desktop. Na barra do
+  navegador, um contador dos erros do console, com **Mandar os erros ao Claude**.
+- **Fase 58: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
+  porta), lidos do `.claude/launch.json` (o arquivo que o Claude Code Desktop usa) ou guardados
+  pelo Wisp: um botão **Rodar** na bancada sobe o comando num terminal e abre o navegador quando
+  a porta responde. Um comando lido da pasta só roda depois de mostrado e confirmado.
+- **Fase 59: a aba Mudanças (M).** Uma terceira aba na bancada: os arquivos que a conversa mexeu
+  (as cópias da Fase 42 e o `git status` da pasta), com o diff no Monaco e o desfazer por arquivo.
+  O card do fim do turno resume; a aba deixa acompanhar durante.
+- **Pequenos, para a bancada (P cada):** tamanhos de tela no navegador (celular, tablet, largura
+  livre); apontar um elemento da página e mandar o seletor com o recorte para a conversa; a busca
+  no terminal (`@xterm/addon-search`) e os links clicáveis (`@xterm/addon-web-links`, o localhost
+  no navegador da bancada); **Rodar no terminal** nos blocos de código das respostas (cola sem
+  enviar: o Enter é seu); a bancada embaixo, e não só à direita; destacar o navegador numa janela
+  (o que a Fase 47 fazia); uma lista de sites de documentação permitidos, escolhida por você
+  (`previewAllowedHosts`), para ler a documentação ao lado sem abrir a internet inteira.
+
+**Para o código**
+
+- **Os arquivos no limite (M).** `chat.ts` (994 linhas), `conversation.ts` (994), `Pane.tsx`
+  (961), `SettingsView.tsx` (939) e `index.ts` (937) estão encostados nas 1.000 linhas do
+  `test/manutencao.test.ts`, e cada fase nova tem de tirar algo antes de pôr. O `setupChat` é uma
+  função só, com a janela, as abas, o IPC e o que o resto do main usa: o IPC por assunto e a
+  criação da janela saem para módulos, como já saíram o `chat-tabs.ts` e o `chat-points.ts`. O
+  `index.ts` liga uns quarenta recursos em sequência: um registro de recursos (ligar, desligar,
+  depender de) tira a ordem da cabeça de quem mexe.
+- **O IPC conferido num lugar só (M).** Cada `ipcMain.on` confere quem mandou e os tipos à mão
+  (`typeof id === 'string'`…). O `zod` já está no projeto (o config, o MCP): um `handle(canal,
+esquema, função)` que confere o remetente e os argumentos tira umas centenas de linhas e um tipo
+  de erro inteiro.
+- **Os fusíveis do Electron (P).** Os pacotes saem sem `electronFuses`. O relay dos hooks precisa
+  do `RunAsNode`, mas o `EnableNodeOptionsEnvironmentVariable` e o
+  `EnableNodeCliInspectArguments` podem ser desligados sem mexer em nada do que o Wisp usa.
+- **Os testes de ponta a ponta (M).** São 48 roteiros num processo só, um depois do outro, com
+  uns 200 `sleep` fixos: lentos, e os que dependem de tempo falham de vez em quando. Trocar as
+  esperas fixas por `waitFor` e repartir os roteiros em 3 ou 4 jobs do CI (cada um com o Xvfb
+  dele) corta o tempo pela metade. A página do painel não tem teste de unidade de componente: o
+  redutor (`state.ts`) e as funções puras têm, os componentes só pelo e2e.
+- **A documentação (P).** O README tem 150 KB e o ROADMAP, 140 KB: o guia de uso por assunto em
+  `docs/guia/`, com o README só com o começo (o que é, instalar, primeiros passos), fica mais
+  fácil de ler e de manter. As fases validadas do ROADMAP podem ir para um `docs/HISTORICO.md`.
+- **Versões (P).** O projeto está na 0.1.0 com 55 fases em "Não lançado" e nenhuma tag: cortar a
+  0.2.0 agora (com o que foi validado até a Fase 45) e uma versão a cada leva de fases validadas dá
+  a quem instala o que o aviso de versão nova (Fase 20) e o Atualizar (Fase 31) prometem.
+
+**Funcionalidades novas**
+
+- **Fase 60: o plano à vista (M).** No modo Planejar, o plano num painel próprio (na bancada),
+  com os passos marcados conforme o Claude avança (os `TodoWrite` da conversa), editar o plano
+  antes de aceitar e voltar a ele depois.
+- **Fase 61: projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume, os servidores
+  da Fase 58 e as instruções dela: a barra de abas agrupa por projeto, o histórico filtra, e
+  **Conversa nova** num projeto já vem pronta. Hoje a pasta é escolhida a cada conversa.
+- **Fase 62: revisar um PR (M).** De um alerta do GitHub (Fase 13) ou de um endereço: a conversa
+  abre numa cópia do Git (Fase 43) com o diff do PR na aba Mudanças, e os comentários do Claude
+  viram um rascunho de revisão que você confere antes de mandar pelo `gh`.
+- **Pequenos (P cada):** a memória do Wisp à vista (o que o `CLAUDE.md` do workspace e os das
+  pastas dizem, com editar pelo painel, com backup); fixar uma mensagem da conversa; o custo
+  estimado antes de mandar um anexo grande; um atalho global para a bancada.
+
 ## Ideias avaliadas e deixadas de fora
 
 - **Chat com outros provedores e modelos locais, por fora do Claude Code.** Dois cérebros com
@@ -2087,6 +2232,10 @@ Notas da entrega:
 - **Da ilha do Coucou** (Fase 37), o que não é da ilha ou não cabe no Wisp: o gravador de
   chamadas, o « OK Coucou », o WhatsApp, os apps de celular (o Wisp aprova pelo celular pelo ntfy)
   e as integrações de negócio. O ditado, deixado de fora aqui, veio na Fase 53.
+- **Páginas da internet no navegador da bancada** (Fase 55). Um navegador de verdade dentro do
+  Wisp pede o que um navegador pede (abas, senhas, downloads, atualizações de segurança no ritmo
+  do Chromium), e o do sistema já faz isso. O navegador da bancada mostra o que está nesta
+  máquina; uma lista de sites de documentação, escolhida por você, é uma proposta à parte.
 - **App de iPhone:** fora do Linux. Aprovar pelo celular virou a Fase 18, e conversar pelo
   celular, por uma página na rede local, a Fase 54.
 

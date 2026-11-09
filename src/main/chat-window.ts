@@ -7,6 +7,7 @@ import type { BrowserWindow, Rectangle } from 'electron'
 import { columns, rows } from '../shared/layout'
 import type { Layout } from '../shared/layout'
 import type { SavedWindow } from './chat-tabs'
+import { WORKBENCH_WIDTH } from '../shared/ipc-workbench'
 
 /** Largura de cada painel (a janela cresce com a tela dividida) e altura da janela. */
 export const PANE_WIDTH = 420
@@ -26,6 +27,8 @@ export class PanelPlacement {
   /** A largura de cada painel (você pode ter redimensionado) e quantos a janela mostra. */
   paneWidth = PANE_WIDTH
   shownPanes = 1
+  /** A largura da bancada na janela (Fase 55); 0 com ela fechada. */
+  side = 0
   /** Os limites que o próprio Wisp deu à janela por último (para saber se foi você que a mexeu). */
   private placedBounds: Rectangle | null = null
   private placedAt = 0
@@ -105,14 +108,14 @@ export class PanelPlacement {
       this.window = { detached: false, maximized: false }
       this.changed()
     }
-    this.besideMascot(chat, this.paneWidth * columns(layout))
+    this.besideMascot(chat, this.paneWidth * columns(layout) + this.side)
   }
 
   /** Volta para perto do mascote (o botão da página). */
   dock(chat: BrowserWindow, layout: Layout | null): void {
     this.window = { detached: false, maximized: false }
     if (chat.isMaximized()) chat.unmaximize()
-    this.besideMascot(chat, this.paneWidth * columns(layout))
+    this.besideMascot(chat, this.paneWidth * columns(layout) + this.side)
     this.changed()
   }
 
@@ -120,7 +123,10 @@ export class PanelPlacement {
   minimumSize(chat: BrowserWindow, layout: Layout | null): [number, number] {
     const area = screen.getDisplayMatching(chat.getBounds()).workArea
     return [
-      Math.min(PANE_MIN_WIDTH * columns(layout), area.width),
+      Math.min(
+        PANE_MIN_WIDTH * columns(layout) + (this.side ? WORKBENCH_WIDTH.min : 0),
+        area.width
+      ),
       Math.min(Math.max(360, PANE_MIN_HEIGHT * rows(layout) + 90), area.height)
     ]
   }
@@ -140,9 +146,27 @@ export class PanelPlacement {
       return
     }
     const [width] = chat.getSize()
-    this.paneWidth = Math.max(PANE_MIN_WIDTH, Math.round(width / this.shownPanes))
+    this.paneWidth = Math.max(PANE_MIN_WIDTH, Math.round((width - this.side) / this.shownPanes))
     this.shownPanes = cols
-    this.besideMascot(chat, this.paneWidth * cols)
+    this.besideMascot(chat, this.paneWidth * cols + this.side)
+  }
+
+  /**
+   * A bancada abriu, fechou ou mudou de largura (Fase 55). Com `grow` (abrir e fechar), a janela
+   * ao lado do mascote alarga ou estreita, e os painéis ficam como estavam; sem ele (a divisória
+   * arrastada), a janela fica e os painéis é que cedem. Solta ou maximizada, ela não muda.
+   */
+  setSide(chat: BrowserWindow | null, layout: Layout | null, side: number, grow: boolean): void {
+    if (this.side === side) return
+    this.side = side
+    if (!chat) return
+    const [minWidth, minHeight] = this.minimumSize(chat, layout)
+    chat.setMinimumSize(minWidth, minHeight)
+    if (this.window.detached || chat.isMaximized()) return
+    const cols = columns(layout)
+    if (grow) return this.besideMascot(chat, this.paneWidth * cols + side)
+    const [width] = chat.getSize()
+    this.paneWidth = Math.max(PANE_MIN_WIDTH, Math.round((width - side) / cols))
   }
 
   /**

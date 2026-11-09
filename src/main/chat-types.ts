@@ -1,6 +1,6 @@
 // O que o painel de chat oferece ao resto do Wisp (o Chat do setupChat) e o que ele recebe.
 
-import type { Rectangle, WebContents } from 'electron'
+import type { BrowserWindow, Rectangle, WebContents } from 'electron'
 import type { RelayEvent } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
@@ -95,6 +95,10 @@ export interface Chat {
   requestApproval(request: ApprovalRequest): Promise<Approval>
   /** O IPC veio da página do painel? */
   isSender(sender: WebContents): boolean
+  /** A janela do painel (null: ainda não abriu), para a bancada pôr o navegador nela (Fase 55). */
+  window(): BrowserWindow | null
+  /** A largura que a bancada ocupa na janela; `grow`: a janela ao lado do mascote acompanha. */
+  sideWidth(px: number, grow: boolean): void
   /** As sessões do terminal mudaram: a aba Sessões busca de novo. */
   notifySessions(): void
   /** Uma sessão do terminal pede algo: o painel aparece (sem roubar o foco) na aba Sessões. */

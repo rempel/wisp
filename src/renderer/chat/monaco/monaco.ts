@@ -30,10 +30,10 @@ const dark = window.matchMedia('(prefers-color-scheme: dark)')
 function applyTheme(): void {
   const contrast = document.documentElement.classList.contains('contrast')
   const base = contrast ? (dark.matches ? 'hc-black' : 'hc-light') : dark.matches ? 'vs-dark' : 'vs'
-  const background = color('--code-bg', dark.matches ? '#071015' : '#f0f6f8')
-  const text = color('--text', dark.matches ? '#e2f1f4' : '#0c2a33')
-  const muted = color('--muted', '#58747d')
-  const border = color('--border', '#d6e7eb')
+  const background = color('--code-bg', dark.matches ? '#0b0d0e' : '#eceff1')
+  const text = color('--text', dark.matches ? '#eceff1' : '#14181b')
+  const muted = color('--muted', '#5c676e')
+  const border = color('--line', '#e2e6e9')
   const surface = color('--surface', background)
   monaco.editor.defineTheme('wisp', {
     base,
@@ -47,9 +47,9 @@ function applyTheme(): void {
       'editorLineNumber.activeForeground': text,
       'editorWidget.background': surface,
       'editorWidget.border': border,
-      focusBorder: color('--accent', '#0891b2'),
-      'scrollbarSlider.background': `${color('--scrollbar', '#c5dbe1').slice(0, 7)}99`,
-      'scrollbarSlider.hoverBackground': color('--scrollbar', '#c5dbe1').slice(0, 7)
+      focusBorder: color('--accent', '#0a8aa6'),
+      'scrollbarSlider.background': `${color('--scrollbar', '#c9d0d5').slice(0, 7)}99`,
+      'scrollbarSlider.hoverBackground': color('--scrollbar', '#c9d0d5').slice(0, 7)
     }
   })
   monaco.editor.setTheme('wisp')

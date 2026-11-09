@@ -294,6 +294,39 @@ export const ChevronDownIcon = (): JSX.Element => (
 )
 
 /** Alto-falante com ondas: sons ligados. */
+/** A bancada (Fase 55): a janela com um painel à direita. */
+export const WorkbenchIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="2" y="3" width="12" height="10" rx="1.8" />
+    <path d="M9.5 3v10" />
+  </Icon>
+)
+
+export const GlobeIcon = (): JSX.Element => (
+  <Icon>
+    <circle cx="8" cy="8" r="5.5" />
+    <path d="M2.5 8h11M8 2.5c-2 2-2 9 0 11M8 2.5c2 2 2 9 0 11" />
+  </Icon>
+)
+
+export const ReloadIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M13 8a5 5 0 1 1-1.6-3.7M13 2.8v2.6h-2.6" />
+  </Icon>
+)
+
+export const ForwardIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M3 8h9.5M8.5 4l4 4-4 4" />
+  </Icon>
+)
+
+export const ExternalIcon = (): JSX.Element => (
+  <Icon>
+    <path d="M9 3h4v4M13 3 7.5 8.5M11 9.5v2.2A1.3 1.3 0 0 1 9.7 13H4.3A1.3 1.3 0 0 1 3 11.7V6.3A1.3 1.3 0 0 1 4.3 5h2.2" />
+  </Icon>
+)
+
 export const SoundOnIcon = (): JSX.Element => (
   <Icon>
     <path d="M2.8 6.2h2.3l3.4-2.7v9L5.1 9.8H2.8a.5.5 0 0 1-.5-.5V6.7a.5.5 0 0 1 .5-.5Z" />
