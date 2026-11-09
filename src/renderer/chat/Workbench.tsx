@@ -288,13 +288,19 @@ function TerminalTab({
           {terminals.map((item) => (
             <span
               key={item.id}
-              className={`workbench-shell${item.id === active?.id ? ' active' : ''}${item.exited ? ' exited' : ''}`}
+              className={`workbench-shell${item.id === active?.id ? ' active' : ''}${item.exited ? ' exited' : ''}${item.claude ? ' claude' : ''}`}
             >
               <button
                 type="button"
                 role="tab"
                 aria-selected={item.id === active?.id}
-                title={item.cwd}
+                title={
+                  item.claude
+                    ? t('O terminal do Claude nesta conversa: ele roda e lê aqui ({cwd})', {
+                        cwd: item.cwd
+                      })
+                    : item.cwd
+                }
                 onClick={() => {
                   setFocus(true)
                   setPicked(item.id)

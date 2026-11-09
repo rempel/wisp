@@ -9,6 +9,7 @@ import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { DATA_DIR } from './paths'
 import { setupPreview } from './preview'
+import type { PreviewControl } from './preview'
 import { Shells } from './shells'
 import { IPC } from '../shared/ipc'
 import type { DroppedFiles, WorkbenchChange, WorkbenchState } from '../shared/ipc'
@@ -31,6 +32,26 @@ export interface WorkbenchHost {
    * alarga ou estreita junto (abrir e fechar); sem ele, só a divisão muda (a divisória).
    */
   sideWidth(px: number, grow: boolean): void
+  /** A pasta de uma conversa (null: sem pasta, ou a conversa já fechou). */
+  folderOf(conversation: string | undefined): string | null
+}
+
+/**
+ * O que o Claude faz na bancada, pelas ferramentas do servidor `desktop` (Fase 57): abre, vê e
+ * mexe na página do navegador embutido, e roda e lê no terminal dele (um por conversa).
+ */
+export interface WorkbenchControl {
+  preview: PreviewControl
+  /** A pasta da conversa, para um caminho relativo. */
+  folderOf(conversation: string | undefined): string | null
+  /** Roda um comando no terminal do Claude da conversa; devolve a saída até ela assentar. */
+  terminalRun(
+    conversation: string | undefined,
+    command: string,
+    waitMs: number
+  ): Promise<string | { error: string }>
+  /** As últimas linhas do terminal do Claude da conversa (null: ele ainda não abriu um). */
+  terminalRead(conversation: string | undefined, lines: number): string | null
 }
 
 type Saved = Pick<WorkbenchState, 'open' | 'tab' | 'width' | 'recent'>
@@ -54,7 +75,10 @@ export function withRecent(recent: string[], input: string): string[] {
   return [input, ...recent.filter((item) => item !== input)].slice(0, MAX_RECENT)
 }
 
-export function setupWorkbench(host: WorkbenchHost): { dispose(): void } {
+export function setupWorkbench(host: WorkbenchHost): {
+  control: WorkbenchControl
+  dispose(): void
+} {
   let saved: unknown = null
   try {
     saved = JSON.parse(readFileSync(FILE, 'utf8'))
@@ -109,7 +133,7 @@ export function setupWorkbench(host: WorkbenchHost): { dispose(): void } {
 
   const from = (event: IpcMainEvent | IpcMainInvokeEvent): boolean => host.isSender(event.sender)
 
-  setupPreview({
+  const preview = setupPreview({
     isSender: host.isSender,
     window: host.window,
     attach: host.attach,
@@ -146,7 +170,26 @@ export function setupWorkbench(host: WorkbenchHost): { dispose(): void } {
     if (from(event) && typeof id === 'string') shells.resize(id, Number(cols), Number(rows))
   })
 
+  /** Sem a conversa (um pedido de fora de uma aba), o terminal do Claude é um só. */
+  const ownerOf = (conversation: string | undefined): string => conversation ?? 'claude'
+  const control: WorkbenchControl = {
+    preview,
+    folderOf: host.folderOf,
+    async terminalRun(conversation, command, waitMs) {
+      const id = shells.forOwner(ownerOf(conversation), host.folderOf(conversation))
+      if (typeof id !== 'string') return id
+      // O terminal aparece: o que o Claude roda fica à vista.
+      apply({ open: true, tab: 'terminal' })
+      return shells.run(id, command, waitMs)
+    },
+    terminalRead(conversation, lines) {
+      const id = shells.ownedBy(ownerOf(conversation))
+      return id ? shells.tail(id, lines) : null
+    }
+  }
+
   return {
+    control,
     dispose() {
       if (saveTimer) save()
       shells.dispose()

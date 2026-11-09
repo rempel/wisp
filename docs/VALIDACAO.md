@@ -1125,3 +1125,18 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Alto contraste:** ligue nas configurações: os contornos voltam em tudo.
 - [ ] **Janela larga:** maximize: a conversa e a caixa de texto ficam numa coluna no meio.
 - [ ] **A ilha e o celular:** a ilha aberta e a página do celular usam as mesmas cores.
+
+## O Claude usa a bancada (Fase 57)
+
+- [ ] **Abrir:** numa conversa numa pasta com um `index.html`, peça "abre o index.html no
+      navegador daqui": a bancada aparece com a página, sem abrir o navegador do sistema.
+- [ ] **Ver:** "o que aparece na página? tem erro no console?": o Claude responde pelo print,
+      pelo texto e pelo console, sem card.
+- [ ] **Servidor:** "sobe o servidor de desenvolvimento e me mostra": o card do comando
+      aparece; permitido, o comando roda no terminal **Claude · pasta** da bancada e a página
+      abre no navegador.
+- [ ] **Mexer:** "clica no botão Entrar": o card do clique aparece; permitido, a página reage.
+- [ ] **Os seus terminais:** abra um terminal seu na bancada e rode algo; peça "o que tem no meu
+      terminal?": o Claude só lê o dele.
+- [ ] **Fora:** "abre o google.com no navegador daqui": ele diz que a bancada só mostra o que é
+      desta máquina e oferece o navegador do sistema.

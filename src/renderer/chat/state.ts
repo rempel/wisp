@@ -552,6 +552,22 @@ export function toolActivity(name: string, input: unknown): string {
       return t('vendo as janelas abertas…')
     case 'mcp__desktop__focus_window':
       return t('trazendo a janela para a frente…')
+    case 'mcp__desktop__preview_open':
+      return t('abrindo no navegador da bancada…')
+    case 'mcp__desktop__preview_screenshot':
+      return t('olhando a página…')
+    case 'mcp__desktop__preview_read':
+    case 'mcp__desktop__preview_console':
+      return t('lendo a página…')
+    case 'mcp__desktop__preview_click':
+      return t('clicando na página…')
+    case 'mcp__desktop__preview_fill':
+    case 'mcp__desktop__preview_eval':
+      return t('mexendo na página…')
+    case 'mcp__desktop__terminal_run':
+      return t('rodando no terminal da bancada…')
+    case 'mcp__desktop__terminal_read':
+      return t('lendo o terminal…')
     case 'mcp__playwright__browser_navigate':
       try {
         return t('abrindo {host}…', { host: new URL(field(input, 'url')).host })

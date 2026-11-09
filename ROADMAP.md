@@ -2116,8 +2116,8 @@ Notas da entrega:
   aba da conversa. O `claude` rodado ali à mão aparece na aba Sessões, como o de qualquer
   terminal. O shell é o `$SHELL` (ou o bash; no Windows, o PowerShell; no Flatpak, o do sistema,
   pelo `flatpak-spawn --host`), com o ambiente do app sem as variáveis do npm e do Electron;
-- o que ficou de fora desta fase: o Claude ver a bancada sozinho (o console da página, a saída
-  do terminal), páginas da internet e mais de uma página aberta. Estão nas propostas abaixo.
+- o que ficou de fora desta fase: o Claude usar a bancada sozinho (veio na Fase 57), páginas da
+  internet e mais de uma página aberta.
 
 ### Fase 56: o desenho novo (plano)
 
@@ -2149,6 +2149,44 @@ Notas da entrega:
   lateral): o leitor de tela e os testes os acham no mesmo lugar;
 - o mascote não mudou: o brilho dele é o personagem, não a interface.
 
+### Fase 57: o Claude usa a bancada
+
+**Status:** pronta, esperando validação (testes: `test/bancada-claude.test.ts`, com as
+ferramentas chamadas pelo servidor MCP e um shell de verdade; `e2e/bancada-claude.mjs`, com o app
+de verdade, no job do Linux do CI). Veio de um pedido de uso: pedir ao Wisp para usar o
+navegador e o terminal embutidos abria o navegador do sistema, o do Playwright ou nada, porque o
+Claude não tinha como alcançar a bancada.
+
+- **O navegador (M):** as ferramentas `preview_open` (abre um localhost ou um arquivo no
+  navegador da bancada, que aparece), `preview_screenshot` (o print da página),
+  `preview_read` (o endereço, o título e o texto) e `preview_console` (o console e as falhas de
+  carga), sem card: a página é desta máquina e fica à sua vista. `preview_click`,
+  `preview_fill` e `preview_eval` mexem na página e passam pelo card.
+- **O terminal (M):** `terminal_run` roda um comando num terminal do Claude na bancada, na pasta
+  da conversa, à sua vista, e devolve a saída até ela assentar (um servidor segue rodando);
+  passa pelo card, como o Bash. `terminal_read` lê as últimas linhas, sem card. O terminal do
+  Claude é um por conversa, com o nome dele na abinha; os seus continuam só seus.
+- **Saber que existe (P):** as instruções do Wisp ao Claude e as descrições do `open_url` e do
+  `open_terminal` dizem para usar a bancada para o projeto, e não o navegador do sistema nem o
+  do Playwright.
+
+**Aceite:** numa conversa numa pasta de projeto, "sobe o servidor e me mostra a página" pede o
+card do comando, o servidor aparece rodando no terminal do Claude, a página abre no navegador da
+bancada e o Claude diz o que viu nela (o print, o console); "clica em Entrar" pede o card e a
+página reage.
+
+Notas da entrega:
+
+- as ferramentas ficam em `mcp-workbench.ts` e leem a bancada a cada chamada (ela sobe depois do
+  servidor MCP). O clique e o preenchimento rodam um JavaScript fixo na página, com o seletor e o
+  valor passados como dados (`JSON.stringify`), nunca colados no código;
+- o print da página com a bancada fechada (ou noutra aba) mostra a vista só durante o print, no
+  último lugar que ela teve;
+- a saída do terminal vai para o Claude em texto: sem as cores e os controles do terminal, e
+  com cada linha como ficou na tela (uma barra de progresso vira a última versão dela);
+- continua de fora: páginas da internet no navegador da bancada (o `preview_open` recusa e
+  aponta o `open_url`) e o Claude ler os terminais que você abriu.
+
 ## Da revisão do projeto (novembro de 2026): o que vem depois
 
 Uma revisão do código, dos testes e da documentação, junto com o pedido da Fase 55. São
@@ -2156,11 +2194,6 @@ propostas: cada uma vira uma fase, com o aceite dela, quando for a vez.
 
 **Para a bancada**
 
-- **Fase 57: o Claude vê a bancada (M).** Duas ferramentas no servidor `desktop`, com card: o
-  print e os erros do console da página aberta no navegador, e as últimas linhas de um terminal.
-  Hoje é você quem mostra (o **Mostrar ao Claude**, a **Seleção para a conversa**); com elas, o
-  Claude confere sozinho o que acabou de mudar, como no preview do Claude Desktop. Na barra do
-  navegador, um contador dos erros do console, com **Mandar os erros ao Claude**.
 - **Fase 58: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
   porta), lidos do `.claude/launch.json` (o arquivo que o Claude Code Desktop usa) ou guardados
   pelo Wisp: um botão **Rodar** na bancada sobe o comando num terminal e abre o navegador quando

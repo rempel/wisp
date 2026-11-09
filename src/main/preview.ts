@@ -8,7 +8,7 @@
 // sozinho quando a pasta dele muda; "Mostrar ao Claude" anexa um print da página na conversa.
 
 import { ipcMain, session, shell, WebContentsView } from 'electron'
-import type { BrowserWindow, IpcMainInvokeEvent, WebContents } from 'electron'
+import type { BrowserWindow, IpcMainInvokeEvent, NativeImage, WebContents } from 'electron'
 import { existsSync, statSync, watch } from 'fs'
 import type { FSWatcher } from 'fs'
 import { dirname, extname, isAbsolute, resolve } from 'path'
@@ -126,6 +126,17 @@ export interface PreviewHost {
 }
 
 const CLOSED: PreviewState = { open: false, display: '', kind: null }
+/** Quantas linhas do console da página ficam guardadas. */
+const MAX_LOGS = 200
+/** Os níveis do console, como o Claude os lê (o Electron antigo os dava em números). */
+const LOG_LEVELS: Record<string, string> = {
+  '0': 'debug',
+  '1': 'info',
+  '2': 'aviso',
+  '3': 'erro',
+  warning: 'aviso',
+  error: 'erro'
+}
 
 /** O lugar da vista na janela: o da página, vezes o zoom do painel, em pixels inteiros. */
 export function viewRect(bounds: ViewBounds, zoom: number): ViewBounds {
@@ -159,6 +170,10 @@ class PreviewPane {
   private reloadTimer: NodeJS.Timeout | null = null
   /** Onde a página do painel quer a vista (null: escondida). */
   private bounds: ViewBounds | null = null
+  /** O último lugar que a vista teve (para um print com ela escondida). */
+  private lastRect: ViewBounds | null = null
+  /** O console da página e as falhas de carga, para o Claude (Fase 57): as últimas linhas. */
+  private logs: string[] = []
   /** A página do painel recarregou: o lugar antigo não vale até ela mandar o novo. */
   private readonly forget = (): void => {
     this.bounds = null
@@ -206,6 +221,7 @@ class PreviewPane {
     if (!view) return
     this.view = null
     this.target = null
+    this.logs = []
     this.unwatch()
     if (this.home && !this.home.isDestroyed()) {
       this.home.webContents.off('did-start-loading', this.forget)
@@ -220,6 +236,78 @@ class PreviewPane {
   place(bounds: ViewBounds | null): void {
     this.bounds = bounds
     this.layout()
+  }
+
+  /** O console da página (as últimas linhas, a mais nova no fim). */
+  console(): string[] {
+    return [...this.logs]
+  }
+
+  /** Espera a página acabar de carregar (até `ms`). */
+  private async settled(ms = 10_000): Promise<void> {
+    const contents = this.view?.webContents
+    if (!contents || contents.isDestroyed()) return
+    const start = Date.now()
+    while (contents.isLoading() && Date.now() - start < ms) {
+      await new Promise((resolve) => setTimeout(resolve, 100))
+    }
+    // Um instante para a página pintar (e para o painel dizer onde ela fica).
+    await new Promise((resolve) => setTimeout(resolve, 250))
+  }
+
+  /**
+   * A imagem da página, depois de carregada. Com a vista escondida (a bancada fechada, outra
+   * aba), ela aparece só durante o print, no último lugar que teve. Devolve o motivo se não der.
+   */
+  async image(): Promise<NativeImage | string> {
+    const view = this.view
+    if (!view) return t('A pré-visualização está fechada.')
+    await this.settled()
+    if (this.view !== view || view.webContents.isDestroyed()) {
+      return t('A pré-visualização está fechada.')
+    }
+    const hidden = !this.bounds
+    try {
+      if (hidden) {
+        view.setBounds(this.lastRect ?? { x: 0, y: 0, width: 1024, height: 720 })
+        view.setVisible(true)
+        await new Promise((resolve) => setTimeout(resolve, 150))
+      }
+      const image = await view.webContents.capturePage()
+      return image.isEmpty() ? t('A página ainda não apareceu.') : image
+    } catch (err) {
+      return (err as Error).message
+    } finally {
+      if (hidden && this.view === view) this.layout()
+    }
+  }
+
+  /**
+   * Roda um trecho de JavaScript na página (ela é isolada: sem o Node, sem o painel) e devolve
+   * o resultado em texto. A página carregada é esperada antes; um trecho que não volta em 10 s
+   * é abandonado.
+   */
+  async evaluate(
+    code: string
+  ): Promise<{ ok: true; value: string } | { ok: false; message: string }> {
+    const view = this.view
+    if (!view) return { ok: false, message: t('A pré-visualização está fechada.') }
+    await this.settled()
+    if (this.view !== view || view.webContents.isDestroyed()) {
+      return { ok: false, message: t('A pré-visualização está fechada.') }
+    }
+    try {
+      const value: unknown = await Promise.race([
+        view.webContents.executeJavaScript(code, true),
+        new Promise((_resolve, reject) =>
+          setTimeout(() => reject(new Error(t('a página não respondeu em 10 segundos'))), 10_000)
+        )
+      ])
+      const shown = typeof value === 'string' ? value : JSON.stringify(value, null, 2)
+      return { ok: true, value: shown ?? 'undefined' }
+    } catch (err) {
+      return { ok: false, message: (err as Error).message }
+    }
   }
 
   /** Um print da página, salvo como anexo. */
@@ -265,7 +353,8 @@ class PreviewPane {
     const view = this.view
     if (!view || !this.home || this.home.isDestroyed()) return
     if (!this.bounds) return view.setVisible(false)
-    view.setBounds(viewRect(this.bounds, this.home.webContents.getZoomFactor()))
+    this.lastRect = viewRect(this.bounds, this.home.webContents.getZoomFactor())
+    view.setBounds(this.lastRect)
     view.setVisible(true)
   }
 
@@ -302,6 +391,31 @@ class PreviewPane {
         this.host.toggle()
       }
     })
+    // O console e as falhas de carga ficam guardados para o Claude ler (as últimas 200 linhas).
+    const log = (line: string): void => {
+      this.logs.push(line.slice(0, 2000))
+      if (this.logs.length > MAX_LOGS) this.logs.splice(0, this.logs.length - MAX_LOGS)
+    }
+    contents.on('console-message', (event, ...old: unknown[]) => {
+      // O Electron novo entrega tudo no evento; o antigo, em argumentos soltos.
+      const details = event as unknown as { level?: unknown; message?: unknown }
+      const level = typeof details.level === 'string' ? details.level : String(old[0] ?? 'info')
+      const message = typeof details.message === 'string' ? details.message : String(old[1] ?? '')
+      // O aviso do próprio Electron (só fora do pacote) não é da página.
+      if (message.startsWith('%cElectron Security Warning')) return
+      log(`[${LOG_LEVELS[level] ?? level}] ${message}`)
+    })
+    contents.on('did-fail-load', (_event, code, description, url, isMainFrame) => {
+      // -3 é uma carga interrompida (outra começou): não é uma falha.
+      if (code !== -3)
+        log(
+          `[erro] ${isMainFrame ? 'a página' : 'um recurso'} não carregou: ${description} (${url})`
+        )
+    })
+    contents.on('did-navigate', (_event, url) => log(`[página] ${url}`))
+    contents.on('render-process-gone', (_event, details) =>
+      log(`[erro] a página caiu (${details.reason})`)
+    )
     const changed = (): void => this.notify()
     contents.on('did-start-loading', changed)
     contents.on('did-stop-loading', changed)
@@ -355,19 +469,32 @@ class PreviewPane {
   }
 }
 
-/** O IPC da pré-visualização: só o painel pede. */
-export function setupPreview(host: PreviewHost): void {
+/** O que o resto do main (as ferramentas do Claude, Fase 57) faz com a pré-visualização. */
+export interface PreviewControl {
+  /** Abre um endereço desta máquina ou um arquivo (`base`: a pasta para um caminho relativo). */
+  open(input: string, base: string | null): PreviewResult
+  state(): PreviewState
+  image(): Promise<NativeImage | string>
+  evaluate(code: string): Promise<{ ok: true; value: string } | { ok: false; message: string }>
+  console(): string[]
+}
+
+/** O IPC da pré-visualização (só o painel pede) e o controle dela para o resto do main. */
+export function setupPreview(host: PreviewHost): PreviewControl {
   const preview = new PreviewPane(host)
   const from = (event: IpcMainInvokeEvent): boolean => host.isSender(event.sender)
+  const open = (input: string, base: string | null): PreviewResult => {
+    const target = previewTarget(input.slice(0, 4096), base)
+    if (typeof target === 'string') return { ok: false, message: target }
+    if (target.kind === 'markdown') return { ok: true, kind: 'markdown', path: target.path }
+    if (!preview.open(target)) return { ok: false, message: t('O painel do Wisp está fechado.') }
+    host.opened(target.display)
+    return { ok: true, kind: target.kind }
+  }
   ipcMain.handle(IPC.previewOpen, (event, input: unknown, base: unknown): PreviewResult => {
     if (!from(event) || typeof input !== 'string')
       return { ok: false, message: t('pedido inválido') }
-    const target = previewTarget(input.slice(0, 4096), typeof base === 'string' ? base : null)
-    if (typeof target === 'string') return { ok: false, message: target }
-    if (target.kind === 'markdown') return { ok: true, kind: 'markdown', path: target.path }
-    if (!preview.open(target)) return { ok: false, message: t('pedido inválido') }
-    host.opened(target.display)
-    return { ok: true, kind: target.kind }
+    return open(input, typeof base === 'string' ? base : null)
   })
   ipcMain.handle(IPC.previewCapture, async (event): Promise<boolean> => {
     if (!from(event)) return false
@@ -391,4 +518,11 @@ export function setupPreview(host: PreviewHost): void {
     if (host.isSender(event.sender)) preview.place(saneBounds(bounds))
   })
   ipcMain.handle(IPC.previewGet, (event): PreviewState => (from(event) ? preview.state() : CLOSED))
+  return {
+    open,
+    state: () => preview.state(),
+    image: () => preview.image(),
+    evaluate: (code) => preview.evaluate(code),
+    console: () => preview.console()
+  }
 }
