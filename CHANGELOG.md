@@ -163,6 +163,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Mudou
 
+- **O desenho novo** (Fase 56): o painel ficou plano. Cores neutras com uma cor de destaque, formas
+  preenchidas no lugar dos contornos, sem degradês nem brilhos, cantos e barras de rolagem
+  padronizados. A navegação (sessões, quadro, histórico, bancada e configurações) foi para uma
+  barra fina à esquerda, e o cabeçalho ficou com o título inteiro. Numa janela larga, a conversa
+  fica numa coluna no meio. A ilha e a página do celular usam as mesmas cores.
 - A pré-visualização (Fase 47) deixou a janela à parte e abre no navegador da bancada (Fase 55),
   dentro da janela do painel; a barra dela acima das abas saiu (os botões estão na bancada). Ela
   também deixou de baixar arquivos.

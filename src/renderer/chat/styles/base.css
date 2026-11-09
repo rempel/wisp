@@ -3,59 +3,76 @@
 
 :root {
   color-scheme: light dark;
-  --font: system-ui, 'Ubuntu', 'Cantarell', 'Noto Sans', sans-serif;
-  --mono: ui-monospace, 'Ubuntu Mono', 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
+  --font: 'Inter', system-ui, 'Ubuntu', 'Cantarell', 'Noto Sans', 'Segoe UI', sans-serif;
+  --mono:
+    ui-monospace, 'JetBrains Mono', 'Ubuntu Mono', 'DejaVu Sans Mono', 'Noto Sans Mono', monospace;
 
-  --bg: #f5fafb;
+  /* O desenho é plano: três tons de fundo (o painel, o que fica em cima dele e o que se
+     destaca), formas preenchidas sem contorno e uma cor de destaque. O --line é a linha fina
+     que separa as áreas; o --border, o contorno das formas, só aparece no alto contraste. */
+  --bg: #f4f5f6;
   --surface: #ffffff;
-  --hover: #e6f1f4;
-  --border: #d6e7eb;
-  --text: #0c2a33;
-  --muted: #58747d;
-  --accent: #0891b2;
+  --raised: #e9ecee;
+  --hover: #e3e7ea;
+  --line: #e2e6e9;
+  --border: transparent;
+  --text: #14181b;
+  --muted: #5c676e;
+  --accent: #0a8aa6;
+  --accent-soft: #dcf1f6;
   --on-accent: #ffffff;
-  --ok: #0d9488;
-  --user-bg: #0e7490;
+  --ok: #0b8a7d;
+  --user-bg: #0a8aa6;
   --user-text: #ffffff;
-  --code-bg: #f0f6f8;
-  --code-inline-bg: #e3eff2;
-  --warning-bg: #fffbeb;
-  --warning-border: #fcd34d;
-  --warning-text: #92400e;
-  --danger-bg: #fef2f2;
-  --danger-border: #fca5a5;
-  --danger-text: #b91c1c;
-  --danger-solid: #ef4444;
-  --scrollbar: #c5dbe1;
-  --amber: #f59e0b;
-  --shadow: 0 10px 30px rgb(12 42 51 / 0.16), 0 2px 6px rgb(12 42 51 / 0.08);
+  --code-bg: #eceff1;
+  --code-inline-bg: #e3e7ea;
+  --warning-bg: #fdf4dc;
+  --warning-border: transparent;
+  --warning-text: #8a4b08;
+  --danger-bg: #fde8e8;
+  --danger-border: transparent;
+  --danger-text: #b42318;
+  --danger-solid: #e5484d;
+  --scrollbar: #c9d0d5;
+  --amber: #e9a100;
+  /* O que flutua (menus, a paleta) se separa por um fio e uma sombra curta, sem brilho. */
+  --shadow: 0 0 0 1px var(--line), 0 8px 24px rgb(20 24 27 / 0.1);
+
+  /* Os raios: do menor (um selo) ao maior (um cartão, a caixa de texto). */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #0b1418;
-    --surface: #111d22;
-    --hover: #182a31;
-    --border: #1d3139;
-    --text: #e2f1f4;
-    --muted: #86a2aa;
-    --accent: #22d3ee;
-    --on-accent: #052e36;
-    --ok: #5eead4;
-    --user-bg: #0e4552;
-    --user-text: #ecfeff;
-    --code-bg: #071015;
-    --code-inline-bg: #15262d;
-    --warning-bg: rgb(251 191 36 / 0.1);
-    --warning-border: rgb(251 191 36 / 0.35);
-    --warning-text: #fcd779;
-    --danger-bg: rgb(248 113 113 / 0.1);
-    --danger-border: rgb(248 113 113 / 0.35);
-    --danger-text: #fca5a5;
-    --danger-solid: #f87171;
-    --scrollbar: #24404a;
-    --amber: #fbbf24;
-    --shadow: 0 10px 30px rgb(0 0 0 / 0.45), 0 2px 6px rgb(0 0 0 / 0.3);
+    --bg: #101214;
+    --surface: #181b1e;
+    --raised: #20252a;
+    --hover: #262c31;
+    --line: #20252a;
+    --border: transparent;
+    --text: #eceff1;
+    --muted: #8f9aa1;
+    --accent: #2ed3ee;
+    --accent-soft: #14323a;
+    --on-accent: #04252b;
+    --ok: #4fd8c4;
+    --user-bg: #173b44;
+    --user-text: #ecfcff;
+    --code-bg: #0b0d0e;
+    --code-inline-bg: #23282d;
+    --warning-bg: #2c2412;
+    --warning-border: transparent;
+    --warning-text: #f5cd6c;
+    --danger-bg: #311a1b;
+    --danger-border: transparent;
+    --danger-text: #ff9c9c;
+    --danger-solid: #f2555a;
+    --scrollbar: #333a40;
+    --amber: #f5b83d;
+    --shadow: 0 0 0 1px #2a3036, 0 10px 28px rgb(0 0 0 / 0.4);
   }
 }
 
@@ -66,6 +83,9 @@
   --surface: #ffffff;
   --hover: #d7eaef;
   --border: #0c2a33;
+  --line: #0c2a33;
+  --raised: #eef5f7;
+  --accent-soft: #d7eaef;
   --text: #000000;
   --muted: #10303a;
   --accent: #075e70;
@@ -74,6 +94,7 @@
   --ok: #005a50;
   --warning-border: #92400e;
   --warning-text: #6b2e00;
+  --shadow: 0 0 0 2px #0c2a33;
   --danger-border: #b91c1c;
   --danger-text: #8f1010;
   --scrollbar: #0c2a33;
@@ -85,6 +106,9 @@
     --surface: #000000;
     --hover: #1f3a43;
     --border: #e2f1f4;
+    --line: #e2f1f4;
+    --raised: #0b1418;
+    --accent-soft: #1f3a43;
     --text: #ffffff;
     --muted: #d5e6ea;
     --accent: #67e8f9;
@@ -93,6 +117,7 @@
     --ok: #99f6e4;
     --warning-border: #fbbf24;
     --warning-text: #fde68a;
+    --shadow: 0 0 0 2px #e2f1f4;
     --danger-border: #f87171;
     --danger-text: #fecaca;
     --scrollbar: #e2f1f4;
@@ -147,7 +172,27 @@ body {
 }
 
 ::selection {
-  background: rgb(34 211 238 / 0.3);
+  background: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+/* As barras de rolagem: finas, sem setas, na cor do tema. */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 999px;
+  background: var(--scrollbar);
+}
+
+::-webkit-scrollbar-track,
+::-webkit-scrollbar-corner {
+  background: transparent;
 }
 
 button {
@@ -155,16 +200,12 @@ button {
 }
 
 .chat {
-  --mood: transparent;
+  /* O humor do Wisp tinge a linha de baixo do cabeçalho (plano: sem degradê). */
+  --mood: var(--line);
   position: relative;
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: radial-gradient(
-    140% 55% at 50% -12%,
-    color-mix(in srgb, var(--mood) 16%, transparent),
-    transparent 72%
-  );
   transition: --mood 0.8s ease;
 }
 
@@ -191,19 +232,63 @@ button {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 50px;
+  gap: 2px;
+  height: 48px;
   padding: 0 8px 0 14px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--mood);
   user-select: none;
   -webkit-app-region: drag;
+}
+
+/* A navegação: uma barra fina à esquerda, embaixo do cabeçalho. Os botões continuam filhos do
+   cabeçalho (é ele quem os agrupa para o leitor de tela); o CSS os põe na lateral. */
+.header-nav {
+  position: absolute;
+  top: 49px;
+  bottom: 0;
+  left: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 44px;
+  padding: 8px 0;
+  border-right: 1px solid var(--line);
+  -webkit-app-region: no-drag;
+}
+
+.header-nav .icon-button {
+  width: 32px;
+  height: 32px;
+}
+
+/* A bancada e as configurações ficam no pé da barra. */
+.header-nav .nav-end {
+  margin-top: auto;
+}
+
+/* O que fica à direita da barra: as abas e as conversas, ou a tela aberta. */
+.chat-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  margin-left: 44px;
 }
 
 .title {
   flex: 1;
   display: flex;
   flex-direction: column;
+  margin: 0 8px 0 10px;
   line-height: 1.2;
+}
+
+/* O nome nunca some: num painel estreito, quem cede é a linha do estado. */
+.title strong {
+  min-width: 2.6em;
 }
 
 .title strong {
@@ -226,51 +311,42 @@ button {
   min-width: 0;
 }
 
-/* Enquanto trabalha, o status ganha um brilho que passa pelo texto. */
+/* Enquanto trabalha, o status fica na cor de destaque e pulsa de leve. */
 .status.busy {
   color: var(--accent);
-  background: linear-gradient(
-    90deg,
-    var(--accent) 0%,
-    var(--accent) 35%,
-    var(--text) 50%,
-    var(--accent) 65%,
-    var(--accent) 100%
-  );
-  background-size: 300% 100%;
-  background-clip: text;
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  animation: shimmer 2s linear infinite;
+  animation: status-pulse 1.6s ease-in-out infinite;
 }
 
-@keyframes shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: 0 0;
+@keyframes status-pulse {
+  50% {
+    opacity: 0.55;
   }
 }
 
 .icon-button {
+  flex: none;
   display: grid;
   place-items: center;
   width: 30px;
   height: 30px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
   cursor: pointer;
   -webkit-app-region: no-drag;
 }
 
-.icon-button:hover,
-.icon-button.active {
+.icon-button:hover {
   background: var(--hover);
   color: var(--text);
+}
+
+/* A tela aberta (ou a bancada): o botão dela fica na cor de destaque. */
+.icon-button.active {
+  background: var(--accent-soft);
+  color: var(--accent);
 }
 
 /* ---- Avatar no cabeçalho, acompanhando o humor do mascote ------------- */

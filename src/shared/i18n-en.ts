@@ -2724,5 +2724,6 @@ export const EN: Record<string, string> = {
   'Bancada: navegador': 'Workbench: browser',
   'preview pré-visualização localhost página dividir': 'preview localhost page split browser',
   'Bancada: terminal': 'Workbench: terminal',
-  'shell console comandos dividir': 'shell console commands split'
+  'shell console comandos dividir': 'shell console commands split',
+  'Telas do painel': 'Panel screens'
 }

@@ -2119,6 +2119,36 @@ Notas da entrega:
 - o que ficou de fora desta fase: o Claude ver a bancada sozinho (o console da página, a saída
   do terminal), páginas da internet e mais de uma página aberta. Estão nas propostas abaixo.
 
+### Fase 56: o desenho novo (plano)
+
+**Status:** pronta, esperando validação (os testes de ponta a ponta do painel rodam com o desenho
+novo). Veio de um pedido de uso: um visual moderno, bonito e plano, e o layout ajustado.
+
+- **As cores (M):** uma paleta neutra, clara e escura, com uma cor de destaque (o ciano do
+  fogo-fátuo). Três tons de fundo: o painel (`--bg`), o que fica em cima dele (`--surface`) e os
+  controles (`--raised`).
+- **Plano (M):** as formas são preenchidas, sem contorno (o `--border` só aparece no alto
+  contraste); as áreas se separam por uma linha fina (`--line`). Saíram o degradê do alto do
+  painel (o humor do Wisp tinge a linha do cabeçalho), o brilho que passava pelo texto do estado
+  e o halo dos pontinhos. O que flutua (os menus, a paleta) tem um fio e uma sombra curta.
+- **O layout (M):** a navegação saiu do cabeçalho, onde espremia o título, para uma barra fina à
+  esquerda: sessões, quadro e histórico em cima; a bancada e as configurações no pé. As abas são
+  formas preenchidas; a caixa de texto e os botões ficaram maiores; numa janela larga, a conversa
+  e a caixa ficam numa coluna de até 820 px no meio.
+- **O resto (P):** os raios dos cantos em quatro tamanhos (`--r-xs` a `--r-lg`), as barras de
+  rolagem finas e sem setas em todo o painel, e as mesmas cores na ilha, no terminal, no editor e
+  na página do celular.
+
+**Aceite:** no claro e no escuro, a conversa, os cards, as configurações, o histórico, o quadro,
+a paleta e a bancada aparecem sem contornos nem degradês, com o texto legível; no alto contraste,
+os contornos voltam; num painel de 420 px, o título do cabeçalho aparece inteiro.
+
+Notas da entrega:
+
+- os botões da navegação continuam filhos do cabeçalho no HTML (um `<nav>` que o CSS põe na
+  lateral): o leitor de tela e os testes os acham no mesmo lugar;
+- o mascote não mudou: o brilho dele é o personagem, não a interface.
+
 ## Da revisão do projeto (novembro de 2026): o que vem depois
 
 Uma revisão do código, dos testes e da documentação, junto com o pedido da Fase 55. São
@@ -2126,16 +2156,16 @@ propostas: cada uma vira uma fase, com o aceite dela, quando for a vez.
 
 **Para a bancada**
 
-- **Fase 56: o Claude vê a bancada (M).** Duas ferramentas no servidor `desktop`, com card: o
+- **Fase 57: o Claude vê a bancada (M).** Duas ferramentas no servidor `desktop`, com card: o
   print e os erros do console da página aberta no navegador, e as últimas linhas de um terminal.
   Hoje é você quem mostra (o **Mostrar ao Claude**, a **Seleção para a conversa**); com elas, o
   Claude confere sozinho o que acabou de mudar, como no preview do Claude Desktop. Na barra do
   navegador, um contador dos erros do console, com **Mandar os erros ao Claude**.
-- **Fase 57: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
+- **Fase 58: subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a
   porta), lidos do `.claude/launch.json` (o arquivo que o Claude Code Desktop usa) ou guardados
   pelo Wisp: um botão **Rodar** na bancada sobe o comando num terminal e abre o navegador quando
   a porta responde. Um comando lido da pasta só roda depois de mostrado e confirmado.
-- **Fase 58: a aba Mudanças (M).** Uma terceira aba na bancada: os arquivos que a conversa mexeu
+- **Fase 59: a aba Mudanças (M).** Uma terceira aba na bancada: os arquivos que a conversa mexeu
   (as cópias da Fase 42 e o `git status` da pasta), com o diff no Monaco e o desfazer por arquivo.
   O card do fim do turno resume; a aba deixa acompanhar durante.
 - **Pequenos, para a bancada (P cada):** tamanhos de tela no navegador (celular, tablet, largura
@@ -2176,13 +2206,13 @@ esquema, função)` que confere o remetente e os argumentos tira umas centenas d
 
 **Funcionalidades novas**
 
-- **Fase 59: o plano à vista (M).** No modo Planejar, o plano num painel próprio (na bancada),
+- **Fase 60: o plano à vista (M).** No modo Planejar, o plano num painel próprio (na bancada),
   com os passos marcados conforme o Claude avança (os `TodoWrite` da conversa), editar o plano
   antes de aceitar e voltar a ele depois.
-- **Fase 60: projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume, os servidores
-  da Fase 57 e as instruções dela: a barra de abas agrupa por projeto, o histórico filtra, e
+- **Fase 61: projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume, os servidores
+  da Fase 58 e as instruções dela: a barra de abas agrupa por projeto, o histórico filtra, e
   **Conversa nova** num projeto já vem pronta. Hoje a pasta é escolhida a cada conversa.
-- **Fase 61: revisar um PR (M).** De um alerta do GitHub (Fase 13) ou de um endereço: a conversa
+- **Fase 62: revisar um PR (M).** De um alerta do GitHub (Fase 13) ou de um endereço: a conversa
   abre numa cópia do Git (Fase 43) com o diff do PR na aba Mudanças, e os comentários do Claude
   viram um rascunho de revisão que você confere antes de mandar pelo `gh`.
 - **Pequenos (P cada):** a memória do Wisp à vista (o que o `CLAUDE.md` do workspace e os das

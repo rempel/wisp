@@ -18,7 +18,7 @@
 
 .settings-section {
   padding: 10px 0 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .settings-section:last-child {
@@ -62,8 +62,8 @@
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--r-sm);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 13px;
@@ -104,7 +104,7 @@
   padding: 3px 9px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 12px;
@@ -124,8 +124,8 @@
 .settings-button {
   padding: 5px 12px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--r-sm);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 13px;
@@ -167,7 +167,7 @@
 
 .skill {
   padding: 6px 0;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .skill-head {
@@ -203,7 +203,7 @@
   margin: 8px 0;
   padding: 8px 10px;
   border: 1px solid var(--accent);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   font-size: 13px;
 }
 
@@ -278,8 +278,8 @@
   min-width: 0;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--r-sm);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 13px;
@@ -325,7 +325,7 @@
   height: 6px;
   overflow: hidden;
   border-radius: 3px;
-  background: var(--border);
+  background: var(--line);
 }
 
 .voice-test-meter span {
@@ -339,7 +339,8 @@
   margin-top: 8px;
   padding: 8px 10px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
 }
 
 .voice-test-result.failed {
@@ -382,7 +383,7 @@
   width: 32px;
   height: 18px;
   border-radius: 999px;
-  background: var(--border);
+  background: var(--line);
   transition: background 0.15s;
 }
 
@@ -416,8 +417,8 @@
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--r-sm);
+  background: var(--raised);
   color: var(--text);
   font-family: var(--mono);
   font-size: 12.5px;
@@ -441,7 +442,7 @@
   margin: 8px 0 4px;
   padding: 8px 10px;
   border: 1px solid var(--warning-border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--warning-bg);
   color: var(--warning-text);
   font-size: 12px;

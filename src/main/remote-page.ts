@@ -12,7 +12,7 @@ export const REMOTE_HTML = `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content">
 <meta name="color-scheme" content="light dark">
-<meta name="theme-color" content="#0b1418">
+<meta name="theme-color" content="#101214">
 <link rel="manifest" href="/manifest.webmanifest">
 <link rel="icon" href="/icon.svg">
 <title>Wisp</title>
@@ -74,14 +74,14 @@ export const remoteManifest = (): string =>
     lang: getLocale() === 'en' ? 'en' : 'pt-BR',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0b1418',
-    theme_color: '#0b1418',
+    background_color: '#101214',
+    theme_color: '#101214',
     icons: [{ src: '/icon.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' }]
   })
 
 export const REMOTE_CSS = `
-:root { --bg: #f4f8f9; --surface: #ffffff; --soft: #e8f1f3; --text: #0b1418; --muted: #5b7680; --accent: #0891b2; --accent-text: #ffffff; --border: #d6e7eb; --warn: #b45309; --warn-bg: #fef3c7; --bad: #b91c1c; --ok: #047857; --code: #eef4f6; }
-@media (prefers-color-scheme: dark) { :root { --bg: #0b1418; --surface: #10232a; --soft: #142d35; --text: #e6f6f9; --muted: #93b9c1; --accent: #22d3ee; --accent-text: #062a33; --border: #1d3a43; --warn: #fbbf24; --warn-bg: #3a2c0b; --bad: #f87171; --ok: #34d399; --code: #0e1e24; } }
+:root { --bg: #f4f5f6; --surface: #ffffff; --soft: #e9ecee; --text: #14181b; --muted: #5c676e; --accent: #0a8aa6; --accent-text: #ffffff; --border: #e2e6e9; --warn: #8a4b08; --warn-bg: #fdf4dc; --bad: #b42318; --ok: #0b8a7d; --code: #eceff1; }
+@media (prefers-color-scheme: dark) { :root { --bg: #101214; --surface: #181b1e; --soft: #20252a; --text: #eceff1; --muted: #8f9aa1; --accent: #2ed3ee; --accent-text: #04252b; --border: #262c31; --warn: #f5cd6c; --warn-bg: #2c2412; --bad: #ff9c9c; --ok: #4fd8c4; --code: #0b0d0e; } }
 * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
 html, body { height: 100%; margin: 0; }
 body { display: flex; flex-direction: column; background: var(--bg); color: var(--text); font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overflow: hidden; }
