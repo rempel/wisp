@@ -799,67 +799,70 @@ export default function Chat(): JSX.Element {
             ) : (
               usage && <UsagePill usage={usage} onPanel={() => setView('usage')} />
             ))}
-          <button
-            type="button"
-            className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
-            onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
-            title={
-              requests
-                ? t('Sessões do terminal ({requests} {v2})', {
-                    requests,
-                    v2: requests === 1 ? t('pedido') : t('pedidos')
-                  })
-                : t('Sessões do Claude Code no terminal')
-            }
-            aria-label={t('Sessões do terminal')}
-            aria-pressed={view === 'sessions'}
-          >
-            <TerminalIcon />
-            {requests > 0 && <span className="badge">{requests}</span>}
-          </button>
-          <button
-            type="button"
-            className={`icon-button workbench-toggle${view === 'chat' && workbench?.open ? ' active' : ''}`}
-            onClick={() => {
-              if (view !== 'chat') setView('chat')
-              if (view === 'chat' || !workbench?.open) toggleWorkbench(workbench)
-            }}
-            title={t('Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)')}
-            aria-label={t('Bancada: navegador e terminal')}
-            aria-pressed={view === 'chat' && !!workbench?.open}
-          >
-            <WorkbenchIcon />
-          </button>
-          <button
-            type="button"
-            className={`icon-button${view === 'board' ? ' active' : ''}`}
-            onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
-            title={t('Quadro de tarefas')}
-            aria-label={t('Quadro de tarefas')}
-            aria-pressed={view === 'board'}
-          >
-            <BoardIcon />
-          </button>
-          <button
-            type="button"
-            className={`icon-button${view === 'history' ? ' active' : ''}`}
-            onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
-            title={t('Conversas anteriores')}
-            aria-label={t('Conversas anteriores')}
-            aria-pressed={view === 'history'}
-          >
-            <HistoryIcon />
-          </button>
-          <button
-            type="button"
-            className={`icon-button${view === 'settings' ? ' active' : ''}`}
-            onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
-            title={t('Configurações')}
-            aria-label={t('Configurações')}
-            aria-pressed={view === 'settings'}
-          >
-            <SettingsIcon />
-          </button>
+          {/* A navegação fica numa barra à esquerda (o CSS a põe lá); o cabeçalho fica com o título. */}
+          <nav className="header-nav" aria-label={t('Telas do painel')}>
+            <button
+              type="button"
+              className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
+              onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
+              title={
+                requests
+                  ? t('Sessões do terminal ({requests} {v2})', {
+                      requests,
+                      v2: requests === 1 ? t('pedido') : t('pedidos')
+                    })
+                  : t('Sessões do Claude Code no terminal')
+              }
+              aria-label={t('Sessões do terminal')}
+              aria-pressed={view === 'sessions'}
+            >
+              <TerminalIcon />
+              {requests > 0 && <span className="badge">{requests}</span>}
+            </button>
+            <button
+              type="button"
+              className={`icon-button${view === 'board' ? ' active' : ''}`}
+              onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
+              title={t('Quadro de tarefas')}
+              aria-label={t('Quadro de tarefas')}
+              aria-pressed={view === 'board'}
+            >
+              <BoardIcon />
+            </button>
+            <button
+              type="button"
+              className={`icon-button${view === 'history' ? ' active' : ''}`}
+              onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
+              title={t('Conversas anteriores')}
+              aria-label={t('Conversas anteriores')}
+              aria-pressed={view === 'history'}
+            >
+              <HistoryIcon />
+            </button>
+            <button
+              type="button"
+              className={`icon-button workbench-toggle nav-end${view === 'chat' && workbench?.open ? ' active' : ''}`}
+              onClick={() => {
+                if (view !== 'chat') setView('chat')
+                if (view === 'chat' || !workbench?.open) toggleWorkbench(workbench)
+              }}
+              title={t('Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)')}
+              aria-label={t('Bancada: navegador e terminal')}
+              aria-pressed={view === 'chat' && !!workbench?.open}
+            >
+              <WorkbenchIcon />
+            </button>
+            <button
+              type="button"
+              className={`icon-button${view === 'settings' ? ' active' : ''}`}
+              onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
+              title={t('Configurações')}
+              aria-label={t('Configurações')}
+              aria-pressed={view === 'settings'}
+            >
+              <SettingsIcon />
+            </button>
+          </nav>
           {windowState.detached && !windowState.maximized && (
             <button
               type="button"
@@ -891,49 +894,51 @@ export default function Chat(): JSX.Element {
           </button>
         </header>
 
-        {view === 'settings' ? (
-          <SettingsView
-            onAgents={() => setView('agents')}
-            onDiagnostics={() => setView('diagnostics')}
-            onWelcome={() => setView('welcome')}
-          />
-        ) : view === 'diagnostics' ? (
-          <DiagnosticsView onSettings={() => setView('settings')} />
-        ) : view === 'welcome' ? (
-          <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
-        ) : view === 'history' ? (
-          <HistoryView onClose={() => setView('chat')} />
-        ) : view === 'usage' ? (
-          <UsageView />
-        ) : view === 'board' ? (
-          <BoardView onShow={() => setView('chat')} />
-        ) : view === 'agents' ? (
-          <AgentsView folder={focusedFolder} />
-        ) : view === 'sessions' ? (
-          <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
-        ) : (
-          <>
-            {tabs.tabs.length > 0 && (
-              <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
-            )}
-            <div className="workspace">
-              <div className="panes">
-                <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
-              </div>
-              {workbench?.open && (
-                <Workbench
-                  state={workbench}
-                  folder={focusedFolder}
-                  covered={palette || dragging || draggingTab !== null}
-                  onCompose={(text) => {
-                    const conversation = focusedConversation()
-                    if (conversation) bus.emit(conversation, { type: 'compose', text })
-                  }}
-                />
+        <div className="chat-body">
+          {view === 'settings' ? (
+            <SettingsView
+              onAgents={() => setView('agents')}
+              onDiagnostics={() => setView('diagnostics')}
+              onWelcome={() => setView('welcome')}
+            />
+          ) : view === 'diagnostics' ? (
+            <DiagnosticsView onSettings={() => setView('settings')} />
+          ) : view === 'welcome' ? (
+            <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
+          ) : view === 'history' ? (
+            <HistoryView onClose={() => setView('chat')} />
+          ) : view === 'usage' ? (
+            <UsageView />
+          ) : view === 'board' ? (
+            <BoardView onShow={() => setView('chat')} />
+          ) : view === 'agents' ? (
+            <AgentsView folder={focusedFolder} />
+          ) : view === 'sessions' ? (
+            <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
+          ) : (
+            <>
+              {tabs.tabs.length > 0 && (
+                <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
               )}
-            </div>
-          </>
-        )}
+              <div className="workspace">
+                <div className="panes">
+                  <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
+                </div>
+                {workbench?.open && (
+                  <Workbench
+                    state={workbench}
+                    folder={focusedFolder}
+                    covered={palette || dragging || draggingTab !== null}
+                    onCompose={(text) => {
+                      const conversation = focusedConversation()
+                      if (conversation) bus.emit(conversation, { type: 'compose', text })
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
         {palette && <CommandPalette actions={actions} onClose={closePalette} />}
         <FileViewer />
         <MarkdownPreview />

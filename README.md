@@ -170,7 +170,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) e a Fase 55 (a bancada) estão prontas, com os testes de unidade e de
+  ferramentas parecidas) e as Fases 55 (a bancada) e 56 (o desenho novo) estão prontas, com os testes de unidade e de
   ponta a ponta, e esperam a validação com o uso (os roteiros em
   [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
@@ -678,7 +678,7 @@ A bancada (Fase 55) é uma coluna à direita das conversas, na mesma janela, com
 terminal: para ver o que o Claude fez e rodar o projeto sem sair do Wisp, como na janela dividida
 do Claude Desktop.
 
-- **Abrir e fechar:** o botão da janela dividida no cabeçalho, **Ctrl+Shift+B**, ou **Bancada:
+- **Abrir e fechar:** o botão da janela dividida no pé da barra lateral, **Ctrl+Shift+B**, ou **Bancada:
   navegador** e **Bancada: terminal** na paleta de comandos. Ao lado do mascote, a janela alarga
   para a bancada caber; solta ou maximizada, ela reparte o espaço com as conversas. A divisória se
   arrasta (duplo clique volta ao tamanho de começo). A bancada volta como estava ao abrir o Wisp.

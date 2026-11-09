@@ -40,7 +40,7 @@
   padding: 5px 11px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 12.5px;
@@ -73,7 +73,7 @@
   margin: 6px 0 4px;
   padding: 8px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: var(--surface);
   color: var(--text);
   text-align: left;
@@ -108,7 +108,7 @@
   margin: 10px 12px 4px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: var(--r-md);
   background: var(--surface);
 }
 
@@ -215,7 +215,7 @@
 
 .qr-code {
   flex: none;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
 }
 
 .phone-steps {
@@ -268,8 +268,8 @@
   margin-bottom: 8px;
   padding: 10px 12px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--border);
-  border-radius: 10px;
+  border-left: 3px solid var(--line);
+  border-radius: var(--r-md);
   background: var(--surface);
 }
 
@@ -374,7 +374,7 @@
 .diag-report pre {
   overflow-x: auto;
   padding: 8px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--code-bg);
   font-family: var(--mono);
   font-size: 11.5px;
@@ -391,7 +391,7 @@
   flex: 1;
   height: 4px;
   border-radius: 2px;
-  background: var(--border);
+  background: var(--line);
 }
 
 .welcome-progress span.done {
@@ -456,7 +456,7 @@
   height: 28px;
   padding: 0;
   border: 0;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: transparent;
   color: var(--muted);
   opacity: 0;
@@ -520,7 +520,7 @@
   margin: 0 0 6px;
   padding: 6px 10px;
   border: 1px solid var(--warning-border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--warning-bg);
   color: var(--warning-text);
   font-size: 12.5px;
@@ -537,7 +537,7 @@
   margin: 6px 10px 0;
   padding: 4px 4px 4px 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: var(--r-md);
   background: var(--surface);
   box-shadow: var(--shadow);
 }
@@ -576,7 +576,8 @@
   margin: 8px 0;
   padding: 10px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  background: var(--surface);
+  border-radius: var(--r-md);
 }
 
 .automation-item.off {
@@ -587,8 +588,8 @@
   width: 100%;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--surface);
+  border-radius: var(--r-sm);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 13px;
@@ -641,8 +642,8 @@
   min-width: 34px;
   padding: 3px 6px;
   border: 1px solid var(--border);
-  border-radius: 6px;
-  background: var(--surface);
+  border-radius: var(--r-xs);
+  background: var(--raised);
   color: var(--muted);
   font: inherit;
   font-size: 12px;
@@ -703,7 +704,7 @@
   height: 26px;
   padding: 0 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   background: var(--surface);
   color: var(--text);
   font: inherit;
@@ -772,7 +773,8 @@
   margin: 6px 0 2px;
   padding: 6px 8px;
   border: 1px solid var(--border);
-  border-radius: 8px;
+  background: var(--surface);
+  border-radius: var(--r-sm);
   font-size: 12px;
 }
 

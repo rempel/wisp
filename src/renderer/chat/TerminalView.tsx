@@ -11,11 +11,11 @@ import { cardWaiting, isCardShortcut, isWispTerminalShortcut } from './terminal-
  * fundo escuro), com as cores do Wisp. No alto contraste (Fase 22), preto e branco puros.
  */
 const THEME = {
-  background: '#0b1418',
-  foreground: '#e2f1f4',
-  cursor: '#22d3ee',
-  cursorAccent: '#0b1418',
-  selectionBackground: '#1d4552'
+  background: '#0c0e0f',
+  foreground: '#eceff1',
+  cursor: '#2ed3ee',
+  cursorAccent: '#0c0e0f',
+  selectionBackground: '#1d444d'
 }
 const CONTRAST_THEME = {
   background: '#000000',

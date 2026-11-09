@@ -22,7 +22,7 @@
   min-width: 260px;
   max-width: calc(100% - 200px);
   min-height: 0;
-  border-left: 1px solid var(--border);
+  border-left: 1px solid var(--line);
   background: var(--bg);
 }
 
@@ -49,7 +49,7 @@
   gap: 6px;
   height: 34px;
   padding: 0 6px 0 10px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .workbench-close {
@@ -70,7 +70,7 @@
   align-items: center;
   gap: 2px;
   padding: 4px 6px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .workbench-bar .icon-button {
@@ -103,7 +103,7 @@
   padding: 0 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 12.5px;
@@ -163,7 +163,7 @@
   padding: 4px 10px;
   border: 1px solid var(--border);
   border-radius: 999px;
-  background: var(--surface);
+  background: var(--raised);
   color: var(--text);
   font: inherit;
   font-size: 12px;
@@ -180,7 +180,7 @@
   flex: none;
   display: flex;
   padding: 4px 8px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid var(--line);
 }
 
 .workbench-served .workbench-chip {
@@ -202,7 +202,7 @@
   display: flex;
   align-items: center;
   min-width: 48px;
-  border-radius: 8px;
+  border-radius: var(--r-sm);
   color: var(--muted);
 }
 
@@ -238,12 +238,12 @@
   display: grid;
   place-items: center;
   padding: 3px;
-  border-radius: 6px;
+  border-radius: var(--r-xs);
   opacity: 0.6;
 }
 
 .workbench-shell-close:hover {
-  background: var(--border);
+  background: var(--line);
   opacity: 1;
 }
 
@@ -260,7 +260,7 @@
 
 /* O terminal é sempre escuro, como o do modo terminal. */
 .workbench .terminal-view {
-  background: #0b1418;
+  background: #0c0e0f;
 }
 
 @media (prefers-reduced-motion: reduce) {

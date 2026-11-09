@@ -1090,8 +1090,8 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 ## A bancada: navegador e terminal (Fase 55)
 
 - [ ] **Abrir:** com o painel ao lado do mascote, **Ctrl+Shift+B** (ou o botão da janela dividida
-      no cabeçalho): a bancada aparece à direita da conversa e a janela alarga. De novo: ela fecha
-      e a janela volta à largura de antes.
+      no pé da barra lateral): a bancada aparece à direita da conversa e a janela alarga. De
+      novo: ela fecha e a janela volta à largura de antes.
 - [ ] **Terminal:** numa conversa numa pasta de projeto, aba **Terminal**: o shell abre nessa
       pasta (`pwd`). Rode `npm run dev` (ou `python3 -m http.server 8000`): aparece **Abrir
       http://localhost:… no navegador da bancada**, e o clique mostra a página.
@@ -1111,3 +1111,17 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Voltar:** feche e abra o Wisp: a bancada volta aberta, na mesma aba e largura, e o
       navegador vazio mostra os últimos endereços.
 - [ ] **Windows:** o terminal abre o PowerShell na pasta da conversa; o navegador mostra um HTML.
+
+## O desenho novo (Fase 56)
+
+- [ ] **Escuro e claro:** troque o tema nas configurações: a conversa, um card de permissão, as
+      configurações, o histórico e o quadro aparecem sem contornos nem degradês, com o texto
+      legível nos dois.
+- [ ] **A barra lateral:** sessões, quadro e histórico em cima; a bancada e as configurações no
+      pé. A tela aberta fica com o botão na cor de destaque; o título do cabeçalho aparece
+      inteiro num painel estreito.
+- [ ] **O humor:** com um pedido esperando, a linha do cabeçalho fica âmbar; com o Claude
+      trabalhando, ciano.
+- [ ] **Alto contraste:** ligue nas configurações: os contornos voltam em tudo.
+- [ ] **Janela larga:** maximize: a conversa e a caixa de texto ficam numa coluna no meio.
+- [ ] **A ilha e o celular:** a ilha aberta e a página do celular usam as mesmas cores.
