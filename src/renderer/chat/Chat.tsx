@@ -934,6 +934,8 @@ export default function Chat(): JSX.Element {
                   <Workbench
                     state={workbench}
                     folder={focusedFolder}
+                    conversation={focusedTab?.kind === 'chat' ? focusedTab.id : null}
+                    busy={!!focusedState?.busy}
                     covered={palette || dragging || draggingTab !== null}
                     onCompose={(text) => {
                       const conversation = focusedConversation()

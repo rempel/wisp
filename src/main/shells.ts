@@ -239,6 +239,14 @@ export class Shells {
     return target
   }
 
+  /** Roda um comando num terminal seu novo, na pasta (o Rodar da bancada, Fase 75). */
+  launch(folder: string, command: string): string | { error: string } {
+    const id = this.create(folder)
+    if (typeof id !== 'string') return id
+    this.items.get(id)?.proc.paste(command, true)
+    return id
+  }
+
   /** As últimas linhas do que o terminal mostrou, em texto. */
   tail(id: string, lines: number): string {
     const item = this.items.get(id)

@@ -2841,5 +2841,24 @@ export const EN: Record<string, string> = {
   'O terminal mostrou este erro:': 'The terminal showed this error:',
   'Parece um erro no terminal: mandar ao Claude':
     'Looks like an error in the terminal: send to Claude',
-  'Dispensar o aviso de erro': 'Dismiss the error notice'
+  'Dispensar o aviso de erro': 'Dismiss the error notice',
+  'Espere a resposta acabar para desfazer.': 'Wait for the answer to finish before undoing.',
+  'Esse comando não é mais o da pasta: confira de novo.':
+    "That command is no longer the folder's: check again.",
+  'Rodar o projeto': 'Run the project',
+  'Rodar na pasta do projeto?': 'Run in the project folder?',
+  Rodar: 'Run',
+  '{command} (a página abre quando a porta {port} responder)':
+    '{command} (the page opens when port {port} answers)',
+  'Espere a resposta acabar para desfazer': 'Wait for the answer to finish before undoing',
+  'Cada arquivo volta a ser como era antes de a conversa mexer nele':
+    'Each file goes back to how it was before the conversation touched it',
+  'Parte das respostas é de antes de o Wisp abrir: as edições delas não aparecem aqui.':
+    'Some answers are from before Wisp opened: their edits do not show here.',
+  'Nenhuma mudança ainda': 'No changes yet',
+  'Os arquivos que o Claude editar nesta conversa aparecem aqui, com o diff e o desfazer. Os comandos do terminal não entram.':
+    'The files Claude edits in this conversation show up here, with the diff and undo. Terminal commands are not included.',
+  'Sem diff: o arquivo é binário ou grande demais.': 'No diff: the file is binary or too large.',
+  'Bancada: mudanças': 'Workbench: changes',
+  'diff arquivos editados desfazer revisar': 'diff edited files undo review changes'
 }

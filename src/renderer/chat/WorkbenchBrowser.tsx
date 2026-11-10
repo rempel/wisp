@@ -15,6 +15,7 @@ import {
   ScreenshotIcon,
   TargetIcon
 } from './icons'
+import { LaunchRow } from './LaunchRow'
 import { openPreview } from './preview-store'
 import { MAX_PREVIEW_TABS, nextPreviewWidth } from '../../shared/ipc'
 import type { PreviewState } from '../../shared/ipc'
@@ -303,6 +304,7 @@ export function BrowserTab({
               'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.'
             )}
           </span>
+          <LaunchRow folder={folder} />
           {recent.length > 0 && (
             <div className="workbench-recent" role="group" aria-label={t('Abertos por último')}>
               {recent.map((item) => (
