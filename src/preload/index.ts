@@ -120,6 +120,9 @@ const api: WispApi = {
     captureArea: () => ipcRenderer.invoke(IPC.chatCaptureArea),
     reviewUndo: (conversation, turn, files) =>
       ipcRenderer.invoke(IPC.chatReviewUndo, conversation, turn, files),
+    changes: (conversation) => ipcRenderer.invoke(IPC.chatChanges, conversation),
+    undoChanges: (conversation, files) =>
+      ipcRenderer.invoke(IPC.chatChangesUndo, conversation, files),
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
@@ -269,6 +272,8 @@ const api: WispApi = {
   shell: {
     create: (folder) => ipcRenderer.invoke(IPC.shellCreate, folder),
     paste: (text, folder) => ipcRenderer.invoke(IPC.shellPaste, text, folder),
+    launches: (folder) => ipcRenderer.invoke(IPC.launchList, folder),
+    launch: (folder, command) => ipcRenderer.invoke(IPC.launchRun, folder, command),
     close: (id) => ipcRenderer.send(IPC.shellClose, id),
     attach: (id) => ipcRenderer.invoke(IPC.shellAttach, id),
     input: (id, data) => ipcRenderer.send(IPC.shellInput, id, data),

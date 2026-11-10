@@ -145,8 +145,96 @@ check(
   'P13 e o aviso some',
   !!(await waitFor(() => ev(`!document.querySelector('.workbench-errors')`), 5000))
 )
+console.log('== A aba Mudanças (Fase 74)')
+const project = join(home.home, 'projeto')
+mkdirSync(project, { recursive: true })
+const file = join(project, 'app.ts')
+const original = 'const a = 1\nconst b = 2\nconst d = 5\n'
+writeFileSync(file, original)
+await ev(`window.wisp.workbench.set({ open: true, tab: 'changes' })`)
+const none = await waitFor(
+  () => ev(`document.querySelector('.workbench-changes .workbench-empty')?.innerText ?? null`),
+  5000
+)
+check('P15 sem edições, a aba diz que não há mudanças', /Nenhuma mudança/.test(none ?? ''), none)
+await ev(`document.querySelector('.pane .composer textarea').value = ''`)
+wisp(home, '--ask', `[edit ${file}]`)
+await waitFor(() => ev(`!!document.querySelector('.pane .review-card')`), 15000)
+const listed = await waitFor(
+  () => ev(`document.querySelector('.workbench-change')?.innerText ?? null`),
+  8000
+)
 check(
-  'P14 sem erros nas páginas',
+  'P16 o arquivo editado aparece, com o +2 −1',
+  /app\.ts/.test(listed ?? '') && /\+2/.test(listed ?? '') && /−1/.test(listed ?? ''),
+  listed
+)
+await ev(`document.querySelector('.workbench-change-name').click()`)
+check(
+  'P17 o clique abre o diff',
+  !!(await waitFor(() => ev(`!!document.querySelector('.workbench-change .code-diff')`), 5000))
+)
+await waitFor(() => ev(`!document.querySelector('.status')?.classList.contains('busy')`), 15000)
+await ev(
+  `[...document.querySelectorAll('.workbench-change-head .link')].find((b) => b.textContent.trim() === 'Desfazer').click()`
+)
+const undone = await waitFor(() => Promise.resolve(readFileSync(file, 'utf8') === original), 8000)
+check('P18 Desfazer devolve o arquivo ao que era', !!undone, readFileSync(file, 'utf8'))
+check(
+  'P19 e ele sai da lista',
+  !!(await waitFor(() => ev(`!document.querySelector('.workbench-change')`), 8000))
+)
+console.log('== Rodar o projeto com um clique (Fase 75)')
+// Uma conversa na pasta do projeto, com um launch.json que sobe um servidor de verdade.
+const { createServer: probe } = await import('node:net')
+const free = await new Promise((resolve) => {
+  const server = probe()
+  server.listen(0, '127.0.0.1', () => {
+    const { port } = server.address()
+    server.close(() => resolve(port))
+  })
+})
+mkdirSync(join(project, '.claude'), { recursive: true })
+writeFileSync(join(project, 'index.html'), '<!doctype html><title>Projeto</title><h1>No ar</h1>')
+writeFileSync(
+  join(project, '.claude', 'launch.json'),
+  JSON.stringify({
+    configurations: [
+      {
+        name: 'web',
+        runtimeExecutable: 'python3',
+        runtimeArgs: ['-m', 'http.server', String(free), '--bind', '127.0.0.1'],
+        port: free
+      }
+    ]
+  })
+)
+const listedLaunch = await ev(`window.wisp.shell.launches(${JSON.stringify(project)})`)
+check(
+  'P20 o launch.json da pasta vira um servidor para rodar',
+  listedLaunch?.[0]?.name === 'web' && listedLaunch[0].port === free,
+  JSON.stringify(listedLaunch)
+)
+const refused = await ev(
+  `window.wisp.shell.launch(${JSON.stringify(project)}, 'rm -rf /tmp/qualquer')`
+)
+check(
+  'P21 um comando que não é o da pasta é recusado',
+  /não é mais o da pasta/.test(refused ?? ''),
+  refused
+)
+const launched = await ev(
+  `window.wisp.shell.launch(${JSON.stringify(project)}, ${JSON.stringify(listedLaunch?.[0]?.command ?? '')})`
+)
+check('P22 o da pasta roda num terminal novo', launched === null, launched)
+const served = await connect(`localhost:${free}`, 30000).catch(() => null)
+const title = served
+  ? await waitFor(() => served.evaluate(`document.querySelector('h1')?.textContent ?? null`), 8000)
+  : null
+check('P23 e a página abre no navegador quando a porta responde', title === 'No ar', title)
+await ev(`window.wisp.shell.close((await window.wisp.workbench.get()).terminals.at(-1).id)`)
+check(
+  'P24 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,
   [...mascot.logs, ...chat.logs].join('\n')
 )

@@ -219,7 +219,8 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
   }
   for (const [tab, title, keywords] of [
     ['browser', t('Bancada: navegador'), t('preview pré-visualização localhost página dividir')],
-    ['terminal', t('Bancada: terminal'), t('shell console comandos dividir')]
+    ['terminal', t('Bancada: terminal'), t('shell console comandos dividir')],
+    ['changes', t('Bancada: mudanças'), t('diff arquivos editados desfazer revisar')]
   ] as const) {
     items.push({
       id: `workbench-${tab}`,

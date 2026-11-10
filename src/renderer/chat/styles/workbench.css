@@ -355,3 +355,101 @@
   padding: 0;
   background: transparent;
 }
+
+/* A aba Mudanças (Fase 74): um arquivo por linha, com o diff ao abrir. */
+.workbench-changes-total {
+  flex: 1;
+  min-width: 0;
+  padding-left: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.workbench-change-list {
+  flex: 1;
+  margin: 0;
+  padding: 6px 8px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.workbench-change {
+  margin-bottom: 4px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.workbench-change-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 2px;
+}
+
+.workbench-change-name {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workbench-change-name small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-change-status {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.workbench-change.status-created .workbench-change-status {
+  color: var(--ok);
+}
+
+.workbench-change.status-deleted .workbench-change-status {
+  color: var(--danger-text);
+}
+
+.workbench-change .link:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* O Rodar da bancada (Fase 75): os servidores da pasta, e a confirmação do comando. */
+.workbench-launch {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.workbench-launch-ask {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workbench-launch-ask code {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.workbench-empty .workbench-launch {
+  justify-content: center;
+  padding: 6px 0 0;
+}

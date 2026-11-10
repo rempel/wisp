@@ -6,10 +6,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX, PointerEvent as ReactPointerEvent } from 'react'
 import type { Terminal } from '@xterm/xterm'
 import { useFileTarget } from './fileView'
-import { CloseIcon, GlobeIcon, PlusIcon, TerminalIcon } from './icons'
+import { CloseIcon, GlobeIcon, PencilIcon, PlusIcon, TerminalIcon } from './icons'
 import { lastLocalhost, openPreview, terminalFailure, useMarkdown } from './preview-store'
+import { LaunchRow } from './LaunchRow'
 import { TerminalView } from './TerminalView'
 import { BrowserTab } from './WorkbenchBrowser'
+import { ChangesTab } from './WorkbenchChanges'
 import type { TerminalLink } from './TerminalView'
 import { askedForWorkbench, wasAsked } from './workbench-store'
 import { draggedWidth, MAX_SHELLS, WORKBENCH_WIDTH } from '../../shared/ipc'
@@ -163,6 +165,7 @@ function TerminalTab({
           {t('Seleção para a conversa')}
         </button>
       </div>
+      <LaunchRow folder={folder} />
       {failure && active && (
         <div className="workbench-served workbench-errors">
           <button
@@ -231,11 +234,16 @@ function TerminalTab({
 export function Workbench({
   state,
   folder,
+  conversation,
+  busy,
   covered,
   onCompose
 }: {
   state: WorkbenchState
   folder: string | null
+  /** A conversa em foco (null: uma sessão do terminal), e se o Claude está respondendo nela. */
+  conversation: string | null
+  busy: boolean
   covered: boolean
   onCompose: (text: string) => void
 }): JSX.Element {
@@ -272,7 +280,8 @@ export function Workbench({
 
   const tabs: [WorkbenchTab, string, JSX.Element][] = [
     ['browser', t('Navegador'), <GlobeIcon key="browser" />],
-    ['terminal', t('Terminal'), <TerminalIcon key="terminal" />]
+    ['terminal', t('Terminal'), <TerminalIcon key="terminal" />],
+    ['changes', t('Mudanças'), <PencilIcon key="changes" />]
   ]
   return (
     <aside
@@ -324,6 +333,8 @@ export function Workbench({
           hidden={covered || overlay || dragWidth !== null}
           recent={state.recent}
         />
+      ) : state.tab === 'changes' ? (
+        <ChangesTab conversation={conversation} busy={busy} />
       ) : (
         <TerminalTab terminals={state.terminals} folder={folder} onCompose={onCompose} />
       )}

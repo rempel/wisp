@@ -3,8 +3,8 @@
 // Claude Code do modo terminal, que continua na aba da conversa).
 
 /** As abas da bancada. */
-export type WorkbenchTab = 'browser' | 'terminal'
-export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal']
+export type WorkbenchTab = 'browser' | 'terminal' | 'changes'
+export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal', 'changes']
 
 /** A largura da bancada na janela (px, antes do zoom do painel). */
 export const WORKBENCH_WIDTH = { min: 300, initial: 520, max: 2400 }
@@ -116,4 +116,14 @@ export function shellSnippet(code: string): string {
     .map((line) => line.replace(/^\s*[$>]\s+/, ''))
     .join('\n')
     .trim()
+}
+
+/** Um servidor de uma pasta de projeto, para o Rodar da bancada (Fase 75). */
+export interface LaunchConfig {
+  name: string
+  /** O comando inteiro, como o terminal vai receber (é o que você confirma). */
+  command: string
+  /** A porta em que a página responde (null: não se sabe; a bancada espera a saída dizer). */
+  port: number | null
+  source: 'launch.json' | 'package.json'
 }

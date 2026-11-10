@@ -8,12 +8,13 @@ import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent, WebContents } fro
 import { mkdirSync, readFileSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { getConfig } from './config'
+import { launchConfigs, waitForPort } from './launch'
 import { DATA_DIR } from './paths'
 import { setupPreview } from './preview'
 import type { PreviewControl } from './preview'
 import { Shells } from './shells'
 import { IPC } from '../shared/ipc'
-import type { DroppedFiles, WorkbenchChange, WorkbenchState } from '../shared/ipc'
+import type { DroppedFiles, LaunchConfig, WorkbenchChange, WorkbenchState } from '../shared/ipc'
 import { WORKBENCH_TABS, workbenchWidth } from '../shared/ipc-workbench'
 import { t } from '../shared/i18n'
 
@@ -161,6 +162,27 @@ export function setupWorkbench(host: WorkbenchHost): {
   ipcMain.handle(IPC.shellCreate, (event, folder: unknown): string | { error: string } => {
     if (!from(event)) return { error: t('pedido inválido') }
     return shells.create(typeof folder === 'string' ? folder : null)
+  })
+  // Subir o projeto com um clique (Fase 75): o comando confirmado, se ainda for o da pasta.
+  ipcMain.handle(IPC.launchList, (event, folder: unknown): LaunchConfig[] =>
+    from(event) && typeof folder === 'string' ? launchConfigs(folder) : []
+  )
+  ipcMain.handle(IPC.launchRun, (event, folder: unknown, command: unknown): string | null => {
+    if (!from(event) || typeof folder !== 'string' || typeof command !== 'string') {
+      return t('pedido inválido')
+    }
+    const config = launchConfigs(folder).find((item) => item.command === command)
+    if (!config) return t('Esse comando não é mais o da pasta: confira de novo.')
+    const id = shells.launch(folder, config.command)
+    if (typeof id !== 'string') return id.error
+    apply({ open: true, tab: 'terminal' })
+    const port = config.port
+    if (port) {
+      void waitForPort(port).then((up) => {
+        if (up) preview.open(`localhost:${port}`, null)
+      })
+    }
+    return null
   })
   // Rodar no terminal (Fase 63): o comando de um bloco de código é colado, sem enviar.
   ipcMain.handle(IPC.shellPaste, (event, text: unknown, folder: unknown): string | null => {
