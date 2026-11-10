@@ -19,6 +19,8 @@ export interface ShellInfo {
   cwd: string
   /** O shell saiu (o que ele mostrou continua na tela, até fechar). */
   exited: boolean
+  /** É o terminal que o Claude usa nesta conversa (Fase 57): ele roda e lê aqui, com você vendo. */
+  claude?: boolean
 }
 
 export interface WorkbenchState {

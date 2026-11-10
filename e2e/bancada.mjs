@@ -5,6 +5,8 @@
 // continuam com a bancada fechada; e ela volta como estava depois de fechar e abrir o Wisp.
 // Uso: node e2e/bancada.mjs (veja e2e/run.sh).
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:http'
+import { networkInterfaces } from 'node:os'
 import { join } from 'node:path'
 import {
   checks,
@@ -220,6 +222,41 @@ check('B23 e abre de novo com um clique', !!reopened)
 await click('.workbench-page-close')
 const emptied = await waitFor(() => ev(`!!document.querySelector('.workbench-empty')`), 5000)
 check('B24 fechar a página volta ao começo', !!emptied)
+console.log('== Uma página de fora desta máquina (Fase 58)')
+// Sem a internet nos testes: um servidor daqui, alcançado pelo endereço da rede (que não é o
+// localhost), faz o papel do site de fora.
+const lan = Object.values(networkInterfaces())
+  .flat()
+  .find((item) => item && item.family === 'IPv4' && !item.internal)?.address
+if (!lan) console.log('  sem endereço de rede: pulado')
+else {
+  const web = createServer((_req, res) => {
+    res.setHeader('content-type', 'text/html; charset=utf-8')
+    res.end('<!doctype html><title>Fora</title><h1>Site de fora</h1>')
+  })
+  await new Promise((resolve) => web.listen(0, '0.0.0.0', resolve))
+  const outside = `http://${lan}:${web.address().port}/`
+  const result = await ev(`window.wisp.preview.open(${JSON.stringify(outside)}, null)`)
+  check('B26 com a opção ligada (o padrão), a página de fora abre', result?.ok === true, result)
+  const remote = await connect(`${lan}:${web.address().port}`, 10000).catch(() => null)
+  const title = remote
+    ? await waitFor(
+        () => remote.evaluate(`document.querySelector('h1')?.textContent ?? null`),
+        5000
+      )
+    : null
+  check('B27 e aparece no navegador da bancada', title === 'Site de fora', title)
+  await ev(`window.wisp.settings.set({ previewWeb: false })`)
+  const refused = await ev(`window.wisp.preview.open(${JSON.stringify(outside)}, null)`)
+  check(
+    'B28 desligada nas configurações, ela é recusada com o motivo',
+    refused?.ok === false && /desligadas nas configurações/.test(refused.message ?? ''),
+    JSON.stringify(refused)
+  )
+  const local = await ev(`window.wisp.preview.open(${JSON.stringify(page)}, null)`)
+  check('B29 e o que é desta máquina continua abrindo', local?.ok === true)
+  web.close()
+}
 check(
   'B25 sem erros depois de reabrir',
   mascot.logs.length === 0 && chat.logs.length === 0,

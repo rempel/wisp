@@ -886,6 +886,7 @@ export function setupChat({
       return win !== null && sender === win.webContents
     },
     window: () => win,
+    folderOf: (id) => conversationById(id)?.folder ?? null,
     sideWidth: (px, grow) => placement.setSide(win, tabs.layout, px, grow),
     notifySessions() {
       if (win && pageReady) win.webContents.send(IPC.sessionsChanged)

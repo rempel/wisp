@@ -192,6 +192,8 @@ export interface WispConfig {
   usageAlerts: boolean
   /** No fim de cada resposta que editou arquivos, o card com o que mudou e o desfazer (Fase 42). */
   turnReview: boolean
+  /** O navegador da bancada abre páginas da internet, além do que é desta máquina (Fase 58). */
+  previewWeb: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -289,6 +291,7 @@ function defaults(): WispConfig {
     weeklySummary: true,
     usageAlerts: true,
     turnReview: true,
+    previewWeb: true,
     provider: 'subscription',
     openrouterModel: null,
     phoneApprovals: false,
@@ -428,6 +431,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   weeklySummary: z.boolean(),
   usageAlerts: z.boolean(),
   turnReview: z.boolean(),
+  previewWeb: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
   phoneApprovals: z.boolean(),

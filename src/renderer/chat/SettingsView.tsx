@@ -377,6 +377,14 @@ export function SettingsView({
             checked={values.turnReview}
             onChange={(turnReview) => void save({ turnReview })}
           />
+          <Toggle
+            label={t('Páginas da internet no navegador da bancada')}
+            hint={t(
+              'Desligado, o navegador da bancada só abre o que está nesta máquina (localhost e arquivos). Ligado, o Claude também pode abrir e ler sites nele; clicar e preencher continuam pedindo permissão.'
+            )}
+            checked={values.previewWeb}
+            onChange={(previewWeb) => void save({ previewWeb })}
+          />
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>
