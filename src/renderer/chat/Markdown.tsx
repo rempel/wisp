@@ -3,7 +3,8 @@ import type { ComponentProps, JSX } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components, ExtraProps } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
-import { CheckIcon, CopyIcon } from './icons'
+import { CheckIcon, CopyIcon, TerminalIcon } from './icons'
+import { SHELL_LANGUAGES, shellSnippet } from '../../shared/ipc-workbench'
 import { t } from '../../shared/i18n'
 
 /** Linguagem de um bloco de código, pela classe "language-x" do <code> de dentro. */
@@ -32,6 +33,19 @@ function CodeBlock({ children, node }: ComponentProps<'pre'> & ExtraProps): JSX.
     <div className="code-block">
       <div className="code-head">
         <span>{language ?? t('código')}</span>
+        {language && SHELL_LANGUAGES.includes(language.toLowerCase()) && (
+          <button
+            type="button"
+            onClick={() => {
+              const command = shellSnippet(pre.current?.innerText ?? '')
+              if (command) void window.wisp.shell.paste(command, null)
+            }}
+            title={t('Cola o comando no seu terminal da bancada, sem enviar: o Enter é seu')}
+          >
+            <TerminalIcon />
+            {t('Rodar no terminal')}
+          </button>
+        )}
         <button type="button" onClick={copy} title={t('Copiar código')}>
           {copied ? <CheckIcon /> : <CopyIcon />}
           {copied ? t('Copiado') : t('Copiar')}

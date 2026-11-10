@@ -198,6 +198,19 @@ export class Shells {
     return plainOutput(shown.slice(Math.max(0, shown.length - (item.total - mark))))
   }
 
+  /**
+   * Cola um texto num terminal seu, sem enviar (Fase 63): o Enter é seu. Usa o último terminal
+   * seu que ainda roda, ou abre um na pasta dada. Devolve o id dele.
+   */
+  paste(text: string, folder: string | null): string | { error: string } {
+    let id: string | null = null
+    for (const [key, item] of this.items) if (!item.owner && !item.info.exited) id = key
+    const target = id ?? this.create(folder)
+    if (typeof target !== 'string') return target
+    this.items.get(target)?.proc.paste(text, false)
+    return target
+  }
+
   /** As últimas linhas do que o terminal mostrou, em texto. */
   tail(id: string, lines: number): string {
     const item = this.items.get(id)

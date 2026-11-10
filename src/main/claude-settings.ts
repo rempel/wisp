@@ -45,6 +45,8 @@ export const SAFE_TOOLS = [
   'mcp__desktop__preview_screenshot',
   'mcp__desktop__preview_read',
   'mcp__desktop__preview_console',
+  'mcp__desktop__preview_tabs',
+  'mcp__desktop__preview_resize',
   'mcp__desktop__terminal_read'
 ]
 

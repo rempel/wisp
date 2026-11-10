@@ -93,8 +93,8 @@ test('as ferramentas da bancada no servidor desktop', async () => {
   const control: WorkbenchControl = {
     folderOf: (conversation) => (conversation === 't1' ? '/projeto' : null),
     preview: {
-      open(input, base) {
-        calls.push(['open', input, base])
+      open(input, base, fresh) {
+        calls.push(['open', input, base, ...(fresh ? ['nova'] : [])])
         if (input.startsWith('https://')) return { ok: false, message: 'Só desta máquina.' }
         open = true
         return { ok: true, kind: 'url' }
@@ -104,6 +104,9 @@ test('as ferramentas da bancada no servidor desktop', async () => {
           ? { open: true, display: 'http://localhost:5173/', kind: 'url' }
           : { open: false, display: '', kind: null },
       remote: () => remote,
+      selectTab: () => true,
+      closeTab: () => undefined,
+      resize: () => undefined,
       image: async () => 'sem tela aqui',
       async evaluate(code) {
         calls.push(['eval', code.includes('innerText') ? 'ler' : code])

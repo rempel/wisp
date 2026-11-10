@@ -273,3 +273,29 @@
     animation: none;
   }
 }
+
+/* As abas do navegador (Fase 59) e os erros do console (Fase 62). */
+.workbench-page-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--danger-solid);
+  vertical-align: 1px;
+}
+
+.workbench-errors .workbench-chip {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.workbench-served small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* A página estreitada (Fase 61) fica no meio; em volta, o fundo do painel. */
+.workbench-page {
+  background: var(--raised);
+}

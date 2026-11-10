@@ -35,6 +35,8 @@ export interface WorkbenchHost {
   sideWidth(px: number, grow: boolean): void
   /** A pasta de uma conversa (null: sem pasta, ou a conversa já fechou). */
   folderOf(conversation: string | undefined): string | null
+  /** Um texto para a caixa da conversa em foco (o elemento apontado, os erros do console). */
+  compose(text: string): void
 }
 
 /**
@@ -138,6 +140,7 @@ export function setupWorkbench(host: WorkbenchHost): {
     isSender: host.isSender,
     window: host.window,
     attach: host.attach,
+    compose: host.compose,
     opened(input) {
       state = { ...state, recent: withRecent(state.recent, input) }
       apply({ open: true, tab: 'browser' })
@@ -158,6 +161,17 @@ export function setupWorkbench(host: WorkbenchHost): {
   ipcMain.handle(IPC.shellCreate, (event, folder: unknown): string | { error: string } => {
     if (!from(event)) return { error: t('pedido inválido') }
     return shells.create(typeof folder === 'string' ? folder : null)
+  })
+  // Rodar no terminal (Fase 63): o comando de um bloco de código é colado, sem enviar.
+  ipcMain.handle(IPC.shellPaste, (event, text: unknown, folder: unknown): string | null => {
+    if (!from(event) || typeof text !== 'string' || !text.trim()) return null
+    const id = shells.paste(
+      text.slice(0, 20_000),
+      typeof folder === 'string' ? folder : host.folderOf(undefined)
+    )
+    if (typeof id !== 'string') return id.error
+    apply({ open: true, tab: 'terminal' })
+    return null
   })
   ipcMain.on(IPC.shellClose, (event, id: unknown) => {
     if (from(event) && typeof id === 'string') shells.close(id)

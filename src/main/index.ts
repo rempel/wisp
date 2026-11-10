@@ -650,7 +650,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     window: () => chat?.window() ?? null,
     attach: (dropped) => chat?.attach(dropped),
     sideWidth: (px, grow) => chat?.sideWidth(px, grow),
-    folderOf: (conversation) => chat?.folderOf(conversation) ?? null
+    folderOf: (conversation) => chat?.folderOf(conversation) ?? null,
+    compose: (text) => chat?.compose(text)
   })
   workbenchControl = workbench.control
   // A tela de configurações do painel (e a pílula do modo demonstração).

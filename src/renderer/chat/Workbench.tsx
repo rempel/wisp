@@ -2,30 +2,19 @@
 // painel de preview e o terminal do Claude Desktop. O navegador é a pré-visualização da Fase 47
 // (só arquivos e endereços desta máquina): a página fica numa vista isolada que o main põe por
 // cima do lugar que esta página reserva. O terminal é o seu shell, na pasta da conversa em foco.
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import type { FormEvent, JSX, PointerEvent as ReactPointerEvent } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { JSX, PointerEvent as ReactPointerEvent } from 'react'
 import type { Terminal } from '@xterm/xterm'
 import { useFileTarget } from './fileView'
-import {
-  BackIcon,
-  CloseIcon,
-  ExternalIcon,
-  ForwardIcon,
-  GlobeIcon,
-  PlusIcon,
-  ReloadIcon,
-  ScreenshotIcon,
-  TerminalIcon
-} from './icons'
+import { CloseIcon, GlobeIcon, PlusIcon, TerminalIcon } from './icons'
 import { lastLocalhost, openPreview, useMarkdown } from './preview-store'
 import { TerminalView } from './TerminalView'
+import { BrowserTab } from './WorkbenchBrowser'
 import type { TerminalLink } from './TerminalView'
 import { askedForWorkbench, wasAsked } from './workbench-store'
 import { draggedWidth, MAX_SHELLS, WORKBENCH_WIDTH } from '../../shared/ipc'
-import type { PreviewState, ShellInfo, WorkbenchState, WorkbenchTab } from '../../shared/ipc'
+import type { ShellInfo, WorkbenchState, WorkbenchTab } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
-
-const CLOSED_PREVIEW: PreviewState = { open: false, display: '', kind: null }
 
 /** O terminal da bancada fala com um shell (o do modo terminal, com o Claude Code da conversa). */
 const SHELL_LINK: TerminalLink = {
@@ -37,202 +26,6 @@ const SHELL_LINK: TerminalLink = {
 
 /** Quanto do fim da saída de um terminal fica guardado para achar o localhost (caracteres). */
 const SERVED_TAIL = 400
-
-/** O navegador: a barra (voltar, avançar, recarregar, o endereço) e o lugar da página. */
-function BrowserTab({
-  folder,
-  hidden,
-  recent
-}: {
-  folder: string | null
-  hidden: boolean
-  recent: string[]
-}): JSX.Element {
-  const [preview, setPreview] = useState<PreviewState>(CLOSED_PREVIEW)
-  const [address, setAddress] = useState('')
-  const [note, setNote] = useState<string | null>(null)
-  const editing = useRef(false)
-  const place = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    void window.wisp.preview.get().then(setPreview)
-    return window.wisp.preview.onState(setPreview)
-  }, [])
-  // O endereço acompanha a página, menos enquanto você escreve nele.
-  useEffect(() => {
-    if (!editing.current) setAddress(preview.display)
-  }, [preview.display])
-
-  // O main põe a página em cima deste lugar: ele sabe onde fica sempre que muda (a janela, a
-  // divisória, as abas) e some quando algo do painel passa por cima (a paleta, um arquivo).
-  const shown = preview.open && !hidden
-  useLayoutEffect(() => {
-    const element = place.current
-    if (!element || !shown) return
-    let frame = 0
-    const report = (): void => {
-      frame = 0
-      const rect = element.getBoundingClientRect()
-      if (rect.width < 1 || rect.height < 1) return window.wisp.preview.bounds(null)
-      window.wisp.preview.bounds({
-        x: rect.left,
-        y: rect.top,
-        width: rect.width,
-        height: rect.height
-      })
-    }
-    const queue = (): void => {
-      frame ||= requestAnimationFrame(report)
-    }
-    const observer = new ResizeObserver(queue)
-    observer.observe(element)
-    window.addEventListener('resize', queue)
-    report()
-    return () => {
-      observer.disconnect()
-      window.removeEventListener('resize', queue)
-      cancelAnimationFrame(frame)
-      window.wisp.preview.bounds(null)
-    }
-  }, [shown])
-
-  const open = (target: string): void => {
-    editing.current = false
-    void openPreview(target, folder).then(setNote)
-  }
-  const submit = (event: FormEvent): void => {
-    event.preventDefault()
-    open(address)
-  }
-
-  return (
-    <div className="workbench-body" role="tabpanel" aria-label={t('Navegador')}>
-      <form className="workbench-bar" onSubmit={submit}>
-        <button
-          type="button"
-          className="icon-button"
-          disabled={!preview.canGoBack}
-          onClick={() => window.wisp.preview.go(-1)}
-          title={t('Voltar')}
-          aria-label={t('Voltar')}
-        >
-          <BackIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          disabled={!preview.canGoForward}
-          onClick={() => window.wisp.preview.go(1)}
-          title={t('Avançar')}
-          aria-label={t('Avançar')}
-        >
-          <ForwardIcon />
-        </button>
-        <button
-          type="button"
-          className={`icon-button${preview.loading ? ' loading' : ''}`}
-          disabled={!preview.open}
-          onClick={() => window.wisp.preview.reload()}
-          title={t('Recarregar (F5)')}
-          aria-label={t('Recarregar')}
-        >
-          <ReloadIcon />
-        </button>
-        <input
-          className="workbench-address"
-          value={address}
-          spellCheck={false}
-          placeholder={t('localhost:5173, um site ou um arquivo')}
-          aria-label={t('Endereço ou arquivo')}
-          title={preview.title || undefined}
-          onFocus={(event) => {
-            editing.current = true
-            event.currentTarget.select()
-          }}
-          onBlur={() => {
-            editing.current = false
-          }}
-          onChange={(event) => {
-            setAddress(event.currentTarget.value)
-            setNote(null)
-          }}
-          onKeyDown={(event) => {
-            if (event.key !== 'Escape') return
-            event.stopPropagation()
-            setAddress(preview.display)
-            event.currentTarget.blur()
-          }}
-        />
-        <button
-          type="button"
-          className="icon-button"
-          disabled={!preview.open}
-          title={t('Mostrar ao Claude: um print da página vai como anexo para a conversa em foco')}
-          aria-label={t('Mostrar ao Claude')}
-          onClick={() =>
-            void window.wisp.preview.capture().then((ok) => {
-              setNote(ok ? null : t('Não deu para tirar o print da pré-visualização.'))
-            })
-          }
-        >
-          <ScreenshotIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button"
-          disabled={!preview.open}
-          onClick={() => window.wisp.preview.external()}
-          title={t('Abrir no navegador do sistema')}
-          aria-label={t('Abrir no navegador do sistema')}
-        >
-          <ExternalIcon />
-        </button>
-        <button
-          type="button"
-          className="icon-button workbench-page-close"
-          disabled={!preview.open}
-          onClick={() => window.wisp.preview.close()}
-          title={t('Fechar a página')}
-          aria-label={t('Fechar a página')}
-        >
-          <CloseIcon />
-        </button>
-      </form>
-      {note && (
-        <small className="settings-error workbench-note" role="alert">
-          {note}
-        </small>
-      )}
-      {preview.open ? (
-        <div className="workbench-page" ref={place} aria-hidden />
-      ) : (
-        <div className="workbench-empty">
-          <GlobeIcon />
-          <strong>{t('O que o Claude fez, ao lado da conversa')}</strong>
-          <span>
-            {t(
-              'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.'
-            )}
-          </span>
-          {recent.length > 0 && (
-            <div className="workbench-recent" role="group" aria-label={t('Abertos por último')}>
-              {recent.map((item) => (
-                <button
-                  key={item}
-                  type="button"
-                  className="workbench-chip"
-                  onClick={() => open(item)}
-                >
-                  {item}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
 
 /** Os terminais: o seu shell, na pasta da conversa em foco. */
 function TerminalTab({
