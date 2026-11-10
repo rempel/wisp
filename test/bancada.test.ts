@@ -11,7 +11,7 @@ import { narrowed, saneBounds, viewRect } from '../src/main/preview'
 import { PICK_SCRIPT, pickedText, sanePick } from '../src/main/preview-pick'
 import { shellEnv, shellLaunch, shellProgram, Shells, wslFolder } from '../src/main/shells'
 import { restoreWorkbench, withRecent } from '../src/main/workbench'
-import { lastLocalhost } from '../src/renderer/chat/preview-store'
+import { lastLocalhost, terminalFailure } from '../src/renderer/chat/preview-store'
 import {
   draggedWidth,
   MAX_SHELLS,
@@ -250,4 +250,21 @@ test('Windows: numa pasta do WSL, o terminal abre dentro da distribuição (Fase
   assert.deepEqual(launch.args, ['-d', 'Ubuntu', '--cd', '/home/eu/app'])
   // Fora do Windows, a mesma pasta é só uma pasta que não existe: o shell de sempre.
   assert.notEqual(shellLaunch('\\\\wsl$\\Ubuntu\\home', false, false).file, 'wsl.exe')
+})
+
+test('terminal: o que parece um erro vira um trecho para o Claude (Fase 73)', () => {
+  assert.equal(terminalFailure('início\n$ ls\na.txt  b.txt\n$ '), null)
+  assert.equal(terminalFailure('início\n✓ 12 testes passaram\n0 errors\n'), null)
+  const node = terminalFailure(
+    'início\n$ node app.js\r\n\u001b[31mTypeError: x is not a function\u001b[0m\r\n    at main (app.js:3:1)\r\n$ '
+  )
+  assert.equal(node, '$ node app.js\nTypeError: x is not a function\n    at main (app.js:3:1)\n$')
+  assert.ok(terminalFailure('x\nnpm ERR! code ELIFECYCLE\n'))
+  assert.ok(terminalFailure('x\nsrc/a.ts(3,1): error TS2304: Cannot find name\n'))
+  assert.ok(terminalFailure('x\nTraceback (most recent call last):\n  File "a.py"\n'))
+  assert.ok(terminalFailure('x\nbash: foo: command not found\n'))
+  assert.ok(terminalFailure('x\nError: listen EADDRINUSE: address already in use :::5173\n'))
+  // Só as últimas linhas vão.
+  const long = terminalFailure(`x\nError: quebrou\n${'linha\n'.repeat(100)}`, 5)
+  assert.equal(long?.split('\n').length, 5)
 })

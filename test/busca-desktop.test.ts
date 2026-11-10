@@ -15,6 +15,7 @@ import {
   SHELL_IFACE,
   SHELL_NAME,
   SHELL_PATH,
+  ShellPointer,
   shellActivate,
   shellWindows
 } from '../src/main/gnome-shell'
@@ -169,6 +170,9 @@ test(
     // Sem a extensão: null, e o Wisp segue como antes.
     assert.equal(await shellWindows(1, env), null)
     assert.equal(await shellActivate(7, env), false)
+    const pointer = new ShellPointer(env)
+    closers.push(() => pointer.close())
+    assert.equal(await pointer.query(), null, 'sem a extensão, o cursor vem de onde sempre veio')
     const shell = await DBusConnection.session(env)
     assert.ok(shell)
     closers.push(() => shell!.close())
@@ -193,6 +197,7 @@ test(
             ])
           ]
         },
+        Pointer: { in: '', out: 'ii', handler: () => [640, 360] },
         ActivateWindow: {
           in: 'u',
           out: 'b',
@@ -212,6 +217,8 @@ test(
     assert.equal(await shellActivate(7, env), true)
     assert.equal(await shellActivate(123, env), false)
     assert.deepEqual(activated, [7, 123])
+    // O cursor, para os olhos do mascote.
+    assert.deepEqual(await pointer.query(), { x: 640, y: 360 })
     // E pelo caminho de sempre: no GNOME com Wayland, a lista vem da extensão.
     const listed = await listWindows({
       ...env,

@@ -78,6 +78,7 @@ import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
 import { fileAttachment } from './file-menu'
+import { ShellPointer } from './gnome-shell'
 import { setupIntegrations } from './integrations'
 import { setupMemoryIpc } from './memory'
 import { setupWorkbench } from './workbench'
@@ -319,7 +320,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   void XPointer.open().then((opened) => {
     xpointer = opened
   })
+  // No GNOME com Wayland, pela extensão do Wisp (Fase 70), se você a ligou.
+  const shellPointer =
+    IS_LINUX && process.env.XDG_SESSION_TYPE === 'wayland' ? new ShellPointer() : null
   const cursor = async (): Promise<Point> => {
+    const shell = shellPointer && getConfig().gnomeExtension ? await shellPointer.query() : null
+    if (shell) return shell
     const point = xpointer?.alive ? await xpointer.query() : null
     if (!point) return screen.getCursorScreenPoint()
     const scale = screen.getPrimaryDisplay().scaleFactor
@@ -920,6 +926,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     if (midnight) clearTimeout(midnight)
     presence.dispose()
     xpointer?.close()
+    shellPointer?.close()
     sounds.dispose()
     mood.dispose()
     sessions.dispose()

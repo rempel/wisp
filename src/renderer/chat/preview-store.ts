@@ -31,6 +31,34 @@ export function lastLocalhost(text: string): string | null {
   }
 }
 
+// O resto das sequências de controle do terminal (o cursor, o título), para ler a saída como texto.
+const CONTROL = new RegExp(
+  `${String.fromCharCode(27)}(?:\\[[0-?]*[ -/]*[@-~]|\\][^${String.fromCharCode(7)}]*${String.fromCharCode(7)})`,
+  'g'
+)
+
+/** O que parece um erro na saída de um terminal (a linha que o Claude vai querer ver). */
+const FAILURE =
+  /(^|\s)(error(\s+TS\d+)?:|\w*Error:|ERR!|Traceback \(most recent call last\)|panic:|FAILED\b|fatal:|Unhandled\w*|command not found|comando não encontrado|ELIFECYCLE|EADDRINUSE|Segmentation fault)/i
+
+/**
+ * O trecho de erro da saída de um terminal (Fase 73): se alguma linha parece um erro, as
+ * últimas linhas, em texto, para mandar ao Claude. null: nada parece ter quebrado.
+ */
+export function terminalFailure(output: string, lines = 30): string | null {
+  const plain = output
+    .replace(CONTROL, '')
+    .replace(/\r\n/g, '\n')
+    .split('\n')
+    .map((line) => (line.split('\r').pop() ?? '').trimEnd())
+    .filter((line, index, all) => line || all[index - 1])
+  // A primeira linha pode ter chegado cortada (o começo ficou de fora do que se guarda).
+  const whole = plain.slice(1)
+  if (!whole.some((line) => FAILURE.test(line))) return null
+  while (whole.length && !whole[whole.length - 1]) whole.pop()
+  return whole.slice(-lines).join('\n').trim()
+}
+
 let markdown: string | null = null
 const listeners = new Set<() => void>()
 const notify = (): void => listeners.forEach((listener) => listener())

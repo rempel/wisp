@@ -207,3 +207,57 @@ export async function shellActivate(
   const reply = await call('ActivateWindow', 'u', [id], env)
   return reply?.[0] === true
 }
+
+/**
+ * Onde está o cursor, pela extensão (no Wayland, um app só sabe do cursor em cima das janelas
+ * dele): uma conexão que fica aberta, para os olhos do mascote. `query` devolve null sem a
+ * extensão; depois de algumas falhas seguidas, desiste por um tempo, para não insistir à toa.
+ */
+export class ShellPointer {
+  private bus: DBusConnection | null = null
+  private opening: Promise<void> | null = null
+  private failures = 0
+  private retryAt = 0
+
+  constructor(private readonly env: NodeJS.ProcessEnv = process.env) {}
+
+  async query(now = Date.now()): Promise<{ x: number; y: number } | null> {
+    if (now < this.retryAt) return null
+    if (!this.bus?.alive) {
+      this.opening ??= DBusConnection.session(this.env).then((bus) => {
+        this.bus = bus
+        this.opening = null
+      })
+      await this.opening
+    }
+    if (!this.bus?.alive) return this.failed(now)
+    try {
+      const [x, y] = await this.bus.call({
+        destination: SHELL_NAME,
+        path: SHELL_PATH,
+        interface: SHELL_IFACE,
+        member: 'Pointer',
+        timeout: 500
+      })
+      if (typeof x !== 'number' || typeof y !== 'number') return this.failed(now)
+      this.failures = 0
+      return { x, y }
+    } catch {
+      return this.failed(now)
+    }
+  }
+
+  private failed(now: number): null {
+    // Sem a extensão: confere de novo só daqui a um minuto.
+    if (++this.failures >= 3) {
+      this.failures = 0
+      this.retryAt = now + 60_000
+    }
+    return null
+  }
+
+  close(): void {
+    this.bus?.close()
+    this.bus = null
+  }
+}
