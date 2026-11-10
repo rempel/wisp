@@ -233,8 +233,30 @@ const title = served
   : null
 check('P23 e a página abre no navegador quando a porta responde', title === 'No ar', title)
 await ev(`window.wisp.shell.close((await window.wisp.workbench.get()).terminals.at(-1).id)`)
+console.log('== A aba Plano (Fase 76)')
+await ev(`window.wisp.workbench.set({ open: true, tab: 'plan' })`)
+const noPlan = await waitFor(
+  () => ev(`document.querySelector('.workbench-plan .workbench-empty')?.innerText ?? null`),
+  5000
+)
+check('P24 sem plano, a aba explica o modo Planejar', /Nenhum plano/.test(noPlan ?? ''), noPlan)
+await ev(`document.querySelector('.pane .composer textarea').value = ''`)
+wisp(home, '--ask', '[plano]')
+const planned = await waitFor(
+  () => ev(`document.querySelector('.workbench-plan-text')?.innerText ?? null`),
+  15000
+)
+check('P25 o plano que o Claude apresentou aparece na aba', (planned ?? '').length > 10, planned)
+const waiting = await ev(
+  `document.querySelector('.workbench-plan-head .plan-waiting')?.textContent ?? null`
+)
+check('P26 marcado como esperando você aceitar', /esperando/.test(waiting ?? ''), waiting)
+const shot = await chat.send('Page.captureScreenshot', { format: 'png' })
+if (process.env.WISP_E2E_SHOTS) {
+  writeFileSync(join(process.env.WISP_E2E_SHOTS, 'plano.png'), Buffer.from(shot.data, 'base64'))
+}
 check(
-  'P24 sem erros nas páginas',
+  'P27 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,
   [...mascot.logs, ...chat.logs].join('\n')
 )

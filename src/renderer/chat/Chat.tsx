@@ -55,7 +55,7 @@ import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
 import { SettingsView } from './SettingsView'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
-import type { Action, ChatState } from './state'
+import type { Action, ChatState, Item } from './state'
 import { TabBar } from './TabBar'
 import type { TabStatus } from './TabBar'
 import { CostPill } from './CostPill'
@@ -73,6 +73,9 @@ const SHOW_KEYFRAMES: Keyframe[] = [
   { transform: 'translateY(10px) scale(0.97)', opacity: 0.4 },
   { transform: 'none', opacity: 1 }
 ]
+
+/** Sem conversa em foco: a bancada recebe sempre a mesma lista vazia. */
+const NO_ITEMS: Item[] = []
 
 const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0, layout: leaf('') }
 
@@ -936,6 +939,7 @@ export default function Chat(): JSX.Element {
                     folder={focusedFolder}
                     conversation={focusedTab?.kind === 'chat' ? focusedTab.id : null}
                     busy={!!focusedState?.busy}
+                    items={focusedState?.items ?? NO_ITEMS}
                     covered={palette || dragging || draggingTab !== null}
                     onCompose={(text) => {
                       const conversation = focusedConversation()

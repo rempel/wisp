@@ -3,8 +3,8 @@
 // Claude Code do modo terminal, que continua na aba da conversa).
 
 /** As abas da bancada. */
-export type WorkbenchTab = 'browser' | 'terminal' | 'changes'
-export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal', 'changes']
+export type WorkbenchTab = 'browser' | 'terminal' | 'changes' | 'plan'
+export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal', 'changes', 'plan']
 
 /** A largura da bancada na janela (px, antes do zoom do painel). */
 export const WORKBENCH_WIDTH = { min: 300, initial: 520, max: 2400 }

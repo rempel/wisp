@@ -6,12 +6,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { JSX, PointerEvent as ReactPointerEvent } from 'react'
 import type { Terminal } from '@xterm/xterm'
 import { useFileTarget } from './fileView'
-import { CloseIcon, GlobeIcon, PencilIcon, PlusIcon, TerminalIcon } from './icons'
+import { CloseIcon, GlobeIcon, PencilIcon, PlanIcon, PlusIcon, TerminalIcon } from './icons'
 import { lastLocalhost, openPreview, terminalFailure, useMarkdown } from './preview-store'
 import { LaunchRow } from './LaunchRow'
 import { TerminalView } from './TerminalView'
 import { BrowserTab } from './WorkbenchBrowser'
 import { ChangesTab } from './WorkbenchChanges'
+import { PlanTab } from './WorkbenchPlan'
+import type { Item } from './state'
 import type { TerminalLink } from './TerminalView'
 import { askedForWorkbench, wasAsked } from './workbench-store'
 import { draggedWidth, MAX_SHELLS, WORKBENCH_WIDTH } from '../../shared/ipc'
@@ -236,6 +238,7 @@ export function Workbench({
   folder,
   conversation,
   busy,
+  items,
   covered,
   onCompose
 }: {
@@ -244,6 +247,8 @@ export function Workbench({
   /** A conversa em foco (null: uma sessão do terminal), e se o Claude está respondendo nela. */
   conversation: string | null
   busy: boolean
+  /** Os itens da conversa em foco (o plano e os passos dela, na aba Plano). */
+  items: Item[]
   covered: boolean
   onCompose: (text: string) => void
 }): JSX.Element {
@@ -281,7 +286,8 @@ export function Workbench({
   const tabs: [WorkbenchTab, string, JSX.Element][] = [
     ['browser', t('Navegador'), <GlobeIcon key="browser" />],
     ['terminal', t('Terminal'), <TerminalIcon key="terminal" />],
-    ['changes', t('Mudanças'), <PencilIcon key="changes" />]
+    ['changes', t('Mudanças'), <PencilIcon key="changes" />],
+    ['plan', t('Plano'), <PlanIcon key="plan" />]
   ]
   return (
     <aside
@@ -333,6 +339,8 @@ export function Workbench({
           hidden={covered || overlay || dragWidth !== null}
           recent={state.recent}
         />
+      ) : state.tab === 'plan' ? (
+        <PlanTab items={items} />
       ) : state.tab === 'changes' ? (
         <ChangesTab conversation={conversation} busy={busy} />
       ) : (

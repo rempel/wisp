@@ -2860,5 +2860,17 @@ export const EN: Record<string, string> = {
     'The files Claude edits in this conversation show up here, with the diff and undo. Terminal commands are not included.',
   'Sem diff: o arquivo é binário ou grande demais.': 'No diff: the file is binary or too large.',
   'Bancada: mudanças': 'Workbench: changes',
-  'diff arquivos editados desfazer revisar': 'diff edited files undo review changes'
+  'diff arquivos editados desfazer revisar': 'diff edited files undo review changes',
+  'esperando você aceitar': 'waiting for you to accept',
+  aceito: 'accepted',
+  recusado: 'refused',
+  'Nenhum plano ainda': 'No plan yet',
+  'No modo Planejar (Shift+Tab na caixa de texto), o Claude monta um plano antes de mexer em algo. Ele aparece aqui, e a lista de passos vai sendo marcada conforme o trabalho anda.':
+    'In Plan mode (Shift+Tab in the text box), Claude drafts a plan before touching anything. It shows up here, and the list of steps gets checked off as the work moves along.',
+  Passos: 'Steps',
+  '{done} de {total}': '{done} of {total}',
+  'em andamento': 'in progress',
+  'a fazer': 'to do',
+  'Bancada: plano': 'Workbench: plan',
+  'passos tarefas planejar andamento': 'steps tasks plan progress todo'
 }
