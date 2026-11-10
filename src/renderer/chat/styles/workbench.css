@@ -453,3 +453,115 @@
   justify-content: center;
   padding: 6px 0 0;
 }
+
+/* A aba Plano (Fase 76): os passos, com o andamento, e o plano. */
+.workbench-plan-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+.workbench-plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.workbench-plan-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workbench-plan-head .plan-waiting {
+  color: var(--warning-text);
+}
+
+.workbench-plan-head .plan-accepted {
+  color: var(--ok);
+}
+
+.workbench-plan-bar {
+  overflow: hidden;
+  height: 4px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--raised);
+}
+
+.workbench-plan-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.workbench-plan-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.workbench-plan-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+}
+
+.workbench-plan-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+
+.workbench-plan-mark svg {
+  width: 10px;
+  height: 10px;
+}
+
+.workbench-plan-steps .step-completed {
+  color: var(--muted);
+}
+
+.workbench-plan-steps .step-completed .workbench-plan-mark {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--bg);
+}
+
+.workbench-plan-steps .step-in_progress {
+  background: var(--accent-soft);
+}
+
+.workbench-plan-steps .step-in_progress .workbench-plan-mark {
+  border-color: var(--accent);
+}
+
+.workbench-plan-text {
+  font-size: 13px;
+}
+
+/* Com quatro abas, os nomes cedem lugar aos ícones numa bancada estreita. */
+.workbench-head .view-toggle {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
