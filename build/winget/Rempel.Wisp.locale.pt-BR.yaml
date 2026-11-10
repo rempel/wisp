@@ -1,0 +1,21 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.6.0.schema.json
+PackageIdentifier: Rempel.Wisp
+PackageVersion: 0.1.0
+PackageLocale: pt-BR
+Publisher: rempel
+PublisherUrl: https://github.com/rempel
+PackageName: Wisp
+PackageUrl: https://github.com/rempel/wisp
+License: GPL-3.0-or-later
+LicenseUrl: https://github.com/rempel/wisp/blob/main/LICENSE
+ShortDescription: Uma luzinha no seu desktop, com o Claude Code.
+Description: |-
+  O Wisp é um assistente de mesa: um mascote que flutua na tela, conversa com você e age no seu
+  computador, sempre pedindo licença antes. Quem pensa por trás dele é o Claude Code.
+Tags:
+  - assistente
+  - claude
+  - claude-code
+  - desktop
+ManifestType: defaultLocale
+ManifestVersion: 1.6.0

@@ -1,7 +1,7 @@
 # Notas de versão
 
 O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fora) está no
-[ROADMAP](ROADMAP.md); os roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
+[histórico das fases](docs/HISTORICO.md), e o que vem depois, no [ROADMAP](ROADMAP.md); os roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 ## Não lançado
 
@@ -168,9 +168,24 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Páginas da internet na bancada** (Fase 58): o navegador da bancada abre sites, além do que
   está na máquina, e o Claude os abre ali quando você pede (`previewWeb`, ligada por padrão; nas
   configurações dá para voltar a só esta máquina).
+- **O navegador da bancada, parte 2** (Fases 59 a 62): abas (até 6), a mira que manda um elemento
+  da página para a conversa com o recorte, a largura de celular e de tablet, e o aviso dos erros
+  do console com um clique para a caixa. O Claude ganha `preview_tabs` e `preview_resize`.
+- **Rodar no terminal** (Fase 63): os blocos de shell das respostas colam o comando num terminal
+  seu da bancada, sem enviar.
+- **"Perguntar ao Wisp" no gerenciador de arquivos** (Fase 64): no Nautilus, no Dolphin e no
+  Explorer do Windows, e o `wisp --file`.
+- **A memória à vista** (Fase 65): os `CLAUDE.md` que o Claude lê, com editar, o diff e o backup.
+- **Modelos locais** (Fase 66): um Ollama ou LM Studio no lugar da OpenRouter, sem chave.
+- **No Windows** (Fases 67 a 69): o comando `wisp` no PATH, o terminal da bancada dentro do WSL e
+  o volume por aplicativo no mixer; os manifestos do winget estão em `build/winget/`.
+- **No Linux** (Fases 70 a 72): a extensão para o GNOME com Wayland (as janelas), o Wisp na busca
+  do KDE e do GNOME, e os arquivos para o AUR e o Flathub em `build/`.
 
 ### Mudou
 
+- O ROADMAP é novo: as Fases 6 a 58, validadas, foram para `docs/HISTORICO.md`, e o ROADMAP ficou
+  com o que está em andamento (as Fases 59 a 72) e o que vem depois.
 - **O desenho novo** (Fase 56): o painel ficou plano. Cores neutras com uma cor de destaque, formas
   preenchidas no lugar dos contornos, sem degradês nem brilhos, cantos e barras de rolagem
   padronizados. A navegação (sessões, quadro, histórico, bancada e configurações) foi para uma

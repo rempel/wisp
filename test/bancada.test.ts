@@ -9,7 +9,7 @@ import { join } from 'node:path'
 import { test } from 'node:test'
 import { narrowed, saneBounds, viewRect } from '../src/main/preview'
 import { PICK_SCRIPT, pickedText, sanePick } from '../src/main/preview-pick'
-import { shellEnv, shellLaunch, shellProgram, Shells } from '../src/main/shells'
+import { shellEnv, shellLaunch, shellProgram, Shells, wslFolder } from '../src/main/shells'
 import { restoreWorkbench, withRecent } from '../src/main/workbench'
 import { lastLocalhost } from '../src/renderer/chat/preview-store'
 import {
@@ -232,4 +232,22 @@ test('rodar no terminal: cola num terminal seu, sem enviar', unixOnly, async () 
   assert.match(output, /colado-\$\(\(2\+2\)\)/)
   assert.doesNotMatch(output, /colado-4/)
   shells.dispose()
+})
+
+test('Windows: numa pasta do WSL, o terminal abre dentro da distribuição (Fase 68)', () => {
+  assert.deepEqual(wslFolder('\\\\wsl$\\Ubuntu\\home\\eu\\app'), {
+    distro: 'Ubuntu',
+    path: '/home/eu/app'
+  })
+  assert.deepEqual(wslFolder('\\\\wsl.localhost\\Debian-12'), { distro: 'Debian-12', path: '/' })
+  assert.deepEqual(wslFolder('//wsl$/Ubuntu/srv'), { distro: 'Ubuntu', path: '/srv' })
+  assert.equal(wslFolder('C:\\Users\\eu\\app'), null)
+  assert.equal(wslFolder('\\\\servidor\\pasta'), null)
+  // Um nome de distribuição com o que não devia: não vira argumento do wsl.exe.
+  assert.equal(wslFolder('\\\\wsl$\\Ubuntu --exec calc\\x'), null)
+  const launch = shellLaunch('\\\\wsl$\\Ubuntu\\home\\eu\\app', false, true)
+  assert.equal(launch.file, 'wsl.exe')
+  assert.deepEqual(launch.args, ['-d', 'Ubuntu', '--cd', '/home/eu/app'])
+  // Fora do Windows, a mesma pasta é só uma pasta que não existe: o shell de sempre.
+  assert.notEqual(shellLaunch('\\\\wsl$\\Ubuntu\\home', false, false).file, 'wsl.exe')
 })

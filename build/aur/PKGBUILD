@@ -1,0 +1,27 @@
+# Maintainer: rempel <rempel@users.noreply.github.com>
+# O Wisp no AUR, a partir do .deb publicado. A cada versão: troque o pkgver, rode
+# `updpkgsums` (põe o SHA-256 do .deb) e `makepkg --printsrcinfo > .SRCINFO`.
+pkgname=wisp-bin
+pkgver=0.1.0
+pkgrel=1
+pkgdesc='Uma luzinha no seu desktop, com o Claude Code'
+arch=('x86_64')
+url='https://github.com/rempel/wisp'
+license=('GPL-3.0-or-later')
+depends=('gtk3' 'nss' 'alsa-lib' 'libnotify' 'libsecret' 'xdg-utils')
+optdepends=(
+  'whisper.cpp: a voz (transcrição na sua máquina)'
+  'piper-tts: as respostas faladas'
+  'github-cli: os avisos dos seus PRs'
+)
+provides=('wisp')
+conflicts=('wisp')
+source=("https://github.com/rempel/wisp/releases/download/v${pkgver}/wisp_${pkgver}_amd64.deb")
+sha256sums=('SKIP')
+
+package() {
+  # O .deb já traz tudo no lugar: /opt/Wisp, a entrada do menu, os ícones e a busca do GNOME.
+  bsdtar -xf data.tar.* -C "${pkgdir}"
+  install -d "${pkgdir}/usr/bin"
+  ln -s /opt/Wisp/wisp "${pkgdir}/usr/bin/wisp"
+}

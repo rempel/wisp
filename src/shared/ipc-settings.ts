@@ -96,6 +96,8 @@ export interface Settings {
   previewWeb: boolean
   fileManagerMenu: boolean
   commandInPath: boolean
+  desktopSearch: boolean
+  gnomeExtension: boolean
   provider: Provider
   openrouterModel: string | null
   localModelsUrl: string | null
@@ -157,6 +159,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'previewWeb',
   'fileManagerMenu',
   'commandInPath',
+  'desktopSearch',
+  'gnomeExtension',
   'provider',
   'openrouterModel',
   'localModelsUrl',

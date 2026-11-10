@@ -8,6 +8,7 @@ import { EventEmitter } from 'events'
 import { choosePlayers, describeAfter, METHODS } from './media'
 import type { MediaAction, MediaPlayers, PlayerInfo } from './media'
 import { firstLine, importModule, powerShellJson, runPowerShell } from './powershell'
+import { setAppVolume } from './volume-app-win'
 import { setWindowsVolume } from './volume-win'
 import { MANAGER, WindowsMediaWatcher, windowsMusic } from './media-win-watch'
 import type { WatchedSession } from './media-win-watch'
@@ -221,9 +222,26 @@ export class WindowsMedia extends EventEmitter implements MediaPlayers {
     return describeAfter(after.filter((player) => chosen.some((c) => c.bus === player.bus)))
   }
 
-  /** No Windows, os players não mostram o volume deles: muda o do sistema. */
-  async volume(level: number | undefined, delta: number | undefined): Promise<string> {
-    const result = await setWindowsVolume(level !== undefined ? { level } : { step: delta ?? 0 })
+  /**
+   * O volume do player, pelo mixer de volume do Windows (Fase 69): o do programa que toca (ou o
+   * de `only`). Se ele não tem uma sessão de áudio aberta, muda o do sistema, como antes.
+   */
+  async volume(
+    level: number | undefined,
+    delta: number | undefined,
+    only?: string
+  ): Promise<string> {
+    const change = level !== undefined ? { level } : { step: delta ?? 0 }
+    const players = await this.players().catch(() => [])
+    const wanted = only?.trim().toLowerCase()
+    const player = wanted
+      ? players.find((item) => item.name.toLowerCase().includes(wanted))
+      : (players.find((item) => item.status === 'Playing') ?? players[0])
+    const own = player ? await setAppVolume(appNameOf(player.bus), change) : null
+    if (own !== null && player) {
+      return t('O volume do {player} ficou em {level}%.', { player: player.name, level: own })
+    }
+    const result = await setWindowsVolume(change)
     if (typeof result !== 'number') {
       return t('Não consegui mudar o volume do Windows: {error}.', { error: result.error })
     }

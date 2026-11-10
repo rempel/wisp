@@ -77,7 +77,8 @@ import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
-import { fileAttachment, setFileMenu, setWindowsCommand } from './file-menu'
+import { fileAttachment } from './file-menu'
+import { setupIntegrations } from './integrations'
 import { setupMemoryIpc } from './memory'
 import { setupWorkbench } from './workbench'
 import type { WorkbenchControl } from './workbench'
@@ -900,15 +901,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       }
     }
   })
-  // As integrações com o sistema (Fases 64 e 67) acompanham as configurações.
-  let integrations = { menu: getConfig().fileManagerMenu, command: getConfig().commandInPath }
-  if (integrations.menu) void setFileMenu(true)
-  if (integrations.command) void setWindowsCommand(true)
-  onConfigChange((config) => {
-    if (config.fileManagerMenu !== integrations.menu) void setFileMenu(config.fileManagerMenu)
-    if (config.commandInPath !== integrations.command) void setWindowsCommand(config.commandInPath)
-    integrations = { menu: config.fileManagerMenu, command: config.commandInPath }
-  })
+  // As integrações com o sistema (Fases 64, 67 e 72) acompanham as configurações.
+  const integrations = setupIntegrations((question) => chat?.ask(question))
 
   app.on('before-quit', () => {
     clearTimeout(remindersStart)
@@ -931,6 +925,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sessions.dispose()
     hooks?.close()
     workbench.dispose()
+    integrations.dispose()
     chat?.dispose()
     desktop?.close()
   })

@@ -65,6 +65,9 @@ linux:
       GenericName[pt_BR]: Assistente
       StartupWMClass: io.github.rempel.Wisp
 deb:
+  # O Wisp na busca do GNOME (Fase 72): o GNOME só lê os provedores de busca das pastas do sistema.
+  fpm:
+    - build/linux/io.github.rempel.Wisp.search-provider.ini=/usr/share/gnome-shell/search-providers/io.github.rempel.Wisp.search-provider.ini
   # As ações do menu de apps (clique direito no ícone). No AppImage não há caminho fixo para elas:
   # lá, o Wisp escreve a entrada dele em ~/.local/share/applications.
   desktop:

@@ -1152,3 +1152,44 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **O seu navegador:** "abre o youtube no meu navegador": abre no do sistema.
 - [ ] **Desligar:** em Configurações → Conversas, desligue **Páginas da internet no navegador da
       bancada**: `example.com` passa a ser recusado, com o motivo; `localhost` continua abrindo.
+
+## O navegador da bancada, parte 2 (Fases 59 a 62)
+
+- [ ] **Abas:** com uma página aberta, o **+**, um endereço e Enter: a segunda aba aparece;
+      troque entre elas e feche uma. Peça "abre a documentação numa aba nova": o Claude abre.
+- [ ] **A mira:** o botão da mira e um clique num botão da página: a caixa da conversa ganha o
+      seletor e o texto dele, e o recorte vira anexo. Esc desiste sem mandar nada.
+- [ ] **A largura:** o botão do celular: a página fica com 390 px, depois 768 px, depois o lugar
+      todo. Peça "como fica no celular?": o Claude estreita e olha.
+- [ ] **Os erros:** numa página com um erro no console, o aviso aparece e a aba ganha o ponto
+      vermelho; o clique põe os erros na caixa e o aviso some.
+
+## Rodar no terminal, a memória e os modelos locais (Fases 63, 65 e 66)
+
+- [ ] **Rodar no terminal:** peça "como instalo as dependências?": o bloco de shell da resposta
+      tem **Rodar no terminal**; o comando aparece no terminal da bancada, sem rodar.
+- [ ] **Memória:** na paleta, **Memória**; **Editar** na sua, escreva "Responda sempre em
+      tópicos.", **Ver o que muda** e **Gravar**: o arquivo muda, com um backup ao lado. Numa
+      conversa nova (Ctrl+K), o Claude obedece.
+- [ ] **Modelos locais:** com o Ollama rodando e um modelo baixado, ponha
+      `http://localhost:11434` em **Servidor de modelos local**: a pílula do provedor oferece
+      **Local**, a do modelo lista os seus, e a conversa responde. Apague o endereço: volta a
+      OpenRouter.
+
+## O sistema por perto (Fases 64, 67 a 72)
+
+- [ ] **Perguntar ao Wisp (Linux):** ligue nas configurações; no Nautilus, clique direito num
+      arquivo → Scripts → **Perguntar ao Wisp**; no Dolphin, direto no menu: o painel abre com o
+      arquivo anexado. Desligue: a opção some.
+- [ ] **Perguntar ao Wisp (Windows):** o mesmo no Explorer (no Windows 11, em **Mostrar mais
+      opções**).
+- [ ] **wisp no PATH (Windows):** ligue; num terminal novo, `wisp --toggle` abre o painel.
+- [ ] **WSL (Windows):** abra uma pasta `\\wsl$\Ubuntu\home\...` numa conversa; o terminal da
+      bancada abre no Linux, nessa pasta.
+- [ ] **Volume por aplicativo (Windows):** com o Spotify tocando, "abaixa a música": no mixer de
+      volume, só o Spotify muda.
+- [ ] **A busca do desktop (KDE):** ligue; Alt+Espaço, `wisp que dia é hoje?`, Enter: o painel
+      abre com a pergunta. Uma busca comum não mostra o Wisp.
+- [ ] **A busca do desktop (GNOME):** com o .deb ou o Flatpak, o mesmo na visão geral.
+- [ ] **A extensão do GNOME:** no GNOME com Wayland, ligue, saia e entre na sessão:
+      "que janelas estão abertas?" lista, e "traz o Firefox para a frente" traz.
