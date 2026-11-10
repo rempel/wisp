@@ -32,6 +32,8 @@ import type {
   PreviewState,
   UsageReport,
   AgentInfo,
+  MemoryFile,
+  MemoryId,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -247,6 +249,10 @@ export const IPC = {
   boardAction: 'board:action',
   /** main → chat: os cartões mudaram. Arg: BoardCard[]. */
   boardChanged: 'board:changed',
+  /** chat → main (invoke): a memória (Fase 65). list(pasta) → MemoryFile[]; preview e save como os dos subagentes. */
+  memoryList: 'memory:list',
+  memoryPreview: 'memory:preview',
+  memorySave: 'memory:save',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -813,6 +819,21 @@ export interface WispApi {
     onChanged(listener: (cards: BoardCard[]) => void): () => void
   }
   /** Os subagentes do Claude Code (Fase 50). */
+  /** A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê. */
+  memory: {
+    list(folder: string | null): Promise<MemoryFile[]>
+    preview(
+      id: MemoryId,
+      folder: string | null,
+      text: string
+    ): Promise<AgentPreview | { error: string }>
+    save(
+      id: MemoryId,
+      folder: string | null,
+      text: string,
+      fingerprint: string
+    ): Promise<AgentResult>
+  }
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>

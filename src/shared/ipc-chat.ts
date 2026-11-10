@@ -223,6 +223,17 @@ export interface AgentPreview {
   unchanged: boolean
 }
 
+/** Um arquivo de memória do Claude Code (um CLAUDE.md), para a tela Memória (Fase 65). */
+export type MemoryId = 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+export interface MemoryFile {
+  id: MemoryId
+  path: string
+  exists: boolean
+  text: string
+  /** Grande demais para mostrar inteiro e editar pelo painel. */
+  tooBig: boolean
+}
+
 export interface AgentResult {
   ok: boolean
   message: string

@@ -194,6 +194,10 @@ export interface WispConfig {
   turnReview: boolean
   /** O navegador da bancada abre páginas da internet, além do que é desta máquina (Fase 58). */
   previewWeb: boolean
+  /** O "Perguntar ao Wisp" no menu do gerenciador de arquivos (Fase 64). */
+  fileManagerMenu: boolean
+  /** No Windows, o comando `wisp` no PATH do seu usuário (Fase 67). */
+  commandInPath: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -202,6 +206,12 @@ export interface WispConfig {
   provider: 'subscription' | 'openrouter'
   /** O modelo da OpenRouter ("provedor/modelo"); null até escolher um. */
   openrouterModel: string | null
+  /**
+   * O endereço de um servidor de modelos na sua máquina ou rede (Ollama, LM Studio), com a API
+   * compatível com a da Anthropic (Fase 66). Com ele, as conversas pelo outro provedor vão para
+   * lá, e não para a OpenRouter. null: a OpenRouter.
+   */
+  localModelsUrl: string | null
   /**
    * Aprovar pelo celular (Fase 18), pelo ntfy. Liga só depois de o celular responder ao teste do
    * pareamento (pela tela de configurações); os tópicos ficam no chaveiro do sistema.
@@ -292,8 +302,11 @@ function defaults(): WispConfig {
     usageAlerts: true,
     turnReview: true,
     previewWeb: true,
+    fileManagerMenu: false,
+    commandInPath: false,
     provider: 'subscription',
     openrouterModel: null,
+    localModelsUrl: null,
     phoneApprovals: false,
     phoneServer: 'https://ntfy.sh',
     phoneAfterSeconds: 60,
@@ -432,8 +445,15 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   usageAlerts: z.boolean(),
   turnReview: z.boolean(),
   previewWeb: z.boolean(),
+  fileManagerMenu: z.boolean(),
+  commandInPath: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
+  localModelsUrl: z
+    .string()
+    .regex(/^https?:\/\/[\w.-]+(:\d{1,5})?(\/[\w./-]*)?$/)
+    .max(200)
+    .nullable(),
   phoneApprovals: z.boolean(),
   phoneServer: z
     .string()
@@ -580,6 +600,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),
   openrouterModel: t('O id do modelo na OpenRouter, como aparece no site: provedor/modelo.'),
+  localModelsUrl: t('Um endereço http ou https, como http://localhost:11434.'),
   volume: t('O volume vai de 0 a 1.'),
   sleepAfterMinutes: t('Um número de minutos, 0 ou mais (0 desliga o cochilo).'),
   tabSleepMinutes: t('Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).'),

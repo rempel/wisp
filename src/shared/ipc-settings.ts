@@ -94,8 +94,11 @@ export interface Settings {
   usageAlerts: boolean
   turnReview: boolean
   previewWeb: boolean
+  fileManagerMenu: boolean
+  commandInPath: boolean
   provider: Provider
   openrouterModel: string | null
+  localModelsUrl: string | null
   phoneAfterSeconds: number
   updateCheck: boolean
   prompts: SavedPrompt[]
@@ -152,8 +155,11 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'usageAlerts',
   'turnReview',
   'previewWeb',
+  'fileManagerMenu',
+  'commandInPath',
   'provider',
   'openrouterModel',
+  'localModelsUrl',
   'phoneAfterSeconds',
   'updateCheck',
   'prompts',

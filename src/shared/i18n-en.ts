@@ -2785,5 +2785,44 @@ export const EN: Record<string, string> = {
   'Os erros vão para a caixa da conversa em foco, para você completar e mandar':
     "The errors go to the focused conversation's box, for you to complete and send",
   '1 erro no console: mandar ao Claude': '1 console error: send to Claude',
-  '{count} erros no console: mandar ao Claude': '{count} console errors: send to Claude'
+  '{count} erros no console: mandar ao Claude': '{count} console errors: send to Claude',
+  'Um endereço http ou https, como http://localhost:11434.':
+    'An http or https address, such as http://localhost:11434.',
+  'Perguntar ao Wisp': 'Ask Wisp',
+  'O texto é grande demais para a memória.': 'The text is too large for memory.',
+  'Este arquivo é grande demais para editar pelo painel.':
+    'This file is too large to edit from the panel.',
+  'Criado. O Claude Code o lê nas conversas novas (Ctrl+K).':
+    'Created. Claude Code reads it in new conversations (Ctrl+K).',
+  Memória: 'Memory',
+  'o que o Claude lê antes de cada conversa': 'what Claude reads before every conversation',
+  Sua: 'Yours',
+  'vale em todas as conversas, em qualquer pasta': 'applies to every conversation, in any folder',
+  'Do Wisp': "Wisp's",
+  'a persona do Wisp, nas conversas sem pasta': "Wisp's persona, in conversations without a folder",
+  'Do projeto': "The project's",
+  'o CLAUDE.md da pasta da conversa, para quem trabalha nela':
+    "the CLAUDE.md in the conversation's folder, for everyone who works in it",
+  'Do projeto (.claude)': "The project's (.claude)",
+  'o mesmo, guardado na pasta .claude': 'the same, kept in the .claude folder',
+  'Só sua, neste projeto': 'Yours only, in this project',
+  'o CLAUDE.local.md, que não vai para o Git': 'CLAUDE.local.md, which does not go into Git',
+  'O que o Claude lê antes de cada conversa. Escreva aqui o que ele deve sempre saber: como você gosta das respostas, as regras do projeto, os comandos de teste. Vale nas conversas novas (Ctrl+K).':
+    "What Claude reads before every conversation. Write here what it should always know: how you like answers, the project's rules, the test commands. It applies to new conversations (Ctrl+K).",
+  'A conversa em foco não está numa pasta: a memória de um projeto aparece quando estiver.':
+    "The focused conversation is not in a folder: a project's memory shows up when it is.",
+  'O texto da memória: {name}': 'The memory text: {name}',
+  'Ainda não existe.': 'It does not exist yet.',
+  Local: 'Local',
+  'o seu servidor de modelos (Ollama, LM Studio)': 'your model server (Ollama, LM Studio)',
+  '"Perguntar ao Wisp" no gerenciador de arquivos': '"Ask Wisp" in the file manager',
+  'Põe a opção no clique direito dos arquivos (no Nautilus, em Scripts; no Dolphin e no Explorer do Windows, no menu). O arquivo vai como anexo para a conversa em foco. Desligar tira o que o Wisp pôs.':
+    'Adds the option to the right-click menu of files (in Nautilus, under Scripts; in Dolphin and Windows Explorer, in the menu). The file is attached to the focused conversation. Turning it off removes what Wisp added.',
+  'O comando wisp no PATH': 'The wisp command on PATH',
+  'Põe a pasta do comando no PATH do seu usuário, para usar wisp --ask "..." em qualquer terminal (vale nos terminais abertos depois).':
+    'Adds the command\'s folder to your user PATH, so wisp --ask "..." works in any terminal (it applies to terminals opened afterwards).',
+  'Servidor de modelos local': 'Local model server',
+  'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.':
+    "The address of an Ollama or LM Studio (for example http://localhost:11434). With it, the conversations' other provider becomes that server, with no key and no cost, instead of OpenRouter. Empty: OpenRouter.",
+  'CLAUDE.md instruções regras lembrar': 'CLAUDE.md instructions rules remember memory'
 }
