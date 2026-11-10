@@ -7,7 +7,7 @@ import type { JSX, PointerEvent as ReactPointerEvent } from 'react'
 import type { Terminal } from '@xterm/xterm'
 import { useFileTarget } from './fileView'
 import { CloseIcon, GlobeIcon, PlusIcon, TerminalIcon } from './icons'
-import { lastLocalhost, openPreview, useMarkdown } from './preview-store'
+import { lastLocalhost, openPreview, terminalFailure, useMarkdown } from './preview-store'
 import { TerminalView } from './TerminalView'
 import { BrowserTab } from './WorkbenchBrowser'
 import type { TerminalLink } from './TerminalView'
@@ -26,6 +26,8 @@ const SHELL_LINK: TerminalLink = {
 
 /** Quanto do fim da saída de um terminal fica guardado para achar o localhost (caracteres). */
 const SERVED_TAIL = 400
+/** E quanto fica guardado para achar (e mandar) um erro. */
+const FAILURE_TAIL = 6000
 
 /** Os terminais: o seu shell, na pasta da conversa em foco. */
 function TerminalTab({
@@ -41,7 +43,10 @@ function TerminalTab({
   const [note, setNote] = useState<string | null>(null)
   /** O localhost que cada terminal mostrou por último (o "Local: http://localhost:5173"). */
   const [served, setServed] = useState<Record<string, string>>({})
+  /** O trecho de erro que cada terminal mostrou e ainda não foi para a conversa (Fase 73). */
+  const [failed, setFailed] = useState<Record<string, string>>({})
   const term = useRef<Terminal | null>(null)
+  const reset = useRef<(id: string) => void>(() => undefined)
   const started = useRef(false)
   const [focus, setFocus] = useState(wasAsked)
   const active = terminals.find((item) => item.id === picked) ?? terminals[terminals.length - 1]
@@ -62,11 +67,20 @@ function TerminalTab({
   useEffect(() => {
     // O fim do que cada terminal mostrou: um endereço pode chegar partido em dois pedaços.
     const tails = new Map<string, string>()
+    // O que veio desde o último erro mandado (ou dispensado): um erro antigo não volta.
+    const outputs = new Map<string, string>()
+    reset.current = (id) => outputs.set(id, '')
     return window.wisp.shell.onData((id, data) => {
       const text = ((tails.get(id) ?? '') + data).slice(-SERVED_TAIL)
       tails.set(id, text)
       const url = lastLocalhost(text)
       if (url) setServed((current) => (current[id] === url ? current : { ...current, [id]: url }))
+      const output = ((outputs.get(id) ?? '') + data).slice(-FAILURE_TAIL)
+      outputs.set(id, output)
+      const failure = terminalFailure(output)
+      if (failure) {
+        setFailed((current) => (current[id] === failure ? current : { ...current, [id]: failure }))
+      }
     })
   }, [])
   const onTerminal = useCallback((terminal: Terminal | null) => {
@@ -74,6 +88,15 @@ function TerminalTab({
   }, [])
 
   const local = active ? served[active.id] : undefined
+  const failure = active ? failed[active.id] : undefined
+  const clearFailure = (id: string): void => {
+    reset.current(id)
+    setFailed((current) => {
+      const next = { ...current }
+      delete next[id]
+      return next
+    })
+  }
   return (
     <div className="workbench-body" role="tabpanel" aria-label={t('Terminal')}>
       <div className="workbench-bar workbench-shells">
@@ -140,6 +163,29 @@ function TerminalTab({
           {t('Seleção para a conversa')}
         </button>
       </div>
+      {failure && active && (
+        <div className="workbench-served workbench-errors">
+          <button
+            type="button"
+            className="workbench-chip"
+            title={t('As últimas linhas do terminal vão para a caixa da conversa em foco')}
+            onClick={() => {
+              onCompose(t('O terminal mostrou este erro:') + '\n```\n' + failure + '\n```\n')
+              clearFailure(active.id)
+            }}
+          >
+            {t('Parece um erro no terminal: mandar ao Claude')}
+          </button>
+          <button
+            type="button"
+            className="link"
+            onClick={() => clearFailure(active.id)}
+            aria-label={t('Dispensar o aviso de erro')}
+          >
+            {t('Dispensar')}
+          </button>
+        </div>
+      )}
       {local && (
         <div className="workbench-served">
           <button

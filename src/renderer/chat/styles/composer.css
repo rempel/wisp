@@ -27,6 +27,12 @@
   height: 100%;
 }
 
+/* O fundo do xterm é preto puro: no que as linhas não cobrem (o resto da altura), aparecia uma
+   faixa preta no pé do terminal. O fundo é o de quem o hospeda. */
+.terminal-view .xterm .xterm-viewport {
+  background-color: transparent !important;
+}
+
 .terminal-view .xterm-viewport {
   scrollbar-width: thin;
   scrollbar-color: #333a40 transparent;

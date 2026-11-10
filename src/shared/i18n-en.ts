@@ -2835,5 +2835,11 @@ export const EN: Record<string, string> = {
     'In the KDE (KRunner) or GNOME search, "wisp" and a question offer Ask Wisp. Only what starts with "wisp" reaches it. On GNOME, it works with the .deb and Flatpak packages.',
   'Extensão do Wisp para o GNOME': 'Wisp extension for GNOME',
   'No GNOME com Wayland, o sistema não deixa o Wisp ver as janelas dos outros programas. A extensão devolve isso: listar as janelas e trazer uma para a frente. Depois de ligar, saia da sessão e entre de novo. Qualquer programa da sua sessão passa a poder ler a lista de janelas por ela.':
-    "On GNOME with Wayland, the system does not let Wisp see other programs' windows. The extension gives that back: listing windows and bringing one to the front. After turning it on, log out and back in. Any program in your session becomes able to read the window list through it."
+    "On GNOME with Wayland, the system does not let Wisp see other programs' windows. The extension gives that back: listing windows and bringing one to the front. After turning it on, log out and back in. Any program in your session becomes able to read the window list through it.",
+  'As últimas linhas do terminal vão para a caixa da conversa em foco':
+    "The terminal's last lines go to the focused conversation's box",
+  'O terminal mostrou este erro:': 'The terminal showed this error:',
+  'Parece um erro no terminal: mandar ao Claude':
+    'Looks like an error in the terminal: send to Claude',
+  'Dispensar o aviso de erro': 'Dismiss the error notice'
 }
