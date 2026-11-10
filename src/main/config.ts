@@ -198,6 +198,10 @@ export interface WispConfig {
   fileManagerMenu: boolean
   /** No Windows, o comando `wisp` no PATH do seu usuário (Fase 67). */
   commandInPath: boolean
+  /** No Linux, o Wisp na busca do desktop (KRunner e GNOME), para o que começa com "wisp" (Fase 72). */
+  desktopSearch: boolean
+  /** A extensão do Wisp para o GNOME Shell: as janelas no GNOME com Wayland (Fase 70). */
+  gnomeExtension: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -304,6 +308,8 @@ function defaults(): WispConfig {
     previewWeb: true,
     fileManagerMenu: false,
     commandInPath: false,
+    desktopSearch: false,
+    gnomeExtension: false,
     provider: 'subscription',
     openrouterModel: null,
     localModelsUrl: null,
@@ -447,6 +453,8 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   previewWeb: z.boolean(),
   fileManagerMenu: z.boolean(),
   commandInPath: z.boolean(),
+  desktopSearch: z.boolean(),
+  gnomeExtension: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
   localModelsUrl: z

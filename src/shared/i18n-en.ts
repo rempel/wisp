@@ -2824,5 +2824,16 @@ export const EN: Record<string, string> = {
   'Servidor de modelos local': 'Local model server',
   'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.':
     "The address of an Ollama or LM Studio (for example http://localhost:11434). With it, the conversations' other provider becomes that server, with no key and no cost, instead of OpenRouter. Empty: OpenRouter.",
-  'CLAUDE.md instruções regras lembrar': 'CLAUDE.md instructions rules remember memory'
+  'CLAUDE.md instruções regras lembrar': 'CLAUDE.md instructions rules remember memory',
+  'O volume do {player} ficou em {level}%.': "{player}'s volume is now {level}%.",
+  'Perguntar ao Wisp: {question}': 'Ask Wisp: {question}',
+  'Manda a pergunta para a conversa do Wisp': 'Sends the question to the Wisp conversation',
+  'Instale a extensão do Wisp para o GNOME nas configurações (e entre de novo na sessão). ':
+    'Install the Wisp extension for GNOME in the settings (and log in again). ',
+  'O Wisp na busca do desktop': 'Wisp in the desktop search',
+  'Na busca do KDE (KRunner) ou do GNOME, "wisp" e uma pergunta oferecem Perguntar ao Wisp. Só o que começa com "wisp" chega a ele. No GNOME, vale nos pacotes .deb e Flatpak.':
+    'In the KDE (KRunner) or GNOME search, "wisp" and a question offer Ask Wisp. Only what starts with "wisp" reaches it. On GNOME, it works with the .deb and Flatpak packages.',
+  'Extensão do Wisp para o GNOME': 'Wisp extension for GNOME',
+  'No GNOME com Wayland, o sistema não deixa o Wisp ver as janelas dos outros programas. A extensão devolve isso: listar as janelas e trazer uma para a frente. Depois de ligar, saia da sessão e entre de novo. Qualquer programa da sua sessão passa a poder ler a lista de janelas por ela.':
+    "On GNOME with Wayland, the system does not let Wisp see other programs' windows. The extension gives that back: listing windows and bringing one to the front. After turning it on, log out and back in. Any program in your session becomes able to read the window list through it."
 }

@@ -27,6 +27,7 @@ import {
   Toggle
 } from './SettingsFields'
 import { parseReplacements } from '../../shared/dictation'
+import { IntegrationToggles } from './IntegrationToggles'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -385,24 +386,11 @@ export function SettingsView({
             checked={values.previewWeb}
             onChange={(previewWeb) => void save({ previewWeb })}
           />
-          <Toggle
-            label={t('"Perguntar ao Wisp" no gerenciador de arquivos')}
-            hint={t(
-              'Põe a opção no clique direito dos arquivos (no Nautilus, em Scripts; no Dolphin e no Explorer do Windows, no menu). O arquivo vai como anexo para a conversa em foco. Desligar tira o que o Wisp pôs.'
-            )}
-            checked={values.fileManagerMenu}
-            onChange={(fileManagerMenu) => void save({ fileManagerMenu })}
+          <IntegrationToggles
+            values={values}
+            save={save}
+            toggle={(props) => <Toggle key={props.label} {...props} />}
           />
-          {navigator.userAgent.includes('Windows') && (
-            <Toggle
-              label={t('O comando wisp no PATH')}
-              hint={t(
-                'Põe a pasta do comando no PATH do seu usuário, para usar wisp --ask "..." em qualquer terminal (vale nos terminais abertos depois).'
-              )}
-              checked={values.commandInPath}
-              onChange={(commandInPath) => void save({ commandInPath })}
-            />
-          )}
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>

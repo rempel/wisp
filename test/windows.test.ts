@@ -769,3 +769,37 @@ test(
     }
   }
 )
+
+test('o volume de um programa: só um nome de processo vira argumento (Fase 69)', async () => {
+  const { NATIVE, processNameOf } = await import('../src/main/volume-app-win')
+  assert.equal(processNameOf('Spotify.exe'), 'Spotify')
+  assert.equal(processNameOf(' vlc '), 'vlc')
+  assert.equal(processNameOf('Spotify; calc'), null)
+  assert.equal(processNameOf(''), null)
+  // O C# vai dentro de uma string do PowerShell: sem aspas simples.
+  assert.ok(!NATIVE.includes("'"))
+})
+
+test(
+  'o volume de um programa no Windows: o script compila e roda (sem a sessão, null)',
+  windowsOnly,
+  async () => {
+    const { NATIVE } = await import('../src/main/volume-app-win')
+    const { runPowerShell } = await import('../src/main/powershell')
+    // Um programa que não está tocando: -1 (sem sessão), ou o erro do Windows sem aparelho de som,
+    // nunca um erro do C# ou do PowerShell.
+    const result = await runPowerShell(
+      `Add-Type -TypeDefinition '${NATIVE}'; [WispApp.Som]::Mudar('wisp-nao-existe', -1, 0)`
+    )
+    console.log(
+      `volume do programa: ${result.code} ${result.stdout.trim()} ${result.stderr.slice(0, 200)}`
+    )
+    if (result.code === 0) assert.equal(result.stdout.trim(), '-1')
+    else {
+      assert.doesNotMatch(
+        result.stderr,
+        /error CS\d|ParserError|não é reconhecido|not recognized|InvalidCast/i
+      )
+    }
+  }
+)
