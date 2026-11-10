@@ -1,17 +1,95 @@
+<div align="center">
+
+<img src="docs/img/mascote.png" width="140" alt="O Wisp: um fogo-fátuo azul dizendo oi" />
+
 # Wisp
 
-> _A little light on your desktop._
+**Uma luzinha no seu desktop.** _A little light on your desktop._
 
-O Wisp é um assistente de mesa para Linux: um fogo-fátuo que flutua na tela, conversa com você e
-faz coisas no seu computador, sempre pedindo licença antes. Quem pensa e age por trás dele é o
+O Claude Code fora do terminal: um mascote que flutua na tela, conversa com você<br />
+e age no seu computador, sempre pedindo licença antes.
+
+[![CI](https://github.com/rempel/wisp/actions/workflows/ci.yml/badge.svg)](https://github.com/rempel/wisp/actions/workflows/ci.yml)
+![Licença: GPL-3.0-or-later](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0--or--later-2ed3ee)
+![Linux e Windows](https://img.shields.io/badge/roda%20em-Linux%20%C2%B7%20Windows-2ed3ee)
+![Português e inglês](https://img.shields.io/badge/idiomas-pt--BR%20%C2%B7%20en-2ed3ee)
+
+[Instalar](#instalar-pacotes-prontos) ·
+[Primeiros passos](#primeiros-passos) ·
+[Guia de uso](#guia-de-uso) ·
+[Atalhos](#atalhos) ·
+[Privacidade](#privacidade-e-segurança) ·
+[Roadmap](ROADMAP.md)
+
+<img src="docs/img/bancada-navegador.png" width="860" alt="O painel do Wisp: a conversa à esquerda, com o card de uma edição, e a bancada à direita, com o navegador mostrando a página do projeto" />
+
+<sub>A conversa e, ao lado, a bancada com o navegador embutido mostrando o projeto.</sub>
+
+</div>
+
+O Wisp é um assistente de mesa para Linux (e Windows): um fogo-fátuo que flutua na tela, conversa
+com você e faz coisas no seu computador. Quem pensa e age por trás dele é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code), da Anthropic, o mesmo que você usa no
 terminal, com a sua assinatura. O Wisp é o corpo: o mascote, o painel de conversa, os cards de
 permissão, a voz e a ligação com o desktop.
 
-O Wisp é um projeto independente, feito pela comunidade. Ele não é um produto da Anthropic nem é
-mantido por ela.
+> O Wisp é um projeto independente, feito pela comunidade. Ele não é um produto da Anthropic nem
+> é mantido por ela.
 
-**Conteúdo:**
+## Em um minuto
+
+|                                  |                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Sempre à mão**                 | Um clique no mascote, **Ctrl+Alt+W** ou a voz abrem a conversa, de qualquer lugar.                                       |
+| **O Claude Code de verdade**     | O Wisp roda o seu `claude`: as ferramentas, as skills, os plugins, o `CLAUDE.md` e as sessões são os mesmos do terminal. |
+| **Nada muda sem um clique seu**  | Cada comando, edição ou app vira um card com **Permitir** e **Negar**. Pular as permissões não existe.                   |
+| **Navegador e terminal ao lado** | A bancada mostra a página do projeto e roda o servidor na mesma janela, e o Claude usa os dois quando você pede.         |
+| **Um assistente de desktop**     | Abre apps e projetos, tira print, controla a música, marca lembretes, olha a agenda e os seus PRs.                       |
+| **Seu, e só seu**                | Sem telemetria, voz transcrita na sua máquina, segredos no chaveiro do sistema.                                          |
+
+## Um passeio
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/img/permissao.png" alt="Um card de permissão para editar um arquivo, com o diff e os botões Permitir e Negar" />
+      <p align="center"><b>Você decide.</b> O card mostra o que vai mudar, com o diff, antes de qualquer coisa acontecer.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/img/paleta.png" alt="A paleta de comandos aberta sobre a conversa, com as ações e os atalhos" />
+      <p align="center"><b>Tudo a um atalho.</b> A paleta (Ctrl+P) acha ações, conversas, modos e prompts salvos.</p>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/img/bancada-terminal.png" width="860" alt="A bancada com o terminal: um shell na pasta do projeto, com o atalho para abrir o localhost no navegador embutido" />
+  <br />
+  <sub><b>O terminal na bancada.</b> O seu shell, na pasta da conversa; um <code>localhost</code> na saída vira um atalho para o navegador ao lado.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/img/grade-claro.png" width="860" alt="Duas conversas lado a lado, no tema claro" />
+  <br />
+  <sub><b>Várias conversas, lado a lado.</b> Até 8 numa grade, no tema claro, escuro ou de alto contraste.</sub>
+</p>
+
+<sub>Os prints são do modo demonstração (o selo <b>Demo</b> no cabeçalho): as respostas são gravadas,
+para conhecer o Wisp sem o Claude Code instalado.</sub>
+
+## Comece por aqui
+
+1. **Instale** o pacote do seu sistema: [.deb](#deb-ubuntu-debian-e-derivados),
+   [AppImage](#appimage-qualquer-distribuição), [Flatpak](#flatpak) ou o instalador do
+   [Windows](#windows).
+2. **Tenha o Claude Code** instalado e logado (`claude` no terminal). Sem ele, o Wisp abre no modo
+   demonstração.
+3. **Abra o Wisp** e siga os [primeiros passos](#primeiros-passos): ele confere o que falta, um
+   item por vez.
+
+Quer compilar? Veja [Compilar a partir do código](#compilar-a-partir-do-código).
+
+**Neste README:**
 [A ideia](#a-ideia) ·
 [O que ele faz](#o-que-ele-faz) ·
 [Situação do projeto](#situação-do-projeto) ·
@@ -69,6 +147,21 @@ Em resumo:
 ```
 
 ## O que ele faz
+
+| Para                             | O Wisp tem                                                                                                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Conversar**                    | Abas e grade de conversas, o modo terminal (o Claude Code de verdade na aba), anexos, print e recorte da tela, histórico com busca, prompts salvos. |
+| **Ver e rodar o projeto**        | A [bancada](#a-bancada-navegador-e-terminal): navegador e terminal embutidos, que você e o Claude usam.                                             |
+| **Revisar o que mudou**          | O diff no editor do VS Code (Monaco), o card do fim da resposta com o desfazer, voltar a um ponto e ramificar a conversa.                           |
+| **Trabalhar em paralelo**        | Conversas em cópias do Git (worktrees) e um quadro de tarefas, cada cartão na sua cópia.                                                            |
+| **Agir no desktop**              | Apps, links, projetos no editor, janelas, notificações, lembretes, música e print da tela.                                                          |
+| **Falar**                        | Segure um atalho e fale; a transcrição roda na sua máquina (whisper.cpp) e o Wisp pode responder falando (Piper). Ditar em qualquer programa.       |
+| **Acompanhar de longe**          | As sessões do Claude Code do terminal, aprovar pelo celular (ntfy) e conversar pelo celular na rede local.                                          |
+| **Ficar por dentro**             | CI e revisões dos seus PRs, a agenda, o uso do plano e um resumo da semana.                                                                         |
+| **Um mascote com personalidade** | 31 emoções, 12 danças, três avatares (o fogo-fátuo, a geleca e o fantasminha) ou a ilha no topo da tela.                                            |
+
+<details>
+<summary><b>Tudo o que ele faz, em detalhe</b></summary>
 
 **Conversar com o Claude Code**
 
@@ -147,6 +240,8 @@ quando combina com a conversa. Dá para escolher o avatar: o **fogo-fátuo**, a 
 **Outros jeitos de usar:** a [OpenRouter](#openrouter-experimental) como provedor (experimental),
 para usar outros modelos pelo Claude Code, e um **modo demonstração**, com respostas gravadas, para
 conhecer o Wisp sem o Claude Code.
+
+</details>
 
 ## Situação do projeto
 
