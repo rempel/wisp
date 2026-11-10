@@ -227,7 +227,12 @@ test('rodar no terminal: cola num terminal seu, sem enviar', unixOnly, async () 
   assert.equal(typeof id, 'string')
   assert.notEqual(id, claude, 'nunca no terminal do Claude')
   assert.equal(shells.paste('echo de-novo', HOME), id, 'o mesmo terminal seu da próxima vez')
-  await new Promise((resolve) => setTimeout(resolve, 1500))
+  // Espera o texto aparecer (numa máquina ocupada, o shell demora a subir) e mais um instante.
+  const deadline = Date.now() + 15_000
+  while (!/colado-\$\(\(2\+2\)\)/.test(output) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500))
   // O texto apareceu na linha de comando, mas não rodou: o Enter é seu.
   assert.match(output, /colado-\$\(\(2\+2\)\)/)
   assert.doesNotMatch(output, /colado-4/)
