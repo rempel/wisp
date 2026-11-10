@@ -1,17 +1,95 @@
+<div align="center">
+
+<img src="docs/img/mascote.png" width="140" alt="O Wisp: um fogo-fátuo azul dizendo oi" />
+
 # Wisp
 
-> _A little light on your desktop._
+**Uma luzinha no seu desktop.** _A little light on your desktop._
 
-O Wisp é um assistente de mesa para Linux: um fogo-fátuo que flutua na tela, conversa com você e
-faz coisas no seu computador, sempre pedindo licença antes. Quem pensa e age por trás dele é o
+O Claude Code fora do terminal: um mascote que flutua na tela, conversa com você<br />
+e age no seu computador, sempre pedindo licença antes.
+
+[![CI](https://github.com/rempel/wisp/actions/workflows/ci.yml/badge.svg)](https://github.com/rempel/wisp/actions/workflows/ci.yml)
+![Licença: GPL-3.0-or-later](https://img.shields.io/badge/licen%C3%A7a-GPL--3.0--or--later-2ed3ee)
+![Linux e Windows](https://img.shields.io/badge/roda%20em-Linux%20%C2%B7%20Windows-2ed3ee)
+![Português e inglês](https://img.shields.io/badge/idiomas-pt--BR%20%C2%B7%20en-2ed3ee)
+
+[Instalar](#instalar-pacotes-prontos) ·
+[Primeiros passos](#primeiros-passos) ·
+[Guia de uso](#guia-de-uso) ·
+[Atalhos](#atalhos) ·
+[Privacidade](#privacidade-e-segurança) ·
+[Roadmap](ROADMAP.md)
+
+<img src="docs/img/bancada-navegador.png" width="860" alt="O painel do Wisp: a conversa à esquerda, com o card de uma edição, e a bancada à direita, com o navegador mostrando a página do projeto" />
+
+<sub>A conversa e, ao lado, a bancada com o navegador embutido mostrando o projeto.</sub>
+
+</div>
+
+O Wisp é um assistente de mesa para Linux (e Windows): um fogo-fátuo que flutua na tela, conversa
+com você e faz coisas no seu computador. Quem pensa e age por trás dele é o
 [Claude Code](https://docs.claude.com/en/docs/claude-code), da Anthropic, o mesmo que você usa no
 terminal, com a sua assinatura. O Wisp é o corpo: o mascote, o painel de conversa, os cards de
 permissão, a voz e a ligação com o desktop.
 
-O Wisp é um projeto independente, feito pela comunidade. Ele não é um produto da Anthropic nem é
-mantido por ela.
+> O Wisp é um projeto independente, feito pela comunidade. Ele não é um produto da Anthropic nem
+> é mantido por ela.
 
-**Conteúdo:**
+## Em um minuto
+
+|                                  |                                                                                                                          |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| **Sempre à mão**                 | Um clique no mascote, **Ctrl+Alt+W** ou a voz abrem a conversa, de qualquer lugar.                                       |
+| **O Claude Code de verdade**     | O Wisp roda o seu `claude`: as ferramentas, as skills, os plugins, o `CLAUDE.md` e as sessões são os mesmos do terminal. |
+| **Nada muda sem um clique seu**  | Cada comando, edição ou app vira um card com **Permitir** e **Negar**. Pular as permissões não existe.                   |
+| **Navegador e terminal ao lado** | A bancada mostra a página do projeto e roda o servidor na mesma janela, e o Claude usa os dois quando você pede.         |
+| **Um assistente de desktop**     | Abre apps e projetos, tira print, controla a música, marca lembretes, olha a agenda e os seus PRs.                       |
+| **Seu, e só seu**                | Sem telemetria, voz transcrita na sua máquina, segredos no chaveiro do sistema.                                          |
+
+## Um passeio
+
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <img src="docs/img/permissao.png" alt="Um card de permissão para editar um arquivo, com o diff e os botões Permitir e Negar" />
+      <p align="center"><b>Você decide.</b> O card mostra o que vai mudar, com o diff, antes de qualquer coisa acontecer.</p>
+    </td>
+    <td width="50%" valign="top">
+      <img src="docs/img/paleta.png" alt="A paleta de comandos aberta sobre a conversa, com as ações e os atalhos" />
+      <p align="center"><b>Tudo a um atalho.</b> A paleta (Ctrl+P) acha ações, conversas, modos e prompts salvos.</p>
+    </td>
+  </tr>
+</table>
+
+<p align="center">
+  <img src="docs/img/bancada-terminal.png" width="860" alt="A bancada com o terminal: um shell na pasta do projeto, com o atalho para abrir o localhost no navegador embutido" />
+  <br />
+  <sub><b>O terminal na bancada.</b> O seu shell, na pasta da conversa; um <code>localhost</code> na saída vira um atalho para o navegador ao lado.</sub>
+</p>
+
+<p align="center">
+  <img src="docs/img/grade-claro.png" width="860" alt="Duas conversas lado a lado, no tema claro" />
+  <br />
+  <sub><b>Várias conversas, lado a lado.</b> Até 8 numa grade, no tema claro, escuro ou de alto contraste.</sub>
+</p>
+
+<sub>Os prints são do modo demonstração (o selo <b>Demo</b> no cabeçalho): as respostas são gravadas,
+para conhecer o Wisp sem o Claude Code instalado.</sub>
+
+## Comece por aqui
+
+1. **Instale** o pacote do seu sistema: [.deb](#deb-ubuntu-debian-e-derivados),
+   [AppImage](#appimage-qualquer-distribuição), [Flatpak](#flatpak) ou o instalador do
+   [Windows](#windows).
+2. **Tenha o Claude Code** instalado e logado (`claude` no terminal). Sem ele, o Wisp abre no modo
+   demonstração.
+3. **Abra o Wisp** e siga os [primeiros passos](#primeiros-passos): ele confere o que falta, um
+   item por vez.
+
+Quer compilar? Veja [Compilar a partir do código](#compilar-a-partir-do-código).
+
+**Neste README:**
 [A ideia](#a-ideia) ·
 [O que ele faz](#o-que-ele-faz) ·
 [Situação do projeto](#situação-do-projeto) ·
@@ -69,6 +147,21 @@ Em resumo:
 ```
 
 ## O que ele faz
+
+| Para                             | O Wisp tem                                                                                                                                          |
+| -------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Conversar**                    | Abas e grade de conversas, o modo terminal (o Claude Code de verdade na aba), anexos, print e recorte da tela, histórico com busca, prompts salvos. |
+| **Ver e rodar o projeto**        | A [bancada](#a-bancada-navegador-e-terminal): navegador e terminal embutidos, que você e o Claude usam.                                             |
+| **Revisar o que mudou**          | O diff no editor do VS Code (Monaco), o card do fim da resposta com o desfazer, voltar a um ponto e ramificar a conversa.                           |
+| **Trabalhar em paralelo**        | Conversas em cópias do Git (worktrees) e um quadro de tarefas, cada cartão na sua cópia.                                                            |
+| **Agir no desktop**              | Apps, links, projetos no editor, janelas, notificações, lembretes, música e print da tela.                                                          |
+| **Falar**                        | Segure um atalho e fale; a transcrição roda na sua máquina (whisper.cpp) e o Wisp pode responder falando (Piper). Ditar em qualquer programa.       |
+| **Acompanhar de longe**          | As sessões do Claude Code do terminal, aprovar pelo celular (ntfy) e conversar pelo celular na rede local.                                          |
+| **Ficar por dentro**             | CI e revisões dos seus PRs, a agenda, o uso do plano e um resumo da semana.                                                                         |
+| **Um mascote com personalidade** | 31 emoções, 12 danças, três avatares (o fogo-fátuo, a geleca e o fantasminha) ou a ilha no topo da tela.                                            |
+
+<details>
+<summary><b>Tudo o que ele faz, em detalhe</b></summary>
 
 **Conversar com o Claude Code**
 
@@ -148,6 +241,8 @@ quando combina com a conversa. Dá para escolher o avatar: o **fogo-fátuo**, a 
 para usar outros modelos pelo Claude Code, e um **modo demonstração**, com respostas gravadas, para
 conhecer o Wisp sem o Claude Code.
 
+</details>
+
 ## Situação do projeto
 
 A versão atual é a **0.1.0**. O MVP (mascote, chat, ferramentas de desktop com permissão, anexos,
@@ -170,7 +265,7 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
   Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
   [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) e as Fases 55 (a bancada) e 56 (o desenho novo) estão prontas, com os testes de unidade e de
+  ferramentas parecidas) e as Fases 55 a 58 (a bancada, o desenho novo, o Claude na bancada e as páginas da internet nela) estão prontas, com os testes de unidade e de
   ponta a ponta, e esperam a validação com o uso (os roteiros em
   [docs/VALIDACAO.md](docs/VALIDACAO.md)).
 
@@ -580,9 +675,10 @@ Configurações → Avançado): respostas gravadas mostram como o Wisp funciona,
   no navegador da [bancada](#a-bancada-navegador-e-terminal), ao lado da conversa; um Markdown abre
   no próprio painel. O card de uma edição de HTML (ou de Markdown, PDF, imagem) tem
   **Pré-visualizar**, e o de um comando que subiu um servidor ("Local: http://localhost:5173") tem
-  **Abrir … na pré-visualização**. Um arquivo recarrega sozinho quando a pasta dele muda. Só
-  arquivos e endereços desta máquina: um endereço da internet é recusado, e a página não sai do
-  servidor (ou da pasta) em que abriu. A página é isolada do Wisp: sem os cookies do painel, sem
+  **Abrir … na pré-visualização**. Um arquivo recarrega sozinho quando a pasta dele muda. Sites
+  da internet abrem também (Fase 58, `previewWeb`; desligada nas configurações, só arquivos e
+  endereços desta máquina, e a página não sai do servidor em que abriu). A página é isolada do
+  Wisp: sem os cookies do painel, sem
   permissões (câmera, microfone, notificações) e sem baixar arquivos.
 - **Pergunta lateral** (Fase 46): no **+** da caixa, **Pergunta lateral**, ou `/btw sua pergunta`.
   Uma caixinha acima da caixa de texto responde com o contexto da conversa, sem ferramentas, sem
@@ -686,14 +782,19 @@ do Claude Desktop.
   imagem) e Enter; o `/preview` e os botões **Pré-visualizar** dos cards abrem aqui também. A
   barra tem voltar, avançar, recarregar (F5), **Mostrar ao Claude** (um print da página vai como
   anexo para a conversa em foco), abrir no navegador do sistema e fechar a página. Vazio, ele
-  mostra os últimos endereços abertos. Só o que está nesta máquina: nada da internet abre aqui.
+  mostra os últimos endereços abertos. Sites da internet abrem também (`exemplo.com`); em Configurações → Conversas, **Páginas da internet no navegador da bancada** desliga isso e deixa só o que está nesta máquina.
 - **Terminal:** o seu shell (o `$SHELL`; no Windows, o PowerShell), na pasta da conversa em foco
   (sem pasta, na sua pasta pessoal). O **+** abre outro (até 4), cada um numa abinha com o nome da
-  pasta. É você quem digita: o Claude não lê nem escreve neste terminal, e o que ele roda continua
-  passando pelos cards. **Seleção para a conversa** põe o texto marcado na caixa da conversa em
+  pasta. Nos seus terminais é você quem digita: o Claude não lê nem escreve neles. **Seleção para a conversa** põe o texto marcado na caixa da conversa em
   foco, num bloco de código, para você completar e mandar. Quando a saída mostra um
   `http://localhost:porta`, aparece **Abrir … no navegador da bancada**. Fechar a bancada não
   para os terminais; fechar a abinha de um (ou o Wisp) para o que roda nele.
+- **O Claude usa a bancada** (Fase 57): peça "sobe o servidor e me mostra a página" ou "abre o
+  index.html e vê se tem erro no console". Ele abre a página no navegador da bancada
+  (`preview_open`), olha o print, o texto e o console dela e, com a sua permissão no card, clica
+  e preenche. Os comandos que você deve acompanhar (o servidor, testes demorados) rodam num
+  terminal do Claude na bancada, com **Claude · pasta** na abinha, depois do card de sempre; ele
+  lê a saída de lá. Os terminais que você abriu continuam só seus: o Claude não os lê.
 - **Não é o modo terminal:** o botão **Chat | Terminal** de cada aba troca a conversa para o
   Claude Code de verdade; o terminal da bancada é um shell comum, ao lado de qualquer conversa.
 - Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente

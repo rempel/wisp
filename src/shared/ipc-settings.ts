@@ -93,6 +93,7 @@ export interface Settings {
   weeklySummary: boolean
   usageAlerts: boolean
   turnReview: boolean
+  previewWeb: boolean
   provider: Provider
   openrouterModel: string | null
   phoneAfterSeconds: number
@@ -150,6 +151,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'weeklySummary',
   'usageAlerts',
   'turnReview',
+  'previewWeb',
   'provider',
   'openrouterModel',
   'phoneAfterSeconds',

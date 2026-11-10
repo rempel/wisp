@@ -6,7 +6,12 @@ import { mkdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { pathToFileURL } from 'node:url'
 import { test } from 'node:test'
-import { allowedNavigation, previewTarget } from '../src/main/preview'
+import {
+  allowedNavigation,
+  isLocalAddress,
+  looksLikeSite,
+  previewTarget
+} from '../src/main/preview'
 import type { PreviewTarget } from '../src/main/preview'
 import { localhostIn, PREVIEWABLE } from '../src/renderer/chat/preview-store'
 
@@ -36,6 +41,47 @@ test('pré-visualização: os endereços desta máquina', () => {
   assert.equal(typeof previewTarget('ftp://localhost/x', null), 'string')
   assert.equal(typeof previewTarget('javascript:alert(1)', null), 'string')
   assert.equal(typeof previewTarget('', null), 'string')
+})
+
+test('pré-visualização: as páginas da internet, só com a opção ligada', () => {
+  const web = (input: string, base: string | null = null): PreviewTarget | string =>
+    previewTarget(input, base, HOME, true)
+  assert.equal(ok(web('https://example.com')).display, 'https://example.com/')
+  assert.equal(ok(web('http://192.168.0.10:3000')).kind, 'url')
+  // Sem o https:// na frente, um endereço com cara de site vira https.
+  assert.equal(ok(web('example.com/docs?q=1')).display, 'https://example.com/docs?q=1')
+  assert.equal(ok(web('docs.example.com.br')).display, 'https://docs.example.com.br/')
+  // Um arquivo continua um arquivo: o que existe na pasta, e o que tem extensão de arquivo.
+  assert.equal(ok(web('index.html', site)).kind, 'file')
+  assert.equal(typeof web('nada.html', site), 'string')
+  assert.equal(ok(web('notas.md', site)).kind, 'markdown')
+  assert.equal(looksLikeSite('example.com'), true)
+  assert.equal(looksLikeSite('index.html'), false)
+  assert.equal(looksLikeSite('src/app.ts'), false)
+  assert.equal(looksLikeSite('localhost'), false)
+  // Outros protocolos e os arquivos de segredos continuam de fora.
+  assert.equal(typeof web('ftp://example.com/x'), 'string')
+  assert.equal(typeof web('javascript:alert(1)'), 'string')
+  assert.equal(typeof web(join(HOME, '.ssh', 'id_ed25519.html')), 'string')
+  // Desligada, o motivo diz onde ligar.
+  assert.match(String(previewTarget('https://example.com', null)), /desligadas nas configurações/)
+  // O que é desta máquina e o que é de fora (o conteúdo de fora vai com um aviso para o Claude).
+  assert.equal(isLocalAddress('http://localhost:5173/'), true)
+  assert.equal(isLocalAddress(pathToFileURL(join(site, 'index.html')).href), true)
+  assert.equal(isLocalAddress('https://example.com/'), false)
+})
+
+test('pré-visualização: com a internet ligada, a página navega para outros sites', () => {
+  const local = ok(previewTarget('localhost:5173', null))
+  assert.equal(allowedNavigation(local, 'https://example.com/', true), true)
+  assert.equal(allowedNavigation(local, 'https://example.com/', false), false)
+  const file = ok(previewTarget(join(site, 'index.html'), null))
+  assert.equal(allowedNavigation(file, 'https://example.com/', true), true)
+  // De um site, nunca para um arquivo do computador, nem para outro protocolo.
+  const remote = ok(previewTarget('https://example.com', null, HOME, true))
+  assert.equal(allowedNavigation(remote, pathToFileURL(join(site, 'index.html')).href, true), false)
+  assert.equal(allowedNavigation(remote, 'javascript:alert(1)', true), false)
+  assert.equal(allowedNavigation(remote, 'https://outro.example/', true), true)
 })
 
 test('pré-visualização: os arquivos (e o Markdown vai para o painel)', () => {

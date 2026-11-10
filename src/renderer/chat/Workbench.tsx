@@ -142,8 +142,8 @@ function BrowserTab({
           className="workbench-address"
           value={address}
           spellCheck={false}
-          placeholder={t('localhost:5173 ou um arquivo (HTML, PDF, imagem)')}
-          aria-label={t('Endereço desta máquina ou arquivo')}
+          placeholder={t('localhost:5173, um site ou um arquivo')}
+          aria-label={t('Endereço ou arquivo')}
           title={preview.title || undefined}
           onFocus={(event) => {
             editing.current = true
@@ -211,7 +211,7 @@ function BrowserTab({
           <strong>{t('O que o Claude fez, ao lado da conversa')}</strong>
           <span>
             {t(
-              'Abra o servidor do projeto (localhost) ou um arquivo: HTML, PDF ou imagem. Só desta máquina: nada da internet entra por aqui.'
+              'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.'
             )}
           </span>
           {recent.length > 0 && (
@@ -288,13 +288,19 @@ function TerminalTab({
           {terminals.map((item) => (
             <span
               key={item.id}
-              className={`workbench-shell${item.id === active?.id ? ' active' : ''}${item.exited ? ' exited' : ''}`}
+              className={`workbench-shell${item.id === active?.id ? ' active' : ''}${item.exited ? ' exited' : ''}${item.claude ? ' claude' : ''}`}
             >
               <button
                 type="button"
                 role="tab"
                 aria-selected={item.id === active?.id}
-                title={item.cwd}
+                title={
+                  item.claude
+                    ? t('O terminal do Claude nesta conversa: ele roda e lê aqui ({cwd})', {
+                        cwd: item.cwd
+                      })
+                    : item.cwd
+                }
                 onClick={() => {
                   setFocus(true)
                   setPicked(item.id)

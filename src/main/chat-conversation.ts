@@ -46,7 +46,14 @@ export const APPEND_SYSTEM_PROMPT =
   t(
     'O mascote do Wisp tem emoções: de vez em quando, se combinar com o momento, mostre uma com a '
   ) +
-  t('ferramenta express (sem anunciar).')
+  t('ferramenta express (sem anunciar). ') +
+  t('O Wisp tem uma bancada ao lado da conversa, com um navegador e um terminal embutidos. Para ') +
+  t('abrir, mostrar ou testar uma página (o localhost do projeto, um arquivo HTML ou um site), ') +
+  t('use preview_open e as outras preview_* (screenshot, read, console, click, fill), e não o ') +
+  t(
+    'open_url (que abre o navegador do sistema, só se ele pedir) nem o do Playwright; para rodar '
+  ) +
+  t('o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read.')
 
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 export function outgoing(value: unknown): OutgoingAttachment[] {

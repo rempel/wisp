@@ -45,7 +45,8 @@ src/
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
 │  ├─ preview.ts     # a pré-visualização: o que abrir e a vista isolada, no navegador da bancada (Fases 47 e 55)
 │  ├─ workbench.ts   # a bancada: o que ela guarda (aberta, a aba, a largura, os últimos) e o IPC (Fase 55)
-│  ├─ shells.ts      # os terminais da bancada: o seu shell num pseudo-terminal (Fase 55)
+│  ├─ shells.ts      # os terminais da bancada: os seus e o do Claude, num pseudo-terminal (Fases 55 e 57)
+│  ├─ mcp-workbench.ts # as ferramentas do Claude para a bancada: preview_* e terminal_* (Fase 57)
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
@@ -1091,13 +1092,18 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     `[::1]`; o `0.0.0.0` de um servidor de desenvolvimento vira `localhost`; `:5173` e `5173`
     também) ou um arquivo (absoluto, com `~` ou relativo à pasta da conversa) com uma extensão de
     HTML, PDF, imagem ou Markdown, nunca um dos arquivos de segredos do `isSensitivePath`. Um
-    endereço da internet ou outro protocolo é recusado;
+    endereço da internet só com a opção `previewWeb` ligada (Fase 58: o padrão; aí um endereço
+    com cara de site, sem o `https://`, vira https, a não ser que seja um arquivo da pasta);
+    outro protocolo é recusado;
   - **a vista:** uma `WebContentsView` (desde a Fase 55; antes, um `BrowserWindow` ao lado)
     noutra sessão (`partition: wisp-preview`, sem os cookies do painel), sem preload, no sandbox,
     com o `contextIsolation`, sem permissões (o `setPermissionRequestHandler` nega tudo), sem
     janelas novas (`setWindowOpenHandler`), sem baixar arquivos (o `will-download` é cancelado) e
-    sem navegar para fora: num endereço, só a mesma origem; num arquivo, só os arquivos da pasta
-    dele. O `plugins: true` liga o leitor de PDF do Chromium;
+    sem navegar para fora com a `previewWeb` desligada: num endereço, só a mesma origem; num
+    arquivo, só os arquivos da pasta dele. Ligada, qualquer endereço http ou https (um link que
+    abriria uma janela navega na mesma vista), e nunca de um site para um arquivo. O que as
+    ferramentas do Claude leem de uma página que não é desta máquina (`isLocalAddress`) vai com o
+    aviso de que é conteúdo de terceiros. O `plugins: true` liga o leitor de PDF do Chromium;
   - **recarregar:** o `fs.watch` da pasta do arquivo (sem descer nas de dentro, para um
     `node_modules` não pesar), com 300 ms de espera; num endereço, o servidor de desenvolvimento
     já recarrega sozinho. F5 e Ctrl+R na página, e o Recarregar da barra do navegador;
@@ -1138,9 +1144,18 @@ add-json --scope user` ou `claude mcp remove --scope user` (com o mesmo ambiente
     resize, onData): o `tui:*` de uma conversa ou o `shell:*` de um terminal da bancada. As
     teclas são do shell, menos os atalhos do Wisp que já valiam no modo terminal e o
     Ctrl+Shift+B;
-  - **o que o Claude não alcança:** nenhuma ferramenta lê ou escreve nos terminais da bancada, e
-    a página do navegador não fala com o painel (sem preload). O que vai para a conversa passa
-    pela sua mão: o print (**Mostrar ao Claude**) e a seleção do terminal.
+  - **o que o Claude alcança (Fase 57):** as ferramentas `preview_*` e `terminal_*` do servidor
+    `desktop` (`mcp-workbench.ts`), pelo `WorkbenchControl` que a bancada entrega. Sem card
+    (`SAFE_TOOLS`): `preview_open`, `preview_screenshot`, `preview_read`, `preview_console` e
+    `terminal_read`. Com card: `preview_click`, `preview_fill`, `preview_eval` e
+    `terminal_run`. O console da página (as últimas 200 linhas, com as falhas de carga) é
+    guardado pelo `console-message`. O clique e o preenchimento rodam um JavaScript fixo com o
+    alvo em `JSON.stringify`; um trecho que não volta em 10 s é abandonado. O terminal do
+    Claude é um por conversa (o `owner` do shell), criado na pasta dela na primeira vez; o
+    `run` digita o comando e espera a saída parar por 1,2 s ou o prazo (10 s por padrão, até
+    120); a saída vai em texto (`plainOutput`). Os terminais que você abriu não têm `owner`:
+    nenhuma ferramenta os lê nem escreve neles. A página do navegador não fala com o painel
+    (sem preload).
 - **O mascote numa janela (Fase 48):**
   - **qual janela:** as janelas à vista, da mais à frente para a mais atrás, sem as do Wisp: no
     X11, as do `_NET_CLIENT_LIST_STACKING` na área de trabalho de agora, cada uma com a posição
