@@ -53,9 +53,14 @@ jobs:
       - run: node scripts/deps-check.mjs
 
   e2e:
-    name: Ponta a ponta (Xvfb e DevTools)
+    name: Ponta a ponta (Xvfb e DevTools), parte ${{ matrix.part }} de 3
     runs-on: ubuntu-24.04
     timeout-minutes: 45
+    # Os roteiros em três partes, em paralelo: juntos, passavam do limite do job.
+    strategy:
+      fail-fast: false
+      matrix:
+        part: [1, 2, 3]
     steps:
       - uses: actions/checkout@v6
       - uses: actions/setup-node@v6
@@ -77,6 +82,8 @@ jobs:
       - run: npx install-electron
       - run: npx electron-vite build
       - run: e2e/run.sh
+        env:
+          WISP_E2E_SHARD: ${{ matrix.part }}/3
       # A memória e a CPU medidas no e2e/consumo.mjs (Fase 23), no resumo do job: uma mudança que
       # piora aparece aqui, de um commit para o outro.
       - name: Consumo
