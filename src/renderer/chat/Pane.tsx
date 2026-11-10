@@ -98,6 +98,8 @@ export interface PaneProps {
   bus: PaneBus
   /** Modo demonstração: o painel vazio sugere o que pedir. */
   demo: boolean
+  /** O outro provedor é um servidor local de modelos (Fase 66). */
+  local?: boolean
   /** O próximo compromisso da agenda, para o painel vazio (null: nenhum). */
   agenda: AgendaItem | null
   /**
@@ -134,6 +136,7 @@ export function Pane({
   voice,
   bus,
   demo,
+  local,
   agenda,
   onSent,
   onBroadcast
@@ -813,6 +816,7 @@ export function Pane({
             )}
             <ProviderPill
               provider={state.provider}
+              local={local}
               onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
             />
             {state.model &&

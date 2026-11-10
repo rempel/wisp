@@ -22,6 +22,7 @@ import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
 import { UsageView } from './UsageView'
 import { AgentsView } from './AgentsView'
+import { MemoryView } from './MemoryView'
 import { BoardView } from './BoardView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
@@ -111,6 +112,7 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
   usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
   agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
+  memory: [t('Memória'), t('o que o Claude lê antes de cada conversa')],
   board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
 }
 
@@ -126,6 +128,7 @@ export default function Chat(): JSX.Element {
     | 'welcome'
     | 'usage'
     | 'agents'
+    | 'memory'
     | 'board'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
@@ -665,6 +668,7 @@ export default function Chat(): JSX.Element {
         voice={focused ? voice : { state: 'idle' }}
         bus={bus}
         demo={demo}
+        local={!!settings?.values.localModelsUrl}
         agenda={agendaNext}
         onSent={onSent(id)}
         onBroadcast={broadcast}
@@ -911,6 +915,8 @@ export default function Chat(): JSX.Element {
             <UsageView />
           ) : view === 'board' ? (
             <BoardView onShow={() => setView('chat')} />
+          ) : view === 'memory' ? (
+            <MemoryView folder={focusedFolder} />
           ) : view === 'agents' ? (
             <AgentsView folder={focusedFolder} />
           ) : view === 'sessions' ? (

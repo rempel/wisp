@@ -14,7 +14,7 @@ import { getConfig } from './config'
 import type { WispConfig } from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
-import { listModels, OPENROUTER_SECRET } from './openrouter'
+import { listModels, LOCAL_KEY, localModelsUrl, OPENROUTER_SECRET } from './openrouter'
 import { DATA_DIR, runtimeDir } from './paths'
 import { thumbnailOfBase64 } from './screenshot'
 import { readSecret } from './secrets'
@@ -119,7 +119,9 @@ export function conversationFactory(
         snapshotDir: snapshotDirOf(id),
         demo: () => (getConfig().demo ? DEMO : null),
         openrouter: {
-          key: () => readSecret(OPENROUTER_SECRET),
+          // Um servidor local (Fase 66) não tem chave: o chaveiro nem é consultado.
+          key: () =>
+            localModelsUrl() ? Promise.resolve(LOCAL_KEY) : readSecret(OPENROUTER_SECRET),
           // A lista é pública e fica guardada por uma hora; sem rede, o custo fica sem preço.
           pricing: async (model) =>
             (await listModels().catch(() => [])).find((item) => item.id === model) ?? null

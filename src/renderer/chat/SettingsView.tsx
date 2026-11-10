@@ -385,6 +385,24 @@ export function SettingsView({
             checked={values.previewWeb}
             onChange={(previewWeb) => void save({ previewWeb })}
           />
+          <Toggle
+            label={t('"Perguntar ao Wisp" no gerenciador de arquivos')}
+            hint={t(
+              'Põe a opção no clique direito dos arquivos (no Nautilus, em Scripts; no Dolphin e no Explorer do Windows, no menu). O arquivo vai como anexo para a conversa em foco. Desligar tira o que o Wisp pôs.'
+            )}
+            checked={values.fileManagerMenu}
+            onChange={(fileManagerMenu) => void save({ fileManagerMenu })}
+          />
+          {navigator.userAgent.includes('Windows') && (
+            <Toggle
+              label={t('O comando wisp no PATH')}
+              hint={t(
+                'Põe a pasta do comando no PATH do seu usuário, para usar wisp --ask "..." em qualquer terminal (vale nos terminais abertos depois).'
+              )}
+              checked={values.commandInPath}
+              onChange={(commandInPath) => void save({ commandInPath })}
+            />
+          )}
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>
@@ -706,6 +724,19 @@ export function SettingsView({
             </select>
           </Row>
           <OpenRouterKey present={snapshot.openrouterKey} />
+          <Row
+            label={t('Servidor de modelos local')}
+            hint={t(
+              'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.'
+            )}
+            error={errors.localModelsUrl}
+          >
+            <TextInput
+              value={values.localModelsUrl ?? ''}
+              placeholder="http://localhost:11434"
+              onCommit={(url) => save({ localModelsUrl: url || null })}
+            />
+          </Row>
           <Row
             label={t('Modelo')}
             hint={t(

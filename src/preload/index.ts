@@ -228,6 +228,12 @@ const api: WispApi = {
     action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
     onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
   },
+  memory: {
+    list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),
+    preview: (id, folder, text) => ipcRenderer.invoke(IPC.memoryPreview, id, folder, text),
+    save: (id, folder, text, fingerprint) =>
+      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint)
+  },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),
     preview: (spec, folder) => ipcRenderer.invoke(IPC.agentsPreview, spec, folder),

@@ -77,6 +77,8 @@ import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
+import { fileAttachment, setFileMenu, setWindowsCommand } from './file-menu'
+import { setupMemoryIpc } from './memory'
 import { setupWorkbench } from './workbench'
 import type { WorkbenchControl } from './workbench'
 import { setupAgentsIpc } from './agents'
@@ -644,6 +646,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   setupFileViewIpc((sender) => chat?.isSender(sender) ?? false)
   setupAgentsIpc((sender) => chat?.isSender(sender) ?? false)
+  setupMemoryIpc((sender) => chat?.isSender(sender) ?? false)
   // A bancada (Fase 55): o navegador (a pré-visualização) e os terminais ao lado da conversa.
   const workbench = setupWorkbench({
     isSender: (sender) => chat?.isSender(sender) ?? false,
@@ -671,7 +674,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       set: (enabled) => setAutostart(enabled, entryIcon)
     },
     onChange: () => menu?.refresh(),
-    openrouterKey: () => openrouter.hasKey(),
+    // Com um servidor local (Fase 66), a chave não faz falta.
+    openrouterKey: () => (getConfig().localModelsUrl ? true : openrouter.hasKey()),
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
     dnd: () => dnd.state().active,
@@ -888,7 +892,22 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       case 'palette':
         chat?.showView('palette')
         break
+      case 'file': {
+        // O "Perguntar ao Wisp" do gerenciador de arquivos (Fase 64): o arquivo vira um anexo.
+        const dropped = fileAttachment(command.path)
+        if (dropped) chat?.attach(dropped)
+        break
+      }
     }
+  })
+  // As integrações com o sistema (Fases 64 e 67) acompanham as configurações.
+  let integrations = { menu: getConfig().fileManagerMenu, command: getConfig().commandInPath }
+  if (integrations.menu) void setFileMenu(true)
+  if (integrations.command) void setWindowsCommand(true)
+  onConfigChange((config) => {
+    if (config.fileManagerMenu !== integrations.menu) void setFileMenu(config.fileManagerMenu)
+    if (config.commandInPath !== integrations.command) void setWindowsCommand(config.commandInPath)
+    integrations = { menu: config.fileManagerMenu, command: config.commandInPath }
   })
 
   app.on('before-quit', () => {
