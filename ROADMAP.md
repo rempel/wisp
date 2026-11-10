@@ -1807,7 +1807,7 @@ que bate com os princípios (rotinas na nuvem, outros provedores por fora do Cla
 
 ### Fase 46: voltar, ramificar e a pergunta lateral
 
-**Status:** pronta, esperando validação (testes: `test/pontos.test.ts`, com o Claude Code
+**Status:** validada (testes: `test/pontos.test.ts`, com o Claude Code
 de mentira na pergunta lateral; `e2e/pontos.mjs`, no job do Linux e no **Windows** do CI).
 
 - **Voltar a este ponto (M):** em qualquer mensagem sua (não só na última, como na Fase 21), a
@@ -1846,7 +1846,7 @@ Notas da entrega:
 
 ### Fase 47: a pré-visualização no painel
 
-**Status:** pronta, esperando validação (testes: `test/preview.test.ts`; `e2e/preview.mjs`,
+**Status:** validada (testes: `test/preview.test.ts`; `e2e/preview.mjs`,
 no job do Linux e no **Windows** do CI).
 
 - **Ver o resultado (M):** um HTML, um PDF, uma imagem, um Markdown ou o servidor local do
@@ -1873,7 +1873,7 @@ Notas da entrega:
 
 ### Fase 48: o mascote numa janela
 
-**Status:** pronta, esperando validação (testes: `test/janela.test.ts`; `e2e/janela.mjs`, com o
+**Status:** validada (testes: `test/janela.test.ts`; `e2e/janela.mjs`, com o
 openbox, um xterm e o arraste de verdade pelo xdotool, no job do Linux do CI).
 
 - **Soltar o mascote numa janela (M):** arrastado e solto em cima de uma janela, o mascote leva o
@@ -1898,7 +1898,7 @@ Notas da entrega:
 
 ### Fase 49: o painel de uso
 
-**Status:** pronta, esperando validação (testes: `test/uso.test.ts`; `e2e/uso.mjs`, no job do
+**Status:** validada (testes: `test/uso.test.ts`; `e2e/uso.mjs`, no job do
 Linux e no **Windows** do CI).
 
 - **Os números (M):** tokens (entrada, saída e cache) e o custo estimado por dia, por projeto e por
@@ -1922,7 +1922,7 @@ Notas da entrega:
 
 ### Fase 50: os subagentes pelo Wisp
 
-**Status:** pronta, esperando validação (testes: `test/agentes.test.ts`; `e2e/agentes.mjs`, no job
+**Status:** validada (testes: `test/agentes.test.ts`; `e2e/agentes.mjs`, no job
 do Linux e no **Windows** do CI).
 
 - **A lista (P):** os subagentes do Claude Code (`~/.claude/agents/*.md` e os da pasta da
@@ -1946,7 +1946,7 @@ Notas da entrega:
 
 ### Fase 51: o quadro de tarefas
 
-**Status:** pronta, esperando validação (testes: `test/quadro.test.ts`, com o git de verdade;
+**Status:** validada (testes: `test/quadro.test.ts`, com o git de verdade;
 `e2e/quadro.mjs`, no job do Linux e no **Windows** do CI).
 
 - **O quadro (M):** cartões em A fazer, Rodando, Revisar e Feito, cada um com um pedido e uma
@@ -1973,7 +1973,7 @@ Notas da entrega:
 
 ### Fase 52: os pequenos
 
-**Status:** pronta, esperando validação (testes: `test/pequenos.test.ts` e `test/github.test.ts`;
+**Status:** validada (testes: `test/pequenos.test.ts` e `test/github.test.ts`;
 `e2e/pequenos.mjs`, no job do Linux e no **Windows** do CI).
 
 - **Revisar um PR (P):** no aviso de um PR que pede a sua revisão, abrir o ramo dele numa cópia,
@@ -2005,7 +2005,7 @@ Notas da entrega:
 
 ### Fase 53: ditar em qualquer programa
 
-**Status:** pronta, esperando validação (testes: `test/ditado.test.ts`; `e2e/ditado.mjs`, com o atalho
+**Status:** validada (testes: `test/ditado.test.ts`; `e2e/ditado.mjs`, com o atalho
 de verdade pelo xdotool, o microfone falso do Chromium e um xdotool de mentira que anota o que
 foi colado, no job do Linux do CI).
 
@@ -2030,7 +2030,7 @@ Notas da entrega:
 
 ### Fase 54: conversar pelo celular, na rede local
 
-**Status:** pronta, esperando validação (testes: `test/celular-rede.test.ts`, com pedidos HTTP de
+**Status:** validada (testes: `test/celular-rede.test.ts`, com pedidos HTTP de
 verdade; `e2e/celular-rede.mjs`, com a página aberta numa janela da pré-visualização, noutra
 sessão, como o navegador do celular, no job do Linux do CI).
 
@@ -2076,7 +2076,7 @@ Notas da entrega:
 
 ### Fase 55: a bancada (navegador e terminal ao lado da conversa)
 
-**Status:** pronta, esperando validação (testes: `test/bancada.test.ts`, com um shell de verdade
+**Status:** validada (testes: `test/bancada.test.ts`, com um shell de verdade
 num pseudo-terminal; `e2e/bancada.mjs`, no job do Linux do CI; o `e2e/preview.mjs` passou a
 conferir a página dentro do painel, no Linux e no **Windows**). Veio de um pedido de uso: a janela
 dividida do Claude Desktop, com o preview e o terminal ao lado da conversa.
@@ -2121,7 +2121,7 @@ Notas da entrega:
 
 ### Fase 56: o desenho novo (plano)
 
-**Status:** pronta, esperando validação (os testes de ponta a ponta do painel rodam com o desenho
+**Status:** validada (os testes de ponta a ponta do painel rodam com o desenho
 novo). Veio de um pedido de uso: um visual moderno, bonito e plano, e o layout ajustado.
 
 - **As cores (M):** uma paleta neutra, clara e escura, com uma cor de destaque (o ciano do
@@ -2151,7 +2151,7 @@ Notas da entrega:
 
 ### Fase 57: o Claude usa a bancada
 
-**Status:** pronta, esperando validação (testes: `test/bancada-claude.test.ts`, com as
+**Status:** validada (testes: `test/bancada-claude.test.ts`, com as
 ferramentas chamadas pelo servidor MCP e um shell de verdade; `e2e/bancada-claude.mjs`, com o app
 de verdade, no job do Linux do CI). Veio de um pedido de uso: pedir ao Wisp para usar o
 navegador e o terminal embutidos abria o navegador do sistema, o do Playwright ou nada, porque o
@@ -2189,7 +2189,7 @@ Notas da entrega:
 
 ### Fase 58: páginas da internet no navegador da bancada
 
-**Status:** pronta, esperando validação (testes: `test/preview.test.ts`; `e2e/bancada.mjs`, com um
+**Status:** validada (testes: `test/preview.test.ts`; `e2e/bancada.mjs`, com um
 servidor alcançado pelo endereço da rede no papel do site de fora). Veio de um pedido de uso: o
 navegador da bancada só abria o que estava na máquina, e pedir um site caía no navegador do
 sistema.
