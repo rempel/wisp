@@ -202,6 +202,8 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- No modo demonstração, uma ferramenta aprovada (a edição do contador, abrir o Firefox) ficava
+  "executando" para sempre: o resultado dela voltava com outro id.
 - No Windows, o mascote só dançava com a música que o Claude tivesse olhado por último: agora o
   Wisp acompanha o controle de mídia do Windows.
 - No Windows, um hook do Claude Code que terminava depois de o Claude Code sair podia deixar

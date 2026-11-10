@@ -148,6 +148,12 @@ test('um pedido de permissão sem o servidor do Wisp: negado, e a gravação seg
       event.type === 'tool-result' && event.isError
   )
   assert.ok(result, 'o resultado da ferramenta é o da recusa')
+  // Com o id do pedido: senão o card da ferramenta fica "executando" para sempre.
+  const asked = got.find(
+    (event): event is Extract<ChatEvent, { type: 'tool-start' }> =>
+      event.type === 'tool-start' && /open_app/.test(event.name)
+  )
+  assert.equal(result.id, asked?.id)
   assert.match(textOf(got), /não abro/)
   claude.dispose()
 })
