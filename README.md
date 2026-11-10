@@ -261,13 +261,11 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
-- **Validação:** as Fases 6 a 45 foram validadas com o uso, menos os pacotes de ARM64 (os do Linux,
-  Fase 25, e o instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O
-  Atualizar do AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
-  [Publicando uma versão](#publicando-uma-versão)). As Fases 46 a 54 (da segunda avaliação de
-  ferramentas parecidas) e as Fases 55 a 58 (a bancada, o desenho novo, o Claude na bancada e as páginas da internet nela) estão prontas, com os testes de unidade e de
-  ponta a ponta, e esperam a validação com o uso (os roteiros em
-  [docs/VALIDACAO.md](docs/VALIDACAO.md)).
+- **Validação:** as Fases 6 a 58 foram validadas com o uso (os roteiros estão em
+  [docs/VALIDACAO.md](docs/VALIDACAO.md)), menos os pacotes de ARM64 (os do Linux, Fase 25, e o
+  instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O Atualizar do
+  AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
+  [Publicando uma versão](#publicando-uma-versão)).
 
 ## Requisitos
 
