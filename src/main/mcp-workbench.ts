@@ -116,18 +116,75 @@ export function registerWorkbenchTools(
         '(`https://exemplo.com`). Se os sites estiverem desligados nas configurações do Wisp, a ' +
         'ferramenta diz, e aí vale o open_url. Depois, veja o resultado com preview_screenshot, ' +
         'preview_read e preview_console.',
-      inputSchema: { alvo: z.string() },
+      inputSchema: { alvo: z.string(), nova_aba: z.boolean().optional() },
       _meta: ALWAYS_LOAD
     },
-    async ({ alvo }) => {
+    async ({ alvo, nova_aba }) => {
       const control = bench()
       if (!control) return failed(CLOSED)
-      const result = control.preview.open(alvo, control.folderOf(conversation))
+      const result = control.preview.open(alvo, control.folderOf(conversation), nova_aba === true)
       if (!result.ok) return failed(result.message ?? 'Não deu para abrir.')
       if (result.kind === 'markdown') {
         return failed('Markdown não abre no navegador da bancada: leia o arquivo com o Read.')
       }
       return text(`Abri no navegador da bancada: ${control.preview.state().display || alvo}.`)
+    }
+  )
+
+  server.registerTool(
+    'preview_tabs',
+    {
+      title: 'Abas do navegador da bancada',
+      description:
+        'As abas abertas no navegador da bancada (o número, o título e qual está à vista). ' +
+        '`selecionar`: passa para a aba desse número; `fechar`: fecha a desse número. As ' +
+        'outras preview_* agem na aba à vista. Uma aba nova se abre com preview_open e ' +
+        '`nova_aba`.',
+      inputSchema: {
+        selecionar: z.number().int().optional(),
+        fechar: z.number().int().optional()
+      },
+      _meta: ALWAYS_LOAD
+    },
+    async ({ selecionar, fechar }) => {
+      const control = bench()
+      if (!control) return failed(CLOSED)
+      const known = (id: number): boolean =>
+        (control.preview.state().tabs ?? []).some((tab) => tab.id === id)
+      if (fechar !== undefined) {
+        if (!known(fechar)) return failed(`Não há a aba ${fechar}.`)
+        control.preview.closeTab(fechar)
+      }
+      if (selecionar !== undefined) {
+        if (!known(selecionar)) return failed(`Não há a aba ${selecionar}.`)
+        control.preview.selectTab(selecionar)
+      }
+      const tabs = control.preview.state().tabs ?? []
+      if (!tabs.length) return text('Nenhuma aba aberta no navegador da bancada.')
+      return text(
+        tabs.map((tab) => `${tab.id}${tab.active ? ' (à vista)' : ''}: ${tab.title}`).join('\n')
+      )
+    }
+  )
+
+  server.registerTool(
+    'preview_resize',
+    {
+      title: 'Largura da página da bancada',
+      description:
+        'Muda a largura da página do navegador da bancada, para conferir o layout responsivo: ' +
+        '`largura` em pixels (390 é um celular, 768 um tablet) ou 0 para voltar ao tamanho ' +
+        'todo. Depois, veja com preview_screenshot.',
+      inputSchema: { largura: z.number().int().min(0).max(2400) },
+      _meta: ALWAYS_LOAD
+    },
+    async ({ largura }) => {
+      const control = bench()
+      if (!control) return failed(CLOSED)
+      if (!control.preview.state().open) return failed(NO_PAGE)
+      control.preview.resize(largura > 0 ? largura : null)
+      const now = control.preview.state().width
+      return text(now ? `A página está com ${now} px de largura.` : 'A página ocupa o lugar todo.')
     }
   )
 

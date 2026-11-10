@@ -1,3 +1,4 @@
+import type { PreviewTab } from './ipc-workbench'
 // A conversa no painel: anexos, a área de transferência, os modelos e o uso do plano, os diffs, os
 // eventos do chat, as permissões, as abas e a janela.
 
@@ -150,6 +151,12 @@ export interface PreviewState {
   loading?: boolean
   canGoBack?: boolean
   canGoForward?: boolean
+  /** As abas do navegador (Fase 59), a largura pedida (Fase 61; null: o lugar todo), os erros
+   * do console que ainda não foram para a conversa (Fase 62) e a mira ligada (Fase 60). */
+  tabs?: PreviewTab[]
+  width?: number | null
+  errors?: number
+  picking?: boolean
 }
 
 /** Uma linha do painel de uso (Fase 49): um dia, um projeto e um modelo. */

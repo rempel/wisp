@@ -2756,5 +2756,34 @@ export const EN: Record<string, string> = {
   'localhost:5173, um site ou um arquivo': 'localhost:5173, a website or a file',
   'Endereço ou arquivo': 'Address or file',
   'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.':
-    "Open the project's server (localhost), a file (HTML, PDF or image) or a website. Claude also opens pages here when you ask."
+    "Open the project's server (localhost), a file (HTML, PDF or image) or a website. Claude also opens pages here when you ask.",
+  'Na página {url}, este elemento (o recorte está em anexo):':
+    'On the page {url}, this element (the crop is attached):',
+  'Estilos:': 'Styles:',
+  'O navegador da bancada tem no máximo {max} abas.':
+    'The workbench browser holds at most {max} tabs.',
+  'A página {url} mostrou estes erros no console:':
+    'The page {url} showed these errors in the console:',
+  'Cola o comando no seu terminal da bancada, sem enviar: o Enter é seu':
+    'Pastes the command into your workbench terminal without sending it: Enter is yours',
+  'Rodar no terminal': 'Run in terminal',
+  Páginas: 'Pages',
+  'Fechar esta página': 'Close this page',
+  'Fechar a página {title}': 'Close the page {title}',
+  'Página nova: escreva o endereço e Enter': 'New page: type the address and press Enter',
+  'Página nova': 'New page',
+  'O endereço da página nova': "The new page's address",
+  'Apontar um elemento: clique nele na página e ele vai para a conversa, com o recorte (Esc desiste)':
+    'Pick an element: click it on the page and it goes to the conversation, with a crop (Esc cancels)',
+  'Apontar um elemento da página': 'Pick an element on the page',
+  'A página está com {width} px de largura; clique para a próxima':
+    'The page is {width} px wide; click for the next size',
+  'Largura da página: ver como num celular ou num tablet':
+    'Page width: see it as on a phone or a tablet',
+  'Largura da página': 'Page width',
+  'Clique num elemento da página (Esc desiste).': 'Click an element on the page (Esc cancels).',
+  'Os erros vão para a caixa da conversa em foco, para você completar e mandar':
+    "The errors go to the focused conversation's box, for you to complete and send",
+  '1 erro no console: mandar ao Claude': '1 console error: send to Claude',
+  '{count} erros no console: mandar ao Claude': '{count} console errors: send to Claude'
 }

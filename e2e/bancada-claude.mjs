@@ -126,6 +126,123 @@ check(
   missing.error && /#nada/.test(missing.text)
 )
 
+console.log('== Abas, largura, erros e a mira (Fases 59 a 62)')
+writeFileSync(
+  join(site, 'outra.html'),
+  '<!doctype html><meta charset="utf-8"><title>Outra</title><h1>Outra página</h1>'
+)
+const second = await call('preview_open', { alvo: join(site, 'outra.html'), nova_aba: true })
+check('C20 preview_open com nova_aba abre outra aba', !second.error, second.text)
+const listed =
+  (await waitFor(
+    () => call('preview_tabs').then((reply) => (/Outra/.test(reply.text) ? reply : null)),
+    8000
+  )) ?? (await call('preview_tabs'))
+check(
+  'C21 preview_tabs lista as duas, com a nova à vista',
+  /1: Loja/.test(listed.text) && /2 \(à vista\): Outra/.test(listed.text),
+  listed.text
+)
+const strip = await waitFor(
+  () => ev(`document.querySelectorAll('.workbench-pages [role=tab]').length === 2`),
+  5000
+)
+check('C22 as abas aparecem na bancada', !!strip)
+check(
+  'C23 a aba à vista é a que as ferramentas leem',
+  /Outra página/.test((await call('preview_read')).text)
+)
+const back = await call('preview_tabs', { selecionar: 1, fechar: 2 })
+check(
+  'C24 selecionar e fechar pelo número',
+  /^1 \(à vista\): Loja$/.test(back.text.trim()),
+  back.text
+)
+check(
+  'C25 uma aba que não existe é um erro claro',
+  (await call('preview_tabs', { selecionar: 9 })).error
+)
+const narrow = await call('preview_resize', { largura: 390 })
+const inner = view
+  ? await waitFor(
+      () => view.evaluate(`window.innerWidth`).then((width) => (width === 390 ? width : null)),
+      5000
+    )
+  : null
+check(
+  'C26 preview_resize estreita a página (um celular)',
+  /390/.test(narrow.text) && inner === 390,
+  `${narrow.text} ${inner}`
+)
+await call('preview_resize', { largura: 0 })
+const wide = view
+  ? await waitFor(
+      () => view.evaluate(`window.innerWidth`).then((width) => (width > 390 ? width : null)),
+      5000
+    )
+  : null
+check('C27 e 0 devolve o lugar todo', !!wide, wide)
+const chip = await waitFor(
+  () => ev(`document.querySelector('.workbench-errors button')?.textContent ?? null`),
+  5000
+)
+check('C28 o erro do console vira um aviso na bancada', /1 erro no console/.test(chip ?? ''), chip)
+await ev(`document.querySelector('.workbench-errors button').click()`)
+const composed = await waitFor(
+  () =>
+    ev(`document.querySelector('.pane .composer textarea').value`).then((value) =>
+      /estoque vazio/.test(value ?? '') ? value : null
+    ),
+  5000
+)
+check('C29 e um clique o põe na caixa da conversa', !!composed)
+check(
+  'C30 mandado, o aviso some',
+  !!(await waitFor(() => ev(`!document.querySelector('.workbench-errors')`), 5000))
+)
+await ev(
+  `document.querySelector('.workbench button[aria-label="Apontar um elemento da página"]').click()`
+)
+await waitFor(() => ev(`!!document.querySelector('.workbench button[aria-pressed="true"]')`), 5000)
+if (view) {
+  const spot = await view.evaluate(
+    `(() => { const r = document.getElementById('ok').getBoundingClientRect(); return [r.left + 4, r.top + 4] })()`
+  )
+  for (const type of ['mouseMoved', 'mousePressed', 'mouseReleased']) {
+    await view.send('Input.dispatchMouseEvent', {
+      type,
+      x: spot[0],
+      y: spot[1],
+      button: type === 'mouseMoved' ? 'none' : 'left',
+      clickCount: 1
+    })
+  }
+}
+const picked = await waitFor(
+  () =>
+    ev(`document.querySelector('.pane .composer textarea').value`).then((value) =>
+      /#ok/.test(value ?? '') ? value : null
+    ),
+  8000
+)
+check(
+  'C31 apontar um elemento põe o seletor e o texto dele na caixa',
+  /#ok/.test(picked ?? '') && /Comprar/.test(picked ?? ''),
+  picked
+)
+const cropped = await waitFor(
+  () =>
+    ev(
+      `[...document.querySelectorAll('.pane .composer .attachments .attachment')].map((a) => a.title).join(' ') || null`
+    ),
+  8000
+)
+check('C32 e o recorte dele vai como anexo', /elemento-.*\.png/.test(cropped ?? ''), cropped)
+check(
+  'C33 a mira não deixa nada na página',
+  view ? (await view.evaluate(`document.documentElement.style.cursor`)) === '' : false
+)
+
 console.log('== O terminal da bancada')
 const empty = await call('terminal_read')
 check('C14 antes de rodar, não há o que ler', empty.error && /terminal_run/.test(empty.text))

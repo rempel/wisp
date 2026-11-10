@@ -240,8 +240,13 @@ const api: WispApi = {
     export: (days) => ipcRenderer.invoke(IPC.usageExport, days)
   },
   preview: {
-    open: (target, folder) => ipcRenderer.invoke(IPC.previewOpen, target, folder),
+    open: (target, folder, fresh) => ipcRenderer.invoke(IPC.previewOpen, target, folder, fresh),
     capture: () => ipcRenderer.invoke(IPC.previewCapture),
+    pick: () => ipcRenderer.invoke(IPC.previewPick),
+    sendErrors: () => ipcRenderer.invoke(IPC.previewErrors),
+    selectTab: (id) => ipcRenderer.send(IPC.previewTab, id, false),
+    closeTab: (id) => ipcRenderer.send(IPC.previewTab, id, true),
+    width: (px) => ipcRenderer.send(IPC.previewWidth, px),
     reload: () => ipcRenderer.send(IPC.previewReload),
     close: () => ipcRenderer.send(IPC.previewClose),
     get: () => ipcRenderer.invoke(IPC.previewGet),
@@ -257,6 +262,7 @@ const api: WispApi = {
   },
   shell: {
     create: (folder) => ipcRenderer.invoke(IPC.shellCreate, folder),
+    paste: (text, folder) => ipcRenderer.invoke(IPC.shellPaste, text, folder),
     close: (id) => ipcRenderer.send(IPC.shellClose, id),
     attach: (id) => ipcRenderer.invoke(IPC.shellAttach, id),
     input: (id, data) => ipcRenderer.send(IPC.shellInput, id, data),

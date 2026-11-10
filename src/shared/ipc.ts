@@ -202,6 +202,14 @@ export const IPC = {
   previewExternal: 'preview:external',
   /** chat → main: onde o navegador fica na página (ViewBounds), ou null (escondido). */
   previewBounds: 'preview:bounds',
+  /** chat → main (invoke): apontar um elemento da página (Fase 60). Devolve boolean. */
+  previewPick: 'preview:pick',
+  /** chat → main (invoke): os erros novos do console vão para a caixa (Fase 62). Devolve boolean. */
+  previewErrors: 'preview:errors',
+  /** chat → main: passar para uma aba do navegador, ou fechá-la (Fase 59). Args: (id, fechar). */
+  previewTab: 'preview:tab',
+  /** chat → main: a largura da página (Fase 61). Arg: px ou null. */
+  previewWidth: 'preview:width',
   /** chat → main (invoke): a bancada (WorkbenchState). */
   workbenchGet: 'workbench:get',
   /** chat → main: abrir, fechar, trocar de aba ou a largura da bancada. Arg: WorkbenchChange. */
@@ -213,6 +221,8 @@ export const IPC = {
   /** chat → main: fechar um terminal da bancada. Arg: id. */
   shellClose: 'shell:close',
   /** O terminal da bancada, como o tui:* do modo terminal. Args: (id, ...). */
+  /** chat → main (invoke): cola um texto num terminal seu, sem enviar. Args: (texto, pasta). Devolve o motivo, se não deu. */
+  shellPaste: 'shell:paste',
   shellAttach: 'shell:attach',
   shellInput: 'shell:input',
   shellResize: 'shell:resize',
@@ -816,8 +826,17 @@ export interface WispApi {
   }
   /** A pré-visualização (Fase 47): HTML, PDF, imagens e o localhost numa janela; Markdown no painel. */
   preview: {
-    open(target: string, folder: string | null): Promise<PreviewResult>
+    /** `fresh`: numa aba nova do navegador da bancada (Fase 59). */
+    open(target: string, folder: string | null, fresh?: boolean): Promise<PreviewResult>
     capture(): Promise<boolean>
+    /** Liga a mira: o elemento clicado vai para a conversa (Fase 60). false: desistiu. */
+    pick(): Promise<boolean>
+    /** Manda os erros novos do console para a caixa da conversa (Fase 62). */
+    sendErrors(): Promise<boolean>
+    selectTab(id: number): void
+    closeTab(id: number): void
+    /** A largura da página: px, ou null para o lugar todo (Fase 61). */
+    width(px: number | null): void
     reload(): void
     close(): void
     get(): Promise<PreviewState>
@@ -838,6 +857,8 @@ export interface WispApi {
   /** Os terminais da bancada: o seu shell, na pasta da conversa. */
   shell: {
     create(folder: string | null): Promise<string | { error: string }>
+    /** Cola um comando num terminal seu da bancada, sem enviar (Fase 63). Devolve o motivo, se não deu. */
+    paste(text: string, folder: string | null): Promise<string | null>
     close(id: string): void
     attach(id: string): Promise<string>
     input(id: string, data: string): void

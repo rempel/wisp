@@ -39,8 +39,12 @@ const notify = (): void => listeners.forEach((listener) => listener())
 export const markdownOpen = (): boolean => markdown !== null
 
 /** Abre a pré-visualização; devolve o motivo, se não deu. */
-export async function openPreview(target: string, folder: string | null): Promise<string | null> {
-  const result = await window.wisp.preview.open(target, folder)
+export async function openPreview(
+  target: string,
+  folder: string | null,
+  fresh = false
+): Promise<string | null> {
+  const result = await window.wisp.preview.open(target, folder, fresh)
   if (!result.ok) return result.message ?? t('Não deu para abrir a pré-visualização.')
   if (result.kind === 'markdown' && result.path) {
     markdown = result.path
