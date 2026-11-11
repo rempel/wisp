@@ -42,10 +42,15 @@ check(
   'A1 o botão dos subagentes está nas configurações',
   await click('.settings button', 'Ver e editar os subagentes')
 )
-const empty = await waitFor(
-  () => ev(`document.querySelector('.agents-view')?.innerText ?? null`),
-  5000
-)
+// A lista chega um instante depois da tela: espera o texto de "nenhum ainda", e não só a tela.
+const empty =
+  (await waitFor(
+    () =>
+      ev(`document.querySelector('.agents-view')?.innerText ?? null`).then((text) =>
+        /Nenhum subagente ainda/.test(text ?? '') ? text : null
+      ),
+    5000
+  )) ?? (await ev(`document.querySelector('.agents-view')?.innerText ?? null`))
 check('A2 a tela abre, sem subagentes ainda', /Nenhum subagente ainda/.test(empty ?? ''), empty)
 
 console.log('== Criar')
