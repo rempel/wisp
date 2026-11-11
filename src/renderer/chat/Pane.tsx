@@ -98,6 +98,8 @@ export interface PaneProps {
   bus: PaneBus
   /** Modo demonstração: o painel vazio sugere o que pedir. */
   demo: boolean
+  /** O outro provedor é um servidor local de modelos (Fase 66). */
+  local?: boolean
   /** O próximo compromisso da agenda, para o painel vazio (null: nenhum). */
   agenda: AgendaItem | null
   /**
@@ -134,6 +136,7 @@ export function Pane({
   voice,
   bus,
   demo,
+  local,
   agenda,
   onSent,
   onBroadcast
@@ -375,6 +378,15 @@ export function Pane({
     if (preview && !attachments.pending.length) {
       void openPreview(preview[1]?.trim() ?? '', state.folder).then((problem) => {
         if (problem) points.say(problem)
+      })
+      setDraft('')
+      return true
+    }
+    // Revisar um PR (Fase 78): /pr com o número ou o endereço.
+    const pr = /^\/pr(?:\s+([\s\S]*))?$/.exec(text)
+    if (pr && !attachments.pending.length) {
+      void window.wisp.tabs.reviewPr(conversation, pr[1]?.trim() ?? '').then((result) => {
+        if (!result.ok && result.message) points.say(result.message)
       })
       setDraft('')
       return true
@@ -813,6 +825,7 @@ export function Pane({
             )}
             <ProviderPill
               provider={state.provider}
+              local={local}
               onPick={(provider) => window.wisp.chat.setProvider(conversation, provider)}
             />
             {state.model &&

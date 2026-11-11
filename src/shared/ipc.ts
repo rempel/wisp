@@ -5,7 +5,7 @@ import type { AvatarName } from './avatars'
 import type { MascotAct, MascotPreview } from './emotions'
 import type { DropZone } from './layout'
 import type { SavedPrompt } from './prompts'
-import type { ViewBounds, WorkbenchChange, WorkbenchState } from './ipc-workbench'
+import type { LaunchConfig, ViewBounds, WorkbenchChange, WorkbenchState } from './ipc-workbench'
 import type {
   ChatEvent,
   ClipboardOffer,
@@ -24,6 +24,7 @@ import type {
   PermissionDecision,
   PermissionMode,
   Provider,
+  ReviewFile,
   ReviewUndoResult,
   RewindPreview,
   RewindResult,
@@ -32,6 +33,8 @@ import type {
   PreviewState,
   UsageReport,
   AgentInfo,
+  MemoryFile,
+  MemoryId,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -202,6 +205,14 @@ export const IPC = {
   previewExternal: 'preview:external',
   /** chat → main: onde o navegador fica na página (ViewBounds), ou null (escondido). */
   previewBounds: 'preview:bounds',
+  /** chat → main (invoke): apontar um elemento da página (Fase 60). Devolve boolean. */
+  previewPick: 'preview:pick',
+  /** chat → main (invoke): os erros novos do console vão para a caixa (Fase 62). Devolve boolean. */
+  previewErrors: 'preview:errors',
+  /** chat → main: passar para uma aba do navegador, ou fechá-la (Fase 59). Args: (id, fechar). */
+  previewTab: 'preview:tab',
+  /** chat → main: a largura da página (Fase 61). Arg: px ou null. */
+  previewWidth: 'preview:width',
   /** chat → main (invoke): a bancada (WorkbenchState). */
   workbenchGet: 'workbench:get',
   /** chat → main: abrir, fechar, trocar de aba ou a largura da bancada. Arg: WorkbenchChange. */
@@ -213,6 +224,12 @@ export const IPC = {
   /** chat → main: fechar um terminal da bancada. Arg: id. */
   shellClose: 'shell:close',
   /** O terminal da bancada, como o tui:* do modo terminal. Args: (id, ...). */
+  /** chat → main (invoke): os servidores da pasta (Fase 75). Arg: pasta. Devolve LaunchConfig[]. */
+  launchList: 'launch:list',
+  /** chat → main (invoke): roda um deles num terminal novo. Args: (pasta, comando). Devolve o motivo, se não deu. */
+  launchRun: 'launch:run',
+  /** chat → main (invoke): cola um texto num terminal seu, sem enviar. Args: (texto, pasta). Devolve o motivo, se não deu. */
+  shellPaste: 'shell:paste',
   shellAttach: 'shell:attach',
   shellInput: 'shell:input',
   shellResize: 'shell:resize',
@@ -237,6 +254,10 @@ export const IPC = {
   boardAction: 'board:action',
   /** main → chat: os cartões mudaram. Arg: BoardCard[]. */
   boardChanged: 'board:changed',
+  /** chat → main (invoke): a memória (Fase 65). list(pasta) → MemoryFile[]; preview e save como os dos subagentes. */
+  memoryList: 'memory:list',
+  memoryPreview: 'memory:preview',
+  memorySave: 'memory:save',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -356,6 +377,8 @@ export const IPC = {
    * da lista, ou null para escolher a pasta. Devolve FolderResult.
    */
   tabsOpenFolder: 'tabs:open-folder',
+  /** chat → main (invoke): revisar um PR numa cópia do projeto (Fase 78). Args: (conversa, número ou endereço). Devolve FolderResult. */
+  tabsReviewPr: 'tabs:review-pr',
   /** chat → main (invoke): a cópia (worktree) de uma conversa (Fase 43). Devolve WorktreeStatus ou null. */
   worktreeStatus: 'worktree:status',
   /** chat → main (invoke): junta a cópia da conversa na pasta original. Devolve WorktreeResult. */
@@ -395,6 +418,10 @@ export const IPC = {
    * turno, [{ path, hash }]). Devolve ReviewUndoResult.
    */
   chatReviewUndo: 'chat:review-undo',
+  /** chat → main (invoke): o que a conversa mudou nos arquivos, do começo até agora (Fase 74). */
+  chatChanges: 'chat:changes',
+  /** chat → main (invoke): desfaz arquivos da aba Mudanças. Args: (conversa, [{ path, hash }]). */
+  chatChangesUndo: 'chat:changes-undo',
   /** área → main (invoke): o print que a camada mostra. Devolve AreaImage ou null. */
   areaImage: 'area:image',
   /** área → main: o retângulo escolhido (AreaRect, em pixels da imagem), ou null para desistir. */
@@ -648,6 +675,13 @@ export interface WispApi {
       turn: number,
       files: { path: string; hash: string }[]
     ): Promise<ReviewUndoResult>
+    /** O que a conversa mudou nos arquivos, de antes da primeira edição até agora (Fase 74). */
+    changes(conversation: string): Promise<{ files: ReviewFile[]; partial: boolean }>
+    /** Desfaz arquivos da aba Mudanças (só os que estão como a lista mostrou). */
+    undoChanges(
+      conversation: string,
+      files: { path: string; hash: string }[]
+    ): Promise<ReviewUndoResult>
     /** O que há de novo na área de transferência (null: nada a oferecer). */
     onClipboard(listener: (offer: ClipboardOffer | null) => void): () => void
     /** Usa o que foi copiado: o texto para a caixa ou um anexo. */
@@ -691,6 +725,8 @@ export interface WispApi {
     /** Uma conversa numa pasta (um projeto da lista, ou null para escolher), numa aba nova. */
     /** Com `worktree` (Fase 43), a conversa trabalha numa cópia do Git do projeto. */
     openFolder(path: string | null, worktree?: boolean): Promise<FolderResult>
+    /** Abre a revisão de um PR (o número ou o endereço) numa cópia do projeto da conversa (Fase 78). */
+    reviewPr(conversation: string, reference: string): Promise<FolderResult>
     worktreeStatus(conversation: string): Promise<WorktreeStatus | null>
     worktreeJoin(conversation: string): Promise<WorktreeResult>
     worktreeDiscard(conversation: string): Promise<WorktreeResult>
@@ -803,6 +839,21 @@ export interface WispApi {
     onChanged(listener: (cards: BoardCard[]) => void): () => void
   }
   /** Os subagentes do Claude Code (Fase 50). */
+  /** A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê. */
+  memory: {
+    list(folder: string | null): Promise<MemoryFile[]>
+    preview(
+      id: MemoryId,
+      folder: string | null,
+      text: string
+    ): Promise<AgentPreview | { error: string }>
+    save(
+      id: MemoryId,
+      folder: string | null,
+      text: string,
+      fingerprint: string
+    ): Promise<AgentResult>
+  }
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>
@@ -816,8 +867,17 @@ export interface WispApi {
   }
   /** A pré-visualização (Fase 47): HTML, PDF, imagens e o localhost numa janela; Markdown no painel. */
   preview: {
-    open(target: string, folder: string | null): Promise<PreviewResult>
+    /** `fresh`: numa aba nova do navegador da bancada (Fase 59). */
+    open(target: string, folder: string | null, fresh?: boolean): Promise<PreviewResult>
     capture(): Promise<boolean>
+    /** Liga a mira: o elemento clicado vai para a conversa (Fase 60). false: desistiu. */
+    pick(): Promise<boolean>
+    /** Manda os erros novos do console para a caixa da conversa (Fase 62). */
+    sendErrors(): Promise<boolean>
+    selectTab(id: number): void
+    closeTab(id: number): void
+    /** A largura da página: px, ou null para o lugar todo (Fase 61). */
+    width(px: number | null): void
     reload(): void
     close(): void
     get(): Promise<PreviewState>
@@ -838,6 +898,15 @@ export interface WispApi {
   /** Os terminais da bancada: o seu shell, na pasta da conversa. */
   shell: {
     create(folder: string | null): Promise<string | { error: string }>
+    /** Os servidores da pasta da conversa (Fase 75). */
+    launches(folder: string | null): Promise<LaunchConfig[]>
+    /**
+     * Roda um servidor da pasta num terminal novo; com a porta conhecida, a página abre quando
+     * ela responde. `command` é o que você confirmou: só roda se ainda for o da pasta.
+     */
+    launch(folder: string, command: string): Promise<string | null>
+    /** Cola um comando num terminal seu da bancada, sem enviar (Fase 63). Devolve o motivo, se não deu. */
+    paste(text: string, folder: string | null): Promise<string | null>
     close(id: string): void
     attach(id: string): Promise<string>
     input(id: string, data: string): void

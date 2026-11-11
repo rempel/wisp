@@ -179,6 +179,8 @@
 .workbench-served {
   flex: none;
   display: flex;
+  align-items: center;
+  gap: 8px;
   padding: 4px 8px;
   border-bottom: 1px solid var(--line);
 }
@@ -272,4 +274,326 @@
   .workbench-bar .icon-button.loading svg {
     animation: none;
   }
+}
+
+/* As abas do navegador (Fase 59) e os erros do console (Fase 62). */
+.workbench-page-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--danger-solid);
+  vertical-align: 1px;
+}
+
+.workbench-errors .workbench-chip {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+}
+
+.workbench-served small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* A página estreitada (Fase 61) fica no meio; em volta, o fundo do painel. */
+.workbench-page {
+  background: var(--raised);
+}
+
+/* A memória à vista (Fase 65): um cartão por arquivo. */
+.memory-file {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  background: var(--surface);
+}
+
+.memory-file header {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.memory-file header > div {
+  flex: 1;
+  min-width: 0;
+}
+
+.memory-file header small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memory-file header code {
+  display: block;
+  overflow: hidden;
+  margin-top: 2px;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-text {
+  max-height: 260px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+
+.memory-file textarea {
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+
+.memory-file .agent-form {
+  padding: 0;
+  background: transparent;
+}
+
+/* A aba Mudanças (Fase 74): um arquivo por linha, com o diff ao abrir. */
+.workbench-changes-total {
+  flex: 1;
+  min-width: 0;
+  padding-left: 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.workbench-change-list {
+  flex: 1;
+  margin: 0;
+  padding: 6px 8px;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.workbench-change {
+  margin-bottom: 4px;
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  font-size: 12.5px;
+}
+
+.workbench-change-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px 4px 2px;
+}
+
+.workbench-change-name {
+  flex: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
+  min-width: 0;
+  padding: 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.workbench-change-name small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workbench-change-status {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.workbench-change.status-created .workbench-change-status {
+  color: var(--ok);
+}
+
+.workbench-change.status-deleted .workbench-change-status {
+  color: var(--danger-text);
+}
+
+.workbench-change .link:disabled {
+  cursor: default;
+  opacity: 0.45;
+}
+
+/* O Rodar da bancada (Fase 75): os servidores da pasta, e a confirmação do comando. */
+.workbench-launch {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 8px;
+}
+
+.workbench-launch-ask {
+  min-width: 0;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workbench-launch-ask code {
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.workbench-empty .workbench-launch {
+  justify-content: center;
+  padding: 6px 0 0;
+}
+
+/* A aba Plano (Fase 76): os passos, com o andamento, e o plano. */
+.workbench-plan-scroll {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 14px;
+  overflow-y: auto;
+}
+
+.workbench-plan-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.workbench-plan-head span {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.workbench-plan-head .plan-waiting {
+  color: var(--warning-text);
+}
+
+.workbench-plan-head .plan-accepted {
+  color: var(--ok);
+}
+
+.workbench-plan-bar {
+  overflow: hidden;
+  height: 4px;
+  margin-bottom: 8px;
+  border-radius: 999px;
+  background: var(--raised);
+}
+
+.workbench-plan-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: var(--accent);
+  transition: width 0.3s;
+}
+
+.workbench-plan-steps {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.workbench-plan-steps li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: var(--r-sm);
+}
+
+.workbench-plan-mark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  box-sizing: border-box;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border: 1.5px solid var(--muted);
+  border-radius: 50%;
+}
+
+.workbench-plan-mark svg {
+  width: 10px;
+  height: 10px;
+}
+
+.workbench-plan-steps .step-completed {
+  color: var(--muted);
+}
+
+.workbench-plan-steps .step-completed .workbench-plan-mark {
+  border-color: var(--ok);
+  background: var(--ok);
+  color: var(--bg);
+}
+
+.workbench-plan-steps .step-in_progress {
+  background: var(--accent-soft);
+}
+
+.workbench-plan-steps .step-in_progress .workbench-plan-mark {
+  border-color: var(--accent);
+}
+
+.workbench-plan-text {
+  font-size: 13px;
+}
+
+/* Com quatro abas, os nomes cedem lugar aos ícones numa bancada estreita. */
+.workbench-head .view-toggle {
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+/* Os projetos nas configurações (Fase 77). */
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.project-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.project-row input,
+.project-row select,
+.project-add {
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.project-row input {
+  flex: 1;
 }

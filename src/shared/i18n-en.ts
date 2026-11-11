@@ -2756,5 +2756,155 @@ export const EN: Record<string, string> = {
   'localhost:5173, um site ou um arquivo': 'localhost:5173, a website or a file',
   'Endereço ou arquivo': 'Address or file',
   'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.':
-    "Open the project's server (localhost), a file (HTML, PDF or image) or a website. Claude also opens pages here when you ask."
+    "Open the project's server (localhost), a file (HTML, PDF or image) or a website. Claude also opens pages here when you ask.",
+  'Na página {url}, este elemento (o recorte está em anexo):':
+    'On the page {url}, this element (the crop is attached):',
+  'Estilos:': 'Styles:',
+  'O navegador da bancada tem no máximo {max} abas.':
+    'The workbench browser holds at most {max} tabs.',
+  'A página {url} mostrou estes erros no console:':
+    'The page {url} showed these errors in the console:',
+  'Cola o comando no seu terminal da bancada, sem enviar: o Enter é seu':
+    'Pastes the command into your workbench terminal without sending it: Enter is yours',
+  'Rodar no terminal': 'Run in terminal',
+  Páginas: 'Pages',
+  'Fechar esta página': 'Close this page',
+  'Fechar a página {title}': 'Close the page {title}',
+  'Página nova: escreva o endereço e Enter': 'New page: type the address and press Enter',
+  'Página nova': 'New page',
+  'O endereço da página nova': "The new page's address",
+  'Apontar um elemento: clique nele na página e ele vai para a conversa, com o recorte (Esc desiste)':
+    'Pick an element: click it on the page and it goes to the conversation, with a crop (Esc cancels)',
+  'Apontar um elemento da página': 'Pick an element on the page',
+  'A página está com {width} px de largura; clique para a próxima':
+    'The page is {width} px wide; click for the next size',
+  'Largura da página: ver como num celular ou num tablet':
+    'Page width: see it as on a phone or a tablet',
+  'Largura da página': 'Page width',
+  'Clique num elemento da página (Esc desiste).': 'Click an element on the page (Esc cancels).',
+  'Os erros vão para a caixa da conversa em foco, para você completar e mandar':
+    "The errors go to the focused conversation's box, for you to complete and send",
+  '1 erro no console: mandar ao Claude': '1 console error: send to Claude',
+  '{count} erros no console: mandar ao Claude': '{count} console errors: send to Claude',
+  'Um endereço http ou https, como http://localhost:11434.':
+    'An http or https address, such as http://localhost:11434.',
+  'Perguntar ao Wisp': 'Ask Wisp',
+  'O texto é grande demais para a memória.': 'The text is too large for memory.',
+  'Este arquivo é grande demais para editar pelo painel.':
+    'This file is too large to edit from the panel.',
+  'Criado. O Claude Code o lê nas conversas novas (Ctrl+K).':
+    'Created. Claude Code reads it in new conversations (Ctrl+K).',
+  Memória: 'Memory',
+  'o que o Claude lê antes de cada conversa': 'what Claude reads before every conversation',
+  Sua: 'Yours',
+  'vale em todas as conversas, em qualquer pasta': 'applies to every conversation, in any folder',
+  'Do Wisp': "Wisp's",
+  'a persona do Wisp, nas conversas sem pasta': "Wisp's persona, in conversations without a folder",
+  'Do projeto': "The project's",
+  'o CLAUDE.md da pasta da conversa, para quem trabalha nela':
+    "the CLAUDE.md in the conversation's folder, for everyone who works in it",
+  'Do projeto (.claude)': "The project's (.claude)",
+  'o mesmo, guardado na pasta .claude': 'the same, kept in the .claude folder',
+  'Só sua, neste projeto': 'Yours only, in this project',
+  'o CLAUDE.local.md, que não vai para o Git': 'CLAUDE.local.md, which does not go into Git',
+  'O que o Claude lê antes de cada conversa. Escreva aqui o que ele deve sempre saber: como você gosta das respostas, as regras do projeto, os comandos de teste. Vale nas conversas novas (Ctrl+K).':
+    "What Claude reads before every conversation. Write here what it should always know: how you like answers, the project's rules, the test commands. It applies to new conversations (Ctrl+K).",
+  'A conversa em foco não está numa pasta: a memória de um projeto aparece quando estiver.':
+    "The focused conversation is not in a folder: a project's memory shows up when it is.",
+  'O texto da memória: {name}': 'The memory text: {name}',
+  'Ainda não existe.': 'It does not exist yet.',
+  Local: 'Local',
+  'o seu servidor de modelos (Ollama, LM Studio)': 'your model server (Ollama, LM Studio)',
+  '"Perguntar ao Wisp" no gerenciador de arquivos': '"Ask Wisp" in the file manager',
+  'Põe a opção no clique direito dos arquivos (no Nautilus, em Scripts; no Dolphin e no Explorer do Windows, no menu). O arquivo vai como anexo para a conversa em foco. Desligar tira o que o Wisp pôs.':
+    'Adds the option to the right-click menu of files (in Nautilus, under Scripts; in Dolphin and Windows Explorer, in the menu). The file is attached to the focused conversation. Turning it off removes what Wisp added.',
+  'O comando wisp no PATH': 'The wisp command on PATH',
+  'Põe a pasta do comando no PATH do seu usuário, para usar wisp --ask "..." em qualquer terminal (vale nos terminais abertos depois).':
+    'Adds the command\'s folder to your user PATH, so wisp --ask "..." works in any terminal (it applies to terminals opened afterwards).',
+  'Servidor de modelos local': 'Local model server',
+  'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.':
+    "The address of an Ollama or LM Studio (for example http://localhost:11434). With it, the conversations' other provider becomes that server, with no key and no cost, instead of OpenRouter. Empty: OpenRouter.",
+  'CLAUDE.md instruções regras lembrar': 'CLAUDE.md instructions rules remember memory',
+  'O volume do {player} ficou em {level}%.': "{player}'s volume is now {level}%.",
+  'Perguntar ao Wisp: {question}': 'Ask Wisp: {question}',
+  'Manda a pergunta para a conversa do Wisp': 'Sends the question to the Wisp conversation',
+  'Instale a extensão do Wisp para o GNOME nas configurações (e entre de novo na sessão). ':
+    'Install the Wisp extension for GNOME in the settings (and log in again). ',
+  'O Wisp na busca do desktop': 'Wisp in the desktop search',
+  'Na busca do KDE (KRunner) ou do GNOME, "wisp" e uma pergunta oferecem Perguntar ao Wisp. Só o que começa com "wisp" chega a ele. No GNOME, vale nos pacotes .deb e Flatpak.':
+    'In the KDE (KRunner) or GNOME search, "wisp" and a question offer Ask Wisp. Only what starts with "wisp" reaches it. On GNOME, it works with the .deb and Flatpak packages.',
+  'Extensão do Wisp para o GNOME': 'Wisp extension for GNOME',
+  'No GNOME com Wayland, o sistema não deixa o Wisp ver as janelas dos outros programas. A extensão devolve isso: listar as janelas e trazer uma para a frente. Depois de ligar, saia da sessão e entre de novo. Qualquer programa da sua sessão passa a poder ler a lista de janelas por ela.':
+    "On GNOME with Wayland, the system does not let Wisp see other programs' windows. The extension gives that back: listing windows and bringing one to the front. After turning it on, log out and back in. Any program in your session becomes able to read the window list through it.",
+  'As últimas linhas do terminal vão para a caixa da conversa em foco':
+    "The terminal's last lines go to the focused conversation's box",
+  'O terminal mostrou este erro:': 'The terminal showed this error:',
+  'Parece um erro no terminal: mandar ao Claude':
+    'Looks like an error in the terminal: send to Claude',
+  'Dispensar o aviso de erro': 'Dismiss the error notice',
+  'Espere a resposta acabar para desfazer.': 'Wait for the answer to finish before undoing.',
+  'Esse comando não é mais o da pasta: confira de novo.':
+    "That command is no longer the folder's: check again.",
+  'Rodar o projeto': 'Run the project',
+  'Rodar na pasta do projeto?': 'Run in the project folder?',
+  Rodar: 'Run',
+  '{command} (a página abre quando a porta {port} responder)':
+    '{command} (the page opens when port {port} answers)',
+  'Espere a resposta acabar para desfazer': 'Wait for the answer to finish before undoing',
+  'Cada arquivo volta a ser como era antes de a conversa mexer nele':
+    'Each file goes back to how it was before the conversation touched it',
+  'Parte das respostas é de antes de o Wisp abrir: as edições delas não aparecem aqui.':
+    'Some answers are from before Wisp opened: their edits do not show here.',
+  'Nenhuma mudança ainda': 'No changes yet',
+  'Os arquivos que o Claude editar nesta conversa aparecem aqui, com o diff e o desfazer. Os comandos do terminal não entram.':
+    'The files Claude edits in this conversation show up here, with the diff and undo. Terminal commands are not included.',
+  'Sem diff: o arquivo é binário ou grande demais.': 'No diff: the file is binary or too large.',
+  'Bancada: mudanças': 'Workbench: changes',
+  'diff arquivos editados desfazer revisar': 'diff edited files undo review changes',
+  'esperando você aceitar': 'waiting for you to accept',
+  aceito: 'accepted',
+  recusado: 'refused',
+  'Nenhum plano ainda': 'No plan yet',
+  'No modo Planejar (Shift+Tab na caixa de texto), o Claude monta um plano antes de mexer em algo. Ele aparece aqui, e a lista de passos vai sendo marcada conforme o trabalho anda.':
+    'In Plan mode (Shift+Tab in the text box), Claude drafts a plan before touching anything. It shows up here, and the list of steps gets checked off as the work moves along.',
+  Passos: 'Steps',
+  '{done} de {total}': '{done} of {total}',
+  'em andamento': 'in progress',
+  'a fazer': 'to do',
+  'Bancada: plano': 'Workbench: plan',
+  'passos tarefas planejar andamento': 'steps tasks plan progress todo',
+  'Diga o número ou o endereço do PR.': "Give the PR's number or address.",
+  'Abra antes a conversa na pasta do projeto do PR.':
+    "First open the conversation in the folder of the PR's project.",
+  'Cada projeto tem uma pasta (sem repetir), um nome, uma cor e um modo.':
+    'Each project has a folder (no repeats), a name, a colour and a mode.',
+  'Revise o PR #{number}, "{title}"{by}.': 'Review PR #{number}, "{title}"{by}.',
+  ', de {author}': ', by {author}',
+  'Esta pasta é uma cópia do repositório no commit do PR. Veja o que mudou com `git diff origin/{base}...HEAD` e leia os arquivos em volta do que precisar.':
+    "This folder is a copy of the repository at the PR's commit. See what changed with `git diff origin/{base}...HEAD` and read the surrounding files as needed.",
+  'Escreva a revisão em tópicos, do mais grave ao menos grave, com o arquivo e a linha de cada ponto. Não edite arquivos nem publique nada: no fim, pergunte se eu quero mandar a revisão pelo `gh pr review`.':
+    'Write the review as bullet points, most severe first, with the file and line for each point. Do not edit files or publish anything: at the end, ask whether I want to send the review with `gh pr review`.',
+  'o gh saiu com o código {code}': 'gh exited with code {code}',
+  'O gh não devolveu os dados desse PR.': "gh did not return that PR's data.",
+  'Uma pasta com nome, cor e o modo de costume. As abas das conversas nela ganham a cor, e uma conversa nova aberta pelo menu das pastas já começa nesse modo.':
+    'A folder with a name, a colour and its usual mode. Tabs of conversations in it take the colour, and a new conversation opened from the folders menu starts in that mode.',
+  'Nome do projeto {folder}': 'Name of the project {folder}',
+  Cor: 'Colour',
+  'Modo de permissão': 'Permission mode',
+  'O das configurações': 'The one from settings',
+  'Tirar o projeto {name}': 'Remove the project {name}',
+  'Fazer de uma pasta um projeto': 'Make a folder a project',
+  'Fazer de uma pasta um projeto…': 'Make a folder a project…',
+  'Nenhuma pasta de projeto encontrada: confira as Pastas de projetos, acima.':
+    'No project folder found: check Project folders, above.',
+  Ciano: 'Cyan',
+  Verde: 'Green',
+  Âmbar: 'Amber',
+  Vermelho: 'Red',
+  Violeta: 'Violet',
+  Rosa: 'Pink',
+  Projetos: 'Projects',
+  'Projeto: {name}': 'Project: {name}',
+  'Revisar um PR numa cópia do projeto (o número ou o endereço)':
+    'Review a PR in a copy of the project (its number or address)'
 }

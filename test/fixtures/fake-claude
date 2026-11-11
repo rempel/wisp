@@ -3,7 +3,7 @@
 // verdade (claude -p --input-format stream-json --output-format stream-json).
 // Cenários pela mensagem: [edit] uma edição com o diff, [lento] resposta devagar (dá para
 // parar), [limite] limite do plano, [rede] erro de conexão, [queda] o processo cai no meio,
-// [modelo] responde o modelo, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
+// [modelo] responde o modelo, [bloco] responde com um bloco de shell, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
 // [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
@@ -683,6 +683,8 @@ async function runTurn(text) {
     answer = `Lembro de: ${[...memory.map((t) => t.user), text].join(' | ')}`
   }
   if (text.includes('[modo]')) answer = `Modo: ${mode}`
+  // [bloco]: uma resposta com um bloco de shell (o Rodar no terminal, Fase 63).
+  if (text.includes('[bloco]')) answer = 'Instale assim:\n\n```bash\n$ echo rodou-$((20+3))\n```\n'
   await stream(answer, delay)
   if (current.aborted) {
     out({

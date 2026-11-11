@@ -1,5 +1,6 @@
 import { activateXWindow, listXWindows, XClient } from './ewmh'
 import type { XWindow } from './ewmh'
+import { shellActivate, shellWindows } from './gnome-shell'
 import { isKde, kwinActivate, kwinWindows } from './kwin'
 import { IS_WINDOWS } from './platform'
 import { activateWindowsWindow, windowsWindows } from './windows-win'
@@ -11,7 +12,7 @@ import { t } from '../shared/i18n'
 
 /** Uma janela de app. */
 export interface WindowInfo {
-  /** "kwin:{uuid}", "x11:<número>" ou "win:<número>" (o HWND). */
+  /** "kwin:{uuid}", "x11:<número>", "gnome:<número>" ou "win:<número>" (o HWND). */
   id: string
   app: string
   title: string
@@ -31,7 +32,10 @@ const fold = (text: string): string =>
 function unsupported(env: NodeJS.ProcessEnv): string {
   if (env.XDG_SESSION_TYPE === 'wayland') {
     return (env.XDG_CURRENT_DESKTOP ?? '').toUpperCase().includes('GNOME')
-      ? t('No GNOME com Wayland, o sistema não deixa um app ver nem trazer para a frente as ') +
+      ? t(
+          'Instale a extensão do Wisp para o GNOME nas configurações (e entre de novo na sessão). '
+        ) +
+          t('No GNOME com Wayland, o sistema não deixa um app ver nem trazer para a frente as ') +
           t('janelas dos outros.')
       : t('Nesta área de trabalho com Wayland, o Wisp não consegue ver as janelas dos outros ') +
           t('apps (funciona no KDE e no X11).')
@@ -68,6 +72,11 @@ export async function listWindows(
     const found = await kwinWindows(process.pid)
     if (found) return found.map((window) => ({ ...window, id: `kwin:${window.id}` }))
   }
+  // No GNOME com Wayland, pela extensão do Wisp, se você a instalou (Fase 70).
+  if (env.XDG_SESSION_TYPE === 'wayland' && !isKde(env)) {
+    const found = await shellWindows(process.pid, env)
+    if (found) return found.map((window) => ({ ...window, id: `gnome:${window.id}` }))
+  }
   // No Wayland, o X11 do XWayland só mostraria parte das janelas.
   if (env.XDG_SESSION_TYPE !== 'wayland') {
     const client = await XClient.open(env)
@@ -90,6 +99,7 @@ export async function activateWindow(
 ): Promise<boolean> {
   if (window.id.startsWith('kwin:')) return kwinActivate(window.id.slice(5))
   if (window.id.startsWith('win:')) return activateWindowsWindow(Number(window.id.slice(4)))
+  if (window.id.startsWith('gnome:')) return shellActivate(Number(window.id.slice(6)), env)
   const id = Number(window.id.slice(4))
   if (!window.id.startsWith('x11:') || !Number.isInteger(id)) return false
   const client = await XClient.open(env)

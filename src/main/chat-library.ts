@@ -30,6 +30,9 @@ import type {
   PermissionMode,
   Provider
 } from '../shared/ipc'
+import { prReference, preparePrReview } from './pr-review'
+import { findProgram } from './programs'
+import { projectOf } from '../shared/projects'
 import { dateLocale, t } from '../shared/i18n'
 import { expandPrompt, MAX_CLIPBOARD, usesClipboard } from '../shared/prompts'
 import type { PromptValues } from '../shared/prompts'
@@ -48,6 +51,9 @@ export interface LibraryContext {
   /** Mostra o painel. */
   show(): void
 }
+
+/** Onde o gh costuma morar, além do PATH. */
+const GH_DIRS = ['/usr/local/bin', '/snap/bin', '/home/linuxbrew/.linuxbrew/bin']
 
 /** O que preenche as variáveis de um prompt salvo (Fase 26). */
 export function promptValues(folder: string | null, copied = '', event = ''): PromptValues {
@@ -223,11 +229,47 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
           return { ok: false, message: (err as Error).message }
         }
       }
-      const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
+      // Num projeto (Fase 77), a conversa começa no modo de costume dele.
+      const mode = projectOf(folder, getConfig().projects)?.mode ?? undefined
+      const conversation = tabs.addChat(ctx.makeConversation(mode, undefined, folder))
       ctx.show()
       // Se a pasta tiver hooks ou ferramentas liberadas, o card de confiança já aparece.
       void conversation.checkFolder()
       return { ok: true }
+    }
+  )
+  // Revisar um PR (Fase 78): uma conversa numa cópia do projeto, no commit do PR, com o pedido
+  // de revisão pronto na caixa.
+  ipcMain.handle(
+    IPC.tabsReviewPr,
+    async (event, id: unknown, reference: unknown): Promise<FolderResult> => {
+      if (!fromChat(event) || typeof id !== 'string' || typeof reference !== 'string') {
+        return { ok: false, message: t('pedido inválido') }
+      }
+      const wanted = prReference(reference)
+      if (!wanted) return { ok: false, message: t('Diga o número ou o endereço do PR.') }
+      const folder = tabs.conversationById(id)?.folder
+      if (!folder || !copies.worktrees) {
+        return { ok: false, message: t('Abra antes a conversa na pasta do projeto do PR.') }
+      }
+      const gh = findProgram('gh', ['gh'], GH_DIRS)
+      if (!gh) return { ok: false, message: t('O gh (GitHub CLI) não está instalado.') }
+      try {
+        const review = await preparePrReview({
+          gh,
+          folder,
+          worktrees: copies.worktrees,
+          reference: wanted
+        })
+        const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, review.dir))
+        conversation.setDraft(review.prompt)
+        toPage(conversation.id, { type: 'draft', text: conversation.draft })
+        ctx.show()
+        void conversation.checkFolder()
+        return { ok: true }
+      } catch (err) {
+        return { ok: false, message: (err as Error).message }
+      }
     }
   )
   ipcMain.handle(IPC.promptsList, (event) => (fromChat(event) ? getConfig().prompts : []))

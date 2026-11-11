@@ -18,11 +18,20 @@ const LABELS: Record<Provider, { title: string; hint: string }> = {
  */
 export function ProviderPill({
   provider,
+  local,
   onPick
 }: {
   provider: Provider
+  /** O outro provedor é um servidor local (Fase 66), e não a OpenRouter. */
+  local?: boolean
   onPick: (provider: Provider) => void
 }): JSX.Element {
+  const labels: typeof LABELS = local
+    ? {
+        ...LABELS,
+        openrouter: { title: t('Local'), hint: t('o seu servidor de modelos (Ollama, LM Studio)') }
+      }
+    : LABELS
   const [open, setOpen] = useState(false)
   const root = useRef<HTMLDivElement>(null)
 
@@ -55,7 +64,7 @@ export function ProviderPill({
         title={t('Por onde a conversa vai (trocar começa uma conversa nova)')}
       >
         <RouteIcon />
-        <span>{LABELS[provider].title}</span>
+        <span>{labels[provider].title}</span>
         {provider === 'openrouter' && <em className="experimental">exp.</em>}
         <ChevronDownIcon />
       </button>
@@ -76,10 +85,10 @@ export function ProviderPill({
               <span className="model-check">{value === provider && <CheckIcon />}</span>
               <span className="model-text">
                 <strong>
-                  {LABELS[value].title}
+                  {labels[value].title}
                   {value === 'openrouter' && <em className="experimental">experimental</em>}
                 </strong>
-                <small>{LABELS[value].hint}</small>
+                <small>{labels[value].hint}</small>
               </span>
             </button>
           ))}

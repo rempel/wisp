@@ -10,7 +10,13 @@ import { applyRewinds, forkPoint, pointBefore, turnStarts } from './history'
 import { setupTurnReviews } from './turn-review'
 import type { TurnReviews } from './turn-review'
 import { IPC } from '../shared/ipc'
-import type { AsideResult, ChatEvent, RewindPreview, RewindResult } from '../shared/ipc'
+import type {
+  AsideResult,
+  ChatEvent,
+  ReviewUndoResult,
+  RewindPreview,
+  RewindResult
+} from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 export interface PointsContext {
@@ -65,6 +71,22 @@ export function registerPoints(ctx: PointsContext): TurnReviews {
     if (turn >= turns) return t('Essa mensagem não está no histórico da conversa.')
     return { conversation, turns }
   }
+
+  // A aba Mudanças da bancada (Fase 74): tudo o que a conversa mexeu, do primeiro turno até agora.
+  const conversationOf = (event: IpcMainInvokeEvent, id: unknown): string | null =>
+    fromChat(event) && typeof id === 'string' && tabs.conversationById(id) ? id : null
+  ipcMain.handle(IPC.chatChanges, (event, id: unknown) => {
+    const conversation = conversationOf(event, id)
+    return conversation ? reviews.preview(conversation, 0) : { files: [], partial: false }
+  })
+  ipcMain.handle(IPC.chatChangesUndo, (event, id: unknown, files: unknown): ReviewUndoResult => {
+    const conversation = conversationOf(event, id)
+    if (!conversation || !validFiles(files)) return { undone: [], problems: [t('pedido inválido')] }
+    if (tabs.conversationById(conversation)?.busy) {
+      return { undone: [], problems: [t('Espere a resposta acabar para desfazer.')] }
+    }
+    return reviews.restore(conversation, 0, files)
+  })
 
   ipcMain.handle(IPC.chatRewindPreview, (event, id: unknown, turn: unknown): RewindPreview => {
     const found = stopped(event, id, turn)

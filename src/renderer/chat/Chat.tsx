@@ -22,6 +22,7 @@ import { AvatarContext } from './avatar-context'
 import { CommandPalette } from './CommandPalette'
 import { UsageView } from './UsageView'
 import { AgentsView } from './AgentsView'
+import { MemoryView } from './MemoryView'
 import { BoardView } from './BoardView'
 import { FileViewer } from './FileViewer'
 import { fileViewOpen } from './fileView'
@@ -54,7 +55,7 @@ import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
 import { SettingsView } from './SettingsView'
 import { awaitingPermission, initialState, reducer, statusText } from './state'
-import type { Action, ChatState } from './state'
+import type { Action, ChatState, Item } from './state'
 import { TabBar } from './TabBar'
 import type { TabStatus } from './TabBar'
 import { CostPill } from './CostPill'
@@ -72,6 +73,9 @@ const SHOW_KEYFRAMES: Keyframe[] = [
   { transform: 'translateY(10px) scale(0.97)', opacity: 0.4 },
   { transform: 'none', opacity: 1 }
 ]
+
+/** Sem conversa em foco: a bancada recebe sempre a mesma lista vazia. */
+const NO_ITEMS: Item[] = []
 
 const EMPTY_TABS: TabsState = { tabs: [], panes: [], focused: 0, layout: leaf('') }
 
@@ -111,6 +115,7 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
   usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
   agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
+  memory: [t('Memória'), t('o que o Claude lê antes de cada conversa')],
   board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
 }
 
@@ -126,6 +131,7 @@ export default function Chat(): JSX.Element {
     | 'welcome'
     | 'usage'
     | 'agents'
+    | 'memory'
     | 'board'
   >('chat')
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
@@ -665,6 +671,7 @@ export default function Chat(): JSX.Element {
         voice={focused ? voice : { state: 'idle' }}
         bus={bus}
         demo={demo}
+        local={!!settings?.values.localModelsUrl}
         agenda={agendaNext}
         onSent={onSent(id)}
         onBroadcast={broadcast}
@@ -911,6 +918,8 @@ export default function Chat(): JSX.Element {
             <UsageView />
           ) : view === 'board' ? (
             <BoardView onShow={() => setView('chat')} />
+          ) : view === 'memory' ? (
+            <MemoryView folder={focusedFolder} />
           ) : view === 'agents' ? (
             <AgentsView folder={focusedFolder} />
           ) : view === 'sessions' ? (
@@ -928,6 +937,9 @@ export default function Chat(): JSX.Element {
                   <Workbench
                     state={workbench}
                     folder={focusedFolder}
+                    conversation={focusedTab?.kind === 'chat' ? focusedTab.id : null}
+                    busy={!!focusedState?.busy}
+                    items={focusedState?.items ?? NO_ITEMS}
                     covered={palette || dragging || draggingTab !== null}
                     onCompose={(text) => {
                       const conversation = focusedConversation()

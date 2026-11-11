@@ -4,26 +4,19 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
-import { saveIncoming, savePasted } from './attachments'
+import { saveIncoming } from './attachments'
 import { captureArea } from './area-capture'
+import { registerConversationIpc } from './chat-ipc'
 import { registerPoints } from './chat-points'
 import type { TurnReviews } from './turn-review'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
-import { bytesOf, conversationFactory, modeFileOf, outgoing, previewOf } from './chat-conversation'
+import { conversationFactory, modeFileOf, previewOf } from './chat-conversation'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
-import {
-  CONFIG_PATH,
-  configProblems,
-  getConfig,
-  MODEL_NAME,
-  onConfigChange,
-  onConfigProblems,
-  updateConfig
-} from './config'
+import { CONFIG_PATH, configProblems, getConfig, onConfigChange, onConfigProblems } from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { History } from './history'
@@ -32,7 +25,7 @@ import { usableFolder } from './folders'
 import { DATA_DIR } from './paths'
 import { captureScreens, CaptureError, thumbnailOf } from './screenshot'
 import type { ScreenImage } from './screenshot'
-import { IPC, MODEL_CHOICES, PERMISSION_MODES } from '../shared/ipc'
+import { IPC, PERMISSION_MODES } from '../shared/ipc'
 import { columns } from '../shared/layout'
 import type { DropZone } from '../shared/layout'
 import type {
@@ -43,7 +36,6 @@ import type {
   DroppedFiles,
   MascotState,
   PanelView,
-  PastedImage,
   PermissionDecision,
   PermissionMode,
   Provider,
@@ -291,6 +283,7 @@ export function setupChat({
 
   // O tamanho do painel (Fase 22) mudou nas configurações, no Ctrl+mais ou no arquivo.
   onConfigChange((config) => {
+    sendTabs() // A cor e o nome dos projetos (Fase 77) acompanham.
     if (win && !win.isDestroyed() && win.webContents.getZoomFactor() !== config.panelZoom) {
       win.webContents.setZoomFactor(config.panelZoom)
     }
@@ -350,81 +343,8 @@ export function setupChat({
     clipboardCheckedAt = 0
     if (win.isFocused()) void offerClipboard()
   })
-  ipcMain.on(IPC.chatActivity, (event) => {
-    if (fromChat(event)) onActivity?.()
-  })
-  ipcMain.on(IPC.chatSend, (event, id: unknown, text: unknown, attachments: unknown) => {
-    const conversation = target(event, id)
-    if (!conversation || typeof text !== 'string') return
-    conversation.send(text, outgoing(attachments), previewOf)
-  })
-  ipcMain.on(IPC.chatStop, (event, id: unknown) => target(event, id)?.stop())
-  ipcMain.handle(
-    IPC.chatEditLast,
-    (event, id: unknown, text: unknown, attachments: unknown): boolean => {
-      const conversation = target(event, id)
-      if (!conversation || typeof text !== 'string') return false
-      return conversation.editLast(text, outgoing(attachments), previewOf)
-    }
-  )
-  ipcMain.on(IPC.chatDraft, (event, id: unknown, text: unknown) => {
-    const conversation = target(event, id)
-    if (!conversation || typeof text !== 'string' || text === conversation.draft) return
-    conversation.setDraft(text)
-    scheduleSave()
-  })
-  ipcMain.on(IPC.chatNew, (event, id: unknown) => target(event, id)?.reset())
-  ipcMain.on(IPC.chatModel, (event, id: unknown, choice: unknown) => {
-    const conversation = target(event, id)
-    if (!conversation) return
-    if (conversation.provider === 'openrouter') {
-      // Qualquer modelo da OpenRouter, desde que o nome tenha cara de nome de modelo.
-      if (typeof choice !== 'string' || !MODEL_NAME.test(choice)) return
-      updateConfig({ openrouterModel: choice })
-      conversation.setModel(choice)
-      return
-    }
-    if (choice !== null && !MODEL_CHOICES.includes(choice as (typeof MODEL_CHOICES)[number])) return
-    const model = choice as string | null
-    updateConfig({ model })
-    conversation.setModel(model)
-  })
-  ipcMain.on(IPC.chatView, (event, id: unknown, view: unknown) => {
-    if (view !== 'chat' && view !== 'terminal') return
-    void target(event, id)?.setView(view)
-  })
-  ipcMain.handle(IPC.tuiAttach, (event, id: unknown) => target(event, id)?.attachTerminal() ?? '')
-  ipcMain.on(IPC.tuiInput, (event, id: unknown, data: unknown) => {
-    if (typeof data !== 'string' || data.length > 1_000_000) return
-    target(event, id)?.terminalInput(data)
-  })
-  ipcMain.on(IPC.tuiResize, (event, id: unknown, cols: unknown, rows: unknown) => {
-    if (typeof cols !== 'number' || typeof rows !== 'number') return
-    target(event, id)?.resizeTerminal(Math.floor(cols), Math.floor(rows))
-  })
-  ipcMain.on(IPC.chatCompact, (event, id: unknown, instructions: unknown) => {
-    target(event, id)?.compact(typeof instructions === 'string' ? instructions : '')
-  })
-  ipcMain.on(IPC.chatProvider, (event, id: unknown, provider: unknown) => {
-    if (provider !== 'subscription' && provider !== 'openrouter') return
-    target(event, id)?.setProvider(provider)
-  })
-  ipcMain.on(IPC.chatMode, (event, id: unknown, mode: unknown) => {
-    if (isMode(mode)) target(event, id)?.setMode(mode)
-  })
-  ipcMain.handle(
-    IPC.chatPaste,
-    async (event, data: unknown, type: unknown): Promise<PastedImage> => {
-      const bytes = bytesOf(data)
-      if (!fromChat(event) || !bytes || typeof type !== 'string')
-        return { error: t('pedido inválido') }
-      try {
-        return await savePasted(bytes, type)
-      } catch (err) {
-        return { error: (err as Error).message }
-      }
-    }
-  )
+  // O que a página pede de uma conversa (mandar, parar, o modelo, o modo, o terminal): chat-ipc.ts.
+  registerConversationIpc({ fromChat, target, onActivity, scheduleSave })
   ipcMain.handle(IPC.chatCapture, async (event): Promise<DroppedFiles> => {
     if (!fromChat(event)) return { files: [], problems: [] }
     try {
@@ -886,7 +806,7 @@ export function setupChat({
       return win !== null && sender === win.webContents
     },
     window: () => win,
-    folderOf: (id) => conversationById(id)?.folder ?? null,
+    folderOf: (id) => (id ? conversationById(id) : focusedConversation())?.folder ?? null,
     sideWidth: (px, grow) => placement.setSide(win, tabs.layout, px, grow),
     notifySessions() {
       if (win && pageReady) win.webContents.send(IPC.sessionsChanged)

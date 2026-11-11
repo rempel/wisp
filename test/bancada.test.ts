@@ -7,16 +7,23 @@ import assert from 'node:assert/strict'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { test } from 'node:test'
-import { saneBounds, viewRect } from '../src/main/preview'
-import { shellEnv, shellLaunch, shellProgram, Shells } from '../src/main/shells'
+import { narrowed, saneBounds, viewRect } from '../src/main/preview'
+import { PICK_SCRIPT, pickedText, sanePick } from '../src/main/preview-pick'
+import { shellEnv, shellLaunch, shellProgram, Shells, wslFolder } from '../src/main/shells'
 import { restoreWorkbench, withRecent } from '../src/main/workbench'
-import { lastLocalhost } from '../src/renderer/chat/preview-store'
+import { lastLocalhost, terminalFailure } from '../src/renderer/chat/preview-store'
 import {
   draggedWidth,
   MAX_SHELLS,
+  nextPreviewWidth,
+  previewWidth,
+  SHELL_LANGUAGES,
+  shellSnippet,
   WORKBENCH_WIDTH,
   workbenchWidth
 } from '../src/shared/ipc-workbench'
+
+const unixOnly = { skip: process.platform === 'win32' && 'o roteiro usa o bash' }
 
 test('bancada: o que estava guardado volta conferido', () => {
   assert.deepEqual(restoreWorkbench(null), {
@@ -132,8 +139,6 @@ test('bancada: no Flatpak, o shell é o do sistema, na pasta pedida', () => {
   assert.equal(launch.args.at(-1), 'exec "${SHELL:-/bin/bash}"')
 })
 
-const unixOnly = { skip: process.platform === 'win32' && 'o roteiro usa o bash' }
-
 test('bancada: um terminal de verdade roda, mostra a saída e fecha', unixOnly, async () => {
   let output = ''
   let changes = 0
@@ -162,4 +167,109 @@ test('bancada: um terminal de verdade roda, mostra a saída e fecha', unixOnly, 
   shells.dispose()
   assert.equal(shells.list().length, 0)
   assert.ok(changes >= MAX_SHELLS + 1)
+})
+
+test('navegador: a página estreitada fica no meio do lugar (Fase 61)', () => {
+  const place = { x: 400, y: 100, width: 800, height: 600 }
+  assert.deepEqual(narrowed(place, null), place)
+  assert.deepEqual(narrowed(place, 390), { x: 605, y: 100, width: 390, height: 600 })
+  // Mais larga que o lugar: o lugar todo.
+  assert.deepEqual(narrowed(place, 1200), place)
+  assert.equal(previewWidth(390), 390)
+  assert.equal(previewWidth(10), 240)
+  assert.equal(previewWidth(null), null)
+  assert.equal(previewWidth('390'), null)
+  assert.equal(nextPreviewWidth(null), 390)
+  assert.equal(nextPreviewWidth(390), 768)
+  assert.equal(nextPreviewWidth(768), null)
+  // Uma largura fora da lista (o Claude pediu outra) volta ao lugar todo.
+  assert.equal(nextPreviewWidth(1234), null)
+})
+
+test('navegador: o elemento apontado é conferido (a página não é de confiança) (Fase 60)', () => {
+  const raw = {
+    selector: '#ok',
+    tag: 'button',
+    text: 'Comprar `agora`',
+    rect: { x: 10, y: 20, width: 80, height: 30 },
+    styles: { color: 'rgb(0, 0, 0)', 'font-size': '14px', 'COISA ESTRANHA': 'x', padding: 7 }
+  }
+  const picked = sanePick(raw)
+  assert.ok(picked)
+  assert.deepEqual(picked.styles, { color: 'rgb(0, 0, 0)', 'font-size': '14px' })
+  assert.equal(sanePick(null), null)
+  assert.equal(sanePick({ ...raw, selector: '' }), null)
+  assert.equal(sanePick({ ...raw, rect: { x: 1, y: 2, width: 0, height: 3 } }), null)
+  assert.equal(sanePick({ ...raw, rect: { x: 1, y: 2, width: 'a', height: 3 } }), null)
+  assert.equal(sanePick({ ...raw, tag: '<script>' })?.tag, 'script')
+  const text = pickedText(picked, 'http://localhost:5173/')
+  assert.match(text, /http:\/\/localhost:5173\//)
+  assert.match(text, /`#ok` <button> "Comprar 'agora'"/)
+  assert.match(text, /color: rgb\(0, 0, 0\); font-size: 14px/)
+  // A mira é uma expressão que roda sem erro de sintaxe.
+  assert.doesNotThrow(() => new Function(`return ${PICK_SCRIPT}`))
+})
+
+test('rodar no terminal: o comando de um bloco, sem o $ do começo (Fase 63)', () => {
+  assert.equal(shellSnippet('$ npm install\n$ npm run dev\n'), 'npm install\nnpm run dev')
+  assert.equal(shellSnippet('\n  > git status\n'), 'git status')
+  // Um $ no meio do comando fica.
+  assert.equal(shellSnippet('echo $HOME'), 'echo $HOME')
+  assert.ok(SHELL_LANGUAGES.includes('bash') && SHELL_LANGUAGES.includes('powershell'))
+  assert.ok(!SHELL_LANGUAGES.includes('python'))
+})
+
+test('rodar no terminal: cola num terminal seu, sem enviar', unixOnly, async () => {
+  let output = ''
+  const shells = new Shells({ data: (_id, chunk) => (output += chunk), changed: () => undefined })
+  const claude = shells.forOwner('aba', HOME) as string
+  const id = shells.paste('echo colado-$((2+2))', HOME)
+  assert.equal(typeof id, 'string')
+  assert.notEqual(id, claude, 'nunca no terminal do Claude')
+  assert.equal(shells.paste('echo de-novo', HOME), id, 'o mesmo terminal seu da próxima vez')
+  // Espera o texto aparecer (numa máquina ocupada, o shell demora a subir) e mais um instante.
+  const deadline = Date.now() + 15_000
+  while (!/colado-\$\(\(2\+2\)\)/.test(output) && Date.now() < deadline) {
+    await new Promise((resolve) => setTimeout(resolve, 50))
+  }
+  await new Promise((resolve) => setTimeout(resolve, 500))
+  // O texto apareceu na linha de comando, mas não rodou: o Enter é seu.
+  assert.match(output, /colado-\$\(\(2\+2\)\)/)
+  assert.doesNotMatch(output, /colado-4/)
+  shells.dispose()
+})
+
+test('Windows: numa pasta do WSL, o terminal abre dentro da distribuição (Fase 68)', () => {
+  assert.deepEqual(wslFolder('\\\\wsl$\\Ubuntu\\home\\eu\\app'), {
+    distro: 'Ubuntu',
+    path: '/home/eu/app'
+  })
+  assert.deepEqual(wslFolder('\\\\wsl.localhost\\Debian-12'), { distro: 'Debian-12', path: '/' })
+  assert.deepEqual(wslFolder('//wsl$/Ubuntu/srv'), { distro: 'Ubuntu', path: '/srv' })
+  assert.equal(wslFolder('C:\\Users\\eu\\app'), null)
+  assert.equal(wslFolder('\\\\servidor\\pasta'), null)
+  // Um nome de distribuição com o que não devia: não vira argumento do wsl.exe.
+  assert.equal(wslFolder('\\\\wsl$\\Ubuntu --exec calc\\x'), null)
+  const launch = shellLaunch('\\\\wsl$\\Ubuntu\\home\\eu\\app', false, true)
+  assert.equal(launch.file, 'wsl.exe')
+  assert.deepEqual(launch.args, ['-d', 'Ubuntu', '--cd', '/home/eu/app'])
+  // Fora do Windows, a mesma pasta é só uma pasta que não existe: o shell de sempre.
+  assert.notEqual(shellLaunch('\\\\wsl$\\Ubuntu\\home', false, false).file, 'wsl.exe')
+})
+
+test('terminal: o que parece um erro vira um trecho para o Claude (Fase 73)', () => {
+  assert.equal(terminalFailure('início\n$ ls\na.txt  b.txt\n$ '), null)
+  assert.equal(terminalFailure('início\n✓ 12 testes passaram\n0 errors\n'), null)
+  const node = terminalFailure(
+    'início\n$ node app.js\r\n\u001b[31mTypeError: x is not a function\u001b[0m\r\n    at main (app.js:3:1)\r\n$ '
+  )
+  assert.equal(node, '$ node app.js\nTypeError: x is not a function\n    at main (app.js:3:1)\n$')
+  assert.ok(terminalFailure('x\nnpm ERR! code ELIFECYCLE\n'))
+  assert.ok(terminalFailure('x\nsrc/a.ts(3,1): error TS2304: Cannot find name\n'))
+  assert.ok(terminalFailure('x\nTraceback (most recent call last):\n  File "a.py"\n'))
+  assert.ok(terminalFailure('x\nbash: foo: command not found\n'))
+  assert.ok(terminalFailure('x\nError: listen EADDRINUSE: address already in use :::5173\n'))
+  // Só as últimas linhas vão.
+  const long = terminalFailure(`x\nError: quebrou\n${'linha\n'.repeat(100)}`, 5)
+  assert.equal(long?.split('\n').length, 5)
 })

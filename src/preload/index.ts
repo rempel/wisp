@@ -120,6 +120,9 @@ const api: WispApi = {
     captureArea: () => ipcRenderer.invoke(IPC.chatCaptureArea),
     reviewUndo: (conversation, turn, files) =>
       ipcRenderer.invoke(IPC.chatReviewUndo, conversation, turn, files),
+    changes: (conversation) => ipcRenderer.invoke(IPC.chatChanges, conversation),
+    undoChanges: (conversation, files) =>
+      ipcRenderer.invoke(IPC.chatChangesUndo, conversation, files),
     onClipboard: (listener) => subscribe<[ClipboardOffer | null]>(IPC.chatClipboard, listener),
     takeClipboard: (id) => ipcRenderer.invoke(IPC.chatClipboardUse, id),
     dismissClipboard: (id) => ipcRenderer.send(IPC.chatClipboardDismiss, id),
@@ -145,6 +148,8 @@ const api: WispApi = {
     openSession: (sessionId) => ipcRenderer.send(IPC.tabsOpenSession, sessionId),
     projects: () => ipcRenderer.invoke(IPC.tabsProjects),
     openFolder: (path, worktree) => ipcRenderer.invoke(IPC.tabsOpenFolder, path, worktree === true),
+    reviewPr: (conversation, reference) =>
+      ipcRenderer.invoke(IPC.tabsReviewPr, conversation, reference),
     worktreeStatus: (conversation) => ipcRenderer.invoke(IPC.worktreeStatus, conversation),
     worktreeJoin: (conversation) => ipcRenderer.invoke(IPC.worktreeJoin, conversation),
     worktreeDiscard: (conversation) => ipcRenderer.invoke(IPC.worktreeDiscard, conversation)
@@ -228,6 +233,12 @@ const api: WispApi = {
     action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
     onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
   },
+  memory: {
+    list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),
+    preview: (id, folder, text) => ipcRenderer.invoke(IPC.memoryPreview, id, folder, text),
+    save: (id, folder, text, fingerprint) =>
+      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint)
+  },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),
     preview: (spec, folder) => ipcRenderer.invoke(IPC.agentsPreview, spec, folder),
@@ -240,8 +251,13 @@ const api: WispApi = {
     export: (days) => ipcRenderer.invoke(IPC.usageExport, days)
   },
   preview: {
-    open: (target, folder) => ipcRenderer.invoke(IPC.previewOpen, target, folder),
+    open: (target, folder, fresh) => ipcRenderer.invoke(IPC.previewOpen, target, folder, fresh),
     capture: () => ipcRenderer.invoke(IPC.previewCapture),
+    pick: () => ipcRenderer.invoke(IPC.previewPick),
+    sendErrors: () => ipcRenderer.invoke(IPC.previewErrors),
+    selectTab: (id) => ipcRenderer.send(IPC.previewTab, id, false),
+    closeTab: (id) => ipcRenderer.send(IPC.previewTab, id, true),
+    width: (px) => ipcRenderer.send(IPC.previewWidth, px),
     reload: () => ipcRenderer.send(IPC.previewReload),
     close: () => ipcRenderer.send(IPC.previewClose),
     get: () => ipcRenderer.invoke(IPC.previewGet),
@@ -257,6 +273,9 @@ const api: WispApi = {
   },
   shell: {
     create: (folder) => ipcRenderer.invoke(IPC.shellCreate, folder),
+    paste: (text, folder) => ipcRenderer.invoke(IPC.shellPaste, text, folder),
+    launches: (folder) => ipcRenderer.invoke(IPC.launchList, folder),
+    launch: (folder, command) => ipcRenderer.invoke(IPC.launchRun, folder, command),
     close: (id) => ipcRenderer.send(IPC.shellClose, id),
     attach: (id) => ipcRenderer.invoke(IPC.shellAttach, id),
     input: (id, data) => ipcRenderer.send(IPC.shellInput, id, data),

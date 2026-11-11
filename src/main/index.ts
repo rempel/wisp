@@ -77,6 +77,10 @@ import { setupOpenRouterIpc } from './openrouter-ipc'
 import { CACHE_DIR, DATA_DIR } from './paths'
 import { setupPortableIpc } from './portable-ipc'
 import { setupFileViewIpc } from './file-view'
+import { fileAttachment } from './file-menu'
+import { ShellPointer } from './gnome-shell'
+import { setupIntegrations } from './integrations'
+import { setupMemoryIpc } from './memory'
 import { setupWorkbench } from './workbench'
 import type { WorkbenchControl } from './workbench'
 import { setupAgentsIpc } from './agents'
@@ -316,7 +320,12 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   void XPointer.open().then((opened) => {
     xpointer = opened
   })
+  // No GNOME com Wayland, pela extensão do Wisp (Fase 70), se você a ligou.
+  const shellPointer =
+    IS_LINUX && process.env.XDG_SESSION_TYPE === 'wayland' ? new ShellPointer() : null
   const cursor = async (): Promise<Point> => {
+    const shell = shellPointer && getConfig().gnomeExtension ? await shellPointer.query() : null
+    if (shell) return shell
     const point = xpointer?.alive ? await xpointer.query() : null
     if (!point) return screen.getCursorScreenPoint()
     const scale = screen.getPrimaryDisplay().scaleFactor
@@ -644,13 +653,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   setupFileViewIpc((sender) => chat?.isSender(sender) ?? false)
   setupAgentsIpc((sender) => chat?.isSender(sender) ?? false)
+  setupMemoryIpc((sender) => chat?.isSender(sender) ?? false)
   // A bancada (Fase 55): o navegador (a pré-visualização) e os terminais ao lado da conversa.
   const workbench = setupWorkbench({
     isSender: (sender) => chat?.isSender(sender) ?? false,
     window: () => chat?.window() ?? null,
     attach: (dropped) => chat?.attach(dropped),
     sideWidth: (px, grow) => chat?.sideWidth(px, grow),
-    folderOf: (conversation) => chat?.folderOf(conversation) ?? null
+    folderOf: (conversation) => chat?.folderOf(conversation) ?? null,
+    compose: (text) => chat?.compose(text)
   })
   workbenchControl = workbench.control
   // A tela de configurações do painel (e a pílula do modo demonstração).
@@ -670,7 +681,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       set: (enabled) => setAutostart(enabled, entryIcon)
     },
     onChange: () => menu?.refresh(),
-    openrouterKey: () => openrouter.hasKey(),
+    // Com um servidor local (Fase 66), a chave não faz falta.
+    openrouterKey: () => (getConfig().localModelsUrl ? true : openrouter.hasKey()),
     phone: () => phone!.status(),
     taskRuns: () => scheduler.runs(),
     dnd: () => dnd.state().active,
@@ -887,8 +899,16 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       case 'palette':
         chat?.showView('palette')
         break
+      case 'file': {
+        // O "Perguntar ao Wisp" do gerenciador de arquivos (Fase 64): o arquivo vira um anexo.
+        const dropped = fileAttachment(command.path)
+        if (dropped) chat?.attach(dropped)
+        break
+      }
     }
   })
+  // As integrações com o sistema (Fases 64, 67 e 72) acompanham as configurações.
+  const integrations = setupIntegrations((question) => chat?.ask(question))
 
   app.on('before-quit', () => {
     clearTimeout(remindersStart)
@@ -906,11 +926,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     if (midnight) clearTimeout(midnight)
     presence.dispose()
     xpointer?.close()
+    shellPointer?.close()
     sounds.dispose()
     mood.dispose()
     sessions.dispose()
     hooks?.close()
     workbench.dispose()
+    integrations.dispose()
     chat?.dispose()
     desktop?.close()
   })

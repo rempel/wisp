@@ -19,6 +19,8 @@ import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
 import { DANCES } from '../shared/emotions'
 import type { Dance } from '../shared/emotions'
 import type { AvatarName } from '../shared/avatars'
+import { MAX_PROJECTS, PROJECT_COLORS } from '../shared/projects'
+import type { Project } from '../shared/projects'
 import { t } from '../shared/i18n'
 import { LANGUAGE_SETTINGS } from '../shared/i18n'
 import type { LanguageSetting } from '../shared/i18n'
@@ -194,6 +196,14 @@ export interface WispConfig {
   turnReview: boolean
   /** O navegador da bancada abre páginas da internet, além do que é desta máquina (Fase 58). */
   previewWeb: boolean
+  /** O "Perguntar ao Wisp" no menu do gerenciador de arquivos (Fase 64). */
+  fileManagerMenu: boolean
+  /** No Windows, o comando `wisp` no PATH do seu usuário (Fase 67). */
+  commandInPath: boolean
+  /** No Linux, o Wisp na busca do desktop (KRunner e GNOME), para o que começa com "wisp" (Fase 72). */
+  desktopSearch: boolean
+  /** A extensão do Wisp para o GNOME Shell: as janelas no GNOME com Wayland (Fase 70). */
+  gnomeExtension: boolean
   /**
    * Por onde as conversas novas vão (experimental): "subscription", o seu Claude Code com a
    * assinatura (o padrão); ou "openrouter", a API da OpenRouter com a sua chave (no chaveiro do
@@ -202,6 +212,12 @@ export interface WispConfig {
   provider: 'subscription' | 'openrouter'
   /** O modelo da OpenRouter ("provedor/modelo"); null até escolher um. */
   openrouterModel: string | null
+  /**
+   * O endereço de um servidor de modelos na sua máquina ou rede (Ollama, LM Studio), com a API
+   * compatível com a da Anthropic (Fase 66). Com ele, as conversas pelo outro provedor vão para
+   * lá, e não para a OpenRouter. null: a OpenRouter.
+   */
+  localModelsUrl: string | null
   /**
    * Aprovar pelo celular (Fase 18), pelo ntfy. Liga só depois de o celular responder ao teste do
    * pareamento (pela tela de configurações); os tópicos ficam no chaveiro do sistema.
@@ -215,6 +231,8 @@ export interface WispConfig {
   updateCheck: boolean
   /** Os prompts salvos (Fase 26): /nome no menu da barra, com as variáveis preenchidas na hora. */
   prompts: SavedPrompt[]
+  /** Os projetos (Fase 77): pastas com nome, cor e o modo de costume. */
+  projects: Project[]
   /** As tarefas agendadas (Fase 26): um prompt num horário, numa aba nova, sempre no modo Pedir. */
   scheduledTasks: ScheduledTask[]
 }
@@ -292,13 +310,19 @@ function defaults(): WispConfig {
     usageAlerts: true,
     turnReview: true,
     previewWeb: true,
+    fileManagerMenu: false,
+    commandInPath: false,
+    desktopSearch: false,
+    gnomeExtension: false,
     provider: 'subscription',
     openrouterModel: null,
+    localModelsUrl: null,
     phoneApprovals: false,
     phoneServer: 'https://ntfy.sh',
     phoneAfterSeconds: 60,
     updateCheck: false,
     prompts: defaultPrompts(),
+    projects: [],
     scheduledTasks: []
   }
 }
@@ -432,8 +456,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   usageAlerts: z.boolean(),
   turnReview: z.boolean(),
   previewWeb: z.boolean(),
+  fileManagerMenu: z.boolean(),
+  commandInPath: z.boolean(),
+  desktopSearch: z.boolean(),
+  gnomeExtension: z.boolean(),
   provider: z.enum(['subscription', 'openrouter']),
   openrouterModel: z.string().regex(MODEL_NAME).nullable(),
+  localModelsUrl: z
+    .string()
+    .regex(/^https?:\/\/[\w.-]+(:\d{1,5})?(\/[\w./-]*)?$/)
+    .max(200)
+    .nullable(),
   phoneApprovals: z.boolean(),
   phoneServer: z
     .string()
@@ -441,6 +474,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .regex(/^https?:\/\/[^\s?#@]+$/, t('precisa ser um endereço http(s)')),
   phoneAfterSeconds: z.number().int().min(0).max(3600),
   updateCheck: z.boolean(),
+  projects: z
+    .array(
+      z.object({
+        folder: z.string().min(1).max(1024),
+        name: z.string().trim().min(1).max(60),
+        color: z.enum(PROJECT_COLORS),
+        mode: z.enum(['default', 'acceptEdits', 'plan', 'auto']).nullable()
+      })
+    )
+    .max(MAX_PROJECTS)
+    .refine((list) => new Set(list.map((project) => project.folder)).size === list.length),
   prompts: z
     .array(
       z.object({
@@ -580,6 +624,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),
   openrouterModel: t('O id do modelo na OpenRouter, como aparece no site: provedor/modelo.'),
+  localModelsUrl: t('Um endereço http ou https, como http://localhost:11434.'),
   volume: t('O volume vai de 0 a 1.'),
   sleepAfterMinutes: t('Um número de minutos, 0 ou mais (0 desliga o cochilo).'),
   tabSleepMinutes: t('Um número inteiro de minutos, de 0 a 1440 (0: as abas nunca dormem).'),
@@ -598,6 +643,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
   calendarLinks: t('Até 10 agendas por endereço, cada uma com um id e um nome.'),
   calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).'),
+  projects: t('Cada projeto tem uma pasta (sem repetir), um nome, uma cor e um modo.'),
   prompts: t(
     'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).'
   ),

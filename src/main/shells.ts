@@ -45,10 +45,34 @@ export function shellEnv(env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEn
   return clean
 }
 
+/**
+ * Uma pasta do WSL vista pelo Windows (\\\\wsl$\\Ubuntu\\home\\eu\\app, ou \\\\wsl.localhost\\...):
+ * a distribuição e o caminho de dentro dela (Fase 68). null: não é uma pasta do WSL.
+ */
+export function wslFolder(folder: string): { distro: string; path: string } | null {
+  const match = /^[\\/]{2}wsl(?:\$|\.localhost)[\\/]([^\\/]+)([\\/].*)?$/i.exec(folder)
+  if (!match || !/^[\w.-]{1,64}$/.test(match[1])) return null
+  return { distro: match[1], path: (match[2] ?? '/').replace(/\\/g, '/') || '/' }
+}
+
 /** Como subir o shell numa pasta (a da conversa; sem ela, ou se ela sumiu, a pasta pessoal). */
-export function shellLaunch(folder: string | null, inFlatpak = IN_FLATPAK): TerminalLaunch {
-  const cwd = (folder ? usableFolder(expandHome(folder)) : null) ?? homedir()
+export function shellLaunch(
+  folder: string | null,
+  inFlatpak = IN_FLATPAK,
+  windows = IS_WINDOWS
+): TerminalLaunch {
   const env = shellEnv()
+  // No Windows, numa pasta do WSL, o terminal abre dentro da distribuição, nessa pasta (Fase 68).
+  const wsl = windows && folder ? wslFolder(folder) : null
+  if (wsl) {
+    return {
+      file: 'wsl.exe',
+      args: ['-d', wsl.distro, '--cd', wsl.path],
+      env,
+      cwd: homedir()
+    }
+  }
+  const cwd = (folder ? usableFolder(expandHome(folder)) : null) ?? homedir()
   if (!inFlatpak) return { file: shellProgram(), args: [], env, cwd }
   const host = viaHost('sh', ['-c', HOST_SHELL], { env, cwd, inFlatpak: true })
   return { file: host.command, args: host.args, env, cwd }
@@ -118,7 +142,11 @@ export class Shells {
     }
     const id = randomBytes(6).toString('hex')
     const launch = shellLaunch(folder)
-    const name = basename(launch.cwd) || launch.cwd
+    const wsl = folder ? wslFolder(folder) : null
+    const name =
+      launch.file === 'wsl.exe' && wsl
+        ? `${basename(wsl.path) || '/'} (${wsl.distro})`
+        : basename(launch.cwd) || launch.cwd
     const info: ShellInfo = {
       id,
       title: owner ? `Claude · ${name}` : name,
@@ -196,6 +224,27 @@ export class Shells {
     }
     const shown = item.proc.snapshot()
     return plainOutput(shown.slice(Math.max(0, shown.length - (item.total - mark))))
+  }
+
+  /**
+   * Cola um texto num terminal seu, sem enviar (Fase 63): o Enter é seu. Usa o último terminal
+   * seu que ainda roda, ou abre um na pasta dada. Devolve o id dele.
+   */
+  paste(text: string, folder: string | null): string | { error: string } {
+    let id: string | null = null
+    for (const [key, item] of this.items) if (!item.owner && !item.info.exited) id = key
+    const target = id ?? this.create(folder)
+    if (typeof target !== 'string') return target
+    this.items.get(target)?.proc.paste(text, false)
+    return target
+  }
+
+  /** Roda um comando num terminal seu novo, na pasta (o Rodar da bancada, Fase 75). */
+  launch(folder: string, command: string): string | { error: string } {
+    const id = this.create(folder)
+    if (typeof id !== 'string') return id
+    this.items.get(id)?.proc.paste(command, true)
+    return id
   }
 
   /** As últimas linhas do que o terminal mostrou, em texto. */

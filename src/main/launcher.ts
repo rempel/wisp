@@ -70,6 +70,8 @@ export type WispCommand =
   | { kind: 'new' }
   | { kind: 'palette' }
   | { kind: 'ask'; text: string }
+  /** Um arquivo para anexar na conversa em foco (o "Perguntar ao Wisp", Fase 64). */
+  | { kind: 'file'; path: string }
 
 /** Limite do texto de um `--ask` (o resto fica de fora). */
 const MAX_ASK = 20_000
@@ -85,6 +87,10 @@ export function parseCommand(argv: readonly string[]): WispCommand | null {
     if (arg === '--show') return { kind: 'show' }
     if (arg === '--new') return { kind: 'new' }
     if (arg === '--palette') return { kind: 'palette' }
+    if (arg === '--file' || arg.startsWith('--file=')) {
+      const path = arg === '--file' ? (argv[i + 1] ?? '') : arg.slice('--file='.length)
+      return path ? { kind: 'file', path: path.slice(0, 4096) } : { kind: 'show' }
+    }
     if (arg === '--ask' || arg.startsWith('--ask=')) {
       const text = (arg === '--ask' ? (argv[i + 1] ?? '') : arg.slice('--ask='.length)).trim()
       return text ? { kind: 'ask', text: text.slice(0, MAX_ASK) } : { kind: 'show' }
@@ -102,6 +108,10 @@ export function checkCommand(value: unknown): WispCommand | null {
     case 'new':
     case 'palette':
       return { kind: command.kind }
+    case 'file': {
+      const path = (command as { path?: unknown }).path
+      return typeof path === 'string' && path ? { kind: 'file', path: path.slice(0, 4096) } : null
+    }
     case 'ask':
       return typeof command.text === 'string' && command.text.trim()
         ? { kind: 'ask', text: command.text.trim().slice(0, MAX_ASK) }
@@ -197,6 +207,7 @@ export function deployLauncher(target: LauncherTarget, withMenuEntry: boolean): 
     '#   wisp --new          começa uma conversa nova',
     '#   wisp --palette      abre a paleta de comandos',
     '#   wisp --ask "texto"  manda uma mensagem ao Claude',
+    '#   wisp --file arquivo  anexa um arquivo na conversa em foco',
     '# O Wisp reescreve este arquivo sempre que abre.',
     'unset ELECTRON_RUN_AS_NODE NODE_OPTIONS',
     target.flatpak

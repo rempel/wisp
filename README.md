@@ -247,7 +247,8 @@ conhecer o Wisp sem o Claude Code.
 
 A versão atual é a **0.1.0**. O MVP (mascote, chat, ferramentas de desktop com permissão, anexos,
 estados e bandeja) está completo, e as fases seguintes vieram uma a uma, cada uma com testes e um
-roteiro de aceite. O que cada fase trouxe e o que vem depois estão no [ROADMAP](ROADMAP.md); os
+roteiro de aceite. O que cada fase trouxe está no [histórico](docs/HISTORICO.md) e o que vem depois, no
+[ROADMAP](ROADMAP.md); os
 roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
 
 - **Onde roda:** feito para o GNOME e o KDE Plasma, no X11 e no Wayland (pelo XWayland), com o
@@ -261,7 +262,11 @@ roteiros para conferir à mão, em [docs/VALIDACAO.md](docs/VALIDACAO.md).
   pelo conteúdo; ainda não foram abertos numa máquina ARM.
 - **Idioma:** português do Brasil e inglês (pelo idioma do sistema ou nas configurações): a
   interface, o mascote, as notificações e as respostas do Claude.
-- **Validação:** as Fases 6 a 58 foram validadas com o uso (os roteiros estão em
+- **Validação:** as Fases 59 a 78 (as abas e a mira no navegador da bancada, as abas Mudanças e
+  Plano, a memória, os projetos, os modelos locais e as integrações com o Windows e o Linux)
+  estão prontas, com testes, e esperam a
+  validação com o uso; o [ROADMAP](ROADMAP.md) diz, de cada uma, o que só o uso confirma. As
+  Fases 6 a 58 foram validadas com o uso (os roteiros estão em
   [docs/VALIDACAO.md](docs/VALIDACAO.md)), menos os pacotes de ARM64 (os do Linux, Fase 25, e o
   instalador do Windows, Fase 40), que ainda não foram abertos numa máquina ARM. O Atualizar do
   AppImage (Fase 31) espera a chave de assinatura de quem publica (veja
@@ -793,10 +798,61 @@ do Claude Desktop.
   e preenche. Os comandos que você deve acompanhar (o servidor, testes demorados) rodam num
   terminal do Claude na bancada, com **Claude · pasta** na abinha, depois do card de sempre; ele
   lê a saída de lá. Os terminais que você abriu continuam só seus: o Claude não os lê.
+- **Abas, a mira e a largura** (Fases 59 a 62): o navegador tem até 6 abas (o **+** abre uma
+  página nova). A **mira** manda para a conversa o elemento em que você clicar na página (o
+  seletor, o texto, os estilos e um recorte), para pedir "deixa esse botão maior" sem descrever
+  qual. O botão do **celular** estreita a página (390 px, 768 px, o lugar todo). Um erro novo no
+  console vira o aviso **N erros no console: mandar ao Claude**, que os põe na caixa.
+- **Rodar no terminal** (Fase 63): os blocos de shell das respostas têm esse botão, que cola o
+  comando num terminal seu da bancada sem enviar. No Windows, numa pasta do WSL, o terminal abre
+  dentro da distribuição (Fase 68).
+- **Rodar o projeto** (Fase 75): com a conversa numa pasta de projeto, a bancada mostra um botão
+  para cada servidor dela, lido do `.claude/launch.json` ou dos scripts `dev`, `start` e `serve`
+  do `package.json`. O clique mostra o comando inteiro; **Rodar** o sobe num terminal novo e, se
+  a porta é conhecida, a página abre no navegador quando ela responde.
+- **Mudanças** (Fase 74): a terceira aba lista os arquivos que a conversa em foco mexeu, de antes
+  da primeira edição até agora, com o diff de cada um, **Abrir** e **Desfazer** (um ou todos).
+- **Plano** (Fase 76): a quarta aba mostra o plano que o Claude apresentou no modo Planejar e a
+  lista de passos dele, com os feitos marcados.
+- **Erro no terminal** (Fase 73): quando a saída de um terminal parece um erro, aparece **Parece
+  um erro no terminal: mandar ao Claude**, que põe as últimas linhas na caixa da conversa.
 - **Não é o modo terminal:** o botão **Chat | Terminal** de cada aba troca a conversa para o
   Claude Code de verdade; o terminal da bancada é um shell comum, ao lado de qualquer conversa.
 - Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente
   e volta quando eles fecham.
+
+### Memória, modelos locais e o sistema
+
+- **Memória** (Fase 65): na paleta, **Memória** mostra os `CLAUDE.md` que o Claude lê antes de
+  cada conversa (o seu, em `~/.claude`; o do Wisp; e os do projeto da conversa em foco). **Editar**
+  abre o texto; **Ver o que muda** mostra o diff, e gravar guarda um backup do arquivo de antes.
+  Vale nas conversas novas (Ctrl+K).
+- **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
+  recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
+  provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem
+  custo, no lugar da OpenRouter. O servidor precisa falar a API da Anthropic, e modelos pequenos
+  costumam se sair mal com as ferramentas.
+- **"Perguntar ao Wisp" no gerenciador de arquivos** (Fase 64, `fileManagerMenu`): ligado nas
+  configurações, o clique direito num arquivo manda ele como anexo para a conversa em foco. No
+  Nautilus fica em **Scripts**; no Dolphin e no Explorer do Windows, no menu. Pelo terminal:
+  `wisp --file arquivo`.
+- **O Wisp na busca do desktop** (Fase 72, `desktopSearch`, Linux): na busca do KDE (Alt+Espaço)
+  ou do GNOME, `wisp` e uma pergunta oferecem **Perguntar ao Wisp**. Só o que começa com `wisp`
+  chega a ele. No GNOME, vale nos pacotes .deb e Flatpak.
+- **A extensão para o GNOME** (Fase 70, `gnomeExtension`): no GNOME com Wayland, o sistema não
+  deixa um app ver as janelas dos outros. Ligada, o Wisp instala uma extensão pequena que devolve
+  o listar e o trazer janelas para a frente; saia da sessão e entre de novo. Com ela, qualquer
+  programa da sua sessão pode ler a lista de janelas, como no X11.
+- **Projetos** (Fase 77, `projects`): em Configurações → Projetos, escolha uma das suas pastas
+  de projetos e dê a ela um nome, uma cor e o modo de permissão de costume. As abas das
+  conversas nela levam a cor, e uma conversa nova aberta pelo menu das pastas começa nesse modo.
+- **Revisar um PR** (Fase 78): numa conversa na pasta do projeto, `/pr 123` (ou o endereço do PR)
+  abre outra conversa numa cópia do Git, no commit do PR, com o pedido de revisão na caixa.
+  Precisa do `gh` instalado e logado. Mandar a revisão para o GitHub é um comando do Claude, que
+  passa pelo card.
+- **No Windows:** **O comando wisp no PATH** (Fase 67, `commandInPath`) faz `wisp --ask "..."`
+  funcionar em qualquer terminal; e "abaixa o Spotify" mexe no volume do programa no mixer, e não
+  no do sistema (Fase 69).
 
 ### Modos de permissão
 
@@ -2030,7 +2086,7 @@ O Wisp existe por causa do [Claude Code](https://docs.claude.com/en/docs/claude-
 [SDK do MCP](https://github.com/modelcontextprotocol/typescript-sdk), o
 [Playwright MCP](https://github.com/microsoft/playwright-mcp), o
 [whisper.cpp](https://github.com/ggml-org/whisper.cpp) e o [Piper](https://github.com/OHF-Voice/piper1-gpl).
-O mascote e a ideia de um companheiro de mesa se inspiraram no Coucou (veja o [ROADMAP](ROADMAP.md)).
+O mascote e a ideia de um companheiro de mesa se inspiraram no Coucou (veja o [histórico das fases](docs/HISTORICO.md)).
 As emoções, os sinais no ar, as danças e a troca atuada do mascote vêm do
 [ClaudeAnimationBase](https://github.com/JohnHeibel/ClaudeAnimationBase), de John Heibel (licença
 MIT), redesenhados em SVG e CSS para o fogo-fátuo, a geleca e o fantasminha.

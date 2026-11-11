@@ -1,3 +1,5 @@
+import type { ProjectColor } from './projects'
+import type { PreviewTab } from './ipc-workbench'
 // A conversa no painel: anexos, a área de transferência, os modelos e o uso do plano, os diffs, os
 // eventos do chat, as permissões, as abas e a janela.
 
@@ -150,6 +152,12 @@ export interface PreviewState {
   loading?: boolean
   canGoBack?: boolean
   canGoForward?: boolean
+  /** As abas do navegador (Fase 59), a largura pedida (Fase 61; null: o lugar todo), os erros
+   * do console que ainda não foram para a conversa (Fase 62) e a mira ligada (Fase 60). */
+  tabs?: PreviewTab[]
+  width?: number | null
+  errors?: number
+  picking?: boolean
 }
 
 /** Uma linha do painel de uso (Fase 49): um dia, um projeto e um modelo. */
@@ -214,6 +222,17 @@ export interface AgentPreview {
   /** O arquivo como estava na prévia: gravar só vale com ele assim. */
   fingerprint: string
   unchanged: boolean
+}
+
+/** Um arquivo de memória do Claude Code (um CLAUDE.md), para a tela Memória (Fase 65). */
+export type MemoryId = 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+export interface MemoryFile {
+  id: MemoryId
+  path: string
+  exists: boolean
+  text: string
+  /** Grande demais para mostrar inteiro e editar pelo painel. */
+  tooBig: boolean
 }
 
 export interface AgentResult {
@@ -535,7 +554,15 @@ export { MAX_PANES } from './layout'
 
 /** Uma aba do painel: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
 export type TabInfo =
-  | { id: string; kind: 'chat'; title: string; project?: string; folder?: string }
+  | {
+      id: string
+      kind: 'chat'
+      title: string
+      project?: string
+      folder?: string
+      /** O projeto da pasta da conversa (Fase 77): o nome e a cor dele. */
+      inProject?: { name: string; color: ProjectColor }
+    }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 
 /** As abas abertas e os painéis da grade (cada um mostra uma aba). */

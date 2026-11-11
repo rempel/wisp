@@ -1,153 +1,42 @@
 // A pré-visualização (Fase 47): um HTML, um PDF, uma imagem ou o servidor local do projeto
 // (localhost), para ver o resultado do que o Claude fez. Desde a Fase 55 ela é o navegador da
-// bancada: uma WebContentsView dentro da janela do painel, no lugar que a página diz. A vista é
-// isolada: outra sessão do Electron (sem os cookies do painel), sem preload, no sandbox, sem
-// permissões (câmera, notificações...), sem abrir janelas, sem baixar arquivos e sem sair do
-// lugar (com as páginas da internet desligadas, um link para outro site não navega). Desde a
-// Fase 58, as páginas da internet abrem também, se a opção `previewWeb` estiver ligada (o
-// padrão). O Markdown abre no próprio painel (o renderer o desenha). Um arquivo recarrega
-// sozinho quando a pasta dele muda; "Mostrar ao Claude" anexa um print da página na conversa.
+// bancada: cada página é uma WebContentsView dentro da janela do painel, no lugar que a página
+// do painel diz. As vistas são isoladas: outra sessão do Electron (sem os cookies do painel),
+// sem preload, no sandbox, sem permissões (câmera, notificações...), sem abrir janelas e sem
+// baixar arquivos. Com as páginas da internet ligadas (`previewWeb`, Fase 58), sites abrem
+// também. Desde a Fase 59 há abas (uma página por aba), dá para apontar um elemento da página
+// (Fase 60), estreitar a página como num celular (Fase 61) e mandar os erros do console para a
+// conversa (Fase 62). O Markdown abre no próprio painel (o renderer o desenha).
 
 import { ipcMain, session, shell, WebContentsView } from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent, NativeImage, WebContents } from 'electron'
-import { existsSync, statSync, watch } from 'fs'
+import { existsSync, watch } from 'fs'
 import type { FSWatcher } from 'fs'
-import { dirname, extname, isAbsolute, resolve } from 'path'
-import { fileURLToPath, pathToFileURL } from 'url'
+import { dirname } from 'path'
+import { fileURLToPath } from 'url'
 import { saveIncoming } from './attachments'
-import { isSensitivePath } from './claude-settings'
-import { expandHome } from './paths'
+import { PICK_SCRIPT, pickedText, sanePick } from './preview-pick'
+import type { Picked } from './preview-pick'
+import { allowedNavigation, isLocalAddress, previewTarget } from './preview-target'
+import type { PreviewTarget } from './preview-target'
 import { thumbnailOf } from './screenshot'
 import { IPC } from '../shared/ipc'
 import type { DroppedFiles, PreviewResult, PreviewState, ViewBounds } from '../shared/ipc'
+import { MAX_PREVIEW_TABS, previewWidth } from '../shared/ipc-workbench'
 import { t } from '../shared/i18n'
 
-/** As extensões que a janela mostra (o Markdown vai para o painel). */
-export const PREVIEW_EXTENSIONS = [
-  '.html',
-  '.htm',
-  '.pdf',
-  '.svg',
-  '.png',
-  '.jpg',
-  '.jpeg',
-  '.gif',
-  '.webp'
-]
-export const MARKDOWN_EXTENSIONS = ['.md', '.markdown']
-/** Os nomes desta máquina. */
-const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]', '0.0.0.0'])
+// O que abre e para onde navega mora em preview-target.ts; quem importava daqui continua igual.
+export {
+  allowedNavigation,
+  isLocalAddress,
+  looksLikeSite,
+  MARKDOWN_EXTENSIONS,
+  PREVIEW_EXTENSIONS,
+  previewTarget
+} from './preview-target'
+export type { PreviewTarget } from './preview-target'
+
 const PARTITION = 'wisp-preview'
-
-export type PreviewTarget =
-  | { kind: 'url'; url: string; display: string }
-  | { kind: 'file'; path: string; url: string; display: string }
-  | { kind: 'markdown'; path: string; display: string }
-
-/**
- * O que abrir, a partir do que a pessoa (ou um card) deu: um endereço desta máquina
- * (http://localhost:5173, localhost:3000, :8080), ou um arquivo (absoluto, com ~ ou relativo à
- * pasta da conversa). Devolve uma string com o motivo quando não dá.
- */
-export function previewTarget(
-  input: string,
-  base: string | null,
-  home?: string,
-  web = false
-): PreviewTarget | string {
-  const raw = input.trim()
-  if (!raw) return t('Diga o endereço ou o arquivo.')
-  const port = /^(?:localhost)?:(\d{2,5})(\/.*)?$/.exec(raw) ?? /^(\d{2,5})$/.exec(raw)
-  if (port) return localUrl(`http://localhost:${port[1]}${port[2] ?? '/'}`)
-  if (/^localhost(:\d+)?(\/|$)/.test(raw)) return localUrl(`http://${raw}`)
-  if (/^https?:\/\//i.test(raw)) return localUrl(raw, web)
-  if (/^[a-z][a-z0-9+.-]*:\/\//i.test(raw)) return t('Só endereços http e https, e arquivos.')
-  const expanded = expandHome(raw.replace(/^file:\/\//, ''))
-  const root = base ? expandHome(base) : null
-  // Um site sem o https:// na frente ("exemplo.com/docs"), se não for um arquivo da pasta.
-  if (web && looksLikeSite(raw) && !(root && existsSync(resolve(root, expanded)))) {
-    return localUrl(`https://${raw}`, web)
-  }
-  if (!isAbsolute(expanded) && !root) return t('Use o caminho inteiro do arquivo.')
-  const path = isAbsolute(expanded) ? expanded : resolve(root as string, expanded)
-  if (isSensitivePath(path, home)) return t('Este arquivo guarda segredos: o painel não mostra.')
-  let file: boolean
-  try {
-    file = statSync(path).isFile()
-  } catch {
-    return t('O arquivo não existe (ou não dá para ler).')
-  }
-  if (!file) return t('Não é um arquivo.')
-  const ext = extname(path).toLowerCase()
-  if (MARKDOWN_EXTENSIONS.includes(ext)) return { kind: 'markdown', path, display: path }
-  if (!PREVIEW_EXTENSIONS.includes(ext)) {
-    return t('A pré-visualização mostra HTML, PDF, imagens e Markdown.')
-  }
-  return { kind: 'file', path, url: pathToFileURL(path).href, display: path }
-}
-
-/** O aviso de quando as páginas da internet estão desligadas nas configurações. */
-const WEB_OFF = (): string =>
-  t(
-    'Só arquivos e endereços desta máquina (localhost): as páginas da internet estão desligadas nas configurações.'
-  )
-
-/** Parece o endereço de um site ("exemplo.com", "docs.exemplo.com/guia"), e não um arquivo? */
-export function looksLikeSite(raw: string): boolean {
-  const match = /^((?:[a-z0-9-]+\.)+([a-z]{2,}))(?::\d+)?(?:[/?#].*)?$/i.exec(raw)
-  if (!match) return false
-  // "index.html" e "notas.md" têm cara de domínio, mas são arquivos.
-  const ending = `.${match[2].toLowerCase()}`
-  return !PREVIEW_EXTENSIONS.includes(ending) && !MARKDOWN_EXTENSIONS.includes(ending)
-}
-
-/** O endereço é desta máquina (localhost)? */
-export function isLocalAddress(raw: string): boolean {
-  try {
-    const url = new URL(raw)
-    return url.protocol === 'file:' || LOCAL_HOSTS.has(url.hostname)
-  } catch {
-    return false
-  }
-}
-
-function localUrl(raw: string, web = false): PreviewTarget | string {
-  let url: URL
-  try {
-    url = new URL(raw)
-  } catch {
-    return t('Esse endereço não é válido.')
-  }
-  if (url.protocol !== 'http:' && url.protocol !== 'https:') {
-    return t('Só endereços http e https, e arquivos.')
-  }
-  if (!LOCAL_HOSTS.has(url.hostname)) {
-    // Uma página da internet (Fase 58): só com a opção ligada nas configurações.
-    return web ? { kind: 'url', url: url.href, display: url.href } : WEB_OFF()
-  }
-  // O 0.0.0.0 de um servidor de desenvolvimento quer dizer "todas as interfaces": abre por aqui.
-  if (url.hostname === '0.0.0.0') url.hostname = 'localhost'
-  return { kind: 'url', url: url.href, display: url.href }
-}
-
-/**
- * Uma navegação dentro da página vale? Com as páginas da internet ligadas (`web`), qualquer
- * endereço http ou https; sem elas, só o mesmo servidor. De um arquivo, outro arquivo da pasta
- * dele (e nunca de um endereço para um arquivo).
- */
-export function allowedNavigation(target: PreviewTarget, next: string, web = false): boolean {
-  let url: URL
-  try {
-    url = new URL(next)
-  } catch {
-    return false
-  }
-  if (web && (url.protocol === 'http:' || url.protocol === 'https:')) return true
-  if (target.kind === 'url') return url.origin === new URL(target.url).origin
-  if (target.kind !== 'file' || url.protocol !== 'file:') return false
-  const folder = pathToFileURL(dirname(target.path) + '/').href
-  return url.href.startsWith(folder)
-}
 
 /** O que a pré-visualização pede a quem a hospeda (a bancada). */
 export interface PreviewHost {
@@ -157,6 +46,8 @@ export interface PreviewHost {
   window(): BrowserWindow | null
   /** Um print da página, para a conversa em foco. */
   attach(dropped: DroppedFiles): void
+  /** Um texto para a caixa da conversa em foco (o elemento apontado, os erros do console). */
+  compose(text: string): void
   /** Abriu uma página (a bancada aparece, na aba do navegador). `input`: o que foi pedido. */
   opened(input: string): void
   /** O Ctrl+Shift+B com o foco na página: a bancada fecha, como pelo painel. */
@@ -168,6 +59,8 @@ export interface PreviewHost {
 const CLOSED: PreviewState = { open: false, display: '', kind: null }
 /** Quantas linhas do console da página ficam guardadas. */
 const MAX_LOGS = 200
+/** Quanto esperar você apontar um elemento antes de desistir (ms). */
+const PICK_TIMEOUT_MS = 60_000
 /** Os níveis do console, como o Claude os lê (o Electron antigo os dava em números). */
 const LOG_LEVELS: Record<string, string> = {
   '0': 'debug',
@@ -178,6 +71,8 @@ const LOG_LEVELS: Record<string, string> = {
   error: 'erro'
 }
 
+const wait = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms))
+
 /** O lugar da vista na janela: o da página, vezes o zoom do painel, em pixels inteiros. */
 export function viewRect(bounds: ViewBounds, zoom: number): ViewBounds {
   const scale = Number.isFinite(zoom) && zoom > 0 ? zoom : 1
@@ -187,6 +82,15 @@ export function viewRect(bounds: ViewBounds, zoom: number): ViewBounds {
     width: Math.max(0, Math.round(bounds.width * scale)),
     height: Math.max(0, Math.round(bounds.height * scale))
   }
+}
+
+/**
+ * O lugar com a página estreitada (Fase 61): `width` px de largura (antes do zoom), no meio do
+ * lugar reservado. Sem largura, ou com uma maior que o lugar, o lugar inteiro.
+ */
+export function narrowed(bounds: ViewBounds, width: number | null): ViewBounds {
+  if (!width || width >= bounds.width) return bounds
+  return { ...bounds, x: bounds.x + (bounds.width - width) / 2, width }
 }
 
 /** O que a página mandou como lugar da vista vale? (Quatro números, de um tamanho razoável.) */
@@ -201,8 +105,17 @@ export function saneBounds(value: unknown): ViewBounds | null {
   return { x: x as number, y: y as number, width: width as number, height: height as number }
 }
 
-/** A página do navegador da bancada (uma por vez) e o vigia da pasta do arquivo aberto. */
-class PreviewPane {
+/** O que uma página pede às abas. */
+interface PageHost {
+  window(): BrowserWindow | null
+  web(): boolean
+  toggle(): void
+  /** Algo mudou na página (o endereço, o título, os erros): o painel acompanha. */
+  changed(): void
+}
+
+/** Uma página do navegador da bancada (uma aba) e o vigia da pasta do arquivo aberto. */
+class PreviewPage {
   private view: WebContentsView | null = null
   private home: BrowserWindow | null = null
   private target: PreviewTarget | null = null
@@ -214,13 +127,24 @@ class PreviewPane {
   private lastRect: ViewBounds | null = null
   /** O console da página e as falhas de carga, para o Claude (Fase 57): as últimas linhas. */
   private logs: string[] = []
+  /** Os erros que ainda não foram para a conversa (Fase 62). */
+  private fresh: string[] = []
+  /** Você está apontando um elemento (Fase 60). */
+  picking = false
   /** A página do painel recarregou: o lugar antigo não vale até ela mandar o novo. */
   private readonly forget = (): void => {
     this.bounds = null
     this.layout()
   }
 
-  constructor(private readonly host: PreviewHost) {}
+  constructor(
+    readonly id: number,
+    private readonly host: PageHost
+  ) {}
+
+  get opened(): boolean {
+    return this.view !== null
+  }
 
   open(target: PreviewTarget): boolean {
     if (target.kind === 'markdown') return true
@@ -233,7 +157,7 @@ class PreviewPane {
     })
     this.watch()
     this.layout()
-    this.notify()
+    this.host.changed()
     return true
   }
 
@@ -262,6 +186,8 @@ class PreviewPane {
     this.view = null
     this.target = null
     this.logs = []
+    this.fresh = []
+    this.picking = false
     this.unwatch()
     if (this.home && !this.home.isDestroyed()) {
       this.home.webContents.off('did-start-loading', this.forget)
@@ -269,7 +195,6 @@ class PreviewPane {
     }
     this.home = null
     if (!view.webContents.isDestroyed()) view.webContents.close()
-    this.notify()
   }
 
   /** A página do painel diz onde a vista fica (ou que ela some: outra aba, algo por cima). */
@@ -289,23 +214,29 @@ class PreviewPane {
     return [...this.logs]
   }
 
+  /** Os erros que ainda não foram para a conversa; lidos, deixam de contar. */
+  takeErrors(): string[] {
+    const errors = this.fresh.splice(0)
+    if (errors.length) this.host.changed()
+    return errors
+  }
+
   /** Espera a página acabar de carregar (até `ms`). */
   private async settled(ms = 10_000): Promise<void> {
     const contents = this.view?.webContents
     if (!contents || contents.isDestroyed()) return
     const start = Date.now()
-    while (contents.isLoading() && Date.now() - start < ms) {
-      await new Promise((resolve) => setTimeout(resolve, 100))
-    }
+    while (contents.isLoading() && Date.now() - start < ms) await wait(100)
     // Um instante para a página pintar (e para o painel dizer onde ela fica).
-    await new Promise((resolve) => setTimeout(resolve, 250))
+    await wait(250)
   }
 
   /**
-   * A imagem da página, depois de carregada. Com a vista escondida (a bancada fechada, outra
-   * aba), ela aparece só durante o print, no último lugar que teve. Devolve o motivo se não der.
+   * A imagem da página (ou de um pedaço dela), depois de carregada. Com a vista escondida (a
+   * bancada fechada, outra aba), ela aparece só durante o print, no último lugar que teve.
+   * Devolve o motivo se não der.
    */
-  async image(): Promise<NativeImage | string> {
+  async image(rect?: ViewBounds): Promise<NativeImage | string> {
     const view = this.view
     if (!view) return t('A pré-visualização está fechada.')
     await this.settled()
@@ -317,9 +248,11 @@ class PreviewPane {
       if (hidden) {
         view.setBounds(this.lastRect ?? { x: 0, y: 0, width: 1024, height: 720 })
         view.setVisible(true)
-        await new Promise((resolve) => setTimeout(resolve, 150))
+        await wait(150)
       }
-      const image = await view.webContents.capturePage()
+      const image = await (rect
+        ? view.webContents.capturePage(rect)
+        : view.webContents.capturePage())
       return image.isEmpty() ? t('A página ainda não apareceu.') : image
     } catch (err) {
       return (err as Error).message
@@ -356,13 +289,44 @@ class PreviewPane {
     }
   }
 
-  /** Um print da página, salvo como anexo. */
-  async capture(): Promise<DroppedFiles> {
+  /**
+   * Apontar um elemento (Fase 60): a página ganha uma mira; o clique devolve o seletor, o
+   * texto, os estilos e o lugar dele, e o recorte vira um anexo. Esc (ou um minuto) desiste.
+   */
+  async pick(): Promise<{ picked: Picked; shot: DroppedFiles; url: string } | null> {
+    const view = this.view
+    if (!view || this.picking) return null
+    this.picking = true
+    this.host.changed()
+    try {
+      view.webContents.focus()
+      const raw: unknown = await Promise.race([
+        view.webContents.executeJavaScript(PICK_SCRIPT, true),
+        wait(PICK_TIMEOUT_MS + 2000).then(() => null)
+      ])
+      const picked = sanePick(raw)
+      if (!picked || this.view !== view) return null
+      // A mira já saiu da página: um instante para ela pintar sem a moldura.
+      await wait(80)
+      const shot = await this.capture(picked.rect, 'elemento')
+      return { picked, shot, url: view.webContents.getURL() }
+    } catch {
+      return null
+    } finally {
+      this.picking = false
+      this.host.changed()
+    }
+  }
+
+  /** Um print da página (ou de um pedaço), salvo como anexo. */
+  async capture(rect?: ViewBounds, name = 'preview'): Promise<DroppedFiles> {
     if (!this.view) return { files: [], problems: [t('A pré-visualização está fechada.')] }
     try {
-      const image = await this.view.webContents.capturePage()
+      const image = await (rect
+        ? this.view.webContents.capturePage(viewRect(rect, 1))
+        : this.view.webContents.capturePage())
       if (image.isEmpty()) return { files: [], problems: [t('A página ainda não apareceu.')] }
-      const saved = await saveIncoming(image.toPNG(), 'preview', 'png')
+      const saved = await saveIncoming(image.toPNG(), name, 'png')
       const thumbnail = thumbnailOf(image)
       return { files: [{ ...saved, ...(thumbnail ? { thumbnail } : {}) }], problems: [] }
     } catch (err) {
@@ -380,7 +344,9 @@ class PreviewPane {
       title: contents.getTitle(),
       loading: contents.isLoading(),
       canGoBack: contents.navigationHistory.canGoBack(),
-      canGoForward: contents.navigationHistory.canGoForward()
+      canGoForward: contents.navigationHistory.canGoForward(),
+      errors: this.fresh.length,
+      picking: this.picking
     }
   }
 
@@ -429,8 +395,9 @@ class PreviewPane {
       return { action: 'deny' }
     })
     const guard = (event: { preventDefault(): void }, url: string): void => {
-      if (this.target && !allowedNavigation(this.target, url, this.host.web()))
+      if (this.target && !allowedNavigation(this.target, url, this.host.web())) {
         event.preventDefault()
+      }
     }
     contents.on('will-navigate', guard)
     contents.on('will-redirect', guard)
@@ -446,8 +413,13 @@ class PreviewPane {
     })
     // O console e as falhas de carga ficam guardados para o Claude ler (as últimas 200 linhas).
     const log = (line: string): void => {
-      this.logs.push(line.slice(0, 2000))
+      const short = line.slice(0, 2000)
+      this.logs.push(short)
       if (this.logs.length > MAX_LOGS) this.logs.splice(0, this.logs.length - MAX_LOGS)
+      if (!short.startsWith('[erro]')) return
+      this.fresh.push(short)
+      if (this.fresh.length > 50) this.fresh.shift()
+      this.host.changed()
     }
     contents.on('console-message', (event, ...old: unknown[]) => {
       // O Electron novo entrega tudo no evento; o antigo, em argumentos soltos.
@@ -465,11 +437,15 @@ class PreviewPane {
           `[erro] ${isMainFrame ? 'a página' : 'um recurso'} não carregou: ${description} (${url})`
         )
     })
-    contents.on('did-navigate', (_event, url) => log(`[página] ${url}`))
+    contents.on('did-navigate', (_event, url) => {
+      // Uma página nova: os erros da anterior não contam mais.
+      this.fresh = []
+      log(`[página] ${url}`)
+    })
     contents.on('render-process-gone', (_event, details) =>
       log(`[erro] a página caiu (${details.reason})`)
     )
-    const changed = (): void => this.notify()
+    const changed = (): void => this.host.changed()
     contents.on('did-start-loading', changed)
     contents.on('did-stop-loading', changed)
     contents.on('did-navigate', changed)
@@ -515,6 +491,107 @@ class PreviewPane {
     if (this.reloadTimer) clearTimeout(this.reloadTimer)
     this.reloadTimer = null
   }
+}
+
+/**
+ * As abas do navegador da bancada (Fase 59): uma página por aba, uma à vista. Só a que está à
+ * vista ocupa o lugar na janela; as outras continuam carregadas, escondidas.
+ */
+class PreviewTabs {
+  private pages: PreviewPage[] = []
+  private active: PreviewPage | null = null
+  private nextId = 1
+  /** Onde a página do painel quer a vista, e a largura pedida (null: o lugar todo). */
+  private bounds: ViewBounds | null = null
+  private width: number | null = null
+
+  constructor(private readonly host: PreviewHost) {}
+
+  private readonly pageHost: PageHost = {
+    window: () => this.host.window(),
+    web: () => this.host.web(),
+    toggle: () => this.host.toggle(),
+    changed: () => this.notify()
+  }
+
+  /** A página à vista (null: nenhuma aba). */
+  get page(): PreviewPage | null {
+    return this.active
+  }
+
+  /** Abre numa aba nova (`fresh`, ou se não há nenhuma) ou na que está à vista. */
+  open(target: PreviewTarget, fresh: boolean): boolean | string {
+    if (target.kind === 'markdown') return true
+    if (!this.host.window()) return false
+    if (fresh || !this.active) {
+      if (this.pages.length >= MAX_PREVIEW_TABS) {
+        return t('O navegador da bancada tem no máximo {max} abas.', { max: MAX_PREVIEW_TABS })
+      }
+      const page = new PreviewPage(this.nextId++, this.pageHost)
+      this.pages.push(page)
+      this.active = page
+    }
+    const ok = this.active.open(target)
+    this.layout()
+    return ok
+  }
+
+  select(id: number): boolean {
+    const page = this.pages.find((item) => item.id === id)
+    if (!page) return false
+    this.active = page
+    this.layout()
+    this.notify()
+    return true
+  }
+
+  /** Fecha uma aba (sem o id, a que está à vista); a vizinha passa a ser a da vista. */
+  close(id?: number): void {
+    const page = id === undefined ? this.active : this.pages.find((item) => item.id === id)
+    if (!page) return
+    const index = this.pages.indexOf(page)
+    this.pages.splice(index, 1)
+    page.close()
+    if (this.active === page) this.active = this.pages[index] ?? this.pages[index - 1] ?? null
+    this.layout()
+    this.notify()
+  }
+
+  place(bounds: ViewBounds | null): void {
+    this.bounds = bounds
+    this.layout()
+  }
+
+  /** A largura da página (Fase 61): um celular, um tablet, ou o lugar todo (null). */
+  resize(width: number | null): void {
+    this.width = width
+    this.layout()
+    this.notify()
+  }
+
+  private layout(): void {
+    for (const page of this.pages) {
+      page.place(page === this.active && this.bounds ? narrowed(this.bounds, this.width) : null)
+    }
+  }
+
+  state(): PreviewState {
+    const current = this.active?.state() ?? CLOSED
+    if (!current.open) return CLOSED
+    return {
+      ...current,
+      width: this.width,
+      tabs: this.pages.map((page) => {
+        const state = page.state()
+        return {
+          id: page.id,
+          title: state.title || state.display,
+          active: page === this.active,
+          errors: state.errors ?? 0
+        }
+      })
+    }
+  }
 
   private notify(): void {
     const win = this.host.window()
@@ -524,61 +601,115 @@ class PreviewPane {
 
 /** O que o resto do main (as ferramentas do Claude, Fase 57) faz com a pré-visualização. */
 export interface PreviewControl {
-  /** Abre um endereço desta máquina ou um arquivo (`base`: a pasta para um caminho relativo). */
-  open(input: string, base: string | null): PreviewResult
+  /**
+   * Abre um endereço ou um arquivo (`base`: a pasta para um caminho relativo), na aba à vista
+   * ou, com `fresh`, numa nova.
+   */
+  open(input: string, base: string | null, fresh?: boolean): PreviewResult
   state(): PreviewState
   /** A página à vista é da internet (o conteúdo dela não é de confiança). */
   remote(): boolean
   image(): Promise<NativeImage | string>
   evaluate(code: string): Promise<{ ok: true; value: string } | { ok: false; message: string }>
   console(): string[]
+  /** Passa para uma aba, ou fecha uma (pelo id que o `state().tabs` dá). */
+  selectTab(id: number): boolean
+  closeTab(id: number): void
+  /** A largura da página: um número de pixels, ou null para o lugar todo. */
+  resize(width: number | null): void
 }
 
 /** O IPC da pré-visualização (só o painel pede) e o controle dela para o resto do main. */
 export function setupPreview(host: PreviewHost): PreviewControl {
-  const preview = new PreviewPane(host)
+  const tabs = new PreviewTabs(host)
   const from = (event: IpcMainInvokeEvent): boolean => host.isSender(event.sender)
-  const open = (input: string, base: string | null): PreviewResult => {
+  const open = (input: string, base: string | null, fresh = false): PreviewResult => {
     const target = previewTarget(input.slice(0, 4096), base, undefined, host.web())
     if (typeof target === 'string') return { ok: false, message: target }
     if (target.kind === 'markdown') return { ok: true, kind: 'markdown', path: target.path }
-    if (!preview.open(target)) return { ok: false, message: t('O painel do Wisp está fechado.') }
+    const opened = tabs.open(target, fresh)
+    if (typeof opened === 'string') return { ok: false, message: opened }
+    if (!opened) return { ok: false, message: t('O painel do Wisp está fechado.') }
     host.opened(target.display)
     return { ok: true, kind: target.kind }
   }
-  ipcMain.handle(IPC.previewOpen, (event, input: unknown, base: unknown): PreviewResult => {
-    if (!from(event) || typeof input !== 'string')
-      return { ok: false, message: t('pedido inválido') }
-    return open(input, typeof base === 'string' ? base : null)
-  })
+  ipcMain.handle(
+    IPC.previewOpen,
+    (event, input: unknown, base: unknown, fresh: unknown): PreviewResult => {
+      if (!from(event) || typeof input !== 'string')
+        return { ok: false, message: t('pedido inválido') }
+      return open(input, typeof base === 'string' ? base : null, fresh === true)
+    }
+  )
   ipcMain.handle(IPC.previewCapture, async (event): Promise<boolean> => {
     if (!from(event)) return false
-    const dropped = await preview.capture()
+    const dropped = (await tabs.page?.capture()) ?? {
+      files: [],
+      problems: [t('A pré-visualização está fechada.')]
+    }
     host.attach(dropped)
     return dropped.files.length > 0
   })
+  // Apontar um elemento (Fase 60): o recorte vai como anexo e a descrição, para a caixa.
+  ipcMain.handle(IPC.previewPick, async (event): Promise<boolean> => {
+    if (!from(event)) return false
+    const result = await tabs.page?.pick()
+    if (!result) return false
+    if (result.shot.files.length) host.attach(result.shot)
+    host.compose(pickedText(result.picked, result.url))
+    return true
+  })
+  // Os erros do console que ainda não foram para a conversa (Fase 62): vão para a caixa.
+  ipcMain.handle(IPC.previewErrors, (event): boolean => {
+    if (!from(event)) return false
+    const page = tabs.page
+    const errors = page?.takeErrors() ?? []
+    if (!page || !errors.length) return false
+    host.compose(
+      t('A página {url} mostrou estes erros no console:', { url: page.state().display }) +
+        '\n```\n' +
+        errors.join('\n').slice(0, 6000) +
+        '\n```\n'
+    )
+    return true
+  })
   ipcMain.on(IPC.previewReload, (event) => {
-    if (host.isSender(event.sender)) preview.reload()
+    if (host.isSender(event.sender)) tabs.page?.reload()
   })
   ipcMain.on(IPC.previewClose, (event) => {
-    if (host.isSender(event.sender)) preview.close()
+    if (host.isSender(event.sender)) tabs.close()
   })
   ipcMain.on(IPC.previewGo, (event, step: unknown) => {
-    if (host.isSender(event.sender) && (step === -1 || step === 1)) preview.go(step)
+    if (host.isSender(event.sender) && (step === -1 || step === 1)) tabs.page?.go(step)
   })
   ipcMain.on(IPC.previewExternal, (event) => {
-    if (host.isSender(event.sender)) preview.external()
+    if (host.isSender(event.sender)) tabs.page?.external()
   })
   ipcMain.on(IPC.previewBounds, (event, bounds: unknown) => {
-    if (host.isSender(event.sender)) preview.place(saneBounds(bounds))
+    if (host.isSender(event.sender)) tabs.place(saneBounds(bounds))
   })
-  ipcMain.handle(IPC.previewGet, (event): PreviewState => (from(event) ? preview.state() : CLOSED))
+  ipcMain.on(IPC.previewTab, (event, id: unknown, close: unknown) => {
+    if (!host.isSender(event.sender) || typeof id !== 'number') return
+    if (close === true) tabs.close(id)
+    else tabs.select(id)
+  })
+  ipcMain.on(IPC.previewWidth, (event, width: unknown) => {
+    if (host.isSender(event.sender)) tabs.resize(previewWidth(width))
+  })
+  ipcMain.handle(IPC.previewGet, (event): PreviewState => (from(event) ? tabs.state() : CLOSED))
   return {
     open,
-    state: () => preview.state(),
-    remote: () => preview.remote(),
-    image: () => preview.image(),
-    evaluate: (code) => preview.evaluate(code),
-    console: () => preview.console()
+    state: () => tabs.state(),
+    remote: () => tabs.page?.remote() ?? false,
+    image: async () => (await tabs.page?.image()) ?? t('A pré-visualização está fechada.'),
+    evaluate: async (code) =>
+      (await tabs.page?.evaluate(code)) ?? {
+        ok: false,
+        message: t('A pré-visualização está fechada.')
+      },
+    console: () => tabs.page?.console() ?? [],
+    selectTab: (id) => tabs.select(id),
+    closeTab: (id) => tabs.close(id),
+    resize: (width) => tabs.resize(width)
   }
 }

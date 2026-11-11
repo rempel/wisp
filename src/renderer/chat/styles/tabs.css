@@ -369,3 +369,8 @@
 .plan-actions .always {
   color: var(--text);
 }
+
+/* A aba de uma conversa num projeto (Fase 77): um traço na cor dele. */
+.tab.in-project {
+  box-shadow: inset 3px 0 0 var(--project);
+}

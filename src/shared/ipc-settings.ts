@@ -1,3 +1,4 @@
+import type { Project } from './projects'
 // As configurações e o que mora nelas: as integrações (o resumo da semana e a agenda), o
 // diagnóstico, o celular, as skills, a chave da OpenRouter e os servidores MCP.
 
@@ -94,11 +95,17 @@ export interface Settings {
   usageAlerts: boolean
   turnReview: boolean
   previewWeb: boolean
+  fileManagerMenu: boolean
+  commandInPath: boolean
+  desktopSearch: boolean
+  gnomeExtension: boolean
   provider: Provider
   openrouterModel: string | null
+  localModelsUrl: string | null
   phoneAfterSeconds: number
   updateCheck: boolean
   prompts: SavedPrompt[]
+  projects: Project[]
   scheduledTasks: ScheduledTask[]
 }
 
@@ -152,11 +159,17 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'usageAlerts',
   'turnReview',
   'previewWeb',
+  'fileManagerMenu',
+  'commandInPath',
+  'desktopSearch',
+  'gnomeExtension',
   'provider',
   'openrouterModel',
+  'localModelsUrl',
   'phoneAfterSeconds',
   'updateCheck',
   'prompts',
+  'projects',
   'scheduledTasks'
 ]
 
