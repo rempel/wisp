@@ -10,6 +10,7 @@ import { PromptsSection, TasksSection } from './AutomationSection'
 import { MascotGallery } from './MascotGallery'
 import { McpSection } from './McpSection'
 import { MODE_TEXT } from './modes'
+import { ProjectsSection } from './ProjectsSection'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
@@ -27,6 +28,7 @@ import {
   Toggle
 } from './SettingsFields'
 import { parseReplacements } from '../../shared/dictation'
+import { IntegrationToggles } from './IntegrationToggles'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -385,6 +387,11 @@ export function SettingsView({
             checked={values.previewWeb}
             onChange={(previewWeb) => void save({ previewWeb })}
           />
+          <IntegrationToggles
+            values={values}
+            save={save}
+            toggle={(props) => <Toggle key={props.label} {...props} />}
+          />
         </Section>
 
         <Section title={t('Aparência e acessibilidade')}>
@@ -668,6 +675,10 @@ export function SettingsView({
           <VoiceTest />
         </Section>
 
+        <Section title={t('Projetos')}>
+          <ProjectsSection projects={values.projects} save={save} />
+        </Section>
+
         <Section title={t('Skills')}>
           <SkillsSection />
         </Section>
@@ -706,6 +717,19 @@ export function SettingsView({
             </select>
           </Row>
           <OpenRouterKey present={snapshot.openrouterKey} />
+          <Row
+            label={t('Servidor de modelos local')}
+            hint={t(
+              'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.'
+            )}
+            error={errors.localModelsUrl}
+          >
+            <TextInput
+              value={values.localModelsUrl ?? ''}
+              placeholder="http://localhost:11434"
+              onCommit={(url) => save({ localModelsUrl: url || null })}
+            />
+          </Row>
           <Row
             label={t('Modelo')}
             hint={t(

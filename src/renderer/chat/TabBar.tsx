@@ -2,6 +2,7 @@ import type { JSX } from 'react'
 import { MAX_PANES } from '../../shared/ipc'
 import type { TabsState } from '../../shared/ipc'
 import { TAB_DRAG_TYPE } from '../../shared/layout'
+import { PROJECT_TONES } from '../../shared/projects'
 import { FolderMenu } from './FolderMenu'
 import { CloseIcon, FolderIcon, PlusIcon, SplitIcon, TerminalIcon } from './icons'
 import { t } from '../../shared/i18n'
@@ -40,11 +41,17 @@ export function TabBar({
           const visible = state.panes.includes(tab.id)
           const active = tab.id === focusedId
           const label = STATUS_LABEL[status]
+          // O projeto da pasta da conversa (Fase 77): a aba ganha a cor e o nome dele.
+          const project = tab.kind === 'chat' ? tab.inProject : undefined
           return (
             <div
               key={tab.id}
               data-tab={tab.id}
-              className={`tab tab-${status}${visible ? ' visible' : ''}${active ? ' active' : ''}`}
+              className={`tab tab-${status}${visible ? ' visible' : ''}${active ? ' active' : ''}${project ? ' in-project' : ''}`}
+              style={
+                project ? { ['--project' as string]: PROJECT_TONES[project.color] } : undefined
+              }
+              title={project ? t('Projeto: {name}', { name: project.name }) : undefined}
             >
               <button
                 type="button"

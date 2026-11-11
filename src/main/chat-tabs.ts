@@ -20,7 +20,9 @@ import {
 } from '../shared/layout'
 import type { DropZone, Layout } from '../shared/layout'
 import type { Conversation } from './conversation'
+import { getConfig } from './config'
 import { tilde } from './folders'
+import { projectOf } from '../shared/projects'
 import { t } from '../shared/i18n'
 
 /** Quantas abas abertas, no máximo: cada conversa é um processo do Claude Code. */
@@ -123,13 +125,15 @@ export class ChatTabs {
       return { id: tab.id, kind: 'session', title: tab.title, sessionId: tab.sessionId }
     }
     const { title, project, folder } = tab.conversation
+    const owner = projectOf(folder, getConfig().projects)
     return {
       id: tab.id,
       kind: 'chat',
       // Uma conversa numa pasta, ainda sem mensagens, leva o nome do projeto.
       title: title ?? project ?? t('Nova conversa'),
       ...(project ? { project } : {}),
-      ...(folder ? { folder: tilde(folder) } : {})
+      ...(folder ? { folder: tilde(folder) } : {}),
+      ...(owner ? { inProject: { name: owner.name, color: owner.color } } : {})
     }
   }
 

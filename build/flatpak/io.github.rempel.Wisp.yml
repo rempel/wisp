@@ -59,6 +59,8 @@ modules:
       - type: file
         path: io.github.rempel.Wisp.metainfo.xml
       - type: file
+        path: ../linux/io.github.rempel.Wisp.search-provider.ini
+      - type: file
         path: ../icons/256x256.png
       - type: file
         path: ../icons/512x512.png
@@ -67,5 +69,7 @@ modules:
       - install -Dm755 wisp.sh /app/bin/wisp
       - install -Dm644 io.github.rempel.Wisp.desktop /app/share/applications/io.github.rempel.Wisp.desktop
       - install -Dm644 io.github.rempel.Wisp.metainfo.xml /app/share/metainfo/io.github.rempel.Wisp.metainfo.xml
+      # O Wisp na busca do GNOME (Fase 72): o GNOME lê os provedores das pastas exportadas.
+      - install -Dm644 io.github.rempel.Wisp.search-provider.ini /app/share/gnome-shell/search-providers/io.github.rempel.Wisp.search-provider.ini
       - install -Dm644 256x256.png /app/share/icons/hicolor/256x256/apps/io.github.rempel.Wisp.png
       - install -Dm644 512x512.png /app/share/icons/hicolor/512x512/apps/io.github.rempel.Wisp.png

@@ -15,7 +15,11 @@ export interface SlashCommand {
 /** Os comandos que o próprio Wisp atende (os outros vão para o Claude Code como mensagem). */
 export const WISP_COMMANDS: SlashCommand[] = [
   { name: 'compact', description: t('Compactar a conversa (escreva depois o que manter)') },
-  { name: 'clear', description: t('Começar uma conversa nova nesta aba') }
+  { name: 'clear', description: t('Começar uma conversa nova nesta aba') },
+  {
+    name: 'pr',
+    description: t('Revisar um PR numa cópia do projeto (o número ou o endereço)')
+  }
 ]
 
 /** O que os comandos mais comuns do Claude Code fazem (os outros, como skills, vão sem descrição). */

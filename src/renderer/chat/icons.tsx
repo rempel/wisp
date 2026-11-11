@@ -327,6 +327,22 @@ export const ExternalIcon = (): JSX.Element => (
   </Icon>
 )
 
+/** A mira de apontar um elemento da página (Fase 60). */
+export const TargetIcon = (): JSX.Element => (
+  <Icon>
+    <circle cx="8" cy="8" r="4.5" />
+    <path d="M8 1.5v3M8 11.5v3M1.5 8h3M11.5 8h3" />
+  </Icon>
+)
+
+/** A largura da página: um celular (Fase 61). */
+export const PhoneIcon = (): JSX.Element => (
+  <Icon>
+    <rect x="4.5" y="2" width="7" height="12" rx="1.6" />
+    <path d="M7.3 11.8h1.4" />
+  </Icon>
+)
+
 export const SoundOnIcon = (): JSX.Element => (
   <Icon>
     <path d="M2.8 6.2h2.3l3.4-2.7v9L5.1 9.8H2.8a.5.5 0 0 1-.5-.5V6.7a.5.5 0 0 1 .5-.5Z" />

@@ -12,13 +12,32 @@
 
 import { existsSync, lstatSync, mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'fs'
 import { join } from 'path'
+import { getConfig } from './config'
 import { DATA_DIR } from './paths'
 import { claudeConfigDir } from './skills'
 import { t } from '../shared/i18n'
 
-/** O endereço da OpenRouter (WISP_OPENROUTER_URL troca, para os testes). */
+/**
+ * O servidor de modelos local das configurações (Fase 66: Ollama, LM Studio), sem a barra do
+ * fim; null sem um. Com ele, o outro provedor das conversas é esse servidor, e não a OpenRouter.
+ */
+export function localModelsUrl(): string | null {
+  const url = getConfig().localModelsUrl?.trim().replace(/\/+$/, '')
+  return url || null
+}
+
+/** A "chave" de um servidor local: ele não pede uma, mas o Claude Code quer um token. */
+export const LOCAL_KEY = 'local'
+
+/**
+ * O endereço do outro provedor: o servidor local, se houver um nas configurações; senão, a
+ * OpenRouter (WISP_OPENROUTER_URL troca, para os testes).
+ */
 export function openrouterUrl(): string {
-  return (process.env.WISP_OPENROUTER_URL || 'https://openrouter.ai/api').trim().replace(/\/+$/, '')
+  return (
+    localModelsUrl() ??
+    (process.env.WISP_OPENROUTER_URL || 'https://openrouter.ai/api').trim().replace(/\/+$/, '')
+  )
 }
 /** O nome da chave no chaveiro. */
 export const OPENROUTER_SECRET = 'openrouter'
@@ -173,16 +192,19 @@ async function getJson(path: string, key?: string): Promise<{ status: number; bo
   return { status: response.status, body }
 }
 
-let cache: { at: number; models: OpenRouterModel[] } | null = null
+let cache: { at: number; url: string; models: OpenRouterModel[] } | null = null
 
 /** Os modelos da OpenRouter (a lista é pública; guardada por uma hora). */
 export async function listModels(now = Date.now()): Promise<OpenRouterModel[]> {
-  if (cache && now - cache.at < MODELS_TTL_MS) return cache.models
+  const url = openrouterUrl()
+  // Os modelos de um servidor local mudam quando você baixa um: a lista vale por um minuto.
+  const ttl = localModelsUrl() ? 60_000 : MODELS_TTL_MS
+  if (cache && cache.url === url && now - cache.at < ttl) return cache.models
   const { status, body } = await getJson('/v1/models')
   if (status !== 200) throw new Error(t('a OpenRouter respondeu {status}', { status }))
   const models = parseModels(body)
   if (!models.length) throw new Error(t('a OpenRouter mandou uma lista vazia'))
-  cache = { at: now, models }
+  cache = { at: now, url, models }
   return models
 }
 

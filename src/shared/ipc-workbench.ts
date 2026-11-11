@@ -3,8 +3,8 @@
 // Claude Code do modo terminal, que continua na aba da conversa).
 
 /** As abas da bancada. */
-export type WorkbenchTab = 'browser' | 'terminal'
-export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal']
+export type WorkbenchTab = 'browser' | 'terminal' | 'changes' | 'plan'
+export const WORKBENCH_TABS: WorkbenchTab[] = ['browser', 'terminal', 'changes', 'plan']
 
 /** A largura da bancada na janela (px, antes do zoom do painel). */
 export const WORKBENCH_WIDTH = { min: 300, initial: 520, max: 2400 }
@@ -63,4 +63,67 @@ const PANES_MIN = 320
 export function draggedWidth(right: number, x: number, total: number): number {
   const most = Math.max(WORKBENCH_WIDTH.min, total - PANES_MIN)
   return Math.round(Math.min(most, Math.max(WORKBENCH_WIDTH.min, right - x)))
+}
+
+/** Quantas abas o navegador da bancada tem, no máximo (Fase 59). */
+export const MAX_PREVIEW_TABS = 6
+
+/** As larguras de tela que o navegador da bancada oferece (Fase 61), em px. */
+export const PREVIEW_WIDTHS = { phone: 390, tablet: 768 }
+
+/** A largura pedida para a página: um inteiro razoável, ou null (o lugar todo). */
+export function previewWidth(value: unknown): number | null {
+  if (typeof value !== 'number' || !Number.isFinite(value)) return null
+  return Math.round(Math.min(2400, Math.max(240, value)))
+}
+
+/** Uma aba do navegador da bancada. */
+export interface PreviewTab {
+  id: number
+  title: string
+  active: boolean
+  /** Os erros do console que ainda não foram para a conversa. */
+  errors: number
+}
+
+/** A próxima largura do botão do navegador: o lugar todo, um celular, um tablet, e de volta. */
+export function nextPreviewWidth(now: number | null | undefined): number | null {
+  const widths: (number | null)[] = [null, PREVIEW_WIDTHS.phone, PREVIEW_WIDTHS.tablet]
+  return widths[(widths.indexOf(now ?? null) + 1) % widths.length]
+}
+
+/** As linguagens de um bloco de código que são comandos de shell (o Rodar no terminal, Fase 63). */
+export const SHELL_LANGUAGES = [
+  'sh',
+  'bash',
+  'zsh',
+  'shell',
+  'console',
+  'fish',
+  'powershell',
+  'ps1',
+  'cmd',
+  'bat'
+]
+
+/**
+ * O comando de um bloco de shell, pronto para colar: sem o "$ " (ou "> ") do começo das linhas
+ * e sem as linhas vazias das pontas.
+ */
+export function shellSnippet(code: string): string {
+  return code
+    .split('\n')
+    .map((line) => line.replace(/^\s*[$>]\s+/, ''))
+    .join('\n')
+    .trim()
+}
+
+/** Um servidor de uma pasta de projeto, para o Rodar da bancada (Fase 75). */
+export interface LaunchConfig {
+  name: string
+  /** O comando inteiro, como o terminal vai receber (é o que você confirma). */
+  command: string
+  /** A porta em que a página responde (null: não se sabe; a bancada espera a saída dizer). */
+  port: number | null
+  source: 'launch.json' | 'package.json'
 }

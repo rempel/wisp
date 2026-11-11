@@ -2,7 +2,7 @@
 
 O detalhe técnico de cada parte do Wisp: os processos, os protocolos, as decisões de segurança e
 o porquê de cada escolha. A visão geral está no [README](../README.md#como-funciona); o que cada
-fase trouxe, no [ROADMAP](../ROADMAP.md).
+fase trouxe, no [histórico das fases](HISTORICO.md); o que vem depois, no [ROADMAP](../ROADMAP.md).
 
 ## Os arquivos
 
@@ -47,6 +47,17 @@ src/
 │  ├─ workbench.ts   # a bancada: o que ela guarda (aberta, a aba, a largura, os últimos) e o IPC (Fase 55)
 │  ├─ shells.ts      # os terminais da bancada: os seus e o do Claude, num pseudo-terminal (Fases 55 e 57)
 │  ├─ mcp-workbench.ts # as ferramentas do Claude para a bancada: preview_* e terminal_* (Fase 57)
+│  ├─ preview-target.ts # o que a pré-visualização abre e para onde navega (puro; Fases 47 e 58)
+│  ├─ preview-pick.ts # apontar um elemento da página: a mira e o texto para a conversa (Fase 60)
+│  ├─ memory.ts      # a memória à vista: os CLAUDE.md, a prévia com o diff e o gravar (Fase 65)
+│  ├─ file-menu.ts   # o "Perguntar ao Wisp" do gerenciador de arquivos e o wisp no PATH do Windows (Fases 64 e 67)
+│  ├─ search-provider.ts # o Wisp na busca do desktop: o KRunner e o GNOME, pelo D-Bus (Fase 72)
+│  ├─ gnome-shell.ts # a extensão do GNOME Shell e o que o Wisp pede a ela (Fase 70)
+│  ├─ integrations.ts # as integrações com o sistema, ligadas e desligadas pelo config (Fases 64 a 72)
+│  ├─ volume-app-win.ts # no Windows: o volume de um programa no mixer (Fase 69)
+│  ├─ chat-ipc.ts    # o que a página pede de uma conversa (saiu do chat.ts): mandar, parar, o modelo, o modo
+│  ├─ launch.ts      # subir o projeto: os servidores do launch.json e do package.json, e a espera pela porta (Fase 75)
+│  ├─ pr-review.ts   # revisar um PR: o gh, a cópia do Git no commit do PR e o pedido de revisão (Fase 78)
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)
