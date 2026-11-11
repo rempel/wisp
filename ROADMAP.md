@@ -8,7 +8,7 @@ As fases seguem a regra de sempre: uma de cada vez, cada uma com um aceite que d
 validação com o uso antes de ser dada por pronta. Esforço: **P** (até um dia), **M** (alguns
 dias), **G** (uma semana ou mais).
 
-**Onde estamos:** as Fases 59 a 72 (abaixo) estão implementadas, com testes, e esperam a
+**Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
 confirma.
 
@@ -199,31 +199,103 @@ aparecer no KRunner e na busca do GNOME.
 Nota: no GNOME, vale nos pacotes .deb e Flatpak (o GNOME só lê os provedores de busca das pastas
 do sistema), e com o Wisp aberto.
 
+## Fases 73 a 78: fechar as pontas e completar a bancada (novembro de 2026)
+
+Vieram do "o que vem depois" das Fases 59 a 72 e das pontas que elas deixaram.
+
+#### Fase 73: as pontas
+
+**Status:** pronta, esperando validação (testes: `test/bancada.test.ts`,
+`test/busca-desktop.test.ts`; `e2e/pontas.mjs`).
+
+- **Os olhos no GNOME (P):** com a extensão da Fase 70, o mascote segue o cursor no GNOME com
+  Wayland. **Só o uso confirma:** depende da extensão rodando num GNOME de verdade.
+- **Erros no terminal (P):** uma linha com cara de erro na saída de um terminal da bancada vira
+  um aviso, com um clique para pôr as últimas linhas na caixa da conversa.
+- **O pé do terminal (P):** o fundo preto do xterm não aparece mais como uma faixa.
+
+**Aceite:** um comando que não existe, no terminal da bancada, mostra "Parece um erro no
+terminal: mandar ao Claude"; o clique põe o trecho na caixa.
+
+#### Fase 74: a aba Mudanças
+
+**Status:** pronta, esperando validação (testes: `e2e/pontas.mjs`, com uma edição de verdade).
+
+- **Mudanças (M):** os arquivos que a conversa em foco mexeu, de antes da primeira edição até
+  agora, com o diff de cada um e o desfazer, um a um ou todos. É o card do fim da resposta (Fase 42) à vista durante o trabalho, somando as respostas.
+
+**Aceite:** depois de duas respostas que editaram arquivos, a aba lista todos; **Desfazer** num
+deles devolve o arquivo ao que era antes da conversa.
+
+Nota: como o card, cobre as edições pelas ferramentas de edição; o que um comando do terminal
+muda não entra.
+
+#### Fase 75: subir o projeto com um clique
+
+**Status:** pronta, esperando validação (testes: `test/rodar.test.ts`; `e2e/pontas.mjs`, que
+sobe um servidor de verdade pelo `launch.json`).
+
+- **Rodar (M):** os servidores da pasta da conversa, do `.claude/launch.json` (o nome, o
+  programa, os argumentos e a porta) ou, sem ele, dos scripts `dev`, `start` e `serve` do
+  `package.json`, viram botões na bancada. O clique mostra o comando inteiro e pede a
+  confirmação; confirmado, ele roda num terminal novo e, com a porta conhecida, a página abre no
+  navegador quando ela responde.
+
+**Aceite:** num projeto com `npm run dev`, o botão **dev**, **Rodar**: o servidor sobe no
+terminal e a página aparece.
+
+Nota: um argumento que o shell interpretaria vai entre aspas simples, literal; um com aspa
+simples ou quebra de linha tira o servidor da lista. O comando confirmado só roda se ainda for o
+da pasta.
+
+#### Fase 76: o plano à vista
+
+**Status:** pronta, esperando validação (testes: `test/plano.test.ts`; `e2e/pontas.mjs`).
+
+- **A aba Plano (M):** o plano que o Claude apresentou no modo Planejar e a lista de passos dele
+  (o `TodoWrite`), com os feitos marcados e uma barra de andamento.
+
+**Aceite:** no modo Planejar, o plano aparece na aba, "esperando você aceitar"; durante o
+trabalho, os passos vão sendo marcados.
+
+Nota: editar o plano antes de aceitar ficou de fora (o card continua sendo onde se aceita ou se
+pede outro).
+
+#### Fase 77: projetos
+
+**Status:** pronta, esperando validação (testes: `test/projetos.test.ts`; `e2e/pontas.mjs`).
+
+- **Projetos (M):** em Configurações → Projetos, uma das suas pastas de projetos ganha um nome,
+  uma cor e o modo de permissão de costume. As abas das conversas nela levam a cor e o nome, e
+  uma conversa nova aberta pelo menu das pastas já começa no modo do projeto.
+
+**Aceite:** com um projeto no modo Planejar, abrir a pasta dele dá uma aba com a cor dele e a
+pílula em **Planejar**.
+
+Nota: o modelo por projeto e o agrupamento das abas e do histórico por projeto ficaram de fora.
+
+#### Fase 78: revisar um PR
+
+**Status:** pronta, esperando validação (testes: `test/pr.test.ts`, com o git de verdade e um gh
+de mentira). **Só o uso confirma:** com o seu `gh` e um PR de verdade.
+
+- **`/pr` (M):** numa conversa na pasta do projeto, `/pr 123` (ou o endereço do PR) abre outra
+  conversa numa cópia do Git (Fase 43), no commit do PR, com o pedido de revisão pronto na
+  caixa. O Claude lê o diff e escreve a revisão; mandar para o GitHub é um comando dele
+  (`gh pr review`), que passa pelo card.
+
+**Aceite:** `/pr 123` abre a aba na cópia, com o pedido na caixa; Enter, e a revisão vem em
+tópicos, com arquivo e linha.
+
 ## O que vem depois
 
 Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando for a vez.
 
 **Para a bancada**
 
-- **Subir o projeto com um clique (M).** Os servidores de cada pasta (o comando, a porta), lidos
-  do `.claude/launch.json` ou guardados pelo Wisp: um botão **Rodar** sobe o comando num terminal
-  e abre o navegador quando a porta responde. Um comando lido da pasta só roda depois de mostrado
-  e confirmado.
-- **A aba Mudanças (M).** Os arquivos que a conversa mexeu, com o diff no Monaco e o desfazer por
-  arquivo, para acompanhar durante a resposta.
 - **Pequenos (P cada):** a busca e os links clicáveis no terminal; a bancada embaixo, e não só à
-  direita; destacar o navegador numa janela; os olhos do mascote pelo cursor da extensão do
-  GNOME (Fase 70); vigiar a saída do terminal do Claude atrás de erros (Fase 62).
-
-**Para a conversa**
-
-- **O plano à vista (M).** No modo Planejar, o plano num painel próprio, com os passos marcados
-  conforme o Claude avança, e o editar antes de aceitar.
-- **Projetos (M).** Uma pasta com nome, cor, o modo e o modelo de costume e os servidores dela: as
-  abas agrupam por projeto, o histórico filtra, e a conversa nova num projeto já vem pronta.
-- **Revisar um PR (M).** De um alerta do GitHub ou de um endereço: a conversa abre numa cópia do
-  Git com o diff do PR, e os comentários do Claude viram um rascunho de revisão que você confere
-  antes de mandar.
+  direita; destacar o navegador numa janela; o modelo por projeto e as abas agrupadas por
+  projeto (Fase 77); editar o plano antes de aceitar (Fase 76).
 
 **Para o Windows**
 
@@ -233,16 +305,15 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
 
 **Para o código**
 
-- **Os arquivos no limite (M).** `chat.ts`, `conversation.ts`, `Pane.tsx`, `SettingsView.tsx` e
-  `index.ts` estão encostados nas 1.000 linhas do `test/manutencao.test.ts`. As integrações já
-  saíram para `integrations.ts` e os interruptores delas para `IntegrationToggles.tsx`; o
-  `setupChat` (a janela, as abas e o IPC numa função só) é o próximo.
+- **Os arquivos no limite (M).** `conversation.ts`, `Pane.tsx`, `SettingsView.tsx`, `Chat.tsx` e
+  `index.ts` estão encostados nas 1.000 linhas do `test/manutencao.test.ts`. O `chat.ts` já
+  cedeu o IPC das conversas para o `chat-ipc.ts`, e as integrações saíram do `index.ts`; os
+  outros pedem o mesmo.
 - **O IPC conferido num lugar só (M).** Cada canal confere quem mandou e os tipos à mão. O `zod` já
   está no projeto: um `handle(canal, esquema, função)` tira umas centenas de linhas e um tipo de
   erro inteiro.
-- **Os testes de ponta a ponta (M).** São 49 roteiros em sequência, com uns 200 `sleep` fixos.
-  Trocar as esperas fixas por `waitFor` e repartir os roteiros em 3 ou 4 jobs do CI corta o tempo
-  pela metade.
+- **Os testes de ponta a ponta (P).** O CI já roda os 50 roteiros em três partes paralelas; ainda
+  há uns 200 `sleep` fixos para trocar por `waitFor`.
 - **A documentação (P).** O README tem 150 KB: o guia de uso por assunto em `docs/guia/`, com o
   README só com o começo, fica mais fácil de ler e de manter.
 - **Versões (P).** O projeto está na 0.1.0, sem nenhuma tag: cortar a 0.2.0 com o que foi validado

@@ -565,3 +565,35 @@
   overflow-x: auto;
   scrollbar-width: none;
 }
+
+/* Os projetos nas configurações (Fase 77). */
+.project-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 6px;
+}
+
+.project-dot {
+  flex: none;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.project-row input,
+.project-row select,
+.project-add {
+  min-width: 0;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+}
+
+.project-row input {
+  flex: 1;
+}

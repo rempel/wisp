@@ -55,6 +55,9 @@ src/
 │  ├─ gnome-shell.ts # a extensão do GNOME Shell e o que o Wisp pede a ela (Fase 70)
 │  ├─ integrations.ts # as integrações com o sistema, ligadas e desligadas pelo config (Fases 64 a 72)
 │  ├─ volume-app-win.ts # no Windows: o volume de um programa no mixer (Fase 69)
+│  ├─ chat-ipc.ts    # o que a página pede de uma conversa (saiu do chat.ts): mandar, parar, o modelo, o modo
+│  ├─ launch.ts      # subir o projeto: os servidores do launch.json e do package.json, e a espera pela porta (Fase 75)
+│  ├─ pr-review.ts   # revisar um PR: o gh, a cópia do Git no commit do PR e o pedido de revisão (Fase 78)
 │  ├─ window-context.ts # o mascote numa janela: a janela sob o ponto e o print dela (Fase 48)
 │  ├─ shortcuts-setup.ts # os atalhos globais, religados quando o config muda (Fase 48)
 │  ├─ usage-report.ts # o painel de uso: os .jsonl do Claude Code, os preços e o CSV (Fase 49)

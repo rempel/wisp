@@ -1193,3 +1193,23 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **A busca do desktop (GNOME):** com o .deb ou o Flatpak, o mesmo na visão geral.
 - [ ] **A extensão do GNOME:** no GNOME com Wayland, ligue, saia e entre na sessão:
       "que janelas estão abertas?" lista, e "traz o Firefox para a frente" traz.
+
+## A bancada completa, os projetos e a revisão de PR (Fases 73 a 78)
+
+- [ ] **Rodar o projeto:** numa conversa num projeto com `npm run dev`, o botão **▶ dev** na
+      bancada; o comando aparece para confirmar; **Rodar**: o servidor sobe num terminal novo.
+      Com um `.claude/launch.json` com a porta, a página abre sozinha quando ela responde.
+- [ ] **Mudanças:** peça duas edições em arquivos diferentes; a aba lista os dois, com o diff;
+      **Desfazer** num deles devolve o arquivo; **Desfazer tudo**, o outro.
+- [ ] **Plano:** no modo Planejar, peça uma mudança de vários passos: o plano aparece na aba,
+      "esperando você aceitar"; aceito, os passos vão sendo marcados.
+- [ ] **Erro no terminal:** rode um comando que falha no terminal da bancada: o aviso aparece;
+      o clique põe as últimas linhas na caixa; **Dispensar** o tira.
+- [ ] **Projetos:** em Configurações → Projetos, faça de uma pasta um projeto, mude o nome, a cor
+      e o modo para Planejar; abra a pasta pelo menu das pastas: a aba tem o traço da cor e a
+      conversa começa em Planejar.
+- [ ] **Revisar um PR:** numa conversa na pasta de um repositório com um PR aberto, `/pr` e o
+      número: abre outra aba, numa cópia, com o pedido na caixa; Enter, e a revisão vem em
+      tópicos. No fim, o `gh pr review` pede o card.
+- [ ] **Os olhos no GNOME:** com a extensão ligada, no GNOME com Wayland, os olhos do mascote
+      seguem o cursor pela tela toda.

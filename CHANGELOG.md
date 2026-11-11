@@ -181,6 +181,13 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   o volume por aplicativo no mixer; os manifestos do winget estão em `build/winget/`.
 - **No Linux** (Fases 70 a 72): a extensão para o GNOME com Wayland (as janelas), o Wisp na busca
   do KDE e do GNOME, e os arquivos para o AUR e o Flathub em `build/`.
+- **A bancada completa** (Fases 73 a 76): a aba **Mudanças** (o que a conversa mexeu, com o diff
+  e o desfazer), a aba **Plano** (o plano e os passos, marcados conforme o trabalho anda), os
+  botões que sobem o projeto pelo `.claude/launch.json` ou pelo `package.json` e abrem a página
+  quando a porta responde, e o aviso de erro na saída do terminal.
+- **Projetos** (Fase 77): uma pasta com nome, cor e o modo de costume; as abas dela levam a cor.
+- **Revisar um PR** (Fase 78): `/pr 123` abre uma conversa numa cópia do Git, no commit do PR,
+  com o pedido de revisão na caixa.
 
 ### Mudou
 
@@ -217,6 +224,7 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- A faixa preta no pé do terminal (o fundo do xterm aparecia no que as linhas não cobriam).
 - No modo demonstração, uma ferramenta aprovada (a edição do contador, abrir o Firefox) ficava
   "executando" para sempre: o resultado dela voltava com outro id.
 - No Windows, o mascote só dançava com a música que o Claude tivesse olhado por último: agora o

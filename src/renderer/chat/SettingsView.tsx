@@ -10,6 +10,7 @@ import { PromptsSection, TasksSection } from './AutomationSection'
 import { MascotGallery } from './MascotGallery'
 import { McpSection } from './McpSection'
 import { MODE_TEXT } from './modes'
+import { ProjectsSection } from './ProjectsSection'
 import { SkillsSection } from './SkillsSection'
 import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
@@ -672,6 +673,10 @@ export function SettingsView({
             onChange={(voiceReplies) => void save({ voiceReplies })}
           />
           <VoiceTest />
+        </Section>
+
+        <Section title={t('Projetos')}>
+          <ProjectsSection projects={values.projects} save={save} />
         </Section>
 
         <Section title={t('Skills')}>
