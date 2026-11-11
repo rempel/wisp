@@ -255,8 +255,38 @@ const shot = await chat.send('Page.captureScreenshot', { format: 'png' })
 if (process.env.WISP_E2E_SHOTS) {
   writeFileSync(join(process.env.WISP_E2E_SHOTS, 'plano.png'), Buffer.from(shot.data, 'base64'))
 }
+console.log('== Os projetos (Fase 77)')
+mkdirSync(join(project, '.git'), { recursive: true })
+const savedProject = await ev(`window.wisp.settings.set({
+  projectRoots: [${JSON.stringify(home.home)}],
+  projects: [{ folder: ${JSON.stringify(project)}, name: 'Loja', color: 'green', mode: 'plan' }]
+})`)
 check(
-  'P27 sem erros nas páginas',
+  'P27 o projeto fica guardado nas configurações',
+  savedProject?.ok === true,
+  JSON.stringify(savedProject)
+)
+const openedProject = await ev(`window.wisp.tabs.openFolder(${JSON.stringify(project)}, false)`)
+check(
+  'P28 a pasta do projeto abre numa conversa',
+  openedProject?.ok === true,
+  JSON.stringify(openedProject)
+)
+const colored = await waitFor(
+  () => ev(`document.querySelector('.tab.in-project')?.getAttribute('title') ?? null`),
+  8000
+)
+check('P29 a aba dela ganha a cor e o nome do projeto', /Loja/.test(colored ?? ''), colored)
+const mode = await waitFor(
+  () =>
+    ev(
+      `[...document.querySelectorAll('.pane.focused .composer .model-pill')].map((p) => p.textContent).join(' | ')`
+    ).then((text) => (/Planejar/.test(text ?? '') ? text : null)),
+  8000
+)
+check('P30 e a conversa começa no modo do projeto (Planejar)', !!mode, mode)
+check(
+  'P31 sem erros nas páginas',
   mascot.logs.length === 0 && chat.logs.length === 0,
   [...mascot.logs, ...chat.logs].join('\n')
 )

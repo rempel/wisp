@@ -377,6 +377,8 @@ export const IPC = {
    * da lista, ou null para escolher a pasta. Devolve FolderResult.
    */
   tabsOpenFolder: 'tabs:open-folder',
+  /** chat → main (invoke): revisar um PR numa cópia do projeto (Fase 78). Args: (conversa, número ou endereço). Devolve FolderResult. */
+  tabsReviewPr: 'tabs:review-pr',
   /** chat → main (invoke): a cópia (worktree) de uma conversa (Fase 43). Devolve WorktreeStatus ou null. */
   worktreeStatus: 'worktree:status',
   /** chat → main (invoke): junta a cópia da conversa na pasta original. Devolve WorktreeResult. */
@@ -723,6 +725,8 @@ export interface WispApi {
     /** Uma conversa numa pasta (um projeto da lista, ou null para escolher), numa aba nova. */
     /** Com `worktree` (Fase 43), a conversa trabalha numa cópia do Git do projeto. */
     openFolder(path: string | null, worktree?: boolean): Promise<FolderResult>
+    /** Abre a revisão de um PR (o número ou o endereço) numa cópia do projeto da conversa (Fase 78). */
+    reviewPr(conversation: string, reference: string): Promise<FolderResult>
     worktreeStatus(conversation: string): Promise<WorktreeStatus | null>
     worktreeJoin(conversation: string): Promise<WorktreeResult>
     worktreeDiscard(conversation: string): Promise<WorktreeResult>

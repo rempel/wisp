@@ -382,6 +382,15 @@ export function Pane({
       setDraft('')
       return true
     }
+    // Revisar um PR (Fase 78): /pr com o número ou o endereço.
+    const pr = /^\/pr(?:\s+([\s\S]*))?$/.exec(text)
+    if (pr && !attachments.pending.length) {
+      void window.wisp.tabs.reviewPr(conversation, pr[1]?.trim() ?? '').then((result) => {
+        if (!result.ok && result.message) points.say(result.message)
+      })
+      setDraft('')
+      return true
+    }
     // A pergunta lateral (Fase 46), como o /btw do Claude Code.
     const btw = /^\/btw(?:\s+([\s\S]*))?$/.exec(text)
     if (btw && !attachments.pending.length) {

@@ -105,7 +105,7 @@ test('o menu dos comandos com barra', () => {
   const cli = ['compact', 'revisa', 'review', 'deploy-rapido', 'preview']
   assert.deepEqual(
     matchCommands('', cli).map((c) => c.name),
-    ['compact', 'clear', 'revisa', 'review', 'deploy-rapido', 'preview']
+    ['compact', 'clear', 'pr', 'revisa', 'review', 'deploy-rapido', 'preview']
   )
   // Primeiro os que começam assim, depois os que contêm.
   assert.deepEqual(

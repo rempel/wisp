@@ -283,6 +283,7 @@ export function setupChat({
 
   // O tamanho do painel (Fase 22) mudou nas configurações, no Ctrl+mais ou no arquivo.
   onConfigChange((config) => {
+    sendTabs() // A cor e o nome dos projetos (Fase 77) acompanham.
     if (win && !win.isDestroyed() && win.webContents.getZoomFactor() !== config.panelZoom) {
       win.webContents.setZoomFactor(config.panelZoom)
     }

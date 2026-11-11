@@ -210,7 +210,7 @@ test('menu da barra: os prompts salvos depois dos do Wisp, na frente do Claude C
   const all = matchCommands('', ['review', 'init', 'cost'], prompts)
   assert.deepEqual(
     all.map((command) => command.name),
-    ['compact', 'clear', 'review', 'commit', 'init', 'cost']
+    ['compact', 'clear', 'pr', 'review', 'commit', 'init', 'cost']
   )
   const review = all.find((command) => command.name === 'review')
   assert.equal(review?.prompt, true)

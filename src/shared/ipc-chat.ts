@@ -1,3 +1,4 @@
+import type { ProjectColor } from './projects'
 import type { PreviewTab } from './ipc-workbench'
 // A conversa no painel: anexos, a área de transferência, os modelos e o uso do plano, os diffs, os
 // eventos do chat, as permissões, as abas e a janela.
@@ -553,7 +554,15 @@ export { MAX_PANES } from './layout'
 
 /** Uma aba do painel: uma conversa do Wisp ou uma sessão do Claude Code no terminal. */
 export type TabInfo =
-  | { id: string; kind: 'chat'; title: string; project?: string; folder?: string }
+  | {
+      id: string
+      kind: 'chat'
+      title: string
+      project?: string
+      folder?: string
+      /** O projeto da pasta da conversa (Fase 77): o nome e a cor dele. */
+      inProject?: { name: string; color: ProjectColor }
+    }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 
 /** As abas abertas e os painéis da grade (cada um mostra uma aba). */

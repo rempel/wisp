@@ -19,6 +19,8 @@ import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
 import { DANCES } from '../shared/emotions'
 import type { Dance } from '../shared/emotions'
 import type { AvatarName } from '../shared/avatars'
+import { MAX_PROJECTS, PROJECT_COLORS } from '../shared/projects'
+import type { Project } from '../shared/projects'
 import { t } from '../shared/i18n'
 import { LANGUAGE_SETTINGS } from '../shared/i18n'
 import type { LanguageSetting } from '../shared/i18n'
@@ -229,6 +231,8 @@ export interface WispConfig {
   updateCheck: boolean
   /** Os prompts salvos (Fase 26): /nome no menu da barra, com as variáveis preenchidas na hora. */
   prompts: SavedPrompt[]
+  /** Os projetos (Fase 77): pastas com nome, cor e o modo de costume. */
+  projects: Project[]
   /** As tarefas agendadas (Fase 26): um prompt num horário, numa aba nova, sempre no modo Pedir. */
   scheduledTasks: ScheduledTask[]
 }
@@ -318,6 +322,7 @@ function defaults(): WispConfig {
     phoneAfterSeconds: 60,
     updateCheck: false,
     prompts: defaultPrompts(),
+    projects: [],
     scheduledTasks: []
   }
 }
@@ -469,6 +474,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .regex(/^https?:\/\/[^\s?#@]+$/, t('precisa ser um endereço http(s)')),
   phoneAfterSeconds: z.number().int().min(0).max(3600),
   updateCheck: z.boolean(),
+  projects: z
+    .array(
+      z.object({
+        folder: z.string().min(1).max(1024),
+        name: z.string().trim().min(1).max(60),
+        color: z.enum(PROJECT_COLORS),
+        mode: z.enum(['default', 'acceptEdits', 'plan', 'auto']).nullable()
+      })
+    )
+    .max(MAX_PROJECTS)
+    .refine((list) => new Set(list.map((project) => project.folder)).size === list.length),
   prompts: z
     .array(
       z.object({
@@ -627,6 +643,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   calendarFiles: t('Um arquivo .ics ou uma pasta por linha (até 20).'),
   calendarLinks: t('Até 10 agendas por endereço, cada uma com um id e um nome.'),
   calendarAlertMinutes: t('Um número inteiro de minutos, de 0 a 240 (0 não avisa).'),
+  projects: t('Cada projeto tem uma pasta (sem repetir), um nome, uma cor e um modo.'),
   prompts: t(
     'Cada prompt precisa de um nome (letras minúsculas, números e hífens, sem repetir nem usar compact ou clear) e de um texto (até 4.000 caracteres).'
   ),

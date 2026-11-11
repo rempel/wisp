@@ -1,3 +1,4 @@
+import type { Project } from './projects'
 // As configurações e o que mora nelas: as integrações (o resumo da semana e a agenda), o
 // diagnóstico, o celular, as skills, a chave da OpenRouter e os servidores MCP.
 
@@ -104,6 +105,7 @@ export interface Settings {
   phoneAfterSeconds: number
   updateCheck: boolean
   prompts: SavedPrompt[]
+  projects: Project[]
   scheduledTasks: ScheduledTask[]
 }
 
@@ -167,6 +169,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'phoneAfterSeconds',
   'updateCheck',
   'prompts',
+  'projects',
   'scheduledTasks'
 ]
 

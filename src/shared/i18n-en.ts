@@ -2872,5 +2872,39 @@ export const EN: Record<string, string> = {
   'em andamento': 'in progress',
   'a fazer': 'to do',
   'Bancada: plano': 'Workbench: plan',
-  'passos tarefas planejar andamento': 'steps tasks plan progress todo'
+  'passos tarefas planejar andamento': 'steps tasks plan progress todo',
+  'Diga o número ou o endereço do PR.': "Give the PR's number or address.",
+  'Abra antes a conversa na pasta do projeto do PR.':
+    "First open the conversation in the folder of the PR's project.",
+  'Cada projeto tem uma pasta (sem repetir), um nome, uma cor e um modo.':
+    'Each project has a folder (no repeats), a name, a colour and a mode.',
+  'Revise o PR #{number}, "{title}"{by}.': 'Review PR #{number}, "{title}"{by}.',
+  ', de {author}': ', by {author}',
+  'Esta pasta é uma cópia do repositório no commit do PR. Veja o que mudou com `git diff origin/{base}...HEAD` e leia os arquivos em volta do que precisar.':
+    "This folder is a copy of the repository at the PR's commit. See what changed with `git diff origin/{base}...HEAD` and read the surrounding files as needed.",
+  'Escreva a revisão em tópicos, do mais grave ao menos grave, com o arquivo e a linha de cada ponto. Não edite arquivos nem publique nada: no fim, pergunte se eu quero mandar a revisão pelo `gh pr review`.':
+    'Write the review as bullet points, most severe first, with the file and line for each point. Do not edit files or publish anything: at the end, ask whether I want to send the review with `gh pr review`.',
+  'o gh saiu com o código {code}': 'gh exited with code {code}',
+  'O gh não devolveu os dados desse PR.': "gh did not return that PR's data.",
+  'Uma pasta com nome, cor e o modo de costume. As abas das conversas nela ganham a cor, e uma conversa nova aberta pelo menu das pastas já começa nesse modo.':
+    'A folder with a name, a colour and its usual mode. Tabs of conversations in it take the colour, and a new conversation opened from the folders menu starts in that mode.',
+  'Nome do projeto {folder}': 'Name of the project {folder}',
+  Cor: 'Colour',
+  'Modo de permissão': 'Permission mode',
+  'O das configurações': 'The one from settings',
+  'Tirar o projeto {name}': 'Remove the project {name}',
+  'Fazer de uma pasta um projeto': 'Make a folder a project',
+  'Fazer de uma pasta um projeto…': 'Make a folder a project…',
+  'Nenhuma pasta de projeto encontrada: confira as Pastas de projetos, acima.':
+    'No project folder found: check Project folders, above.',
+  Ciano: 'Cyan',
+  Verde: 'Green',
+  Âmbar: 'Amber',
+  Vermelho: 'Red',
+  Violeta: 'Violet',
+  Rosa: 'Pink',
+  Projetos: 'Projects',
+  'Projeto: {name}': 'Project: {name}',
+  'Revisar um PR numa cópia do projeto (o número ou o endereço)':
+    'Review a PR in a copy of the project (its number or address)'
 }
