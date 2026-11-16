@@ -90,7 +90,7 @@ const menu = await waitFor(
 check(
   'F6 a barra abre o menu: os do Wisp e os do Claude Code',
   JSON.stringify(menu) ===
-    JSON.stringify(['/compact', '/clear', '/revisa', '/review', '/init', '/deploy-rapido']),
+    JSON.stringify(['/compact', '/clear', '/pr', '/revisa', '/review', '/init', '/deploy-rapido']),
   JSON.stringify(menu)
 )
 await chat.send('Input.insertText', { text: 'rev' })

@@ -86,6 +86,7 @@ check(
       'Aparência e acessibilidade',
       'Atalhos e sistema',
       'Voz',
+      'Projetos',
       'Skills',
       'Subagentes',
       'Servidores MCP',
