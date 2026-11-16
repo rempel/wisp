@@ -22,7 +22,7 @@ por aí; e a [arquitetura](docs/ARQUITETURA.md), como as partes se encaixam.
 
 ## Montar e rodar
 
-Siga o [Compilar a partir do código](README.md#compilar-a-partir-do-código) do README (as
+Siga o [Compilar a partir do código](docs/GUIA.md#compilar-a-partir-do-código) do guia (as
 dependências do sistema, o Node 22 e o `npm ci`). Depois:
 
 ```sh

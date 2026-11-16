@@ -36,7 +36,7 @@ Como instalar, rodar e configurar está no [README](../README.md); o que cada fa
 ## Ferramentas de desktop e permissões (Etapa 3)
 
 Antes, aponte `projectRoots` para a pasta dos seus projetos e `editorCommand` para o seu editor
-no `~/.config/wisp/config.json` (veja [Configuração](../README.md#configuração)).
+no `~/.config/wisp/config.json` (veja [Configuração](GUIA.md#configuração)).
 
 - [ ] "abre o Firefox": aparece o card **Abrir um app** com o id do app. **Permitir** abre o
       Firefox; **Negar** não abre, e o Wisp aceita sem tentar outro caminho.
@@ -210,7 +210,7 @@ no `~/.config/wisp/config.json` (veja [Configuração](../README.md#configuraç�
 
 ## Voz (Fase 10)
 
-Antes, instale o whisper.cpp e o modelo (veja [Voz](../README.md#voz)).
+Antes, instale o whisper.cpp e o modelo (veja [Voz](GUIA.md#voz)).
 
 - [ ] **Aceite:** segure Ctrl+Alt+Espaço, diga "abre o Firefox" e solte. O mascote acende a
       lâmpada da antena em vermelho e solta ondas enquanto ouve; depois, o painel aparece com a
@@ -271,7 +271,7 @@ status` liberado não libera `git push`, e `ls; rm x` pede de novo.
       tem **Abrir ou fechar o painel** e **Nova conversa**. `sudo apt remove wisp` tira tudo,
       menos as suas configurações e conversas.
 - [ ] **AppImage:** `chmod +x` e dois cliques (no Ubuntu 23.10+, com o perfil de
-      [AppImage](../README.md#appimage-qualquer-distribuição)). Depois da primeira vez, ele está no menu de
+      [AppImage](GUIA.md#appimage-qualquer-distribuição)). Depois da primeira vez, ele está no menu de
       apps e o comando `~/.local/share/wisp/bin/wisp --toggle` abre o painel.
 - [ ] **Tela de configurações:** o botão de ajustes no topo do painel (ou **Configurações…** no
       menu do mascote). Troque o **Editor** e saia do campo: aparece **Salvo**, e o

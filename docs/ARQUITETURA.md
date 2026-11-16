@@ -1,7 +1,7 @@
 # Como o Wisp funciona por dentro
 
 O detalhe técnico de cada parte do Wisp: os processos, os protocolos, as decisões de segurança e
-o porquê de cada escolha. A visão geral está no [README](../README.md#como-funciona); o que cada
+o porquê de cada escolha. A visão geral está no [README](GUIA.md#como-funciona); o que cada
 fase trouxe, no [histórico das fases](HISTORICO.md); o que vem depois, no [ROADMAP](../ROADMAP.md).
 
 ## Os arquivos
