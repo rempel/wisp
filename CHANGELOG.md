@@ -188,6 +188,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Projetos** (Fase 77): uma pasta com nome, cor e o modo de costume; as abas dela levam a cor.
 - **Revisar um PR** (Fase 78): `/pr 123` abre uma conversa numa cópia do Git, no commit do PR,
   com o pedido de revisão na caixa.
+- **A memória pessoal** (Fase 79): o Wisp lembra de você entre as conversas. O Claude anota sozinho
+  (`memory_save`, sem card) no `EU.md`, no `MEMORIA.md` e no diário do dia, que ficam em Markdown
+  na pasta de dados; toda conversa nova começa com eles. A tela Memória mostra cada anotação, com a
+  conversa de origem e o desfazer. Segredos nunca entram; a **conversa anônima** não lê nem
+  escreve a memória, e as **pastas fora da memória** só leem o `EU.md`.
 
 ### Mudou
 

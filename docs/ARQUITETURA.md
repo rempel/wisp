@@ -50,6 +50,8 @@ src/
 │  ├─ preview-target.ts # o que a pré-visualização abre e para onde navega (puro; Fases 47 e 58)
 │  ├─ preview-pick.ts # apontar um elemento da página: a mira e o texto para a conversa (Fase 60)
 │  ├─ memory.ts      # a memória à vista: os CLAUDE.md, a prévia com o diff e o gravar (Fase 65)
+│  ├─ personal-memory.ts # a memória pessoal: EU.md, MEMORIA.md, o diário, o registro e os segredos (Fase 79)
+│  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save e memory_forget (Fase 79)
 │  ├─ file-menu.ts   # o "Perguntar ao Wisp" do gerenciador de arquivos e o wisp no PATH do Windows (Fases 64 e 67)
 │  ├─ search-provider.ts # o Wisp na busca do desktop: o KRunner e o GNOME, pelo D-Bus (Fase 72)
 │  ├─ gnome-shell.ts # a extensão do GNOME Shell e o que o Wisp pede a ela (Fase 70)
@@ -1275,3 +1277,37 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     redesenha só os itens que mudaram, pelo número de cada um, sem mexer na rolagem de quem lê lá
     em cima. O Markdown vira nós do DOM (nada de `innerHTML`), e os links só podem ser http ou
     https. Lê o código do QR também quando ele chega com ela aberta (o `hashchange`).
+- **A memória pessoal (Fase 79):**
+  - **os arquivos** (`personal-memory.ts`), em `memoria/` na pasta de dados: `EU.md` (quem você
+    é), `MEMORIA.md` (fatos e decisões) e `diario/AAAA-MM-DD.md`. Uma anotação é uma linha
+    `- texto` (no diário, `- HH:MM texto`). Os arquivos são a fonte da verdade e são lidos de novo
+    a cada operação; a gravação é atômica (um temporário e o `rename`), com permissão 600. Os
+    limites: 500 caracteres por anotação; 20 KB no `EU.md` e 50 KB no `MEMORIA.md` e em cada
+    dia do diário;
+  - **o registro** (`historico.jsonl`): cada anotar e esquecer, com as linhas que entraram ou
+    saíram, a conversa de origem (o id no histórico e o título) e quando foi desfeita (as 1.000
+    últimas). Desfazer tira a linha que entrou (se ainda estiver lá) ou devolve as que saíram;
+  - **os segredos:** recusados antes de gravar, pelo formato (chaves privadas PEM, `sk-`, `ghp_`,
+    `github_pat_`, `glpat-`, `xox?-`, `AKIA`, `AIza`, JWT), por um rótulo seguido de valor
+    ("senha: …", "a senha do wifi é …", "token=…") e por um pedaço de 32 ou mais letras e números
+    misturados (cara de chave ou hash);
+  - **o prompt:** o `appendSystemPrompt` das conversas virou uma função, chamada a cada processo
+    do Claude Code que sobe (`chat-conversation.ts`): a persona de sempre mais
+    `PersonalMemory.prompt(acesso)`, com as instruções de quando anotar e o `EU.md` e o
+    `MEMORIA.md` sem os comentários, num bloco `<memoria_pessoal>` marcado como anotações, não
+    pedidos. Um arquivo grande entra só com o fim (4 mil caracteres do `EU.md`, 8 mil do
+    `MEMORIA.md`), com o aviso;
+  - **o acesso de cada conversa** (`memoryAccess`): `off` numa aba anônima (o `anonymous` do
+    `History` da conversa, que vale para a aba, vai no cabeçalho do histórico e no `abas.json`, e
+    volta ao reabrir); `read` numa pasta de `memoryExcludedFolders` ou dentro de uma (os caminhos
+    resolvidos pelo `realpath`; uma cópia do Git, Fase 43, vale como o repositório de onde saiu,
+    pelo `copias.json`), que só lê o `EU.md`; `full` no resto;
+  - **as ferramentas** (`mcp-memory.ts`): `memory_save` (`texto`, `onde`: eu, memoria ou diario)
+    e `memory_forget` (`texto`, `onde`, `dia`, `todas`), no `SAFE_TOOLS`: só mexem nos arquivos do
+    Wisp. Cada chamada pergunta ao `Chat.memoryScope` da conversa (pelo endereço dela no
+    servidor) o acesso e a origem; anônima ou numa pasta excluída, recusam com o motivo. Esquecer
+    acha as anotações pelo texto, sem acentos nem maiúsculas; com mais de uma, só com `todas`;
+  - **na tela Memória:** o `EU.md` e o `MEMORIA.md` entram na lista da Fase 65 (`me` e `facts`,
+    com a prévia, o diff e o backup de sempre), mais as anotações do registro com o desfazer
+    (`memory:notes` e `memory:undo`) e a lista das pastas excluídas, gravada pelas
+    configurações. A aba anônima nasce pelo `tabs:new-anonymous` (a paleta) e leva os óculos.

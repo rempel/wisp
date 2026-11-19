@@ -43,6 +43,8 @@ export interface SavedChatTab {
   view?: ConversationView
   /** O rascunho da caixa de texto (Fase 21). */
   draft?: string
+  /** A aba é anônima, sem a memória pessoal (Fase 79). */
+  anonymous?: true
 }
 
 /**
@@ -126,11 +128,13 @@ export class ChatTabs {
     }
     const { title, project, folder } = tab.conversation
     const owner = projectOf(folder, getConfig().projects)
+    const anonymous = tab.conversation.history.anonymous
     return {
       id: tab.id,
       kind: 'chat',
       // Uma conversa numa pasta, ainda sem mensagens, leva o nome do projeto.
-      title: title ?? project ?? t('Nova conversa'),
+      title: title ?? project ?? (anonymous ? t('Conversa anônima') : t('Nova conversa')),
+      ...(anonymous ? { anonymous: true } : {}),
       ...(project ? { project } : {}),
       ...(folder ? { folder: tilde(folder) } : {}),
       ...(owner ? { inProject: { name: owner.name, color: owner.color } } : {})
@@ -295,7 +299,8 @@ export class ChatTabs {
               mode: tab.conversation.mode,
               ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {}),
               ...(tab.conversation.view === 'terminal' ? { view: 'terminal' as const } : {}),
-              ...(tab.conversation.draft ? { draft: tab.conversation.draft } : {})
+              ...(tab.conversation.draft ? { draft: tab.conversation.draft } : {}),
+              ...(tab.conversation.history.anonymous ? { anonymous: true as const } : {})
             }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),

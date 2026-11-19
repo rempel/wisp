@@ -15,6 +15,8 @@ import type { WispConfig } from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { listModels, LOCAL_KEY, localModelsUrl, OPENROUTER_SECRET } from './openrouter'
+import type { MemoryScope } from './mcp-memory'
+import { memoryAccess, personalMemory } from './personal-memory'
 import { DATA_DIR, runtimeDir } from './paths'
 import { thumbnailOfBase64 } from './screenshot'
 import { readSecret } from './secrets'
@@ -92,6 +94,28 @@ function prepareWorkspace(): string {
   return WORKSPACE_DIR
 }
 
+/**
+ * O que a conversa pode com a memória pessoal (Fase 79): nada se for anônima, só ler numa pasta
+ * fora da memória; e de onde vêm as anotações dela (o id no histórico e o título).
+ */
+export function memoryScopeOf(conversation: Conversation): MemoryScope {
+  return {
+    access: memoryAccess(
+      conversation.history.anonymous,
+      conversation.folder,
+      getConfig().memoryExcludedFolders
+    ),
+    origin: {
+      ...(conversation.historyId ? { conversation: conversation.historyId } : {}),
+      ...(conversation.title ? { title: conversation.title } : {})
+    }
+  }
+}
+
+/** A persona e a memória pessoal, lidas de novo a cada processo do Claude Code que sobe. */
+const personaOf = (conversation: Conversation): string =>
+  `${APPEND_SYSTEM_PROMPT}\n\n${personalMemory().prompt(memoryScopeOf(conversation).access)}`
+
 /** O arquivo do modo de permissão de uma conversa (o hook do Bash do processo dela o lê). */
 export const modeFileOf = (conversation: string): string =>
   join(runtimeDir(), `modo-${process.pid}-${conversation}`)
@@ -107,14 +131,14 @@ export function conversationFactory(
 ): (mode: PermissionMode, provider: Provider, folder: string | null) => Conversation {
   return (mode, provider, folder) => {
     const id = randomUUID()
-    return new Conversation({
+    const conversation: Conversation = new Conversation({
       id,
       host,
       claude: {
         claudePath: startup.claudePath,
         workspace: prepareWorkspace,
         allowedTools: [...SAFE_TOOLS, ...startup.extraAllowedTools],
-        appendSystemPrompt: APPEND_SYSTEM_PROMPT,
+        appendSystemPrompt: () => personaOf(conversation),
         thumbnail: thumbnailOfBase64,
         snapshotDir: snapshotDirOf(id),
         demo: () => (getConfig().demo ? DEMO : null),
@@ -138,5 +162,6 @@ export function conversationFactory(
       projectRoots: () => getConfig().projectRoots,
       trustedDirs: [WORKSPACE_DIR, ATTACHMENTS_DIR]
     })
+    return conversation
   }
 }

@@ -4,6 +4,7 @@ import type { BrowserWindow, Rectangle, WebContents } from 'electron'
 import type { RelayEvent } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
+import type { MemoryScope } from './mcp-memory'
 import type { ScreenImage } from './screenshot'
 import type {
   AgendaItem,
@@ -99,6 +100,8 @@ export interface Chat {
   window(): BrowserWindow | null
   /** A pasta de uma conversa (sem o id, a da conversa em foco; null: sem pasta), para a bancada. */
   folderOf(id: string | undefined): string | null
+  /** O que uma conversa pode com a memória pessoal (Fase 79); null se ela não existe mais. */
+  memoryScope(id: string | undefined): MemoryScope | null
   /** A largura que a bancada ocupa na janela; `grow`: a janela ao lado do mascote acompanha. */
   sideWidth(px: number, grow: boolean): void
   /** As sessões do terminal mudaram: a aba Sessões busca de novo. */

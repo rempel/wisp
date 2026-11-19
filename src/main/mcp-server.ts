@@ -18,6 +18,8 @@ import { describeIn, describeWhen, parseWhen } from './reminders'
 import type { Reminder } from './reminders'
 import { activateWindow, describeWindow, findWindows, listWindows } from './windows'
 import { registerWorkbenchTools } from './mcp-workbench'
+import { registerMemoryTools } from './mcp-memory'
+import type { MemoryToolsOptions } from './mcp-memory'
 import type { WorkbenchControl } from './workbench'
 
 /** Um pedido de permissão que o Claude Code faz pelo --permission-prompt-tool. */
@@ -83,6 +85,8 @@ export interface DesktopServerOptions {
   workbench?: () => WorkbenchControl | null
   /** Mostra uma emoção ou uma dança no mascote, por `seconds` segundos (Fase 27). */
   express?: (act: { emotion?: Emotion; dance?: Dance; seconds?: number }) => void
+  /** A memória pessoal (Fase 79): memory_save e memory_forget. */
+  memory?: MemoryToolsOptions
 }
 
 export interface DesktopServer {
@@ -302,6 +306,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
   )
 
   if (options.workbench) registerWorkbenchTools(server, options.workbench, conversation)
+  if (options.memory) registerMemoryTools(server, options.memory, conversation)
 
   const screenshot = options.screenshot
   if (screenshot) {

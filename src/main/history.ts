@@ -45,6 +45,8 @@ interface Header {
   cwd?: string
   /** A conversa foi pela OpenRouter (sem o campo, pela assinatura). */
   provider?: 'openrouter'
+  /** Uma conversa anônima: sem a memória pessoal (Fase 79). */
+  anonymous?: true
 }
 
 /** O Claude Code passou a usar outro session_id (raro); o --resume usa o último. */
@@ -145,6 +147,8 @@ export interface SavedConversation {
   cwd?: string
   /** Por onde a conversa foi: retomar pelo mesmo lado (as sessões de cada um ficam separadas). */
   provider?: 'openrouter'
+  /** Uma conversa anônima (Fase 79): reaberta, continua sem a memória pessoal. */
+  anonymous?: true
   events: ChatEvent[]
 }
 
@@ -170,6 +174,11 @@ export class History {
   provider: Provider = 'subscription'
   /** A pasta das conversas gravadas daqui para a frente (uma conversa numa pasta). */
   cwd: string | null = null
+  /**
+   * A aba é anônima (Fase 79): a conversa não lê nem escreve a memória pessoal. Vale para a aba
+   * (uma conversa nova nela continua anônima); reabrir uma conversa do histórico traz a dela.
+   */
+  anonymous = false
 
   constructor(private readonly dir = HISTORY_DIR) {}
 
@@ -337,6 +346,7 @@ export class History {
       createdAt: header.createdAt,
       ...(typeof header.cwd === 'string' && header.cwd ? { cwd: header.cwd } : {}),
       ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+      ...(header.anonymous === true ? { anonymous: true as const } : {}),
       events
     }
   }
@@ -344,6 +354,7 @@ export class History {
   /** Continua gravando numa conversa reaberta do histórico. */
   continue(saved: SavedConversation): void {
     this.flush()
+    this.anonymous = saved.anonymous === true
     this.current = { id: saved.id, sessionId: saved.sessionId, file: this.file(saved.id) }
   }
 
@@ -381,7 +392,8 @@ export class History {
       createdAt: Date.now(),
       title,
       ...(seed?.cwd ? { cwd: seed.cwd } : this.cwd ? { cwd: this.cwd } : {}),
-      ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
+      ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+      ...(this.anonymous ? { anonymous: true as const } : {})
     } satisfies Header)
     if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)
     for (const event of seed?.preface ?? []) this.append(event)

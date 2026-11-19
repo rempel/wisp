@@ -78,6 +78,15 @@ export function TabBar({
                     <FolderIcon />
                   </span>
                 )}
+                {tab.kind === 'chat' && tab.anonymous && (
+                  <span
+                    className="tab-anonymous"
+                    title={t('Conversa anônima: não lê nem escreve a memória pessoal')}
+                  >
+                    <span aria-hidden>🕶</span>
+                    <span className="sr-only">{t('(anônima)')}</span>
+                  </span>
+                )}
                 <span className="tab-title">{tab.title}</span>
                 {label && <span className="sr-only">({label})</span>}
               </button>

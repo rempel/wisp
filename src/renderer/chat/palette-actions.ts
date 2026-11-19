@@ -163,6 +163,13 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
       run: () => api.tabs.create()
     },
     {
+      id: 'tab-anonymous',
+      group: 'action',
+      title: t('Nova conversa anônima'),
+      keywords: t('privada sem memória incógnito'),
+      run: () => api.tabs.createAnonymous()
+    },
+    {
       id: 'folder',
       group: 'action',
       title: t('Abrir uma pasta numa conversa…'),
@@ -205,7 +212,7 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
     ['diagnostics', t('Diagnóstico'), t('problemas versão')],
     ['usage', t('Painel de uso'), t('tokens custo gastos')],
     ['agents', t('Subagentes'), t('agentes ajudantes')],
-    ['memory', t('Memória'), t('CLAUDE.md instruções regras lembrar')],
+    ['memory', t('Memória'), t('CLAUDE.md instruções regras lembrar anotações esquecer EU.md')],
     ['board', t('Quadro de tarefas'), t('kanban cartões cópias')]
   ]
   for (const [view, title, keywords] of views) {

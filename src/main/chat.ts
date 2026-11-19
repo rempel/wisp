@@ -12,7 +12,7 @@ import type { TurnReviews } from './turn-review'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
-import { conversationFactory, modeFileOf, previewOf } from './chat-conversation'
+import { conversationFactory, memoryScopeOf, modeFileOf, previewOf } from './chat-conversation'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
@@ -243,6 +243,7 @@ export function setupChat({
       )
       const old = typeof entry.history === 'string' ? store.load(entry.history) : null
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
+      else if (entry.anonymous === true) conversation.history.anonymous = true
       // No modo terminal, o Claude Code sobe quando a aba aparece.
       if (entry.view === 'terminal') conversation.presetView('terminal')
       if (typeof entry.draft === 'string' && entry.draft) {
@@ -398,6 +399,12 @@ export function setupChat({
   ipcMain.on(IPC.tabsNew, (event) => {
     if (!fromChat(event) || tabs.full) return
     tabs.addChat()
+  })
+  ipcMain.on(IPC.tabsNewAnonymous, (event) => {
+    if (!fromChat(event) || tabs.full) return
+    const conversation = tabs.addChat()
+    conversation.history.anonymous = true
+    tabs.changed()
   })
   ipcMain.on(IPC.tabsClose, (event, id: unknown) => {
     if (fromChat(event) && typeof id === 'string') tabs.close(id)
@@ -807,6 +814,10 @@ export function setupChat({
     },
     window: () => win,
     folderOf: (id) => (id ? conversationById(id) : focusedConversation())?.folder ?? null,
+    memoryScope(id) {
+      const conversation = conversationById(id)
+      return conversation ? memoryScopeOf(conversation) : null
+    },
     sideWidth: (px, grow) => placement.setSide(win, tabs.layout, px, grow),
     notifySessions() {
       if (win && pageReady) win.webContents.send(IPC.sessionsChanged)

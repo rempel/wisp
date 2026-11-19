@@ -224,8 +224,32 @@ export interface AgentPreview {
   unchanged: boolean
 }
 
-/** Um arquivo de memória do Claude Code (um CLAUDE.md), para a tela Memória (Fase 65). */
-export type MemoryId = 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+/**
+ * Um arquivo de memória, para a tela Memória: os da memória pessoal do Wisp (Fase 79: `me`, o
+ * EU.md, e `facts`, o MEMORIA.md) e os CLAUDE.md do Claude Code (Fase 65).
+ */
+export type MemoryId = 'me' | 'facts' | 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+
+/** Onde o Wisp anota (Fase 79): o EU.md, o MEMORIA.md ou o diário do dia. */
+export type MemoryTarget = 'eu' | 'memoria' | 'diario'
+
+/** Uma anotação do Wisp na memória pessoal, para a tela Memória (Fase 79). */
+export interface MemoryNote {
+  id: string
+  at: number
+  /** Anotou (`save`) ou esqueceu (`forget`). */
+  action: 'save' | 'forget'
+  target: MemoryTarget
+  /** O arquivo, relativo à pasta da memória. */
+  file: string
+  text: string
+  /** O título da conversa de onde veio. */
+  title?: string
+  /** O id dela no histórico, para abrir. */
+  conversation?: string
+  /** Quando foi desfeita. */
+  undone?: number
+}
 export interface MemoryFile {
   id: MemoryId
   path: string
@@ -562,6 +586,8 @@ export type TabInfo =
       folder?: string
       /** O projeto da pasta da conversa (Fase 77): o nome e a cor dele. */
       inProject?: { name: string; color: ProjectColor }
+      /** Uma conversa anônima, sem a memória pessoal (Fase 79). */
+      anonymous?: boolean
     }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 

@@ -1213,3 +1213,24 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       tópicos. No fim, o `gh pr review` pede o card.
 - [ ] **Os olhos no GNOME:** com a extensão ligada, no GNOME com Wayland, os olhos do mascote
       seguem o cursor pela tela toda.
+
+## A memória pessoal (Fase 79)
+
+- [ ] **Anotar:** numa conversa, "lembra que o aniversário da Ana é 3 de março": o Claude anota
+      sem card. Numa conversa nova (Ctrl+K), "quando é o aniversário da Ana?" responde certo.
+- [ ] **À vista:** na tela Memória (paleta), o `MEMORIA.md` mostra a anotação, e **O que o Wisp
+      anotou** a lista com a conversa de origem (o clique a abre). **Desfazer** a tira; numa
+      conversa nova, a pergunta deixa de ter resposta.
+- [ ] **Sobre você:** "prefiro respostas curtas, sem títulos": a anotação vai para o `EU.md`, e
+      as conversas novas obedecem.
+- [ ] **Esquecer:** "esquece o aniversário da Ana": a anotação sai, e o registro mostra
+      **Esqueceu**, com o desfazer.
+- [ ] **Segredos:** "lembra que a senha do wifi é batata123": o Claude diz que segredos não
+      entram, e o arquivo continua sem ela.
+- [ ] **Anônima:** **Nova conversa anônima** na paleta: a aba tem os óculos; "o que você sabe de
+      mim?" não traz nada da memória, e pedir para lembrar algo não anota. Feche o Wisp e abra:
+      a aba continua anônima.
+- [ ] **Pastas fora da memória:** ponha uma pasta de projeto na lista da tela Memória; numa
+      conversa nela, o Claude sabe o que está no `EU.md`, mas pedir para lembrar algo não anota.
+- [ ] **Editar à mão:** edite o `MEMORIA.md` num editor qualquer; a próxima conversa nova já vê
+      a mudança.

@@ -35,6 +35,7 @@ import type {
   AgentInfo,
   MemoryFile,
   MemoryId,
+  MemoryNote,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -258,6 +259,10 @@ export const IPC = {
   memoryList: 'memory:list',
   memoryPreview: 'memory:preview',
   memorySave: 'memory:save',
+  /** chat → main (invoke): as anotações do Wisp na memória pessoal (Fase 79) → MemoryNote[]. */
+  memoryNotes: 'memory:notes',
+  /** chat → main (invoke): desfaz uma anotação. Arg: id. Devolve AgentResult. */
+  memoryUndo: 'memory:undo',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -348,6 +353,8 @@ export const IPC = {
   tabsState: 'tabs:state',
   /** chat → main: abrir uma conversa nova numa aba (Ctrl+T). */
   tabsNew: 'tabs:new',
+  /** chat → main: abrir uma conversa anônima numa aba, sem a memória pessoal (Fase 79). */
+  tabsNewAnonymous: 'tabs:new-anonymous',
   /** chat → main: fechar uma aba. Arg: id da aba. */
   tabsClose: 'tabs:close',
   /** chat → main: mostrar uma aba no painel em foco. Arg: id da aba. */
@@ -708,6 +715,8 @@ export interface WispApi {
     onState(listener: (state: TabsState) => void): () => void
     /** Uma conversa nova numa aba, no painel em foco. */
     create(): void
+    /** Uma conversa anônima numa aba nova: não lê nem escreve a memória pessoal (Fase 79). */
+    createAnonymous(): void
     close(id: string): void
     /** Mostra a aba no painel em foco (ou foca o painel onde ela já está). */
     show(id: string): void
@@ -853,6 +862,10 @@ export interface WispApi {
       text: string,
       fingerprint: string
     ): Promise<AgentResult>
+    /** As anotações do Wisp na memória pessoal, da mais nova para a mais velha (Fase 79). */
+    notes(): Promise<MemoryNote[]>
+    /** Desfaz uma anotação: tira a linha que entrou, ou devolve as que saíram. */
+    undo(id: string): Promise<AgentResult>
   }
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>

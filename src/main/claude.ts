@@ -248,7 +248,7 @@ export class ClaudeSession extends StreamReader {
       '--permission-mode',
       this.mode,
       '--append-system-prompt',
-      this.options.appendSystemPrompt,
+      this.persona(),
       '--settings',
       terminalSettings(tab)
     ]
@@ -276,6 +276,12 @@ export class ClaudeSession extends StreamReader {
     this.terminalCostBase = this.cost
     const run = claudeCommand(bin, args, env, cwd)
     return { file: run.command, args: run.args, env, cwd }
+  }
+
+  /** A persona do --append-system-prompt, lida de novo a cada processo (a memória muda). */
+  private persona(): string {
+    const persona = this.options.appendSystemPrompt
+    return typeof persona === 'function' ? persona() : persona
   }
 
   /** Começa uma conversa nova: encerra o processo atual e esquece a sessão. */
@@ -521,7 +527,7 @@ export class ClaudeSession extends StreamReader {
       '--permission-mode',
       this.mode,
       '--append-system-prompt',
-      this.options.appendSystemPrompt,
+      this.persona(),
       '--settings',
       sessionSettings()
     ]

@@ -1,7 +1,9 @@
 // A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê em toda conversa (o seu, o do
 // espaço do Wisp e os do projeto da conversa em foco), para ver e editar pelo painel. Como em
 // todo arquivo de configuração do usuário: a prévia mostra o diff antes, o arquivo velho ganha
-// um backup ao lado e gravar só vale se o arquivo ainda estiver como na prévia.
+// um backup ao lado e gravar só vale se o arquivo ainda estiver como na prévia. Desde a Fase 79,
+// também o EU.md e o MEMORIA.md da memória pessoal (personal-memory.ts) e as anotações do Wisp,
+// com o desfazer.
 
 import { ipcMain } from 'electron'
 import type { WebContents } from 'electron'
@@ -12,6 +14,7 @@ import { backupFile, stamp } from './backup'
 import { usableFolder } from './folders'
 import { DATA_DIR, expandHome } from './paths'
 import { claudeConfigDir } from './skills'
+import { personalMemory } from './personal-memory'
 import { wholeFileDiff } from '../shared/diff'
 import { IPC } from '../shared/ipc'
 import type { AgentPreview, AgentResult, MemoryFile, MemoryId } from '../shared/ipc'
@@ -19,7 +22,15 @@ import { t } from '../shared/i18n'
 
 /** O maior arquivo de memória que o painel mostra e grava. */
 const MAX_MEMORY = 200_000
-export const MEMORY_IDS: MemoryId[] = ['user', 'workspace', 'project', 'project-dir', 'local']
+export const MEMORY_IDS: MemoryId[] = [
+  'me',
+  'facts',
+  'user',
+  'workspace',
+  'project',
+  'project-dir',
+  'local'
+]
 
 /** Onde fica cada arquivo de memória (null: a conversa não está numa pasta de projeto). */
 export function memoryPath(
@@ -28,6 +39,8 @@ export function memoryPath(
   configDir = claudeConfigDir(),
   dataDir = DATA_DIR
 ): string | null {
+  if (id === 'me') return join(dataDir, 'memoria', 'EU.md')
+  if (id === 'facts') return join(dataDir, 'memoria', 'MEMORIA.md')
   if (id === 'user') return join(configDir, 'CLAUDE.md')
   if (id === 'workspace') return join(dataDir, 'workspace', 'CLAUDE.md')
   const root = folder ? usableFolder(expandHome(folder)) : null
@@ -162,4 +175,14 @@ export function setupMemoryIpc(isSender: (sender: WebContents) => boolean): void
       return saveMemory(id, folderOf(folder), text, fingerprint)
     }
   )
+  ipcMain.handle(IPC.memoryNotes, (event) =>
+    isSender(event.sender) ? personalMemory().notes() : []
+  )
+  ipcMain.handle(IPC.memoryUndo, (event, id: unknown): AgentResult => {
+    if (!isSender(event.sender) || typeof id !== 'string') {
+      return { ok: false, message: t('pedido inválido') }
+    }
+    const result = personalMemory().undo(id)
+    return result.ok ? result : { ok: false, message: result.error }
+  })
 }

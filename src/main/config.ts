@@ -54,6 +54,11 @@ export interface WispConfig {
   claudePath: string
   editorCommand: string
   projectRoots: string[]
+  /**
+   * As pastas cujas conversas ficam fora da memória pessoal (Fase 79): leem o EU.md, mas não
+   * anotam nada (o trabalho de um cliente, por exemplo). Valem as de dentro também.
+   */
+  memoryExcludedFolders: string[]
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -248,6 +253,7 @@ function defaults(): WispConfig {
     claudePath: 'claude',
     editorCommand: 'code',
     projectRoots: ['~/projetos'],
+    memoryExcludedFolders: [],
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -385,6 +391,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   claudePath: z.string().trim().min(1),
   editorCommand: z.string().trim().min(1),
   projectRoots: z.array(z.string()),
+  memoryExcludedFolders: z.array(z.string().trim().min(1)).max(50),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),
@@ -620,6 +627,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   claudePath: t('Diga o comando ou o caminho do Claude Code.'),
   editorCommand: t('Diga o comando do editor (code, codium…).'),
   projectRoots: t('Uma pasta por linha.'),
+  memoryExcludedFolders: t('Uma pasta por linha, até 50.'),
   extraAllowedTools: t('Um nome de ferramenta por linha.'),
   enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),

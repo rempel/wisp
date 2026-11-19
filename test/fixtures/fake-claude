@@ -6,6 +6,8 @@
 // [modelo] responde o modelo, [bloco] responde com um bloco de shell, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
+// [lembra TEXTO] anota TEXTO na memória pessoal (memory_save) e [sabe TEXTO] diz se TEXTO veio
+// no prompt do sistema (a memória pessoal), Fase 79,
 // [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
 // não estiver no --allowedTools), [plano] apresenta um plano (ExitPlanMode), [demorado] dois
 // comandos com uma pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de
@@ -645,6 +647,20 @@ async function runTurn(text) {
     const result = await callDesktop('express', input)
     await tool('mcp__desktop__express', input, result)
     answer = felt ? `Mostrei ${felt[1]}.` : `Dancei ${danced[1]}.`
+  }
+  // A memória pessoal (Fase 79): a memory_save, que não pede permissão, e o que veio no prompt.
+  const remembered = /\[lembra ([^\]]+)\]/.exec(text)
+  if (remembered) {
+    const input = { texto: remembered[1] }
+    const result = await callDesktop('memory_save', input)
+    await tool('mcp__desktop__memory_save', input, result)
+    answer = result
+  }
+  const knows = /\[sabe ([^\]]+)\]/.exec(text)
+  if (knows) {
+    answer = (flag('--append-system-prompt') ?? '').includes(knows[1])
+      ? `Sei: ${knows[1]}.`
+      : `Não sei de ${knows[1]}.`
   }
   const used = /\[mcp ([\w-]+) ([\w-]+)\]/.exec(text)
   if (used) {

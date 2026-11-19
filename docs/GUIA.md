@@ -829,6 +829,20 @@ do Claude Desktop.
   cada conversa (o seu, em `~/.claude`; o do Wisp; e os do projeto da conversa em foco). **Editar**
   abre o texto; **Ver o que muda** mostra o diff, e gravar guarda um backup do arquivo de antes.
   Vale nas conversas novas (Ctrl+K).
+- **A memória pessoal** (Fase 79): o Wisp lembra de você entre as conversas. Quando você conta
+  algo que vale para depois ("lembra que o aniversário da Ana é 3 de março", "prefiro respostas
+  curtas"), o Claude anota sozinho, sem card, em arquivos Markdown na pasta de dados do Wisp
+  (`~/.local/share/wisp/memoria/`): o `EU.md` (quem você é), o `MEMORIA.md` (fatos e decisões) e
+  o diário de cada dia. Toda conversa nova começa sabendo o que está no `EU.md` e no
+  `MEMORIA.md`. "Esquece isso" tira a anotação.
+  - **À vista:** em cima, na tela **Memória**, os dois arquivos (para ler e editar, com o diff) e
+    **O que o Wisp anotou**: cada anotação, com a conversa de onde veio e o **Desfazer**.
+  - **Segredos nunca entram:** uma senha, uma ficha ou uma chave é recusada antes de gravar.
+  - **Conversa anônima:** na paleta, **Nova conversa anônima** abre uma aba (com os óculos 🕶)
+    que não lê nem escreve a memória. Reaberta do histórico, continua anônima.
+  - **Pastas fora da memória** (`memoryExcludedFolders`): na tela Memória, as pastas cujas
+    conversas (e as das pastas de dentro) leem o `EU.md`, mas não anotam nada. Bom para o
+    trabalho de um cliente.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

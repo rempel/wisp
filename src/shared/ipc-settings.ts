@@ -47,6 +47,8 @@ export interface AgendaItem {
 /** Os campos do config.json que a tela de configurações mostra e muda. */
 export interface Settings {
   projectRoots: string[]
+  /** As pastas fora da memória pessoal (Fase 79). */
+  memoryExcludedFolders: string[]
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -111,6 +113,7 @@ export interface Settings {
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'projectRoots',
+  'memoryExcludedFolders',
   'editorCommand',
   'terminalCommand',
   'model',

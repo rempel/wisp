@@ -1,15 +1,19 @@
 // A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê em toda conversa, com o texto
 // de cada um, o editar e a prévia com o diff antes de gravar. O main confere tudo de novo e só
-// grava com o arquivo ainda como na prévia.
+// grava com o arquivo ainda como na prévia. Desde a Fase 79, em cima, a memória pessoal: o EU.md,
+// o MEMORIA.md, o que o Wisp anotou (com o desfazer) e as pastas fora dela.
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { DiffView } from './DiffView'
 import { Markdown } from './Markdown'
+import { MemoryExcluded, MemoryNotes } from './MemoryNotes'
 import type { AgentPreview, MemoryFile, MemoryId } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
 
 /** O nome e a explicação de cada arquivo. */
 const LABELS: Record<MemoryId, [string, string]> = {
+  me: [t('Sobre você'), t('o EU.md: quem você é, suas preferências, as pessoas e os projetos')],
+  facts: [t('Fatos e decisões'), t('o MEMORIA.md: o que vale lembrar em outras conversas')],
   user: [t('Sua'), t('vale em todas as conversas, em qualquer pasta')],
   workspace: [t('Do Wisp'), t('a persona do Wisp, nas conversas sem pasta')],
   project: [t('Do projeto'), t('o CLAUDE.md da pasta da conversa, para quem trabalha nela')],
@@ -32,6 +36,9 @@ export function MemoryView({ folder }: { folder: string | null }): JSX.Element {
       alive = false
     }
   }, [folder])
+  const reload = (): void => {
+    void window.wisp.memory.list(folder).then(setFiles)
+  }
 
   const showPreview = async (): Promise<void> => {
     if (!editing) return
@@ -58,7 +65,7 @@ export function MemoryView({ folder }: { folder: string | null }): JSX.Element {
     <div className="settings agents-view memory-view">
       <p className="settings-hint">
         {t(
-          'O que o Claude lê antes de cada conversa. Escreva aqui o que ele deve sempre saber: como você gosta das respostas, as regras do projeto, os comandos de teste. Vale nas conversas novas (Ctrl+K).'
+          'O que o Claude lê antes de cada conversa. Em cima, a memória pessoal, que o Wisp mantém sozinho; embaixo, as instruções do Claude Code, que só você escreve. Vale nas conversas novas (Ctrl+K).'
         )}
       </p>
       {message && (
@@ -66,107 +73,122 @@ export function MemoryView({ folder }: { folder: string | null }): JSX.Element {
           {message.text}
         </p>
       )}
-      {!folder && (
-        <p className="settings-hint">
-          {t(
-            'A conversa em foco não está numa pasta: a memória de um projeto aparece quando estiver.'
-          )}
-        </p>
-      )}
       {(files ?? []).map((file) => {
         const [name, hint] = LABELS[file.id]
         const open = editing?.id === file.id
+        const personal = file.id === 'me' || file.id === 'facts'
         return (
-          <section key={file.id} className="memory-file">
-            <header>
-              <div>
-                <strong>{name}</strong> <small>{hint}</small>
-                <code className="permission-path" title={file.path}>
-                  {file.path}
-                </code>
-              </div>
-              {!open && (
-                <button
-                  type="button"
-                  className="settings-button"
-                  disabled={file.tooBig}
-                  title={
-                    file.tooBig
-                      ? t('Este arquivo é grande demais para editar pelo painel.')
-                      : undefined
-                  }
-                  onClick={() => {
-                    setMessage(null)
-                    setPreview(null)
-                    setEditing({ id: file.id, text: file.text })
-                  }}
-                >
-                  {file.exists ? t('Editar') : t('Criar')}
-                </button>
-              )}
-            </header>
-            {open ? (
-              <form
-                className="agent-form"
-                onSubmit={(event) => {
-                  event.preventDefault()
-                  void showPreview()
-                }}
-              >
-                <textarea
-                  rows={12}
-                  value={editing.text}
-                  spellCheck={false}
-                  aria-label={t('O texto da memória: {name}', { name })}
-                  onChange={(event) => {
-                    setPreview(null)
-                    setEditing({ id: file.id, text: event.target.value })
-                  }}
-                />
-                {preview && (
-                  <div className="agent-preview" role="region" aria-label={t('O que muda')}>
-                    <strong>
-                      {preview.unchanged
-                        ? t('Nada muda em {path}.', { path: preview.path })
-                        : preview.exists
-                          ? t('Muda {path} (o de antes ganha um backup ao lado):', {
-                              path: preview.path
-                            })
-                          : t('Cria {path}:', { path: preview.path })}
-                    </strong>
-                    {!preview.unchanged && <DiffView diff={preview.diff} path={preview.path} />}
-                  </div>
+          <div key={file.id} className="memory-group">
+            {file.id === 'me' && <h3 className="memory-heading">{t('Memória pessoal')}</h3>}
+            {file.id === 'user' && (
+              <>
+                <MemoryNotes onChanged={reload} />
+                <MemoryExcluded />
+                <h3 className="memory-heading">{t('Instruções do Claude Code (CLAUDE.md)')}</h3>
+                {!folder && (
+                  <p className="settings-hint">
+                    {t(
+                      'A conversa em foco não está numa pasta: a memória de um projeto aparece quando estiver.'
+                    )}
+                  </p>
                 )}
-                <div className="rewind-actions">
-                  {preview && !preview.unchanged ? (
-                    <button type="button" className="settings-button" onClick={() => void save()}>
-                      {preview.exists ? t('Gravar') : t('Criar')}
-                    </button>
-                  ) : (
-                    <button type="submit" className="settings-button">
-                      {t('Ver o que muda')}
-                    </button>
-                  )}
+              </>
+            )}
+            <section className="memory-file" data-memory={file.id}>
+              <header>
+                <div>
+                  <strong>{name}</strong> <small>{hint}</small>
+                  <code className="permission-path" title={file.path}>
+                    {file.path}
+                  </code>
+                </div>
+                {!open && (
                   <button
                     type="button"
-                    className="link"
+                    className="settings-button"
+                    disabled={file.tooBig}
+                    title={
+                      file.tooBig
+                        ? t('Este arquivo é grande demais para editar pelo painel.')
+                        : undefined
+                    }
                     onClick={() => {
-                      setEditing(null)
+                      setMessage(null)
                       setPreview(null)
+                      setEditing({ id: file.id, text: file.text })
                     }}
                   >
-                    {t('Cancelar')}
+                    {file.exists ? t('Editar') : t('Criar')}
                   </button>
+                )}
+              </header>
+              {open ? (
+                <form
+                  className="agent-form"
+                  onSubmit={(event) => {
+                    event.preventDefault()
+                    void showPreview()
+                  }}
+                >
+                  <textarea
+                    rows={12}
+                    value={editing.text}
+                    spellCheck={false}
+                    aria-label={t('O texto da memória: {name}', { name })}
+                    onChange={(event) => {
+                      setPreview(null)
+                      setEditing({ id: file.id, text: event.target.value })
+                    }}
+                  />
+                  {preview && (
+                    <div className="agent-preview" role="region" aria-label={t('O que muda')}>
+                      <strong>
+                        {preview.unchanged
+                          ? t('Nada muda em {path}.', { path: preview.path })
+                          : preview.exists
+                            ? t('Muda {path} (o de antes ganha um backup ao lado):', {
+                                path: preview.path
+                              })
+                            : t('Cria {path}:', { path: preview.path })}
+                      </strong>
+                      {!preview.unchanged && <DiffView diff={preview.diff} path={preview.path} />}
+                    </div>
+                  )}
+                  <div className="rewind-actions">
+                    {preview && !preview.unchanged ? (
+                      <button type="button" className="settings-button" onClick={() => void save()}>
+                        {preview.exists ? t('Gravar') : t('Criar')}
+                      </button>
+                    ) : (
+                      <button type="submit" className="settings-button">
+                        {t('Ver o que muda')}
+                      </button>
+                    )}
+                    <button
+                      type="button"
+                      className="link"
+                      onClick={() => {
+                        setEditing(null)
+                        setPreview(null)
+                      }}
+                    >
+                      {t('Cancelar')}
+                    </button>
+                  </div>
+                </form>
+              ) : file.exists ? (
+                <div className="memory-text msg assistant">
+                  <Markdown text={file.text.replace(/<!--[\s\S]*?-->/g, '')} />
                 </div>
-              </form>
-            ) : file.exists ? (
-              <div className="memory-text msg assistant">
-                <Markdown text={file.text} />
-              </div>
-            ) : (
-              <p className="settings-hint">{t('Ainda não existe.')}</p>
-            )}
-          </section>
+              ) : (
+                <p className="settings-hint">
+                  {personal
+                    ? t('Ainda vazio: o Wisp cria o arquivo na primeira anotação.')
+                    : t('Ainda não existe.')}
+                </p>
+              )}
+            </section>
+          </div>
         )
       })}
     </div>

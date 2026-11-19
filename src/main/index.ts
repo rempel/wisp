@@ -63,6 +63,7 @@ import {
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
+import { personalMemory } from './personal-memory'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
@@ -290,6 +291,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       weekly: weekly.describe,
       agenda: calendar.describe,
       media: () => media,
+      memory: { memory: personalMemory, scope: (id) => chat?.memoryScope(id) ?? null },
       express: ({ emotion, dance, seconds }) => {
         presence.activity()
         if (emotion) actMascot({ kind: 'feel', emotion, ms: holdMs(seconds, FEEL_MS) })

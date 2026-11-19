@@ -250,6 +250,15 @@
   height: 12px;
 }
 
+/* A conversa anônima (Fase 79): os óculos escuros antes do título. */
+.tab-anonymous {
+  display: inline-grid;
+  place-items: center;
+  margin-right: -2px;
+  font-size: 11px;
+  line-height: 1;
+}
+
 .empty-folder code {
   font-size: 12px;
 }

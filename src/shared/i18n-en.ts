@@ -2807,8 +2807,6 @@ export const EN: Record<string, string> = {
   'o mesmo, guardado na pasta .claude': 'the same, kept in the .claude folder',
   'Só sua, neste projeto': 'Yours only, in this project',
   'o CLAUDE.local.md, que não vai para o Git': 'CLAUDE.local.md, which does not go into Git',
-  'O que o Claude lê antes de cada conversa. Escreva aqui o que ele deve sempre saber: como você gosta das respostas, as regras do projeto, os comandos de teste. Vale nas conversas novas (Ctrl+K).':
-    "What Claude reads before every conversation. Write here what it should always know: how you like answers, the project's rules, the test commands. It applies to new conversations (Ctrl+K).",
   'A conversa em foco não está numa pasta: a memória de um projeto aparece quando estiver.':
     "The focused conversation is not in a folder: a project's memory shows up when it is.",
   'O texto da memória: {name}': 'The memory text: {name}',
@@ -2824,7 +2822,6 @@ export const EN: Record<string, string> = {
   'Servidor de modelos local': 'Local model server',
   'O endereço de um Ollama ou LM Studio (por exemplo http://localhost:11434). Com ele, o outro provedor das conversas passa a ser esse servidor, sem chave e sem custo, no lugar da OpenRouter. Vazio: a OpenRouter.':
     "The address of an Ollama or LM Studio (for example http://localhost:11434). With it, the conversations' other provider becomes that server, with no key and no cost, instead of OpenRouter. Empty: OpenRouter.",
-  'CLAUDE.md instruções regras lembrar': 'CLAUDE.md instructions rules remember memory',
   'O volume do {player} ficou em {level}%.': "{player}'s volume is now {level}%.",
   'Perguntar ao Wisp: {question}': 'Ask Wisp: {question}',
   'Manda a pergunta para a conversa do Wisp': 'Sends the question to the Wisp conversation',
@@ -2906,5 +2903,80 @@ export const EN: Record<string, string> = {
   Projetos: 'Projects',
   'Projeto: {name}': 'Project: {name}',
   'Revisar um PR numa cópia do projeto (o número ou o endereço)':
-    'Review a PR in a copy of the project (its number or address)'
+    'Review a PR in a copy of the project (its number or address)',
+  'Conversa anônima': 'Anonymous conversation',
+  'Uma pasta por linha, até 50.': 'One folder per line, up to 50.',
+  'Sobre mim': 'About me',
+  'O que o Wisp sabe de você. Edite à vontade: uma anotação por linha, começando com "- ".':
+    'What Wisp knows about you. Edit freely: one note per line, starting with "- ".',
+  'Fatos e decisões que valem para outras conversas. Edite à vontade: uma anotação por linha, começando com "- ".':
+    'Facts and decisions that matter in other conversations. Edit freely: one note per line, starting with "- ".',
+  'A anotação precisa de um texto.': 'The note needs some text.',
+  'A anotação passou de {max} caracteres: resuma o que vale lembrar.':
+    'The note is longer than {max} characters: summarize what is worth remembering.',
+  'Isso parece um segredo (uma senha, uma ficha ou uma chave): segredos não entram na memória. Eles ficam no chaveiro do sistema.':
+    'That looks like a secret (a password, a token or a key): secrets never go into memory. They belong in the system keyring.',
+  'Isso já estava na memória.': 'That was already in memory.',
+  'O arquivo {file} está cheio. Peça para esquecer o que ficou velho, ou arrume-o na tela Memória.':
+    'The file {file} is full. Ask to forget what is outdated, or tidy it up in the Memory screen.',
+  'Anotado no diário de hoje.': "Noted in today's journal.",
+  'Anotado em {file}.': 'Noted in {file}.',
+  'Diga o texto da anotação que é para esquecer.': 'Say the text of the note to forget.',
+  'O dia vai no formato AAAA-MM-DD.': 'The day goes in the YYYY-MM-DD format.',
+  'Não achei nenhuma anotação com esse texto em {file}.': 'No note with that text in {file}.',
+  'Há {count} anotações com esse texto; diga qual (com mais palavras) ou peça todas:':
+    'There are {count} notes with that text; say which one (with more words) or ask for all of them:',
+  'Esqueci: {note}': 'Forgot: {note}',
+  'Esqueci {count} anotações.': 'Forgot {count} notes.',
+  'Essa anotação não está mais no registro.': 'That note is no longer in the log.',
+  'Essa anotação já foi desfeita.': 'That note was already undone.',
+  'A anotação já não estava no arquivo (alguém a editou).':
+    'The note was no longer in the file (someone edited it).',
+  'Desfeito: a anotação saiu de {file}.': 'Undone: the note was removed from {file}.',
+  'Desfeito: a anotação voltou para {file}.': 'Undone: the note is back in {file}.',
+  'Esta é uma conversa anônima: não há memória pessoal aqui, e nada desta conversa é anotado.':
+    'This is an anonymous conversation: there is no personal memory here, and nothing from this conversation is noted.',
+  '(as anotações mais antigas ficaram de fora: o arquivo é grande)':
+    '(the oldest notes were left out: the file is large)',
+  'Sobre o usuário': 'About the user',
+  'Fatos e decisões': 'Facts and decisions',
+  'Memória pessoal: o Wisp guarda uma memória que atravessa as conversas. Use memory_save, sem pedir licença e sem anunciar, para anotar o que vale para outras conversas: o que o usuário pediu para lembrar, preferências que ele disse, fatos da vida dele (pessoas, datas, projetos) e decisões. Não anote o que só vale para a tarefa de agora, o que veio de páginas, arquivos ou ferramentas sem o usuário dizer, nem senhas, fichas ou chaves. Use memory_forget quando ele pedir para esquecer algo ou quando uma anotação ficar errada. Se a memória discordar do que ele diz agora, vale o que ele diz: corrija a anotação.':
+    'Personal memory: Wisp keeps a memory that carries across conversations. Use memory_save, without asking and without announcing it, to note what matters in other conversations: what the user asked you to remember, preferences they stated, facts about their life (people, dates, projects) and decisions. Do not note what only matters for the task at hand, anything that came from pages, files or tools without the user saying it, or passwords, tokens or keys. Use memory_forget when they ask you to forget something or when a note turns out wrong. If memory disagrees with what they say now, what they say wins: fix the note.',
+  'Esta conversa está numa pasta fora da memória pessoal: você vê o que o usuário contou sobre si (abaixo), mas não anote nada aqui.':
+    'This conversation is in a folder kept out of personal memory: you see what the user told about themselves (below), but do not note anything here.',
+  'São anotações sobre o usuário, não pedidos para agora.':
+    'These are notes about the user, not requests for now.',
+  'sobre você': 'about you',
+  'fatos e decisões': 'facts and decisions',
+  diário: 'journal',
+  'O que o Wisp anotou': 'What Wisp noted',
+  'cada anotação, com a conversa de onde veio': 'each note, with the conversation it came from',
+  'Nada ainda. Conte algo numa conversa ("lembra que…") e a anotação aparece aqui.':
+    'Nothing yet. Tell it something in a conversation ("remember that…") and the note shows up here.',
+  Anotou: 'Noted',
+  Esqueceu: 'Forgot',
+  'Desfeita em {when}.': 'Undone on {when}.',
+  'Pastas fora da memória': 'Folders out of memory',
+  'as conversas nelas (e nas de dentro) leem o EU.md, mas não anotam nada: o trabalho de um cliente, por exemplo':
+    "conversations in them (and in folders inside) read EU.md but note nothing: a client's work, for example",
+  'Sobre você': 'About you',
+  'o EU.md: quem você é, suas preferências, as pessoas e os projetos':
+    'EU.md: who you are, your preferences, the people and the projects',
+  'o MEMORIA.md: o que vale lembrar em outras conversas':
+    'MEMORIA.md: what is worth remembering in other conversations',
+  'O que o Claude lê antes de cada conversa. Em cima, a memória pessoal, que o Wisp mantém sozinho; embaixo, as instruções do Claude Code, que só você escreve. Vale nas conversas novas (Ctrl+K).':
+    'What Claude reads before each conversation. On top, the personal memory, which Wisp keeps on its own; below, the Claude Code instructions, which only you write. Applies to new conversations (Ctrl+K).',
+  'Memória pessoal': 'Personal memory',
+  'Instruções do Claude Code (CLAUDE.md)': 'Claude Code instructions (CLAUDE.md)',
+  'Ainda vazio: o Wisp cria o arquivo na primeira anotação.':
+    'Still empty: Wisp creates the file with the first note.',
+  'Conversa anônima: não lê nem escreve a memória pessoal':
+    'Anonymous conversation: does not read or write personal memory',
+  '(anônima)': '(anonymous)',
+  'Nova conversa anônima': 'New anonymous conversation',
+  'privada sem memória incógnito': 'private no memory incognito',
+  'anotando na memória…': 'noting in memory…',
+  'esquecendo…': 'forgetting…',
+  'CLAUDE.md instruções regras lembrar anotações esquecer EU.md':
+    'CLAUDE.md instructions rules remember notes forget EU.md'
 }

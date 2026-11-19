@@ -10,7 +10,8 @@ dias), **G** (uma semana ou mais).
 
 **Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
-confirma. As Fases 79 a 86 (o Wisp que lembra e cuida da agenda) estão planejadas.
+confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), a 79 está implementada e
+espera a validação; as outras estão planejadas.
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -312,7 +313,9 @@ roda no seu desktop, e nada que muda a máquina roda sem um clique seu.
 
 #### Fase 79: a memória que ele mantém
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/memoria-pessoal.test.ts`;
+`e2e/memoria-pessoal.mjs`, com o Claude Code de mentira anotando pela ferramenta). **Só o uso
+confirma:** o Claude de verdade anotar o que vale (e só o que vale) sem pedir.
 
 - **Os arquivos (M):** em `~/.local/share/wisp/memoria/` (no Windows, a pasta de dados do Wisp):
   - `EU.md`: quem você é, as suas preferências, as pessoas e os projetos da sua vida;
@@ -340,8 +343,15 @@ roda no seu desktop, e nada que muda a máquina roda sem um clique seu.
 nova, "quando é o aniversário da Ana?" responde certo. Na tela Memória, a anotação aparece com
 a conversa de origem; **Desfazer** a tira e a pergunta deixa de ter resposta.
 
-Nota: a memória pessoal fica fora dos `CLAUDE.md`. Eles continuam sendo seus (e dos projetos), e
-o Wisp não escreve neles.
+Notas:
+
+- a memória pessoal fica fora dos `CLAUDE.md`. Eles continuam sendo seus (e dos projetos), e o
+  Wisp não escreve neles;
+- a conversa anônima continua no histórico das conversas do Wisp, como as outras (dá para
+  reabrir, e ela volta anônima); só fica fora da memória. A busca da Fase 80 não a indexa;
+- uma conversa numa cópia do Git (Fase 43) de um projeto numa pasta excluída também fica fora;
+- a memória entra no prompt quando o processo do Claude Code sobe: uma conversa já aberta vê o
+  que mudou depois de dormir (Fase 23) ou numa conversa nova (Ctrl+K).
 
 #### Fase 80: a busca no que ele lembra
 

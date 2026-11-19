@@ -138,6 +138,7 @@ const api: WispApi = {
   tabs: {
     onState: (listener) => subscribe<[TabsState]>(IPC.tabsState, listener),
     create: () => ipcRenderer.send(IPC.tabsNew),
+    createAnonymous: () => ipcRenderer.send(IPC.tabsNewAnonymous),
     close: (id) => ipcRenderer.send(IPC.tabsClose, id),
     show: (id) => ipcRenderer.send(IPC.tabsShow, id),
     focus: (pane) => ipcRenderer.send(IPC.tabsFocus, pane),
@@ -237,7 +238,9 @@ const api: WispApi = {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),
     preview: (id, folder, text) => ipcRenderer.invoke(IPC.memoryPreview, id, folder, text),
     save: (id, folder, text, fingerprint) =>
-      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint)
+      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint),
+    notes: () => ipcRenderer.invoke(IPC.memoryNotes),
+    undo: (id) => ipcRenderer.invoke(IPC.memoryUndo, id)
   },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),
