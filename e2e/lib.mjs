@@ -117,6 +117,8 @@ export function testHome(config = {}) {
     JSON.stringify({
       claudePath: FAKE_CLAUDE,
       sleepAfterMinutes: 10,
+      // O batimento (Fase 84) não roda no meio de um roteiro por cair num dos horários dele.
+      heartbeat: false,
       accessory: 'none',
       sound: false,
       ...config

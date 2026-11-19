@@ -210,6 +210,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   `cancel_task` completam. Horários novos: uma vez só (num dia ou daqui a X minutos), a cada N
   horas numa janela e todo mês. O resultado de cada tarefa vai para a Wisp, a notificação, o
   mascote (e o Telegram) e entra no diário.
+- **O batimento** (Fase 84): às 8h, 13h e 17h nos dias úteis (editável), o Wisp confere o
+  `CHECKLIST.md` (a agenda, o GitHub, os lembretes e as tarefas, o diário, o e-mail) no Haiku,
+  numa aba à parte que fecha sozinha, e só fala se houver algo: o aviso vai para a Wisp, a
+  notificação, o mascote e o diário. Sem nada, só o diário fica sabendo.
 
 ### Mudou
 

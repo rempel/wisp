@@ -162,6 +162,8 @@ export function setupChat({
 
   // As conversas das tarefas agendadas que ainda não terminaram (Fase 83), e quem quer saber.
   const taskRuns = new Map<string, ScheduledTask>()
+  // As do batimento (Fase 84): não aparecem e não são destiladas.
+  const quietRuns = new Set<string>()
   const taskListeners: TaskDoneListener[] = []
 
   const host: ConversationHost = {
@@ -170,7 +172,7 @@ export function setupChat({
         if (event.type === 'usage') lastUsage = [conversation.id, event]
         if (event.type === 'mode') scheduleSave()
         if (event.type === 'turn-end') {
-          distiller().touch(conversation.historyId)
+          if (!quietRuns.has(conversation.id)) distiller().touch(conversation.historyId)
           // Uma tarefa agendada terminou (Fase 83): o resultado vai para os lugares dela.
           const task = taskRuns.get(conversation.id)
           if (task) {
@@ -760,7 +762,11 @@ export function setupChat({
       return conversation.send(text, files, previewOf, voice) ? conversation.id : null
     },
     compose,
-    runTask(task, event) {
+    closeConversation(id) {
+      quietRuns.delete(id)
+      tabs.close(id)
+    },
+    runTask(task, event, options = {}) {
       if (tabs.full) {
         return {
           ok: false,
@@ -782,9 +788,13 @@ export function setupChat({
       }
       const conversation = makeConversation('default', undefined, folder)
       conversation.title = task.name
+      if (options.model) conversation.setModel(options.model)
       taskRuns.set(conversation.id, task)
+      if (options.quiet) quietRuns.add(conversation.id)
       tabs.push(conversation)
-      if (!(win?.isVisible() && win.isFocused())) tabs.showInFocused(conversation.id)
+      if (!options.quiet && !(win?.isVisible() && win.isFocused())) {
+        tabs.showInFocused(conversation.id)
+      }
       tabs.changed()
       const text = expandPrompt(task.prompt, promptValues(folder, '', event ?? ''))
       conversation.showUser(text, false)

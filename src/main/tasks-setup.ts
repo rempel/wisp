@@ -12,7 +12,9 @@ import type { Chat } from './chat'
 import { getConfig, notifyConfigChange, onConfigChange, updateConfig } from './config'
 import { deliver, lastReply } from './delivery'
 import { islandMessage, reactMascot } from './mascot'
-import { memoryAccess, personalMemory } from './personal-memory'
+import { memoryAccess, MEMORY_DIR, personalMemory } from './personal-memory'
+import { checklist, heartbeatPrompt, heartbeatTasks, isHeartbeat, isQuiet } from './heartbeat'
+import type { Conversation } from './conversation'
 import { describeAlert } from './github'
 import type { GithubAlert } from './github'
 import type { GithubAlerts } from './github-alerts'
@@ -186,9 +188,18 @@ export function setupTasks(options: {
   const { notify } = options
   const runTask = (task: ScheduledTask, late: boolean, event?: string): TaskResult => {
     const chat = options.chat()
+    const heartbeat = isHeartbeat(task)
+    // O batimento (Fase 84): o checklist de agora, no Haiku, numa aba à parte e quieto.
+    const run = heartbeat
+      ? {
+          ...task,
+          prompt: heartbeatPrompt(checklist(MEMORY_DIR).text, task.time)
+        }
+      : task
     const result: TaskResult = chat
-      ? chat.runTask(task, event)
+      ? chat.runTask(run, event, heartbeat ? { quiet: true, model: 'haiku' } : undefined)
       : { ok: false, message: t('O Wisp ainda está abrindo.') }
+    if (heartbeat) return result
     if (result.ok) {
       notify(
         event
@@ -205,7 +216,8 @@ export function setupTasks(options: {
     return result
   }
   const scheduler = new TaskScheduler({
-    tasks: () => getConfig().scheduledTasks,
+    // As suas tarefas e as do batimento (Fase 84), uma por horário.
+    tasks: () => [...getConfig().scheduledTasks, ...heartbeatTasks(getConfig(), MEMORY_DIR)],
     run: (task, late) => {
       const result = runTask(task, late)
       // Uma tarefa de uma vez só (Fase 83) sai da lista depois de rodar.
@@ -219,7 +231,44 @@ export function setupTasks(options: {
     file: join(DATA_DIR, 'tarefas.json')
   })
   // O resultado de cada tarefa vai para os lugares dela (Fase 83).
+  /**
+   * O fim do batimento: sem nada, só o diário diz que conferiu; com algo, vai para todos os
+   * lugares, como uma tarefa. A aba dele fecha nos dois casos (a conversa fica no histórico).
+   */
+  const heartbeatDone = (
+    task: ScheduledTask,
+    conversation: Conversation,
+    outcome: 'done' | 'error' | 'stopped'
+  ): void => {
+    const reply = lastReply(conversation.history.events())
+    const memory = personalMemory()
+    const origin = {
+      ...(conversation.historyId ? { conversation: conversation.historyId } : {}),
+      title: task.name,
+      auto: true as const
+    }
+    if (outcome !== 'done') {
+      memory.save('diario', t('{name}: não deu para conferir.', { name: task.name }), origin)
+    } else if (isQuiet(reply)) {
+      memory.save('diario', t('{name}: conferiu, nada de novo.', { name: task.name }), origin)
+    } else {
+      deliver({ title: task.name, text: reply, outcome }, undefined, {
+        postMain: (text) => options.chat()?.postToMain(text),
+        notify: (title, body) => notify(title, body, () => options.chat()?.open()),
+        mascot: (title, text) => {
+          islandMessage(title, text, 8000)
+          reactMascot('remind')
+        },
+        diary: (line) => memory.save('diario', line, origin)
+      })
+    }
+    options.chat()?.closeConversation(conversation.id)
+  }
   options.chat()?.onTaskDone((task, conversation, outcome) => {
+    if (isHeartbeat(task)) {
+      heartbeatDone(task, conversation, outcome)
+      return
+    }
     const inMemory =
       memoryAccess(false, conversation.folder, getConfig().memoryExcludedFolders) === 'full'
     deliver(
@@ -267,7 +316,9 @@ export function setupTasks(options: {
     scheduler,
     triggers,
     runNow: (id) => {
-      const task = getConfig().scheduledTasks.find((item) => item.id === id)
+      const task = [...getConfig().scheduledTasks, ...heartbeatTasks(getConfig(), MEMORY_DIR)].find(
+        (item) => item.id === id
+      )
       if (!task) return { ok: false, message: t('Essa tarefa não existe mais.') }
       if ((task.trigger ?? 'time') !== 'time') {
         return runTask(task, false, t('(rodada à mão, sem um evento)'))

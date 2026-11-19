@@ -229,7 +229,15 @@ export interface AgentPreview {
  * EU.md, e `facts`, o MEMORIA.md) e os CLAUDE.md do Claude Code (Fase 65).
  */
 export type MemoryId =
-  'me' | 'facts' | 'personality' | 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+  | 'me'
+  | 'facts'
+  | 'personality'
+  | 'checklist'
+  | 'user'
+  | 'workspace'
+  | 'project'
+  | 'project-dir'
+  | 'local'
 
 /** O modelo da busca por sentido (Fase 80): baixado ou não, e o índice. */
 export interface MemoryModelInfo {

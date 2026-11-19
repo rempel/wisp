@@ -8,7 +8,8 @@
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
 // [lembra TEXTO] anota TEXTO na memória pessoal (memory_save) e [sabe TEXTO] diz se TEXTO veio
 // no prompt do sistema (a memória pessoal), Fase 79; [busca TEXTO] usa a memory_search (Fase 80),
-// [agenda NOME|PROMPT|MINUTOS] pede e usa a schedule_task (Fase 83),
+// [agenda NOME|PROMPT|MINUTOS] pede e usa a schedule_task (Fase 83), o pedido do batimento
+// ("Batimento do Wisp") responde NADA com [quieto] no checklist e um aviso sem ele (Fase 84),
 // [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
 // não estiver no --allowedTools), [plano] apresenta um plano (ExitPlanMode), [demorado] dois
 // comandos com uma pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de
@@ -670,6 +671,12 @@ async function runTurn(text) {
     const result = await callDesktop('memory_save', input)
     await tool('mcp__desktop__memory_save', input, result)
     answer = result
+  }
+  // O batimento (Fase 84): com [quieto] no checklist, nada a dizer; sem, um aviso.
+  if (text.includes('Batimento do Wisp')) {
+    answer = text.includes('[quieto]')
+      ? 'NADA'
+      : 'Reunião às 9h com o time; o CI do PR #12 está vermelho.'
   }
   // A agenda que o Claude marca (Fase 83): [agenda NOME|PROMPT|MINUTOS] pede o card da
   // schedule_task (como o Claude Code de verdade, pela regra "ask") e, aprovado, agenda.

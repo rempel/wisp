@@ -52,7 +52,18 @@ export interface Chat {
    * config.json não vale aqui). Com você olhando o painel, a aba nova não toma o lugar da que está
    * à vista.
    */
-  runTask(task: ScheduledTask, event?: string): TaskResult
+  runTask(
+    task: ScheduledTask,
+    event?: string,
+    options?: {
+      /** Numa aba que não aparece e sem a destilação (o batimento, Fase 84). */
+      quiet?: boolean
+      /** O modelo da conversa (o batimento usa o Haiku). */
+      model?: string
+    }
+  ): TaskResult
+  /** Fecha a aba de uma conversa (a do batimento, depois de entregar). */
+  closeConversation(id: string): void
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
   /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */

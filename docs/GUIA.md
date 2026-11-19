@@ -873,6 +873,14 @@ do Claude Desktop.
   Wisp, numa notificação e no balão do mascote (e no Telegram, se ligado), e uma linha vai para
   o diário. "Quais tarefas eu tenho?" e "cancela a do resumo" também funcionam (cancelar pede o
   card).
+- **O batimento** (Fase 84): em Configurações, logo abaixo das tarefas agendadas. Nos horários
+  (8h, 13h e 17h nos dias úteis, por padrão), o Wisp confere o seu checklist, o `CHECKLIST.md` da
+  tela Memória: a agenda, o GitHub, os lembretes e as tarefas, o que ficou em aberto ontem e o
+  e-mail (com um servidor MCP de e-mail, como o do Gmail, ligado para o Wisp). Roda no Haiku, numa
+  aba à parte que fecha sozinha, só olhando. Sem nada que mereça, fica quieto e só anota no
+  diário que conferiu; com algo, o aviso chega na Wisp, numa notificação e no mascote. Um horário
+  perdido com o computador desligado roda ao abrir, até duas horas depois. **Conferir agora**
+  roda na hora.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

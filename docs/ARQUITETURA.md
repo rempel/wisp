@@ -54,6 +54,7 @@ src/
 │  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save, memory_forget e memory_search (Fases 79 e 80)
 │  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
 │  ├─ mcp-schedule.ts # a agenda que o Claude marca: schedule_task, list_tasks e cancel_task (Fase 83)
+│  ├─ heartbeat.ts   # o batimento: o CHECKLIST.md, o pedido, a resposta quieta e as tarefas internas (Fase 84)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1410,3 +1411,17 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     balão da ilha com o sininho do mascote e o `channels.telegram` (Fase 85), mais uma linha no
     diário (só fora das pastas fora da memória). Uma tarefa `once` sai da lista depois de rodar
     pelo agendador.
+- **O batimento (Fase 84):**
+  - **as tarefas internas** (`heartbeat.ts`): com o `heartbeat` ligado, cada horário de
+    `heartbeatTimes` vira uma `ScheduledTask` com o id `batimento-HH:MM`, nos `heartbeatDays`,
+    que o agendador da Fase 26 recebe junto das suas (e assim roda um horário perdido ao abrir,
+    até duas horas depois). O `runNow` também as acha (o **Conferir agora**);
+  - **o pedido:** montado na hora, com o `CHECKLIST.md` de agora (criado com o de sempre na
+    primeira vez, sem os comentários): as ferramentas para olhar, a regra de só olhar e a de
+    responder só `NADA` sem nada a dizer;
+  - **a conversa:** o `runTask` com `quiet` e `model: 'haiku'`: a aba entra na lista sem ir para
+    um painel, o modelo é trocado antes da primeira mensagem, e ela fica fora da destilação. No
+    `turn-end`, o `tasks-setup.ts` lê a resposta: quieta (`NADA`, ou vazia), uma linha no diário
+    ("conferiu, nada de novo"); senão, a entrega de uma tarefa (a Wisp, a notificação, o mascote,
+    o Telegram e o diário). Uma que não terminou bem anota que não deu para conferir. A aba fecha
+    nos três casos (`closeConversation`).

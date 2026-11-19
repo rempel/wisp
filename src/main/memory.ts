@@ -38,6 +38,7 @@ export const MEMORY_IDS: MemoryId[] = [
   'me',
   'facts',
   'personality',
+  'checklist',
   'user',
   'workspace',
   'project',
@@ -55,6 +56,7 @@ export function memoryPath(
   if (id === 'me') return join(dataDir, 'memoria', 'EU.md')
   if (id === 'facts') return join(dataDir, 'memoria', 'MEMORIA.md')
   if (id === 'personality') return join(dataDir, 'memoria', 'PERSONALIDADE.md')
+  if (id === 'checklist') return join(dataDir, 'memoria', 'CHECKLIST.md')
   if (id === 'user') return join(configDir, 'CLAUDE.md')
   if (id === 'workspace') return join(dataDir, 'workspace', 'CLAUDE.md')
   const root = folder ? usableFolder(expandHome(folder)) : null

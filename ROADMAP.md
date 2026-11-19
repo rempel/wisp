@@ -503,7 +503,9 @@ Notas:
 
 #### Fase 84: o batimento
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/batimento.test.ts`; `e2e/batimento.mjs`).
+**Só o uso confirma:** o Haiku de verdade ficando quieto quando não há nada, e o e-mail pelo
+servidor MCP do Gmail.
 
 - **Os horários (P):** o Wisp confere um checklist em horários fixos (o padrão: 8h, 13h e 17h nos
   dias úteis), editáveis nas configurações. Com o computador desligado na hora, vale a regra das
@@ -520,6 +522,17 @@ Notas:
 
 **Aceite:** às 8h, com uma reunião às 9h e um CI vermelho, chegam uma notificação e uma mensagem
 na aba Wisp com os dois. Num dia sem nada, nenhuma notificação, e o diário diz que conferiu.
+
+Notas:
+
+- ligado por padrão (`heartbeat`, `heartbeatTimes`, `heartbeatDays`), em Configurações, logo
+  abaixo das tarefas agendadas, com o **Conferir agora**; o checklist se edita na tela Memória;
+- cada horário é uma tarefa interna do agendador (`batimento-08:00`): um horário perdido roda ao
+  abrir, até duas horas depois, como as outras;
+- a aba dele não ocupa o painel e fecha sozinha no fim; a conversa fica no histórico, e ele não é
+  destilado (Fase 81). Uma ação que pediria o card espera nele, como numa tarefa;
+- o e-mail entra quando um servidor MCP de e-mail estiver ligado para o Wisp (Configurações →
+  Servidores MCP, Fase 30).
 
 ### Fora de casa
 

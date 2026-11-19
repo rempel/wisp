@@ -51,6 +51,10 @@ export interface Settings {
   memoryExcludedFolders: string[]
   /** A destilação e a faxina da memória (Fase 81). */
   memoryDistill: boolean
+  /** O batimento (Fase 84): ligado, os horários e os dias. */
+  heartbeat: boolean
+  heartbeatTimes: string[]
+  heartbeatDays: number[]
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -117,6 +121,9 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'projectRoots',
   'memoryExcludedFolders',
   'memoryDistill',
+  'heartbeat',
+  'heartbeatTimes',
+  'heartbeatDays',
   'editorCommand',
   'terminalCommand',
   'model',

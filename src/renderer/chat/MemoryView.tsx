@@ -15,6 +15,10 @@ import { t } from '../../shared/i18n'
 const LABELS: Record<MemoryId, [string, string]> = {
   me: [t('Sobre você'), t('o EU.md: quem você é, suas preferências, as pessoas e os projetos')],
   facts: [t('Fatos e decisões'), t('o MEMORIA.md: o que vale lembrar em outras conversas')],
+  checklist: [
+    t('Checklist do batimento'),
+    t('o CHECKLIST.md: o que o Wisp confere nos horários do batimento')
+  ],
   personality: [
     t('Personalidade'),
     t('o PERSONALIDADE.md: o jeito do Wisp falar com você; ele pode sugerir mudanças')
@@ -81,7 +85,7 @@ export function MemoryView({ folder }: { folder: string | null }): JSX.Element {
       {(files ?? []).map((file) => {
         const [name, hint] = LABELS[file.id]
         const open = editing?.id === file.id
-        const personal = file.id === 'me' || file.id === 'facts' || file.id === 'personality'
+        const personal = ['me', 'facts', 'personality', 'checklist'].includes(file.id)
         return (
           <div key={file.id} className="memory-group">
             {file.id === 'me' && <h3 className="memory-heading">{t('Memória pessoal')}</h3>}

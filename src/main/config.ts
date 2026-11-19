@@ -66,6 +66,13 @@ export interface WispConfig {
    * e a faxina da semana propõe arrumar o MEMORIA.md.
    */
   memoryDistill: boolean
+  /**
+   * O batimento (Fase 84): nos horários e dias, o Wisp confere o CHECKLIST.md (no Haiku, numa aba
+   * à parte) e só fala se houver algo.
+   */
+  heartbeat: boolean
+  heartbeatTimes: string[]
+  heartbeatDays: number[]
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -262,6 +269,9 @@ function defaults(): WispConfig {
     projectRoots: ['~/projetos'],
     memoryExcludedFolders: [],
     memoryDistill: true,
+    heartbeat: true,
+    heartbeatTimes: ['08:00', '13:00', '17:00'],
+    heartbeatDays: [1, 2, 3, 4, 5],
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -401,6 +411,12 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   projectRoots: z.array(z.string()),
   memoryExcludedFolders: z.array(z.string().trim().min(1)).max(50),
   memoryDistill: z.boolean(),
+  heartbeat: z.boolean(),
+  heartbeatTimes: z
+    .array(z.string().regex(TIME))
+    .max(12)
+    .refine((list) => new Set(list).size === list.length),
+  heartbeatDays: z.array(z.number().int().min(0).max(6)).max(7),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),
@@ -648,6 +664,7 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   editorCommand: t('Diga o comando do editor (code, codium…).'),
   projectRoots: t('Uma pasta por linha.'),
   memoryExcludedFolders: t('Uma pasta por linha, até 50.'),
+  heartbeatTimes: t('Horários HH:MM, sem repetir, até 12.'),
   extraAllowedTools: t('Um nome de ferramenta por linha.'),
   enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),

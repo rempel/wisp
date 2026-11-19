@@ -7,6 +7,7 @@ import type { Dance } from '../../shared/emotions'
 import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type { Settings, SettingsResult, SettingsSnapshot } from '../../shared/ipc'
 import { PromptsSection, TasksSection } from './AutomationSection'
+import { HeartbeatSection } from './HeartbeatSection'
 import { MascotGallery } from './MascotGallery'
 import { McpSection } from './McpSection'
 import { MODE_TEXT } from './modes'
@@ -267,6 +268,7 @@ export function SettingsView({
           error={errors.scheduledTasks}
           save={save}
         />
+        <HeartbeatSection values={values} error={errors.heartbeatTimes} save={save} />
 
         <Section title={t('Mascote e sons')}>
           <Row

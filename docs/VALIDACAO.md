@@ -1290,3 +1290,17 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       dia 5 às 10h, os boletos do mês": as configurações mostram os dois em palavras.
 - [ ] **Listar e cancelar:** "quais tarefas eu tenho?" lista; "cancela a dos boletos" pede o card e
       tira.
+
+## O batimento (Fase 84)
+
+- [ ] **Sem nada:** num dia calmo, **Conferir agora**: uma aba aparece na lista e some sozinha;
+      nenhuma notificação, e o diário do dia diz "conferiu, nada de novo".
+- [ ] **Com algo:** com uma reunião daqui a pouco e um CI vermelho, **Conferir agora**: chegam uma
+      notificação e um aviso na Wisp com os dois.
+- [ ] **No horário:** com um horário de batimento daqui a 2 minutos, ele roda sozinho.
+- [ ] **Perdido:** feche o Wisp antes de um horário e abra até duas horas depois: ele roda ao
+      abrir.
+- [ ] **O e-mail:** com o servidor MCP do Gmail ligado para o Wisp, o batimento menciona um e-mail
+      importante não lido.
+- [ ] **O checklist:** tire o GitHub do `CHECKLIST.md` na tela Memória: o próximo batimento não
+      fala mais de PRs.

@@ -3066,5 +3066,34 @@ export const EN: Record<string, string> = {
   'todo mês, no dia {day}, às {time}': 'every month, on day {day}, at {time}',
   'a cada {hours} h, das {from} às {until}, {days}':
     'every {hours} h, from {from} to {until}, {days}',
-  '{days}, às {time}': '{days}, at {time}'
+  '{days}, às {time}': '{days}, at {time}',
+  'Horários HH:MM, sem repetir, até 12.': 'HH:MM times, no repeats, up to 12.',
+  'Checklist do batimento': 'Heartbeat checklist',
+  'O que o Wisp confere nos horários do batimento. Edite à vontade: uma linha por item.':
+    'What Wisp checks at heartbeat times. Edit freely: one line per item.',
+  'A agenda de hoje: os compromissos das próximas horas e os conflitos.':
+    "Today's calendar: the events in the next few hours and any conflicts.",
+  'O GitHub: CI quebrado nos meus PRs e PRs esperando a minha revisão.':
+    'GitHub: broken CI on my PRs and PRs waiting for my review.',
+  'Os lembretes e as tarefas: o que venceu, o que vem hoje e o que ficou em aberto no diário de ontem.':
+    "Reminders and tasks: what is overdue, what is coming today and what was left open in yesterday's journal.",
+  'O e-mail: mensagens importantes não lidas (se houver uma ferramenta de e-mail).':
+    'Email: important unread messages (if there is an email tool).',
+  'Batimento das {time}': 'Heartbeat at {time}',
+  '{name}: não deu para conferir.': '{name}: could not check.',
+  '{name}: conferiu, nada de novo.': '{name}: checked, nothing new.',
+  'Conferindo… sem nada a dizer, só o diário fica sabendo.':
+    'Checking… if there is nothing to say, only the journal hears about it.',
+  'Não deu para conferir agora.': 'Could not check now.',
+  Batimento: 'Heartbeat',
+  'Nos horários, o Wisp confere o seu checklist (a agenda, o GitHub, os lembretes, o e-mail) no Haiku, numa aba à parte, e só fala se houver algo. O checklist se edita na tela Memória (CHECKLIST.md).':
+    'At these times, Wisp checks your checklist (calendar, GitHub, reminders, email) with Haiku, in a separate tab, and only speaks up if there is something. Edit the checklist in the Memory screen (CHECKLIST.md).',
+  Ligado: 'On',
+  Horários: 'Times',
+  'HH:MM, separados por vírgula: 08:00, 13:00, 17:00.':
+    'HH:MM, separated by commas: 08:00, 13:00, 17:00.',
+  'Dias do batimento': 'Heartbeat days',
+  'Conferir agora': 'Check now',
+  'o CHECKLIST.md: o que o Wisp confere nos horários do batimento':
+    'CHECKLIST.md: what Wisp checks at heartbeat times'
 }
