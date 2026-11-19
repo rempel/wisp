@@ -298,7 +298,9 @@ roda no seu desktop, e nada que muda a máquina roda sem um clique seu.
 **O que foi decidido** (alinhado com o uso, em novembro de 2026):
 
 - **Onde mora:** só no desktop. Com o computador desligado, nada responde e nada roda; o que
-  chegou nesse tempo é tratado quando o Wisp abre. Um modo servidor fica para depois.
+  chegou nesse tempo é tratado quando o Wisp abre. O modo servidor, numa outra máquina sempre
+  ligada, é a leva seguinte; por isso a memória, a agenda, o batimento e o Telegram nascem
+  separados das janelas, numa pasta só, prontos para mudar de máquina.
 - **A memória** vale em todas as conversas, e o Wisp escreve nela sem pedir: é a pasta de dados
   dele, não um arquivo seu nem a máquina. Cada anotação fica à vista, com a origem e o desfazer.
 - **Os arquivos são a fonte da verdade:** Markdown que você lê e edita. O índice da busca é só
@@ -513,8 +515,12 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
 
 **Para o assistente**
 
-- **O modo servidor (G).** Um Wisp sem janela num mini-PC ou num servidor sempre ligado, com o
-  desktop como cliente: o Telegram e o batimento funcionando com o computador desligado.
+- **O modo servidor (G), a próxima leva depois das Fases 79 a 86.** Um Wisp sem janela numa
+  outra máquina sempre ligada (um contêiner Docker, por exemplo), onde moram a memória, a
+  agenda, o batimento e o Telegram, funcionando com o computador desligado. O desktop vira uma
+  janela para ele, e o que mexe no seu computador (apps, arquivos, a bancada) vira um pedido ao
+  desktop, quando ele estiver ligado. Pede um desenho à parte: a ligação entre os dois (e de
+  fora de casa), onde rodam o Claude Code e os cards, e a mudança da memória de máquina.
 
 **Para o Windows**
 
@@ -556,6 +562,8 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
   bancada mostra páginas ao lado da conversa; para o dia a dia, o do sistema é melhor.
 - **Um banco vetorial à parte para a memória** (Redis, Qdrant e outros). Para o volume de uma
   pessoa, o SQLite com a semelhança em JS dá conta (Fase 80), sem um serviço a mais rodando.
+  Mesmo com eles numa outra máquina, a busca dependeria da rede de casa, e a memória ficaria
+  dividida entre duas máquinas. A outra máquina entra melhor inteira, no modo servidor.
 - **Uma sessão eterna na conversa principal.** A compactação perde detalhes e o contexto pesa;
   uma sessão por dia, com a memória e o diário, dá a mesma continuidade (Fase 82).
 - **O WhatsApp como canal.** A API oficial pede uma conta comercial; as não oficiais arriscam o
