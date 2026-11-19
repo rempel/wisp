@@ -49,6 +49,8 @@ export interface Settings {
   projectRoots: string[]
   /** As pastas fora da memória pessoal (Fase 79). */
   memoryExcludedFolders: string[]
+  /** A destilação e a faxina da memória (Fase 81). */
+  memoryDistill: boolean
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -114,6 +116,7 @@ export interface Settings {
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'projectRoots',
   'memoryExcludedFolders',
+  'memoryDistill',
   'editorCommand',
   'terminalCommand',
   'model',

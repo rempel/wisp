@@ -66,6 +66,7 @@ import { startDesktopServer } from './mcp-server'
 import { personalMemory } from './personal-memory'
 import { memoryIndex } from './memory-index'
 import { modelInstalled } from './embeddings'
+import { setupMemory } from './memory-setup'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
@@ -321,6 +322,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         .embedPending()
         .catch(() => undefined)
   }, 60_000).unref()
+  // A destilação das conversas paradas e a faxina da semana (Fase 81).
+  setupMemory(notify)
 
   // O mascote acompanha a conversa: falando, trabalhando, pedindo permissão, feliz, erro.
   const mood = new MascotMood({

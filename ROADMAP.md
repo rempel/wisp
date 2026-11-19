@@ -394,7 +394,8 @@ Notas:
 
 #### Fase 81: o diário e a faxina
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/destilacao.test.ts`, com o Claude Code de
+uma vez só contra o de mentira). **Só o uso confirma:** o que o Haiku de verdade escolhe anotar.
 
 - **Destilar a conversa (M):** quando uma conversa fecha, ou fica parada uns 15 minutos, um
   Claude Code à parte e sem ferramentas (como a pergunta lateral, Fase 46), com o Haiku, lê o
@@ -408,6 +409,18 @@ Notas:
 
 **Aceite:** depois de uma conversa sobre a viagem de dezembro, o diário do dia tem uma linha
 sobre ela, sem você ter pedido; a faxina mostra o diff com dois fatos repetidos virando um.
+
+Notas:
+
+- a destilação é ligada por padrão (`memoryDistill`) e se desliga na tela Memória; na
+  demonstração, não roda;
+- o custo fica à vista na tela Memória (as destilações e as faxinas dos últimos 30 dias, pelo
+  `total_cost_usd` que o Claude Code informa): o Claude Code de uma vez só não grava sessão, então
+  ele não aparece no painel de uso (Fase 49);
+- a faxina espera na tela Memória (com uma notificação), e não num card da conversa: ela não é de
+  conversa nenhuma. A primeira roda uma semana depois de ligar; **Fazer a faxina agora** roda na
+  hora;
+- uma conversa curta demais (menos de 100 caracteres novos) não é destilada.
 
 ### A conversa principal
 

@@ -40,6 +40,8 @@ export type MemoryAccess = 'full' | 'read' | 'off'
 export interface NoteOrigin {
   conversation?: string
   title?: string
+  /** Veio da destilação (Fase 81), e não de um memory_save. */
+  auto?: true
 }
 
 /** Uma linha do historico.jsonl. */
@@ -348,6 +350,7 @@ export class PersonalMemory {
         text: entry.lines.map((line) => noteText(line) ?? line).join('\n'),
         ...(entry.origin?.title ? { title: entry.origin.title } : {}),
         ...(entry.origin?.conversation ? { conversation: entry.origin.conversation } : {}),
+        ...(entry.origin?.auto ? { auto: true } : {}),
         ...(entry.undone ? { undone: entry.undone } : {})
       }))
   }

@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { DiffView } from './DiffView'
 import { Markdown } from './Markdown'
+import { MemoryCleanup } from './MemoryCleanup'
 import { MemoryExcluded, MemoryModel, MemoryNotes } from './MemoryNotes'
 import type { AgentPreview, MemoryFile, MemoryId } from '../../shared/ipc'
 import { t } from '../../shared/i18n'
@@ -83,6 +84,7 @@ export function MemoryView({ folder }: { folder: string | null }): JSX.Element {
             {file.id === 'user' && (
               <>
                 <MemoryNotes onChanged={reload} />
+                <MemoryCleanup onChanged={reload} />
                 <MemoryModel />
                 <MemoryExcluded />
                 <h3 className="memory-heading">{t('Instruções do Claude Code (CLAUDE.md)')}</h3>

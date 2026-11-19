@@ -264,6 +264,23 @@ export interface MemoryNote {
   conversation?: string
   /** Quando foi desfeita. */
   undone?: number
+  /** Veio da destilação da conversa (Fase 81). */
+  auto?: boolean
+}
+
+/** A destilação e a faxina da memória (Fase 81), para a tela Memória. */
+export interface MemoryCleanupInfo {
+  /** A destilação está ligada (memoryDistill). */
+  distill: boolean
+  /** Quantas conversas esperam ser destiladas. */
+  waiting: number
+  /** O custo nos últimos 30 dias (em dólares, como o Claude Code informa). */
+  runs: number
+  cost: number
+  /** A faxina que espera o seu OK: o diff do MEMORIA.md. */
+  pending?: { at: number; preview: AgentPreview; stale: boolean }
+  /** O que aconteceu (rodar, gravar, descartar). */
+  message?: string
 }
 export interface MemoryFile {
   id: MemoryId

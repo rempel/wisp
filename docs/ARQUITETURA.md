@@ -53,6 +53,9 @@ src/
 │  ├─ personal-memory.ts # a memória pessoal: EU.md, MEMORIA.md, o diário, o registro e os segredos (Fase 79)
 │  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save, memory_forget e memory_search (Fases 79 e 80)
 │  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
+│  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
+│  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
+│  ├─ claude-once.ts # o Claude Code de uma vez só: sem ferramentas, uma resposta em JSON e o custo (Fase 81)
 │  ├─ embeddings.ts  # o modelo da busca por sentido: baixar, carregar (ONNX Runtime em WASM) e os vetores (Fase 80)
 │  ├─ file-menu.ts   # o "Perguntar ao Wisp" do gerenciador de arquivos e o wisp no PATH do Windows (Fases 64 e 67)
 │  ├─ search-provider.ts # o Wisp na busca do desktop: o KRunner e o GNOME, pelo D-Bus (Fase 72)
@@ -1343,3 +1346,23 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
   - **a ferramenta** `memory_search` (no `SAFE_TOOLS`, só leitura): `consulta`, `fonte`, `desde`,
     `ate` e `limite`; devolve cada trecho com a fonte, o dia, o título (e o id da conversa) e a
     nota. Recusa numa conversa anônima ou numa pasta fora da memória.
+- **O diário e a faxina (Fase 81):**
+  - **o Claude Code de uma vez só** (`claude-once.ts`): `-p --output-format json
+--no-session-persistence --max-turns 1`, as ferramentas da pergunta lateral negadas,
+    `--strict-mcp-config` (nenhum servidor), `--model=haiku`, a pergunta pela entrada e a pasta da
+    memória como pasta de trabalho. Devolve o texto e o `total_cost_usd`;
+  - **destilar** (`distill.ts`): o fim de cada resposta (`turn-end`, no `chat.ts`) marca a
+    conversa como esperando, com a hora; o relógio de minuto em minuto (`memory-setup.ts`) destila
+    as paradas há 15 minutos, e fechar a aba destila na hora. Vai para o Haiku o trecho novo (as
+    mensagens depois das já destiladas, pelo `messagesOf`, até os últimos 24 mil caracteres), com
+    o `EU.md` e o `MEMORIA.md` de agora (sem os comentários), pedindo um JSON com `diario` (até 2),
+    `eu` e `memoria` (até 5 cada). Cada item passa pelo `PersonalMemory.save` (os segredos, as
+    repetições), com a origem marcada `auto`. Uma conversa anônima, de uma pasta fora da memória
+    ou com menos de 100 caracteres novos sai da fila sem ir ao Haiku; uma resposta que não é JSON
+    deixa a conversa na fila. O estado (quantas mensagens de cada uma já foram, as que esperam, os
+    custos, a faxina) fica em `destilacao.json`;
+  - **a faxina:** a cada 7 dias (a primeira, 7 dias depois de ligar), o `MEMORIA.md` inteiro vai
+    para o Haiku, que devolve `{"memoria": "…"}` arrumado. Uma resposta vazia, que joga fora mais
+    de dois terços das anotações ou igual à de antes não vira proposta. A proposta guarda a
+    impressão do arquivo de quando rodou; a tela Memória mostra o diff (`previewMemory`) e gravar
+    passa pelo `saveMemory` (o backup ao lado), só com o arquivo ainda igual.

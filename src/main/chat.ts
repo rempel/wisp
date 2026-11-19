@@ -13,6 +13,7 @@ import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
 import { conversationFactory, memoryScopeOf, modeFileOf, previewOf } from './chat-conversation'
+import { distiller } from './memory-setup'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
@@ -128,6 +129,10 @@ export function setupChat({
     makeConversation: (mode, folder) => makeConversation(mode, undefined, folder ?? null),
     sessionTitle,
     closed(conversation) {
+      // A destilação (Fase 81): o que a conversa disse de novo vira diário e memória.
+      void distiller()
+        .closed(conversation.historyId)
+        .catch(() => undefined)
       conversation.dispose()
       releaseMcpConfig?.(conversation.id)
       rmSync(modeFileOf(conversation.id), { force: true })
@@ -157,6 +162,7 @@ export function setupChat({
       if (live) {
         if (event.type === 'usage') lastUsage = [conversation.id, event]
         if (event.type === 'mode') scheduleSave()
+        if (event.type === 'turn-end') distiller().touch(conversation.historyId)
         onEvent?.(event, conversation.id)
       }
       toPage(conversation.id, event)

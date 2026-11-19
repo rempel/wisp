@@ -59,6 +59,11 @@ export interface WispConfig {
    * anotam nada (o trabalho de um cliente, por exemplo). Valem as de dentro também.
    */
   memoryExcludedFolders: string[]
+  /**
+   * A destilação (Fase 81): o Haiku lê as conversas paradas e anota o diário e os fatos novos;
+   * e a faxina da semana propõe arrumar o MEMORIA.md.
+   */
+  memoryDistill: boolean
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -254,6 +259,7 @@ function defaults(): WispConfig {
     editorCommand: 'code',
     projectRoots: ['~/projetos'],
     memoryExcludedFolders: [],
+    memoryDistill: true,
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -392,6 +398,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   editorCommand: z.string().trim().min(1),
   projectRoots: z.array(z.string()),
   memoryExcludedFolders: z.array(z.string().trim().min(1)).max(50),
+  memoryDistill: z.boolean(),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),

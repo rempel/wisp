@@ -241,7 +241,8 @@ const api: WispApi = {
       ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint),
     notes: () => ipcRenderer.invoke(IPC.memoryNotes),
     undo: (id) => ipcRenderer.invoke(IPC.memoryUndo, id),
-    model: (action) => ipcRenderer.invoke(IPC.memoryModel, action)
+    model: (action) => ipcRenderer.invoke(IPC.memoryModel, action),
+    cleanup: (action) => ipcRenderer.invoke(IPC.memoryCleanup, action)
   },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),

@@ -221,13 +221,27 @@ if (flag('--output-format') === 'json') {
   process.stdin.on('data', (chunk) => (input += chunk))
   process.stdin.on('end', () => {
     const said = memory.map((turn) => turn.user).join(' | ')
-    const result = `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
+    // FAKE_JSON_REPLY: a resposta pronta (a destilação da memória, Fase 81); o pedido fica em
+    // $HOME/.fake-claude/once.log, com o modelo.
+    const fixed = process.env.FAKE_JSON_REPLY
+    if (fixed !== undefined) {
+      fs.mkdirSync(STATE, { recursive: true })
+      fs.appendFileSync(
+        path.join(STATE, 'once.log'),
+        JSON.stringify({
+          model: flag('--model') ?? args.find((a) => a.startsWith('--model='))?.slice(8) ?? null,
+          input
+        }) + '\n'
+      )
+    }
+    const result = fixed ?? `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
     process.stdout.write(
       JSON.stringify({
         type: 'result',
         subtype: 'success',
         is_error: false,
         result,
+        total_cost_usd: fixed !== undefined ? 0.0021 : 0,
         session_id: sessionId
       }) + '\n'
     )

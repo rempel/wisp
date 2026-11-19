@@ -849,6 +849,13 @@ do Claude Desktop.
     Na tela Memória, **Busca por sentido → Baixar o modelo** mostra o tamanho (uns 120 MB) e de
     onde ele vem (huggingface.co), e só baixa com o seu clique; depois, tudo roda no seu
     computador. As conversas anônimas e as das pastas fora da memória não entram na busca.
+  - **O diário e a faxina** (Fase 81, `memoryDistill`): uma conversa parada há uns 15 minutos (ou
+    que você fechou) é lida pelo Haiku, sem ferramentas, que anota uma ou duas linhas no diário
+    do dia e os fatos novos, sem você pedir (aparecem em **O que o Wisp anotou** "pela
+    destilação", com o desfazer). Uma vez por semana, a faxina sugere arrumar o `MEMORIA.md`
+    (juntar repetidos, tirar o que passou): uma notificação avisa, e a tela Memória mostra o diff
+    com **Gravar** e **Descartar**. O custo dos últimos 30 dias aparece ali; a caixa **Destilar
+    as conversas sozinho** desliga tudo.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

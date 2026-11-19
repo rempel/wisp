@@ -72,6 +72,7 @@ export function MemoryNotes({ onChanged }: { onChanged: () => void }): JSX.Eleme
               <span>
                 {note.action === 'save' ? t('Anotou') : t('Esqueceu')} · {WHERE[note.target]} ·{' '}
                 {when(note.at)}
+                {note.auto ? ` · ${t('pela destilação')}` : ''}
               </span>
               {note.title &&
                 (note.conversation ? (

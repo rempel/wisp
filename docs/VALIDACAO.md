@@ -1250,3 +1250,16 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **De fora:** uma conversa anônima não aparece na busca, nem uma de uma pasta fora da memória.
 - [ ] **O pacote:** no .deb e no AppImage, `onnxruntime-web/dist` tem só o `ort.node.min.*` e o
       `ort-wasm-simd-threaded.*`.
+
+## O diário e a faxina (Fase 81)
+
+- [ ] **O diário:** converse sobre a viagem de dezembro e deixe a conversa parada uns 15 minutos
+      (ou feche a aba): o diário do dia ganha uma linha sobre ela, e **O que o Wisp anotou**
+      mostra "pela destilação".
+- [ ] **Os fatos:** numa conversa, conte algo de você sem pedir para lembrar ("meu cunhado é o
+      Pedro"); depois da destilação, aparece no `EU.md`.
+- [ ] **De fora:** uma conversa anônima e uma numa pasta fora da memória não são destiladas.
+- [ ] **A faxina:** com duas anotações repetidas no `MEMORIA.md`, **Fazer a faxina agora**: o diff
+      mostra as duas virando uma; **Gravar** muda o arquivo, com o backup.
+- [ ] **O custo:** a tela Memória mostra quantas vezes rodou e o custo.
+- [ ] **Desligar:** sem **Destilar as conversas sozinho**, nada é destilado.

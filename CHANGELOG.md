@@ -196,6 +196,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **A busca no que ele lembra** (Fase 80): `memory_search` acha na memória, no diário e nas
   conversas antigas, pelo texto (sem acentos) e, com o modelo `multilingual-e5-small` baixado na
   tela Memória (uns 120 MB, só com o seu clique), pelo sentido. O índice é um SQLite no cache.
+- **O diário e a faxina** (Fase 81): uma conversa parada há 15 minutos (ou fechada) é destilada
+  pelo Haiku, sem ferramentas: uma ou duas linhas no diário do dia e os fatos novos na memória,
+  com as regras de sempre. Uma vez por semana, a faxina sugere arrumar o `MEMORIA.md`, e só grava
+  com o seu OK, com o diff.
 
 ### Mudou
 

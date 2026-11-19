@@ -37,6 +37,7 @@ import type {
   MemoryId,
   MemoryNote,
   MemoryModelInfo,
+  MemoryCleanupInfo,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -269,6 +270,11 @@ export const IPC = {
    * download baixa (e devolve quando acabar); remove o tira.
    */
   memoryModel: 'memory:model',
+  /**
+   * chat → main (invoke): a destilação e a faxina (Fase 81). Arg: 'status', 'run' (a faxina
+   * agora), 'accept' (gravar a proposta) ou 'discard'. Devolve MemoryCleanupInfo.
+   */
+  memoryCleanup: 'memory:cleanup',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -874,6 +880,8 @@ export interface WispApi {
     undo(id: string): Promise<AgentResult>
     /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
     model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
+    /** A destilação e a faxina da semana (Fase 81): ver, rodar agora, gravar ou descartar. */
+    cleanup(action: 'status' | 'run' | 'accept' | 'discard'): Promise<MemoryCleanupInfo>
   }
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>

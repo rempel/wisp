@@ -2994,5 +2994,28 @@ export const EN: Record<string, string> = {
   'O download não deu certo: {error}': 'The download failed: {error}',
   'O modelo multilingual-e5-small tem uns {size} e vem de {source}. Depois de baixado, tudo roda no seu computador, sem internet.':
     'The multilingual-e5-small model is about {size} and comes from {source}. Once downloaded, everything runs on your computer, offline.',
-  Baixar: 'Download'
+  Baixar: 'Download',
+  'A faxina da memória está pronta': 'The memory tidy-up is ready',
+  'Veja na tela Memória o que ela sugere mudar no MEMORIA.md.':
+    'See in the Memory screen what it suggests changing in MEMORIA.md.',
+  'A faxina sugere mudanças: veja abaixo.': 'The tidy-up suggests changes: see below.',
+  'A faxina não achou nada para arrumar.': 'The tidy-up found nothing to fix.',
+  'A faxina não deu certo: {error}': 'The tidy-up failed: {error}',
+  'O MEMORIA.md mudou depois da faxina: rode-a de novo.':
+    'MEMORIA.md changed after the tidy-up: run it again.',
+  'A sugestão da faxina foi descartada.': 'The tidy-up suggestion was discarded.',
+  'O diário e a faxina': 'The journal and the tidy-up',
+  'o Haiku lê as conversas paradas e anota o diário e os fatos novos; uma vez por semana, sugere arrumar o MEMORIA.md':
+    'Haiku reads idle conversations and notes the journal and new facts; once a week, it suggests tidying up MEMORIA.md',
+  'Arrumando…': 'Tidying up…',
+  'Fazer a faxina agora': 'Tidy up now',
+  'Destilar as conversas sozinho': 'Distill conversations on its own',
+  'Nos últimos 30 dias: {runs} vezes, US$ {cost} (o que custaria pela API; na assinatura, entra no uso do plano). {waiting} conversas esperando.':
+    'In the last 30 days: {runs} times, US$ {cost} (what it would cost through the API; on a subscription, it counts toward plan usage). {waiting} conversations waiting.',
+  'O que a faxina sugere': 'What the tidy-up suggests',
+  'A faxina de {when} sugere estas mudanças no MEMORIA.md:':
+    'The tidy-up from {when} suggests these changes to MEMORIA.md:',
+  'O arquivo mudou depois: grave só depois de rodar a faxina de novo.':
+    'The file changed since: save only after running the tidy-up again.',
+  'pela destilação': 'by distillation'
 }

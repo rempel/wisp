@@ -387,7 +387,14 @@
   border-top: 0;
 }
 
-.memory-note-list li.undone .memory-note-text {
+.memory-note-list li.undone .memory-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.memory-note-text {
   color: var(--muted);
   text-decoration: line-through;
 }

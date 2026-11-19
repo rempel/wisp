@@ -13,10 +13,13 @@ import { dirname, join } from 'path'
 import { backupFile, stamp } from './backup'
 import { usableFolder } from './folders'
 import { DATA_DIR, expandHome } from './paths'
+import { getConfig } from './config'
+import type { Distiller } from './distill'
 import { claudeConfigDir } from './skills'
 import { personalMemory } from './personal-memory'
 import { downloadModel, EMBEDDING_MODEL, modelStatus, removeModel } from './embeddings'
 import { memoryIndex } from './memory-index'
+import { distiller } from './memory-setup'
 import { wholeFileDiff } from '../shared/diff'
 import { IPC } from '../shared/ipc'
 import type {
@@ -24,6 +27,7 @@ import type {
   AgentResult,
   MemoryFile,
   MemoryId,
+  MemoryCleanupInfo,
   MemoryModelInfo
 } from '../shared/ipc'
 import { t } from '../shared/i18n'
@@ -213,6 +217,9 @@ export function setupMemoryIpc(isSender: (sender: WebContents) => boolean): void
       }
     }
   )
+  ipcMain.handle(IPC.memoryCleanup, async (event, action: unknown) =>
+    isSender(event.sender) ? cleanupAction(action) : null
+  )
   ipcMain.handle(IPC.memoryUndo, (event, id: unknown): AgentResult => {
     if (!isSender(event.sender) || typeof id !== 'string') {
       return { ok: false, message: t('pedido inválido') }
@@ -220,4 +227,46 @@ export function setupMemoryIpc(isSender: (sender: WebContents) => boolean): void
     const result = personalMemory().undo(id)
     return result.ok ? result : { ok: false, message: result.error }
   })
+}
+
+/** A destilação e a faxina (Fase 81), pela tela Memória. */
+export async function cleanupAction(
+  action: unknown,
+  source: Distiller = distiller(),
+  configDir = claudeConfigDir(),
+  dataDir = DATA_DIR
+): Promise<MemoryCleanupInfo> {
+  let message: string | undefined
+  if (action === 'run') {
+    const result = await source.cleanup()
+    message =
+      result.message === 'pending'
+        ? t('A faxina sugere mudanças: veja abaixo.')
+        : result.message === 'unchanged' || result.message === 'empty'
+          ? t('A faxina não achou nada para arrumar.')
+          : t('A faxina não deu certo: {error}', { error: result.message })
+  } else if (action === 'accept') {
+    const pending = source.pendingCleanup()
+    if (pending && !pending.stale) {
+      const saved = saveMemory('facts', null, pending.text, pending.fingerprint, configDir, dataDir)
+      message = saved.message
+      if (saved.ok) source.dropCleanup()
+    } else {
+      message = t('O MEMORIA.md mudou depois da faxina: rode-a de novo.')
+    }
+  } else if (action === 'discard') {
+    source.dropCleanup()
+    message = t('A sugestão da faxina foi descartada.')
+  }
+  const pending = source.pendingCleanup()
+  const preview = pending ? previewMemory('facts', null, pending.text, configDir, dataDir) : null
+  return {
+    distill: getConfig().memoryDistill,
+    waiting: source.waiting(),
+    ...source.costs(),
+    ...(pending && preview && !('error' in preview)
+      ? { pending: { at: pending.at, preview, stale: pending.stale } }
+      : {}),
+    ...(message ? { message } : {})
+  }
 }
