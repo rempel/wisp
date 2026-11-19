@@ -367,11 +367,7 @@ texto e por sentido juntas e, sem os vetores, só por texto.
 conversa em que se falou de "jantar no Shiro, sugestão dela", que não tem a palavra
 "restaurante". Sem o modelo, "Shiro" acha a mesma conversa.
 
-Notas:
-
-- conferir antes que o `node:sqlite` do Electron 44 traz o FTS5 (o do Node 22 traz);
-- o gerador de vetores fica atrás de uma interface, para o Ollama (Fase 66) entrar depois como
-  outra fonte.
+Nota: conferir antes que o `node:sqlite` do Electron 44 traz o FTS5 (o do Node 22 traz).
 
 #### Fase 81: o diário e a faxina
 
@@ -519,8 +515,6 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
 
 - **O modo servidor (G).** Um Wisp sem janela num mini-PC ou num servidor sempre ligado, com o
   desktop como cliente: o Telegram e o batimento funcionando com o computador desligado.
-- **Os vetores pelo Ollama (P).** Outra fonte para a busca por sentido (Fase 80), para quem já
-  tem um servidor local (Fase 66).
 
 **Para o Windows**
 
