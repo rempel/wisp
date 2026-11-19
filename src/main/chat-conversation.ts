@@ -112,9 +112,21 @@ export function memoryScopeOf(conversation: Conversation): MemoryScope {
   }
 }
 
-/** A persona e a memória pessoal, lidas de novo a cada processo do Claude Code que sobe. */
-const personaOf = (conversation: Conversation): string =>
-  `${APPEND_SYSTEM_PROMPT}\n\n${personalMemory().prompt(memoryScopeOf(conversation).access)}`
+/**
+ * A persona, a personalidade (Fase 82), a memória pessoal e, na Wisp, o diário: lidos de novo a
+ * cada processo do Claude Code que sobe.
+ */
+export function personaOf(conversation: Conversation, memory = personalMemory()): string {
+  const access = memoryScopeOf(conversation).access
+  return [
+    APPEND_SYSTEM_PROMPT,
+    memory.personality(),
+    memory.prompt(access),
+    conversation.history.main && access === 'full' ? memory.dayContext() : ''
+  ]
+    .filter(Boolean)
+    .join('\n\n')
+}
 
 /** O arquivo do modo de permissão de uma conversa (o hook do Bash do processo dela o lê). */
 export const modeFileOf = (conversation: string): string =>

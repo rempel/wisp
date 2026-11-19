@@ -200,6 +200,16 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   pelo Haiku, sem ferramentas: uma ou duas linhas no diário do dia e os fatos novos na memória,
   com as regras de sempre. Uma vez por semana, a faxina sugere arrumar o `MEMORIA.md`, e só grava
   com o seu OK, com o diff.
+- **A Wisp, uma aba que fica** (Fase 82): a conversa principal, sempre a primeira aba e sem o
+  fechar, uma sessão por dia (a de ontem fica no histórico, e os dias anteriores aparecem na
+  conversa vazia), com o diário de ontem e de hoje no prompt. A voz, o `wisp --ask` e a busca do
+  desktop vão para ela quando o painel não está em foco. E o `PERSONALIDADE.md`: o jeito do Wisp
+  falar, que você edita na tela Memória e que ele pode sugerir mudar, pelo card com o diff.
+- **A agenda que ele marca** (Fase 83): "toda segunda às 8h me manda os PRs parados" vira uma
+  tarefa pela `schedule_task`, que sempre passa pelo card (até no modo Automático); `list_tasks` e
+  `cancel_task` completam. Horários novos: uma vez só (num dia ou daqui a X minutos), a cada N
+  horas numa janela e todo mês. O resultado de cada tarefa vai para a Wisp, a notificação, o
+  mascote (e o Telegram) e entra no diário.
 
 ### Mudou
 

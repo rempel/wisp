@@ -33,6 +33,7 @@ import { openPreview } from './preview-store'
 import type { ChatState, Item } from './state'
 import { Message } from './Message'
 import { NextEvent } from './NextEvent'
+import { MainDays } from './MainDays'
 import { TaskBar } from './TaskBar'
 import { TerminalView } from './TerminalView'
 import { ViewToggle } from './ViewToggle'
@@ -102,6 +103,8 @@ export interface PaneProps {
   local?: boolean
   /** O próximo compromisso da agenda, para o painel vazio (null: nenhum). */
   agenda: AgendaItem | null
+  /** A conversa principal, a Wisp (Fase 82): a vazia mostra os dias anteriores. */
+  main?: boolean
   /**
    * O usuário mandou uma mensagem: ela aparece na hora, sem esperar o main. `replace`: ela troca
    * a última (a edição), que sai com o que veio depois.
@@ -138,6 +141,7 @@ export function Pane({
   demo,
   local,
   agenda,
+  main,
   onSent,
   onBroadcast
 }: PaneProps): JSX.Element {
@@ -700,6 +704,7 @@ export function Pane({
               </p>
             )}
             {agenda && <NextEvent event={agenda} />}
+            {main && !demo && <MainDays />}
             {demo ? (
               <>
                 <p>

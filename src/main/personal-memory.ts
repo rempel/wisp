@@ -355,6 +355,67 @@ export class PersonalMemory {
       }))
   }
 
+  /** O PERSONALIDADE.md (Fase 82): o jeito do Wisp falar, que você escreve. */
+  get personalityPath(): string {
+    return join(this.dir, 'PERSONALIDADE.md')
+  }
+
+  /**
+   * A personalidade para o prompt de todas as conversas (Fase 82). Na primeira vez, o arquivo é
+   * criado com o jeito de sempre. O Claude pode sugerir mudanças editando o arquivo com o Edit,
+   * que sempre passa pelo card com o diff (o arquivo fica numa pasta oculta).
+   */
+  personality(): string {
+    const path = this.personalityPath
+    let text = read(path)
+    if (text === null) {
+      text =
+        `# ${t('Personalidade')}\n\n<!-- ${t('Como o Wisp fala com você: o tom, o jeito, o que priorizar. Edite à vontade; vale nas conversas novas. O Wisp pode sugerir mudanças, sempre com o seu OK.')} -->\n\n` +
+        `- ${t('Fala em português do Brasil, de forma breve e direta.')}\n` +
+        `- ${t('Usa Markdown leve: parágrafos curtos e listas simples.')}\n` +
+        `- ${t('É gentil e prático, e vai direto ao ponto.')}\n`
+      try {
+        write(path, text)
+      } catch {
+        // Sem como gravar: vale o texto de sempre só nesta vez.
+      }
+    }
+    const body = promptText(text)
+    return [
+      t('A sua personalidade, escrita pelo usuário no arquivo {path}:', { path }),
+      `<personalidade>\n${keepEnd(body, PROMPT_LIMIT.eu).text}\n</personalidade>`,
+      t(
+        'Se ele pedir para você mudar o seu jeito (o tom, o nome, o que priorizar), proponha a mudança editando esse arquivo com a ferramenta Edit: ele vê o diff e decide. Não mude o arquivo por conta própria.'
+      )
+    ].join('\n')
+  }
+
+  /**
+   * O diário para a conversa principal (Fase 82): o de hoje e o do último dia antes dele (dos
+   * últimos sete), com o fim de cada um.
+   */
+  dayContext(now = this.now()): string {
+    const today = dayOf(now)
+    const parts: string[] = []
+    for (let back = 1; back <= 7; back++) {
+      const day = dayOf(now - back * 24 * 60 * 60_000)
+      const text = promptText(read(this.path('diario', day)) ?? '')
+      if (text) {
+        parts.push(`## ${t('O diário de {day}', { day })}\n${keepEnd(text, 2_000).text}`)
+        break
+      }
+    }
+    const current = promptText(read(this.path('diario', today)) ?? '')
+    if (current)
+      parts.push(
+        `## ${t('O diário de hoje ({day})', { day: today })}\n${keepEnd(current, 2_000).text}`
+      )
+    const intro = t(
+      'Esta é a conversa principal com o usuário, a aba Wisp: uma por dia, e a de ontem ficou no histórico. Para continuar de onde parou, use o diário abaixo (e o memory_search para o resto).'
+    )
+    return parts.length ? `${intro}\n\n${parts.join('\n\n')}` : intro
+  }
+
   /**
    * O que entra no prompt de uma conversa: as instruções e o EU.md e o MEMORIA.md (ou só o EU.md,
    * numa pasta fora da memória). Vazio numa conversa anônima.

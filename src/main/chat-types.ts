@@ -5,6 +5,7 @@ import type { RelayEvent } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
 import type { MemoryScope } from './mcp-memory'
+import type { Conversation } from './conversation'
 import type { ScreenImage } from './screenshot'
 import type {
   AgendaItem,
@@ -20,6 +21,13 @@ import type {
   VoiceStatus
 } from '../shared/ipc'
 import type { ScheduledTask } from '../shared/prompts'
+
+/** Quem quer saber que uma tarefa agendada terminou: a tarefa, a conversa e como acabou. */
+export type TaskDoneListener = (
+  task: ScheduledTask,
+  conversation: Conversation,
+  outcome: 'done' | 'error' | 'stopped'
+) => void
 
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
@@ -100,6 +108,10 @@ export interface Chat {
   window(): BrowserWindow | null
   /** A pasta de uma conversa (sem o id, a da conversa em foco; null: sem pasta), para a bancada. */
   folderOf(id: string | undefined): string | null
+  /** Uma tarefa agendada terminou o primeiro turno (Fase 83). */
+  onTaskDone(listener: TaskDoneListener): void
+  /** Um aviso em Markdown na Wisp, a conversa principal (Fases 83 e 84). */
+  postToMain(text: string): void
   /** O que uma conversa pode com a memória pessoal (Fase 79); null se ela não existe mais. */
   memoryScope(id: string | undefined): MemoryScope | null
   /** A largura que a bancada ocupa na janela; `grow`: a janela ao lado do mascote acompanha. */

@@ -3017,5 +3017,54 @@ export const EN: Record<string, string> = {
     'The tidy-up from {when} suggests these changes to MEMORIA.md:',
   'O arquivo mudou depois: grave só depois de rodar a faxina de novo.':
     'The file changed since: save only after running the tidy-up again.',
-  'pela destilação': 'by distillation'
+  'pela destilação': 'by distillation',
+  'Um dia novo: a conversa de ontem ficou no histórico.':
+    "A new day: yesterday's conversation is in the history.",
+  Personalidade: 'Personality',
+  'Como o Wisp fala com você: o tom, o jeito, o que priorizar. Edite à vontade; vale nas conversas novas. O Wisp pode sugerir mudanças, sempre com o seu OK.':
+    'How Wisp talks to you: the tone, the manner, what to prioritize. Edit freely; it applies to new conversations. Wisp may suggest changes, always with your OK.',
+  'Fala em português do Brasil, de forma breve e direta.': 'Speaks English, briefly and directly.',
+  'Usa Markdown leve: parágrafos curtos e listas simples.':
+    'Uses light Markdown: short paragraphs and simple lists.',
+  'É gentil e prático, e vai direto ao ponto.':
+    'Is kind and practical, and gets straight to the point.',
+  'A sua personalidade, escrita pelo usuário no arquivo {path}:':
+    'Your personality, written by the user in the file {path}:',
+  'Se ele pedir para você mudar o seu jeito (o tom, o nome, o que priorizar), proponha a mudança editando esse arquivo com a ferramenta Edit: ele vê o diff e decide. Não mude o arquivo por conta própria.':
+    'If they ask you to change your manner (the tone, the name, what to prioritize), propose the change by editing that file with the Edit tool: they see the diff and decide. Do not change the file on your own.',
+  'O diário de {day}': 'The journal of {day}',
+  'O diário de hoje ({day})': "Today's journal ({day})",
+  'Esta é a conversa principal com o usuário, a aba Wisp: uma por dia, e a de ontem ficou no histórico. Para continuar de onde parou, use o diário abaixo (e o memory_search para o resto).':
+    "This is the main conversation with the user, the Wisp tab: one per day, and yesterday's is in the history. To pick up where you left off, use the journal below (and memory_search for the rest).",
+  'Os dias anteriores': 'Previous days',
+  'Os dias anteriores:': 'Previous days:',
+  'o PERSONALIDADE.md: o jeito do Wisp falar com você; ele pode sugerir mudanças':
+    'PERSONALIDADE.md: how Wisp talks to you; it may suggest changes',
+  'A conversa principal: uma por dia, sempre aberta':
+    'The main conversation: one per day, always open',
+  'agendada pelo Claude': 'scheduled by Claude',
+  'a conversa Wisp': 'the Wisp conversation',
+  'a notificação': 'the notification',
+  'o Telegram': 'Telegram',
+  'o mascote': 'the mascot',
+  'Na pasta {folder}.': 'In the folder {folder}.',
+  'Roda numa aba nova, no modo Pedir. O resultado vai para {where}.':
+    'Runs in a new tab, in Ask mode. The result goes to {where}.',
+  'Agendar uma tarefa': 'Schedule a task',
+  'Cancelar uma tarefa agendada': 'Cancel a scheduled task',
+  domingo: 'Sunday',
+  segunda: 'Monday',
+  terça: 'Tuesday',
+  quarta: 'Wednesday',
+  quinta: 'Thursday',
+  sexta: 'Friday',
+  sábado: 'Saturday',
+  'todo dia': 'every day',
+  'dias úteis': 'weekdays',
+  'fins de semana': 'weekends',
+  'uma vez, em {date} às {time}': 'once, on {date} at {time}',
+  'todo mês, no dia {day}, às {time}': 'every month, on day {day}, at {time}',
+  'a cada {hours} h, das {from} às {until}, {days}':
+    'every {hours} h, from {from} to {until}, {days}',
+  '{days}, às {time}': '{days}, at {time}'
 }

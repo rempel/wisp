@@ -1263,3 +1263,30 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       mostra as duas virando uma; **Gravar** muda o arquivo, com o backup.
 - [ ] **O custo:** a tela Memória mostra quantas vezes rodou e o custo.
 - [ ] **Desligar:** sem **Destilar as conversas sozinho**, nada é destilado.
+
+## A Wisp, uma aba que fica (Fase 82)
+
+- [ ] **A aba:** a primeira aba é a **Wisp**, com a estrela, sem o ×; Ctrl+W nela não fecha.
+      Feche e abra o Wisp: ela continua a primeira.
+- [ ] **Para onde vai:** com o painel escondido, `wisp --ask "oi"` e a voz caem na Wisp; com o
+      painel em foco numa aba de projeto, caem nela.
+- [ ] **O dia novo:** converse na Wisp à noite; de manhã, Ctrl+Alt+W mostra a Wisp vazia, com o
+      aviso do dia novo e a conversa de ontem em **Os dias anteriores**. "O que ficou pendente
+      ontem?" responde pelo diário.
+- [ ] **A personalidade:** na tela Memória, o `PERSONALIDADE.md` aparece com o jeito de sempre.
+      "Fala comigo de um jeito mais informal" mostra o card com o diff do arquivo; aceito, as
+      conversas novas mudam de tom.
+
+## A agenda que ele marca (Fase 83)
+
+- [ ] **Agendar:** "daqui a 5 minutos confere se o site está no ar e me diz": o card mostra
+      "Agendar uma tarefa", o horário ("uma vez, em … às …"), o prompt e os destinos. **Permitir**:
+      a tarefa aparece em Configurações → Tarefas agendadas.
+- [ ] **No modo Automático:** o mesmo pedido mostra o card do mesmo jeito.
+- [ ] **A entrega:** quando a tarefa roda e termina, a resposta aparece na Wisp, numa
+      notificação e no balão do mascote, e o diário do dia ganha uma linha. A tarefa de uma vez
+      some da lista.
+- [ ] **Os horários:** "a cada 2 horas, das 9 às 18, nos dias úteis, me lembra de alongar" e "todo
+      dia 5 às 10h, os boletos do mês": as configurações mostram os dois em palavras.
+- [ ] **Listar e cancelar:** "quais tarefas eu tenho?" lista; "cancela a dos boletos" pede o card e
+      tira.

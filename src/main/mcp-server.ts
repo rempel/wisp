@@ -19,6 +19,8 @@ import type { Reminder } from './reminders'
 import { activateWindow, describeWindow, findWindows, listWindows } from './windows'
 import { registerWorkbenchTools } from './mcp-workbench'
 import { registerMemoryTools } from './mcp-memory'
+import { registerScheduleTools } from './mcp-schedule'
+import type { ScheduleToolsOptions } from './mcp-schedule'
 import type { MemoryToolsOptions } from './mcp-memory'
 import type { WorkbenchControl } from './workbench'
 
@@ -87,6 +89,8 @@ export interface DesktopServerOptions {
   express?: (act: { emotion?: Emotion; dance?: Dance; seconds?: number }) => void
   /** A memória pessoal (Fase 79): memory_save e memory_forget. */
   memory?: MemoryToolsOptions
+  /** A agenda que o Claude marca (Fase 83): schedule_task, list_tasks e cancel_task. */
+  schedule?: ScheduleToolsOptions
 }
 
 export interface DesktopServer {
@@ -307,6 +311,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
 
   if (options.workbench) registerWorkbenchTools(server, options.workbench, conversation)
   if (options.memory) registerMemoryTools(server, options.memory, conversation)
+  if (options.schedule) registerScheduleTools(server, options.schedule)
 
   const screenshot = options.screenshot
   if (screenshot) {

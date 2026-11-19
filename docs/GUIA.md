@@ -856,6 +856,23 @@ do Claude Desktop.
     (juntar repetidos, tirar o que passou): uma notificação avisa, e a tela Memória mostra o diff
     com **Gravar** e **Descartar**. O custo dos últimos 30 dias aparece ali; a caixa **Destilar
     as conversas sozinho** desliga tudo.
+- **A Wisp** (Fase 82): a primeira aba, com a estrela ✦, é a conversa principal. Ela não fecha e
+  é uma por dia: quando o dia vira (e ela está parada), começa outra, com o diário de ontem e o
+  de hoje no prompt; a de ontem fica no histórico, e a conversa vazia da Wisp mostra os dias
+  anteriores para reabrir. A voz, o `wisp --ask`, a busca do desktop e o "Perguntar ao Wisp" caem
+  nela quando você não está com o painel em foco (com ele em foco, na aba em foco), e o primeiro
+  Ctrl+Alt+W do dia a mostra.
+- **A personalidade** (Fase 82): o `PERSONALIDADE.md`, na tela Memória, diz como o Wisp fala com
+  você (o tom, o jeito, o que priorizar), em todas as conversas. Peça "fala comigo de um jeito
+  mais informal": o Claude propõe a mudança no arquivo, e o card mostra o diff para você decidir.
+- **A agenda que ele marca** (Fase 83): peça "toda sexta às 17h me faz um resumo da semana" ou
+  "daqui a 2 horas confere se o deploy passou": o Claude monta a tarefa e um card mostra o nome, o
+  horário em palavras, o prompt e para onde vai o resultado; ela só existe com o seu OK (em
+  qualquer modo). Além de "toda semana nos dias", dá para "uma vez só", "a cada N horas, das 8h
+  às 22h" e "todo mês no dia 5". Quando a tarefa termina, o que o Claude respondeu aparece na
+  Wisp, numa notificação e no balão do mascote (e no Telegram, se ligado), e uma linha vai para
+  o diário. "Quais tarefas eu tenho?" e "cancela a do resumo" também funcionam (cancelar pede o
+  card).
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

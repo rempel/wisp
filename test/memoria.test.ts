@@ -35,15 +35,16 @@ test('memória: a lista traz o texto do que existe', () => {
     [
       ['me', false],
       ['facts', false],
+      ['personality', false],
       ['user', true],
       ['workspace', false]
     ]
   )
-  assert.equal(without[2].text, '# Minhas regras\n')
+  assert.equal(without[3].text, '# Minhas regras\n')
   // A memória pessoal (Fase 79) fica na pasta de dados do Wisp.
   assert.equal(without[0].path, join(data, 'memoria', 'EU.md'))
   assert.equal(without[1].path, join(data, 'memoria', 'MEMORIA.md'))
-  assert.equal(listMemory(project, config, data).length, 7)
+  assert.equal(listMemory(project, config, data).length, 8)
 })
 
 test('memória: a prévia mostra o diff, e gravar faz o backup', () => {

@@ -9,7 +9,10 @@ import type { FSWatcher } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import type { Chat } from './chat'
-import { getConfig, onConfigChange } from './config'
+import { getConfig, notifyConfigChange, onConfigChange, updateConfig } from './config'
+import { deliver, lastReply } from './delivery'
+import { islandMessage, reactMascot } from './mascot'
+import { memoryAccess, personalMemory } from './personal-memory'
 import { describeAlert } from './github'
 import type { GithubAlert } from './github'
 import type { GithubAlerts } from './github-alerts'
@@ -203,8 +206,42 @@ export function setupTasks(options: {
   }
   const scheduler = new TaskScheduler({
     tasks: () => getConfig().scheduledTasks,
-    run: (task, late) => void runTask(task, late),
+    run: (task, late) => {
+      const result = runTask(task, late)
+      // Uma tarefa de uma vez só (Fase 83) sai da lista depois de rodar.
+      if (result.ok && task.repeat === 'once') {
+        updateConfig({
+          scheduledTasks: getConfig().scheduledTasks.filter((item) => item.id !== task.id)
+        })
+        notifyConfigChange()
+      }
+    },
     file: join(DATA_DIR, 'tarefas.json')
+  })
+  // O resultado de cada tarefa vai para os lugares dela (Fase 83).
+  options.chat()?.onTaskDone((task, conversation, outcome) => {
+    const inMemory =
+      memoryAccess(false, conversation.folder, getConfig().memoryExcludedFolders) === 'full'
+    deliver(
+      {
+        title: task.name,
+        text: lastReply(conversation.history.events()),
+        outcome,
+        ...(conversation.historyId ? { conversation: conversation.historyId } : {})
+      },
+      task.deliver,
+      {
+        postMain: (text) => options.chat()?.postToMain(text),
+        notify: (title, body) => notify(title, body, () => options.chat()?.open()),
+        mascot: (title, text) => {
+          islandMessage(title, text, 8000)
+          reactMascot('remind')
+        },
+        diary: (line, origin) => {
+          if (inMemory) personalMemory().save('diario', line, { ...origin, auto: true })
+        }
+      }
+    )
   })
   const triggers = new TaskTriggers({
     tasks: () => getConfig().scheduledTasks,

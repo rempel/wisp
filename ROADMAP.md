@@ -426,7 +426,9 @@ Notas:
 
 #### Fase 82: o Wisp, uma aba que fica
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/wisp-principal.test.ts`; os roteiros de
+ponta a ponta de sempre, com a aba nova). **Só o uso confirma:** a virada do dia de verdade e o
+Claude sugerindo a personalidade pelo Edit.
 
 - **A aba (M):** uma aba fixa, **Wisp**, que não fecha. É onde caem, por padrão, o atalho, a voz,
   a busca do desktop, o `wisp --ask`, o celular e o Telegram (Fase 85). As outras abas continuam
@@ -444,11 +446,28 @@ Notas:
 responde a partir do diário. Pedir "fala comigo de um jeito mais informal" mostra o card com o
 diff do `PERSONALIDADE.md`.
 
+Notas:
+
+- a voz, o `wisp --ask`, a busca do desktop e o "Perguntar ao Wisp" vão para a Wisp quando você
+  não está olhando o painel; com ele em foco, vão para a aba em foco, como antes. O atalho do
+  painel mostra a Wisp na primeira vez do dia; nas outras, a aba de antes. O celular continua
+  seguindo a aba em foco (e pode escolher a Wisp);
+- o dia vira quando ela está parada: com uma resposta no meio (ou um card esperando), espera
+  acabar. A conversa de ontem fica no histórico, marcada como da Wisp, e os sete últimos dias
+  aparecem na conversa vazia dela, para reabrir numa aba à parte;
+- "o diário de ontem" é o último dia com diário dos sete anteriores, mais o de hoje, até 2 mil
+  caracteres cada (o fim);
+- a sugestão de personalidade é o Claude editar o `PERSONALIDADE.md` com o Edit: o arquivo fica
+  numa pasta oculta, fora das pastas confiáveis, então o card com o diff aparece sempre (no modo
+  Automático, quem decide é o Claude Code, como em qualquer edição).
+
 ### A agenda
 
 #### Fase 83: a agenda que ele marca
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/agenda-claude.test.ts`;
+`e2e/agenda-claude.mjs`, com o card e a entrega). **Só o uso confirma:** o Claude de verdade
+montando bem a tarefa a partir do que você diz.
 
 - **As ferramentas (M):** `schedule_task`, `list_tasks` e `cancel_task`. "Toda segunda às 8h me
   manda os PRs parados" vira uma tarefa montada pelo Claude, que aparece num **card** com o
@@ -468,6 +487,19 @@ diff do `PERSONALIDADE.md`.
 um resumo da semana"; o lembrete sai sem card, a tarefa da sexta pede o card e, confirmada,
 aparece em Configurações → Tarefas agendadas. Rodar agora a tarefa põe o resumo na aba Wisp e
 na notificação.
+
+Notas:
+
+- o card vem da regra "ask" das configurações do Claude Code para a `schedule_task` e a
+  `cancel_task`: aparece em qualquer modo, até no Automático. Ele mostra o que vai ser gravado
+  (o nome, o horário em palavras, o prompt, a pasta e para onde vai o resultado);
+- a tarefa roda numa aba nova, como antes; quando o primeiro turno dela termina, o que o Claude
+  respondeu vai para os lugares dela (um aviso na Wisp, a notificação, o balão do mascote e o
+  Telegram, Fase 85) e uma linha vai para o diário (fora as das pastas fora da memória). Isso
+  vale também para as tarefas que você criou antes (sem a escolha, vai para todos);
+- uma tarefa de uma vez só sai da lista depois de rodar. Nas configurações, as dos horários
+  novos aparecem em palavras (editar a hora delas é pedir ao Claude, ou mexer no
+  `config.json`).
 
 #### Fase 84: o batimento
 

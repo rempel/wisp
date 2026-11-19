@@ -44,6 +44,8 @@ export const SAFE_TOOLS = [
   'mcp__desktop__memory_forget',
   // Fase 80: buscar no que o Wisp lembra é só leitura.
   'mcp__desktop__memory_search',
+  // Fase 83: listar as tarefas é só leitura (agendar e cancelar pedem o card).
+  'mcp__desktop__list_tasks',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',
@@ -54,6 +56,15 @@ export const SAFE_TOOLS = [
   'mcp__desktop__preview_resize',
   'mcp__desktop__terminal_read'
 ]
+
+/**
+ * As ferramentas que sempre pedem o card, em qualquer modo (a regra "ask" vale até no
+ * Automático): agendar e cancelar uma tarefa (Fase 83), que agem no futuro sem ninguém olhando.
+ */
+export const ALWAYS_ASK = ['mcp__desktop__schedule_task', 'mcp__desktop__cancel_task']
+
+/** As regras "ask" das configurações do Claude Code: os arquivos de segredos e o ALWAYS_ASK. */
+const askRules = (): string[] => [...SENSITIVE_PATHS.map((path) => `Read(${path})`), ...ALWAYS_ASK]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
 export const PERMISSION_TOOL = 'mcp__desktop__approve'
@@ -177,7 +188,7 @@ function snapshotHook(relay = WRAPPER_PATH): Record<string, unknown> | null {
 export function sessionSettings(): string {
   const snapshot = snapshotHook()
   return JSON.stringify({
-    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    permissions: { ask: askRules() },
     hooks: {
       PreToolUse: [
         { matcher: 'Bash', hooks: [bashHook()] },
@@ -206,7 +217,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   }
   if (IS_WINDOWS && !windows) {
     return JSON.stringify({
-      permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+      permissions: { ask: askRules() },
       hooks
     })
   }
@@ -229,7 +240,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
     ]
   }
   return JSON.stringify({
-    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    permissions: { ask: askRules() },
     hooks,
     statusLine: {
       type: 'command',

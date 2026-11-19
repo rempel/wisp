@@ -53,6 +53,8 @@ src/
 │  ├─ personal-memory.ts # a memória pessoal: EU.md, MEMORIA.md, o diário, o registro e os segredos (Fase 79)
 │  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save, memory_forget e memory_search (Fases 79 e 80)
 │  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
+│  ├─ mcp-schedule.ts # a agenda que o Claude marca: schedule_task, list_tasks e cancel_task (Fase 83)
+│  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
 │  ├─ claude-once.ts # o Claude Code de uma vez só: sem ferramentas, uma resposta em JSON e o custo (Fase 81)
@@ -1366,3 +1368,45 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     de dois terços das anotações ou igual à de antes não vira proposta. A proposta guarda a
     impressão do arquivo de quando rodou; a tela Memória mostra o diff (`previewMemory`) e gravar
     passa pelo `saveMemory` (o backup ao lado), só com o arquivo ainda igual.
+- **A Wisp, uma aba que fica (Fase 82):**
+  - **a aba:** o `main` do `History` da conversa (da aba, como o `anonymous`), guardado no
+    `abas.json` e no cabeçalho de cada conversa dela. O `ChatTabs.main()` a devolve (criando, na
+    frente, se não houver; com duas marcadas, só a primeira fica); ela não fecha, não serve de
+    "aba vazia" (`emptyFocused`) para reabrir outra conversa e volta sempre como a primeira. A
+    página recebe o `main` no `TabInfo` (a estrela, sem o fechar) e no `Pane` (os dias
+    anteriores, `MainDays.tsx`, pelo `main` do `ConversationSummary`);
+  - **o dia:** o `History.startedAt` diz quando a conversa aberta começou (no começo, ou a data
+    da guardada ao reabrir). Ao abrir e de minuto em minuto, o `chat.ts` confere: virou o dia,
+    com a Wisp parada e sem card esperando, ela recomeça (o `reset` do Ctrl+K) com um aviso. O
+    primeiro `toggle` do painel no dia mostra a Wisp;
+  - **para onde vão os pedidos:** o `ask` e o `askQuiet` (a voz, o `--ask`, a busca do desktop,
+    o menu do gerenciador de arquivos) vão para a conversa em foco com o painel visível e em
+    foco; senão, para a Wisp;
+  - **o prompt** (`personaOf`, em `chat-conversation.ts`): a persona de sempre, a personalidade
+    (`PersonalMemory.personality()`, que cria o `PERSONALIDADE.md` com o jeito de sempre na
+    primeira vez e diz o caminho dele e que mudar é com o Edit), a memória pessoal e, na Wisp com
+    a memória, o `dayContext()`: o último diário dos sete dias antes de hoje e o de hoje, até 2
+    mil caracteres cada. O `PERSONALIDADE.md` também entra na tela Memória (`personality`).
+- **A agenda que ele marca (Fase 83):**
+  - **os horários** (`shared/prompts.ts`): a `ScheduledTask` ganhou `repeat` (`weekly`, o de
+    sempre; `once`, com a `date`; `every`, a cada `everyHours` da `time` até a `until`, nos
+    `days`; `monthly`, no `dayOfMonth`, o último dia num mês mais curto), `deliver` e `by`. O
+    `runsOn` diz as vezes de um dia; o `nextRun` procura para a frente (8 dias, 62 no mensal, 400
+    no de uma vez) e o `lastDue` uma semana para trás, e o agendador da Fase 26 segue igual. O
+    `scheduleSignature` leva os campos novos; o `describeSchedule` diz o horário em palavras;
+  - **o pedido** (`shared/schedule-input.ts`): o `taskFromInput` transforma a entrada da
+    `schedule_task` (os nomes em português: `repetir`, `data`, `daqui_minutos`, `hora`, `dias`,
+    `a_cada_horas`, `ate`, `dia_do_mes`, `pasta`, `entregar`) na tarefa, ou diz o que está
+    errado. O card (`ScheduleBody.tsx`) e a ferramenta usam o mesmo, então o card mostra o que vai
+    ser gravado;
+  - **o card sempre:** o `ALWAYS_ASK` (`claude-settings.ts`) entra nas regras `ask` do
+    `--settings` do chat e do modo terminal: a `schedule_task` e a `cancel_task` pedem o card em
+    qualquer modo. A `list_tasks` está no `SAFE_TOOLS`. Gravar é o `updateConfig` com o aviso de
+    mudança (o agendador e a tela acompanham);
+  - **a entrega** (`delivery.ts`): o `chat.ts` guarda as conversas das tarefas que rodam; no
+    primeiro `turn-end` de uma, avisa quem pediu (`onTaskDone`). O `tasks-setup.ts` pega a última
+    resposta (`lastReply`: as mensagens do Claude depois da última sua) e manda para os lugares
+    da tarefa: um aviso em Markdown na Wisp (`postToMain`), a notificação (a primeira linha), o
+    balão da ilha com o sininho do mascote e o `channels.telegram` (Fase 85), mais uma linha no
+    diário (só fora das pastas fora da memória). Uma tarefa `once` sai da lista depois de rodar
+    pelo agendador.

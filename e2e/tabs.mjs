@@ -93,8 +93,8 @@ const home = testHome()
 await open()
 let s = await state()
 check(
-  'T1 abre com uma aba "Nova conversa" e um painel',
-  s.tabs.length === 1 && s.tabs[0].title === 'Nova conversa' && s.panes.length === 1 && !s.split,
+  'T1 abre só com a Wisp (Fase 82) e um painel',
+  s.tabs.length === 1 && s.tabs[0].title === 'Wisp' && s.panes.length === 1 && !s.split,
   JSON.stringify(s)
 )
 check('T2 a pílula do modo começa em Pedir', s.panes[0].mode === 'Pedir', s.panes[0].mode)
@@ -102,8 +102,8 @@ await ask(0, 'Oi, tudo bem?')
 await answered(0, /Tudo certo/)
 s = await state()
 check(
-  'T3 a aba ganha o título da primeira mensagem',
-  s.tabs[0].title === 'Oi, tudo bem?',
+  'T3 a Wisp continua com o nome dela depois da primeira mensagem',
+  s.tabs[0].title === 'Wisp',
   s.tabs[0].title
 )
 const firstConv = s.panes[0].conv
@@ -168,7 +168,7 @@ check(
 check('T11 a janela alarga para os dois', s.width >= width1 * 1.8, `${width1} → ${s.width}`)
 check(
   'T12 cada painel com o título da sua aba',
-  s.panes[0].head === '[lento] conta devagar' && s.panes[1].head === 'Oi, tudo bem?',
+  s.panes[0].head === '[lento] conta devagar' && s.panes[1].head === 'Wisp',
   JSON.stringify(s.panes.map((p) => p.head))
 )
 await ctrl('\\', 'Backslash', 220)

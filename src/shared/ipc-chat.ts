@@ -228,7 +228,8 @@ export interface AgentPreview {
  * Um arquivo de memória, para a tela Memória: os da memória pessoal do Wisp (Fase 79: `me`, o
  * EU.md, e `facts`, o MEMORIA.md) e os CLAUDE.md do Claude Code (Fase 65).
  */
-export type MemoryId = 'me' | 'facts' | 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+export type MemoryId =
+  'me' | 'facts' | 'personality' | 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
 
 /** O modelo da busca por sentido (Fase 80): baixado ou não, e o índice. */
 export interface MemoryModelInfo {
@@ -345,6 +346,8 @@ export interface ConversationSummary {
   provider?: 'openrouter'
   /** Fixada no topo do histórico. */
   pinned?: boolean
+  /** Um dia da conversa principal, a aba Wisp (Fase 82). */
+  main?: boolean
 }
 
 /**
@@ -620,6 +623,8 @@ export type TabInfo =
       inProject?: { name: string; color: ProjectColor }
       /** Uma conversa anônima, sem a memória pessoal (Fase 79). */
       anonymous?: boolean
+      /** A conversa principal, a aba Wisp (Fase 82): fica sempre aberta, a primeira. */
+      main?: boolean
     }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 

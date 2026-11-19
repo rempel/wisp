@@ -250,6 +250,33 @@
   height: 12px;
 }
 
+/* A Wisp (Fase 82): a estrela antes do título, na cor do destaque. */
+.tab-main-mark {
+  display: inline-grid;
+  place-items: center;
+  margin-right: -2px;
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1;
+}
+
+/* Os dias anteriores da Wisp, na conversa vazia. */
+.main-days {
+  margin-top: 8px;
+  font-size: 13px;
+  text-align: center;
+}
+
+.main-days ul {
+  margin: 4px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.main-days li {
+  margin: 2px 0;
+}
+
 /* A conversa anônima (Fase 79): os óculos escuros antes do título. */
 .tab-anonymous {
   display: inline-grid;

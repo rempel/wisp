@@ -299,6 +299,14 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
         scope: (id) => chat?.memoryScope(id) ?? null,
         search: (query, options) => memoryIndex().search(query, options)
       },
+      // A agenda que o Claude marca (Fase 83): grava no config.json, como as configurações.
+      schedule: {
+        tasks: () => getConfig().scheduledTasks,
+        save: (scheduledTasks) => {
+          updateConfig({ scheduledTasks })
+          notifyConfigChange()
+        }
+      },
       express: ({ emotion, dance, seconds }) => {
         presence.activity()
         if (emotion) actMascot({ kind: 'feel', emotion, ms: holdMs(seconds, FEEL_MS) })

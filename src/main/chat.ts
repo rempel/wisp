@@ -14,6 +14,9 @@ import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
 import { conversationFactory, memoryScopeOf, modeFileOf, previewOf } from './chat-conversation'
 import { distiller } from './memory-setup'
+import type { ScheduledTask } from '../shared/prompts'
+import type { TaskDoneListener } from './chat-types'
+import { dayOf } from './personal-memory'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
@@ -157,12 +160,24 @@ export function setupChat({
     else queued.push([conversation, event])
   }
 
+  // As conversas das tarefas agendadas que ainda não terminaram (Fase 83), e quem quer saber.
+  const taskRuns = new Map<string, ScheduledTask>()
+  const taskListeners: TaskDoneListener[] = []
+
   const host: ConversationHost = {
     emit(conversation, event, live) {
       if (live) {
         if (event.type === 'usage') lastUsage = [conversation.id, event]
         if (event.type === 'mode') scheduleSave()
-        if (event.type === 'turn-end') distiller().touch(conversation.historyId)
+        if (event.type === 'turn-end') {
+          distiller().touch(conversation.historyId)
+          // Uma tarefa agendada terminou (Fase 83): o resultado vai para os lugares dela.
+          const task = taskRuns.get(conversation.id)
+          if (task) {
+            taskRuns.delete(conversation.id)
+            for (const listener of taskListeners) listener(task, conversation, event.outcome)
+          }
+        }
         onEvent?.(event, conversation.id)
       }
       toPage(conversation.id, event)
@@ -250,6 +265,7 @@ export function setupChat({
       const old = typeof entry.history === 'string' ? store.load(entry.history) : null
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
       else if (entry.anonymous === true) conversation.history.anonymous = true
+      if (entry.main === true) conversation.history.main = true
       // No modo terminal, o Claude Code sobe quando a aba aparece.
       if (entry.view === 'terminal') conversation.presetView('terminal')
       if (typeof entry.draft === 'string' && entry.draft) {
@@ -262,6 +278,33 @@ export function setupChat({
   }
 
   restoreTabs()
+
+  // A Wisp (Fase 82): uma sessão por dia. Virou o dia e ela está parada: começa outra, e a de
+  // ontem fica no histórico. Conferido ao abrir e de minuto em minuto.
+  let shownDay = ''
+  function rollMainDay(): void {
+    const main = tabs.main()
+    const started = main.history.startedAt
+    if (!started || dayOf(started) === dayOf(Date.now())) return
+    if (main.busy || main.pendingCount() > 0) return
+    main.reset()
+    main.notice('info', t('Um dia novo: a conversa de ontem ficou no histórico.'))
+  }
+  rollMainDay()
+  setInterval(rollMainDay, 60_000).unref()
+  /** O primeiro abrir do painel no dia mostra a Wisp. */
+  function mainOnNewDay(): void {
+    const today = dayOf(Date.now())
+    if (shownDay === today) return
+    shownDay = today
+    showTab(tabs.main().id)
+  }
+  /**
+   * Para onde vai um pedido de fora do painel (a voz, o --ask, a busca do desktop): para a
+   * conversa em foco se você está olhando o painel; senão, para a Wisp (Fase 82).
+   */
+  const askTarget = (): Conversation =>
+    win?.isVisible() && win.isFocused() ? focusedConversation() : tabs.main()
 
   // O modo demonstração ligou ou desligou (no menu, na tela de configurações, no arquivo): as
   // conversas recomeçam, para respostas gravadas e de verdade não se misturarem.
@@ -649,11 +692,15 @@ export function setupChat({
     },
     toggle() {
       if (!win) {
+        mainOnNewDay()
         win = createWindow()
         return
       }
       if (win.isVisible() && win.isFocused()) hide(win)
-      else show(win)
+      else {
+        mainOnNewDay()
+        show(win)
+      }
     },
     open() {
       if (!win) win = createWindow()
@@ -678,7 +725,8 @@ export function setupChat({
       else show(win)
     },
     ask(text, { voice = false } = {}) {
-      let conversation = focusedConversation()
+      let conversation = askTarget()
+      if (!tabs.panes.includes(conversation.id)) showTab(conversation.id)
       // A conversa em foco está respondendo: o que foi falado entra na fila dela, como no
       // terminal; uma pergunta do --ask vai numa aba nova, e a outra segue.
       const queue = voice && conversation.busy && conversation.canSend
@@ -703,7 +751,7 @@ export function setupChat({
       return conversation.id
     },
     askQuiet(text, files, { voice = false } = {}) {
-      let conversation = focusedConversation()
+      let conversation = askTarget()
       if (!conversation.canSend || conversation.busy) {
         if (tabs.full) return null
         conversation = tabs.addChat()
@@ -734,6 +782,7 @@ export function setupChat({
       }
       const conversation = makeConversation('default', undefined, folder)
       conversation.title = task.name
+      taskRuns.set(conversation.id, task)
       tabs.push(conversation)
       if (!(win?.isVisible() && win.isFocused())) tabs.showInFocused(conversation.id)
       tabs.changed()
@@ -820,6 +869,12 @@ export function setupChat({
     },
     window: () => win,
     folderOf: (id) => (id ? conversationById(id) : focusedConversation())?.folder ?? null,
+    onTaskDone(listener) {
+      taskListeners.push(listener)
+    },
+    postToMain(text) {
+      tabs.main().notice('info', text)
+    },
     memoryScope(id) {
       const conversation = conversationById(id)
       return conversation ? memoryScopeOf(conversation) : null

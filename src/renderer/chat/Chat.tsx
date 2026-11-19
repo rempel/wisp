@@ -673,6 +673,7 @@ export default function Chat(): JSX.Element {
         demo={demo}
         local={!!settings?.values.localModelsUrl}
         agenda={agendaNext}
+        main={tab.kind === 'chat' && !!tab.main}
         onSent={onSent(id)}
         onBroadcast={broadcast}
       />

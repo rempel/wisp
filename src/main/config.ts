@@ -30,6 +30,8 @@ import {
   MAX_TASKS,
   PROMPT_NAME,
   RESERVED_NAMES,
+  TASK_DELIVERIES,
+  TASK_REPEATS,
   TASK_TRIGGERS,
   TIME,
   defaultPrompts
@@ -521,6 +523,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
         watch: z.string().trim().min(1).max(500).nullable().optional(),
         time: z.string().regex(TIME),
         days: z.array(z.number().int().min(0).max(6)).max(7),
+        // Fase 83: os horários novos, para onde vai o resultado e quem criou.
+        repeat: z.enum(TASK_REPEATS).optional(),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        everyHours: z.number().min(1).max(24).optional(),
+        until: z.string().regex(TIME).optional(),
+        dayOfMonth: z.number().int().min(1).max(31).optional(),
+        deliver: z.array(z.enum(TASK_DELIVERIES)).max(4).optional(),
+        by: z.literal('claude').optional(),
         folder: z.string().trim().min(1).max(500).nullable(),
         enabled: z.boolean()
       })
