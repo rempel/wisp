@@ -672,3 +672,20 @@
 .project-row input {
   flex: 1;
 }
+
+/* O Telegram nas configurações (Fase 85): a ficha e o código do pareamento. */
+.telegram-token {
+  display: flex;
+  gap: 6px;
+}
+
+.telegram-token input {
+  flex: 1;
+  min-width: 0;
+}
+
+.telegram-code strong {
+  font-family: var(--mono);
+  font-size: 18px;
+  letter-spacing: 0.15em;
+}

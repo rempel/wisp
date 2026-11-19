@@ -538,7 +538,9 @@ Notas:
 
 #### Fase 85: o Wisp no Telegram
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/telegram.test.ts`, com uma Bot API de
+mentira; `e2e/telegram.mjs`, com o chaveiro de mentira). **Só o uso confirma:** o Telegram de
+verdade, os áudios (o ffmpeg com o whisper e o Piper) e o que chega com o Wisp fechado.
 
 - **O bot (M):** você cria um bot no @BotFather e cola a ficha em Configurações → Telegram (ela
   fica no chaveiro). O Wisp busca as mensagens por long polling: só conexões de saída, nenhuma
@@ -563,6 +565,19 @@ abre.
 
 Nota: as mensagens passam pelos servidores do Telegram (a conversa, não a memória inteira). A
 configuração diz isso antes de ligar.
+
+Notas:
+
+- a ficha e o pareamento ficam em Configurações → Telegram; o usuário pareado e o como
+  responder, no `config.json` (`telegram`, `telegramUser`, `telegramVoiceReply`); a ficha, só no
+  chaveiro;
+- os cards vão para o Telegram na hora quando você conversou por lá nos últimos 30 minutos ou com
+  a tela bloqueada; senão, depois do **Mandar depois de** do celular (`phoneAfterSeconds`). Não
+  expiram: o card continua esperando no computador, e a mensagem no Telegram diz como acabou;
+- os áudios pedem o `ffmpeg` (para o Ogg/Opus do Telegram) e o whisper; a resposta em áudio, o
+  Piper. Sem eles, fica no texto, com o aviso. No Flatpak, o `ffmpeg` do sistema não está ao
+  alcance;
+- o padrão das respostas é "em áudio quando você manda áudio".
 
 ### Aprender com o uso
 

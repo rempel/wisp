@@ -1304,3 +1304,22 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       importante não lido.
 - [ ] **O checklist:** tire o GitHub do `CHECKLIST.md` na tela Memória: o próximo batimento não
       fala mais de PRs.
+
+## O Wisp no Telegram (Fase 85)
+
+- [ ] **O bot:** crie um bot no @BotFather, cole a ficha em Configurações → Telegram e
+      **Guardar**: aparece o @ do bot. A ficha está no chaveiro, e não no `config.json`.
+- [ ] **O pareamento:** **Parear o meu usuário**, mande o código ao bot: ele responde "Pareado com o
+      Wisp", e as configurações mostram você. Mensagens de outra conta não têm resposta.
+- [ ] **Conversar:** na rua, "que horas são em Tóquio?": a resposta vem no Telegram, e a conversa
+      aparece na Wisp.
+- [ ] **Áudio:** mande um áudio "me lembra de comprar pão às 18h": o lembrete é marcado e a resposta
+      vem em áudio.
+- [ ] **Foto:** mande a foto de um documento com "o que é isto?": a resposta fala dela.
+- [ ] **Um card:** "abre o projeto X no editor": o card chega com **Permitir uma vez** e **Negar**;
+      **Permitir uma vez** abre.
+- [ ] **Desligado:** com o Wisp fechado, mande uma mensagem; ao abrir, ele responde avisando que
+      estava desligado.
+- [ ] **Os avisos:** com o Telegram ligado, uma tarefa agendada e o batimento com algo a dizer
+      chegam lá também.
+- [ ] **Esquecer:** **Esquecer o bot** tira a ficha do chaveiro e desliga.

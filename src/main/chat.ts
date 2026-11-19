@@ -13,10 +13,8 @@ import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
 import { conversationFactory, memoryScopeOf, modeFileOf, previewOf } from './chat-conversation'
+import { ChatRuns, watchMainDay } from './chat-runs'
 import { distiller } from './memory-setup'
-import type { ScheduledTask } from '../shared/prompts'
-import type { TaskDoneListener } from './chat-types'
-import { dayOf } from './personal-memory'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
@@ -160,26 +158,15 @@ export function setupChat({
     else queued.push([conversation, event])
   }
 
-  // As conversas das tarefas agendadas que ainda não terminaram (Fase 83), e quem quer saber.
-  const taskRuns = new Map<string, ScheduledTask>()
-  // As do batimento (Fase 84): não aparecem e não são destiladas.
-  const quietRuns = new Set<string>()
-  const taskListeners: TaskDoneListener[] = []
+  // As tarefas que rodam e quem quer saber do fim dos turnos (Fases 83 a 85).
+  const runs = new ChatRuns()
 
   const host: ConversationHost = {
     emit(conversation, event, live) {
       if (live) {
         if (event.type === 'usage') lastUsage = [conversation.id, event]
         if (event.type === 'mode') scheduleSave()
-        if (event.type === 'turn-end') {
-          if (!quietRuns.has(conversation.id)) distiller().touch(conversation.historyId)
-          // Uma tarefa agendada terminou (Fase 83): o resultado vai para os lugares dela.
-          const task = taskRuns.get(conversation.id)
-          if (task) {
-            taskRuns.delete(conversation.id)
-            for (const listener of taskListeners) listener(task, conversation, event.outcome)
-          }
-        }
+        if (event.type === 'turn-end') runs.turnEnded(conversation, event.outcome)
         onEvent?.(event, conversation.id)
       }
       toPage(conversation.id, event)
@@ -281,26 +268,8 @@ export function setupChat({
 
   restoreTabs()
 
-  // A Wisp (Fase 82): uma sessão por dia. Virou o dia e ela está parada: começa outra, e a de
-  // ontem fica no histórico. Conferido ao abrir e de minuto em minuto.
-  let shownDay = ''
-  function rollMainDay(): void {
-    const main = tabs.main()
-    const started = main.history.startedAt
-    if (!started || dayOf(started) === dayOf(Date.now())) return
-    if (main.busy || main.pendingCount() > 0) return
-    main.reset()
-    main.notice('info', t('Um dia novo: a conversa de ontem ficou no histórico.'))
-  }
-  rollMainDay()
-  setInterval(rollMainDay, 60_000).unref()
-  /** O primeiro abrir do painel no dia mostra a Wisp. */
-  function mainOnNewDay(): void {
-    const today = dayOf(Date.now())
-    if (shownDay === today) return
-    shownDay = today
-    showTab(tabs.main().id)
-  }
+  // A Wisp (Fase 82): uma sessão por dia; o primeiro abrir do dia a mostra.
+  const mainOnNewDay = watchMainDay(tabs, showTab)
   /**
    * Para onde vai um pedido de fora do painel (a voz, o --ask, a busca do desktop): para a
    * conversa em foco se você está olhando o painel; senão, para a Wisp (Fase 82).
@@ -762,8 +731,19 @@ export function setupChat({
       return conversation.send(text, files, previewOf, voice) ? conversation.id : null
     },
     compose,
+    sendToMain(text, files, voice) {
+      const main = tabs.main()
+      if (main.busy && !main.canSend) return null
+      main.showUser(text, voice, files.map(previewOf))
+      return main.send(text, files, previewOf, voice) ? main.id : null
+    },
+    resetMain() {
+      const main = tabs.main()
+      if (!main.busy) main.reset()
+    },
+    onTurnEnd: (listener) => runs.onTurnEnd(listener),
     closeConversation(id) {
-      quietRuns.delete(id)
+      runs.forget(id)
       tabs.close(id)
     },
     runTask(task, event, options = {}) {
@@ -789,8 +769,7 @@ export function setupChat({
       const conversation = makeConversation('default', undefined, folder)
       conversation.title = task.name
       if (options.model) conversation.setModel(options.model)
-      taskRuns.set(conversation.id, task)
-      if (options.quiet) quietRuns.add(conversation.id)
+      runs.track(conversation.id, task, !!options.quiet)
       tabs.push(conversation)
       if (!options.quiet && !(win?.isVisible() && win.isFocused())) {
         tabs.showInFocused(conversation.id)
@@ -879,9 +858,7 @@ export function setupChat({
     },
     window: () => win,
     folderOf: (id) => (id ? conversationById(id) : focusedConversation())?.folder ?? null,
-    onTaskDone(listener) {
-      taskListeners.push(listener)
-    },
+    onTaskDone: (listener) => runs.onTaskDone(listener),
     postToMain(text) {
       tabs.main().notice('info', text)
     },

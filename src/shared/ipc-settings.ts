@@ -55,6 +55,9 @@ export interface Settings {
   heartbeat: boolean
   heartbeatTimes: string[]
   heartbeatDays: number[]
+  /** O Telegram (Fase 85): ligado e como responder (o usuário e a ficha vêm pelo telegram:*). */
+  telegram: boolean
+  telegramVoiceReply: 'text' | 'audio' | 'both'
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -124,6 +127,8 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'heartbeat',
   'heartbeatTimes',
   'heartbeatDays',
+  'telegram',
+  'telegramVoiceReply',
   'editorCommand',
   'terminalCommand',
   'model',
@@ -267,6 +272,18 @@ export interface RemoteChatState {
 export type PanelView = 'welcome' | 'diagnostics' | 'palette' | 'usage' | 'agents' | 'board'
 
 /** Em que pé está a aprovação pelo celular. */
+/** O Telegram nas configurações (Fase 85). */
+export interface TelegramStatus {
+  /** A ficha do bot está no chaveiro. */
+  hasToken: boolean
+  /** O @ do bot, se o Telegram respondeu. */
+  botName: string | null
+  enabled: boolean
+  /** O usuário pareado (o @ ou o nome); null: ainda sem. */
+  user: string | null
+  voiceReply: 'text' | 'audio' | 'both'
+}
+
 export interface PhoneStatus {
   /** Ligada (pareada e confirmada pelo celular). */
   enabled: boolean
@@ -389,3 +406,11 @@ export interface PortablePreview {
 
 /** Exportar ou importar: deu certo (com o que fez) ou o motivo; null, a pessoa desistiu. */
 export type PortableResult = { ok: boolean; message: string } | null
+
+/** O Telegram nas configurações (Fase 85), pela API do preload (window.wisp.telegram). */
+export interface TelegramBridge {
+  status(): Promise<TelegramStatus | null>
+  token(token: string): Promise<{ ok: boolean; message: string }>
+  pair(): Promise<string | null>
+  forget(): Promise<boolean>
+}

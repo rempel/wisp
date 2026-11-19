@@ -2,7 +2,11 @@
 // (o Haiku, de uma vez só), o relógio de minuto em minuto e o aviso da faxina pronta.
 
 import { askOnce } from './claude-once'
-import { getConfig } from './config'
+import type { Chat } from './chat'
+import { getConfig, notifyConfigChange, updateConfig } from './config'
+import { modelInstalled } from './embeddings'
+import type { DesktopServerOptions } from './mcp-server'
+import { memoryIndex } from './memory-index'
 import { Distiller, distillFile } from './distill'
 import { History } from './history'
 import { MEMORY_DIR, personalMemory } from './personal-memory'
@@ -30,8 +34,38 @@ export function distiller(): Distiller {
   return shared
 }
 
-/** Liga o relógio (de minuto em minuto) e o aviso da faxina pronta. */
+/** O que o servidor `desktop` precisa para a memória (Fases 79 e 80) e a agenda (Fase 83). */
+export function memoryServerOptions(
+  chat: () => Chat | null
+): Pick<DesktopServerOptions, 'memory' | 'schedule'> {
+  return {
+    memory: {
+      memory: personalMemory,
+      scope: (id) => chat()?.memoryScope(id) ?? null,
+      search: (query, options) => memoryIndex().search(query, options)
+    },
+    // Grava no config.json, como as configurações.
+    schedule: {
+      tasks: () => getConfig().scheduledTasks,
+      save: (scheduledTasks) => {
+        updateConfig({ scheduledTasks })
+        notifyConfigChange()
+      }
+    }
+  }
+}
+
+/**
+ * Liga o relógio (de minuto em minuto), o aviso da faxina pronta e, com o modelo baixado, os
+ * vetores dos trechos novos, um minuto depois de abrir (Fase 80).
+ */
 export function setupMemory(notify: (title: string, body: string) => void): () => void {
+  setTimeout(() => {
+    if (modelInstalled())
+      void memoryIndex()
+        .embedPending()
+        .catch(() => undefined)
+  }, 60_000).unref()
   notifyReady = () =>
     notify(
       t('A faxina da memória está pronta'),

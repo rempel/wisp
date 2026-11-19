@@ -199,6 +199,12 @@ const api: WispApi = {
     onView: (listener) => subscribe<[PanelView]>(IPC.panelView, listener),
     welcomeDone: () => ipcRenderer.send(IPC.welcomeDone)
   },
+  telegram: {
+    status: () => ipcRenderer.invoke(IPC.telegramStatus),
+    token: (token) => ipcRenderer.invoke(IPC.telegramToken, token),
+    pair: () => ipcRenderer.invoke(IPC.telegramPair),
+    forget: () => ipcRenderer.invoke(IPC.telegramForget)
+  },
   phone: {
     pair: (server, token) => ipcRenderer.invoke(IPC.phonePair, server, token),
     link: () => ipcRenderer.invoke(IPC.phoneLink),

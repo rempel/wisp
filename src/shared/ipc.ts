@@ -33,11 +33,7 @@ import type {
   PreviewState,
   UsageReport,
   AgentInfo,
-  MemoryFile,
-  MemoryId,
-  MemoryNote,
-  MemoryModelInfo,
-  MemoryCleanupInfo,
+  MemoryApi,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -89,7 +85,8 @@ import type {
   SkillResult,
   TaskResult,
   WeekSummaries,
-  RemoteChatState
+  RemoteChatState,
+  TelegramBridge
 } from './ipc-settings'
 
 export * from './ipc-chat'
@@ -317,6 +314,15 @@ export const IPC = {
    * Args: (servidor, ficha de acesso ou ''). Devolve PhonePairResult.
    */
   phonePair: 'phone:pair',
+  /**
+   * chat → main (invoke): o Telegram (Fase 85). status → TelegramStatus; token(ficha) confere no
+   * Telegram e guarda no chaveiro → { ok, message }; pair → o código de 6 números (ou null);
+   * forget tira a ficha e o pareamento.
+   */
+  telegramStatus: 'telegram:status',
+  telegramToken: 'telegram:token',
+  telegramPair: 'telegram:pair',
+  telegramForget: 'telegram:forget',
   /** chat → main (invoke): o link do pareamento de novo (o QR code). Devolve PhonePairResult. */
   phoneLink: 'phone:link',
   /**
@@ -811,6 +817,8 @@ export interface WispApi {
     welcomeDone(): void
   }
   /** Aprovar pelo celular (Fase 18): o pareamento com o ntfy. */
+  /** O Wisp no Telegram (Fase 85). */
+  telegram: TelegramBridge
   phone: {
     pair(server: string, token: string): Promise<PhonePairResult>
     link(): Promise<PhonePairResult>
@@ -860,29 +868,8 @@ export interface WispApi {
     onChanged(listener: (cards: BoardCard[]) => void): () => void
   }
   /** Os subagentes do Claude Code (Fase 50). */
-  /** A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê. */
-  memory: {
-    list(folder: string | null): Promise<MemoryFile[]>
-    preview(
-      id: MemoryId,
-      folder: string | null,
-      text: string
-    ): Promise<AgentPreview | { error: string }>
-    save(
-      id: MemoryId,
-      folder: string | null,
-      text: string,
-      fingerprint: string
-    ): Promise<AgentResult>
-    /** As anotações do Wisp na memória pessoal, da mais nova para a mais velha (Fase 79). */
-    notes(): Promise<MemoryNote[]>
-    /** Desfaz uma anotação: tira a linha que entrou, ou devolve as que saíram. */
-    undo(id: string): Promise<AgentResult>
-    /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
-    model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
-    /** A destilação e a faxina da semana (Fase 81): ver, rodar agora, gravar ou descartar. */
-    cleanup(action: 'status' | 'run' | 'accept' | 'discard'): Promise<MemoryCleanupInfo>
-  }
+  /** A memória à vista (Fase 65) e a memória pessoal (Fases 79 a 81). */
+  memory: MemoryApi
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>

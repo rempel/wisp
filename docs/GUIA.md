@@ -881,6 +881,17 @@ do Claude Desktop.
   diário que conferiu; com algo, o aviso chega na Wisp, numa notificação e no mascote. Um horário
   perdido com o computador desligado roda ao abrir, até duas horas depois. **Conferir agora**
   roda na hora.
+- **O Wisp no Telegram** (Fase 85): em Configurações → Telegram. Crie um bot no @BotFather (no
+  Telegram), cole a ficha dele e **Guardar** (ela vai para o chaveiro); **Parear o meu usuário**
+  mostra um código de 6 números: mande ao bot, e pronto. Daí em diante, o que você manda ao bot
+  cai na Wisp (aparece no computador também) e a resposta volta por lá. Dá para mandar áudios
+  (transcritos no seu computador; pede o `ffmpeg` e o whisper), fotos e arquivos, e usar
+  `/agenda`, `/tarefas`, `/memoria`, `/lembrar …` e `/novo`. A resposta vem em áudio quando você
+  manda áudio (com o Piper), ou como escolher. Os pedidos de permissão chegam com **Permitir uma
+  vez** e **Negar** (um comando com arquivos de segredos, só negar), na hora se você está
+  conversando por lá. Com o computador desligado, nada responde; ao abrir, o Wisp responde o que
+  chegou nas últimas 12 horas e resume o resto. As tarefas e o batimento também avisam pelo
+  Telegram. Só o seu usuário é atendido, e as mensagens passam pelos servidores do Telegram.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

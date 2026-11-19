@@ -73,6 +73,14 @@ export interface WispConfig {
   heartbeat: boolean
   heartbeatTimes: string[]
   heartbeatDays: number[]
+  /**
+   * O Wisp no Telegram (Fase 85): ligado, o usuário pareado (o único atendido) e como responder
+   * (texto, áudio quando você mandou áudio, ou os dois). A ficha do bot fica no chaveiro.
+   */
+  telegram: boolean
+  telegramUser: number | null
+  telegramUserName: string | null
+  telegramVoiceReply: 'text' | 'audio' | 'both'
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -272,6 +280,10 @@ function defaults(): WispConfig {
     heartbeat: true,
     heartbeatTimes: ['08:00', '13:00', '17:00'],
     heartbeatDays: [1, 2, 3, 4, 5],
+    telegram: false,
+    telegramUser: null,
+    telegramUserName: null,
+    telegramVoiceReply: 'audio',
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -417,6 +429,10 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
     .max(12)
     .refine((list) => new Set(list).size === list.length),
   heartbeatDays: z.array(z.number().int().min(0).max(6)).max(7),
+  telegram: z.boolean(),
+  telegramUser: z.number().int().positive().nullable(),
+  telegramUserName: z.string().max(100).nullable(),
+  telegramVoiceReply: z.enum(['text', 'audio', 'both']),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),

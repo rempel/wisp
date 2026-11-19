@@ -3095,5 +3095,57 @@ export const EN: Record<string, string> = {
   'Dias do batimento': 'Heartbeat days',
   'Conferir agora': 'Check now',
   'o CHECKLIST.md: o que o Wisp confere nos horários do batimento':
-    'CHECKLIST.md: what Wisp checks at heartbeat times'
+    'CHECKLIST.md: what Wisp checks at heartbeat times',
+  'falta o ffmpeg (para converter os áudios)': 'ffmpeg is missing (to convert the audio)',
+  'Isso não parece a ficha de um bot (números, dois-pontos e letras).':
+    'That does not look like a bot token (digits, a colon and letters).',
+  'Bot {name} guardado. Agora, pareie o seu usuário.': 'Bot {name} saved. Now pair your user.',
+  'O Telegram recusou a ficha: {error}': 'Telegram rejected the token: {error}',
+  'Quais são os meus compromissos de hoje e de amanhã?': 'What are my events today and tomorrow?',
+  'Quais tarefas eu tenho agendadas?': 'Which tasks do I have scheduled?',
+  'O que você sabe sobre mim? Resuma a memória.':
+    'What do you know about me? Summarize the memory.',
+  'Me lembra: {what}': 'Remind me: {what}',
+  'Sou o Wisp. O que você mandar aqui vai para a conversa principal no seu computador.':
+    "I'm Wisp. What you send here goes to the main conversation on your computer.",
+  '/agenda — os compromissos de hoje e amanhã': "/agenda — today's and tomorrow's events",
+  '/tarefas — as tarefas agendadas': '/tarefas — the scheduled tasks',
+  '/memoria — o que eu sei de você': '/memoria — what I know about you',
+  '/lembrar <o quê e quando> — marca um lembrete': '/lembrar <what and when> — sets a reminder',
+  '/novo — começa uma conversa nova': '/novo — starts a new conversation',
+  'Dá para mandar áudios, fotos e arquivos. Os pedidos de permissão chegam com Permitir uma vez e Negar.':
+    'You can send voice messages, photos and files. Permission requests arrive with Allow once and Deny.',
+  'Eu estava desligado; respondendo agora.': 'I was off; answering now.',
+  'Pareado com o Wisp.': 'Paired with Wisp.',
+  '(um anexo)': '(an attachment)',
+  'Eu estava desligado, e estas mensagens chegaram há mais de 12 horas:':
+    'I was off, and these messages arrived more than 12 hours ago:',
+  'Ainda valem? Mande de novo o que for.': 'Do they still stand? Send again whatever does.',
+  'Não deu: {error}': "Couldn't do it: {error}",
+  'Conversa nova na Wisp.': 'New conversation in Wisp.',
+  'Não conheço esse comando.': "I don't know that command.",
+  'Não consegui ouvir o áudio: {error}': "Couldn't listen to the audio: {error}",
+  'Não entendi nada no áudio.': "I couldn't make out anything in the audio.",
+  'Ainda estou respondendo a mensagem anterior. Mande de novo daqui a pouco.':
+    "I'm still answering the previous message. Send it again in a moment.",
+  '(sem resposta em texto)': '(no text answer)',
+  'Aprovar o plano': 'Approve the plan',
+  'Permitir uma vez': 'Allow once',
+  'Permitido (uma vez).': 'Allowed (once).',
+  'Já tinha sido respondido.': 'It had already been answered.',
+  'Sempre em texto': 'Always in text',
+  'Em áudio quando você manda áudio': 'In audio when you send audio',
+  'Em texto e em áudio': 'In text and in audio',
+  'Fale com o Wisp de qualquer lugar, por um bot seu do Telegram. Crie o bot no @BotFather e cole a ficha dele aqui (ela vai para o chaveiro do sistema). As mensagens passam pelos servidores do Telegram; o Wisp só faz conexões de saída e só atende o seu usuário. Funciona com o computador ligado.':
+    "Talk to Wisp from anywhere, through a Telegram bot of your own. Create the bot with @BotFather and paste its token here (it goes to the system keyring). Messages go through Telegram's servers; Wisp only makes outgoing connections and only answers your user. Works while your computer is on.",
+  'Ficha do bot': 'Bot token',
+  'O @BotFather a mostra ao criar o bot.': '@BotFather shows it when you create the bot.',
+  'Bot: {name}.': 'Bot: {name}.',
+  'Bot guardado.': 'Bot saved.',
+  'Pareado com {user}.': 'Paired with {user}.',
+  'Ainda sem o seu usuário.': 'Your user is not paired yet.',
+  'Mande este código para o seu bot no Telegram (vale 10 minutos):':
+    'Send this code to your bot on Telegram (valid for 10 minutes):',
+  'Parear o meu usuário': 'Pair my user',
+  'Esquecer o bot': 'Forget the bot'
 }

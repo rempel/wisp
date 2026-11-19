@@ -214,6 +214,12 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   `CHECKLIST.md` (a agenda, o GitHub, os lembretes e as tarefas, o diário, o e-mail) no Haiku,
   numa aba à parte que fecha sozinha, e só fala se houver algo: o aviso vai para a Wisp, a
   notificação, o mascote e o diário. Sem nada, só o diário fica sabendo.
+- **O Wisp no Telegram** (Fase 85): um bot seu (a ficha no chaveiro), lido por long polling, só
+  com conexões de saída, que só atende o usuário pareado por um código. As mensagens caem na Wisp
+  e a resposta volta; áudios (whisper), fotos e arquivos entram; a resposta pode vir em áudio
+  (Piper); `/agenda`, `/tarefas`, `/memoria`, `/lembrar` e `/novo`. Os cards chegam com Permitir
+  uma vez e Negar, com as regras do ntfy. O que chegou com o Wisp fechado é respondido ao abrir
+  (até 12 horas; o mais velho vira um resumo). As tarefas e o batimento também avisam por lá.
 
 ### Mudou
 

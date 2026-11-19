@@ -64,6 +64,17 @@ export interface Chat {
   ): TaskResult
   /** Fecha a aba de uma conversa (a do batimento, depois de entregar). */
   closeConversation(id: string): void
+  /**
+   * Manda uma mensagem de fora (o Telegram, Fase 85) para a Wisp, sem abrir o painel. Devolve a
+   * conversa, ou null se ela está respondendo e não dá para mandar agora.
+   */
+  sendToMain(text: string, files: OutgoingAttachment[], voice: boolean): string | null
+  /** A Wisp começa uma conversa nova (o /novo do Telegram). */
+  resetMain(): void
+  /** O fim de cada turno, em qualquer conversa (o Telegram espera o da Wisp). */
+  onTurnEnd(
+    listener: (conversation: Conversation, outcome: 'done' | 'error' | 'stopped') => void
+  ): void
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
   /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */

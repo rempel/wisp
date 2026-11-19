@@ -63,10 +63,8 @@ import {
   setupMascot
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
-import { personalMemory } from './personal-memory'
-import { memoryIndex } from './memory-index'
-import { modelInstalled } from './embeddings'
-import { setupMemory } from './memory-setup'
+import { memoryServerOptions, setupMemory } from './memory-setup'
+import { setupTelegram } from './telegram-setup'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
@@ -88,7 +86,7 @@ import { setupMemoryIpc } from './memory'
 import { setupWorkbench } from './workbench'
 import type { WorkbenchControl } from './workbench'
 import { setupAgentsIpc } from './agents'
-import { synthesize } from './piper'
+import { speakable, synthesize } from './piper'
 import { describeWhen, Reminders } from './reminders'
 import { encodeForModel } from './screenshot'
 import { ScreenLock } from './screenlock'
@@ -224,6 +222,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   // configuração do servidor; os pedidos só chegam depois que os dois existem.
   let chat: Chat | null = null
   let phone: Phone | null = null
+  let telegram: ReturnType<typeof setupTelegram> | null = null
 
   // As notificações do sistema e os cards que viram notificação (notify.ts).
   const notifications = setupNotifications(() => chat)
@@ -294,19 +293,8 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       weekly: weekly.describe,
       agenda: calendar.describe,
       media: () => media,
-      memory: {
-        memory: personalMemory,
-        scope: (id) => chat?.memoryScope(id) ?? null,
-        search: (query, options) => memoryIndex().search(query, options)
-      },
-      // A agenda que o Claude marca (Fase 83): grava no config.json, como as configurações.
-      schedule: {
-        tasks: () => getConfig().scheduledTasks,
-        save: (scheduledTasks) => {
-          updateConfig({ scheduledTasks })
-          notifyConfigChange()
-        }
-      },
+      // A memória pessoal e a agenda que o Claude marca (Fases 79 a 83).
+      ...memoryServerOptions(() => chat),
       express: ({ emotion, dance, seconds }) => {
         presence.activity()
         if (emotion) actMascot({ kind: 'feel', emotion, ms: holdMs(seconds, FEEL_MS) })
@@ -322,15 +310,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     console.warn('[wisp] o servidor MCP não subiu; o chat vai funcionar sem as ferramentas:', err)
   }
 
-  // A busca por sentido (Fase 80): com o modelo baixado, os trechos novos ganham vetor aos poucos,
-  // um minuto depois de abrir (sem o modelo, o índice só se atualiza na hora de buscar).
-  setTimeout(() => {
-    if (modelInstalled())
-      void memoryIndex()
-        .embedPending()
-        .catch(() => undefined)
-  }, 60_000).unref()
-  // A destilação das conversas paradas e a faxina da semana (Fase 81).
+  // Os vetores da busca (Fase 80), a destilação e a faxina da semana (Fase 81).
   setupMemory(notify)
 
   // O mascote acompanha a conversa: falando, trabalhando, pedindo permissão, feliz, erro.
@@ -403,6 +383,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       island?.onChatEvent(event, conversation)
       voice?.onChatEvent(event, conversation)
       phone?.onChatEvent(event)
+      telegram?.onChatEvent(event)
       if (event.type === 'usage') usageAlerts.observe(event.usage)
       if (event.type === 'permission-request') {
         desktopApprovals.request(event.id, event.toolName, event.input)
@@ -753,6 +734,19 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
   phone.approvals.setLocked(screenLock.locked)
+  // O Wisp no Telegram (Fase 85): desligado até você guardar a ficha de um bot e parear.
+  telegram = setupTelegram({
+    chat: () => chat,
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    notify: () => settings.notify(),
+    transcribe: (pcm) => transcribe(pcm, whisperOptions()),
+    synthesize: (text) =>
+      synthesize(speakable(text, 1500), {
+        binary: getConfig().piperPath,
+        model: getConfig().piperModel
+      }),
+    locked: () => screenLock.locked
+  })
 
   menu = setupTray({
     mascotVisible: isMascotVisible,
@@ -949,6 +943,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     voice?.cancel()
     screenLock.dispose()
     phone?.dispose()
+    telegram?.dispose()
     desktopApprovals.reset()
     updates.dispose()
     if (midnight) clearTimeout(midnight)

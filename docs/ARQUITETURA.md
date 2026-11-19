@@ -55,6 +55,9 @@ src/
 │  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
 │  ├─ mcp-schedule.ts # a agenda que o Claude marca: schedule_task, list_tasks e cancel_task (Fase 83)
 │  ├─ heartbeat.ts   # o batimento: o CHECKLIST.md, o pedido, a resposta quieta e as tarefas internas (Fase 84)
+│  ├─ chat-runs.ts   # o que o painel acompanha: as tarefas que rodam, o fim dos turnos e o dia da Wisp (Fases 82 a 85)
+│  ├─ telegram.ts    # o bot do Telegram: a Bot API, o pareamento, as mensagens, os áudios e os cards (Fase 85)
+│  ├─ telegram-setup.ts # o Telegram no app: a ficha no chaveiro, a Wisp, o ffmpeg, o IPC (Fase 85)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1425,3 +1428,30 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     ("conferiu, nada de novo"); senão, a entrega de uma tarefa (a Wisp, a notificação, o mascote,
     o Telegram e o diário). Uma que não terminou bem anota que não deu para conferir. A aba fecha
     nos três casos (`closeConversation`).
+- **O Wisp no Telegram (Fase 85):**
+  - **a Bot API** (`TelegramApi`): `getUpdates` (long polling de 50 s, só `message` e
+    `callback_query`), `sendMessage` (cortado em 4.000 caracteres, nas quebras de linha), os
+    botões em linha, `editMessageText`, `answerCallbackQuery`, `getFile` e o download (até 20 MB),
+    e o `sendVoice` (multipart). O endereço é `https://api.telegram.org`, ou o de
+    `WISP_TELEGRAM_API` (os testes). Os erros dizem o método, nunca a ficha;
+  - **o pareamento:** um código de 6 números (`randomInt`) que vale 10 minutos; a primeira
+    mensagem com ele (ou `/start <código>`) guarda o usuário (`telegramUser`) e liga. Depois, o
+    resto de quem não é ele é ignorado, sem resposta;
+  - **as mensagens:** o laço de long polling trata os botões na hora e põe as mensagens numa fila
+    (uma por vez, sem prender o laço: um card precisa ser respondido enquanto a Wisp responde).
+    Cada uma: os comandos (o `/novo` recomeça a Wisp; os outros viram pedidos), o áudio (o
+    `ffmpeg` para PCM de 16 kHz e o `transcribe` do whisper), a foto maior e os documentos (em
+    `anexos/telegram/`, com o nome limpo). O `sendToMain` do painel manda à Wisp sem abrir o
+    painel, e o `onTurnEnd` dela devolve a resposta (`lastReply`). A resposta vai em áudio (o
+    Piper e o `ffmpeg` para Ogg/Opus) conforme o `telegramVoiceReply`;
+  - **o que chegou com ele fechado:** o `offset` fica em `telegram.json`; na primeira leva, o que
+    tem mais de 12 horas vira um resumo, e responder o resto começa avisando que ele estava
+    desligado;
+  - **os cards:** o `summarize` do ntfy (Fase 18) dá o título, o texto e o "só negar". Vão na hora
+    com uma conversa pelo Telegram nos últimos 30 minutos ou a tela bloqueada; senão, depois do
+    `phoneAfterSeconds`. Cada botão leva uma ficha de uso único do card; só o usuário pareado
+    responde, pelo `answerRemote` do painel. O card sai da lista antes de responder (a resposta
+    dispara o "respondido" na hora), e a mensagem diz como acabou; respondido no computador, ela
+    diz isso;
+  - **os avisos:** o `channels.telegram` da `delivery.ts` manda o título e o texto das tarefas e
+    do batimento (Fases 83 e 84) para o usuário pareado.

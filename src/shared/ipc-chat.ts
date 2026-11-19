@@ -654,3 +654,22 @@ export interface WindowState {
 }
 
 export type NoticeLevel = 'info' | 'warning' | 'error'
+
+/** A tela Memória (Fases 65 e 79 a 81), pela API do preload (window.wisp.memory). */
+export interface MemoryApi {
+  list(folder: string | null): Promise<MemoryFile[]>
+  preview(
+    id: MemoryId,
+    folder: string | null,
+    text: string
+  ): Promise<AgentPreview | { error: string }>
+  save(id: MemoryId, folder: string | null, text: string, fingerprint: string): Promise<AgentResult>
+  /** As anotações do Wisp na memória pessoal, da mais nova para a mais velha (Fase 79). */
+  notes(): Promise<MemoryNote[]>
+  /** Desfaz uma anotação: tira a linha que entrou, ou devolve as que saíram. */
+  undo(id: string): Promise<AgentResult>
+  /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
+  model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
+  /** A destilação e a faxina da semana (Fase 81): ver, rodar agora, gravar ou descartar. */
+  cleanup(action: 'status' | 'run' | 'accept' | 'discard'): Promise<MemoryCleanupInfo>
+}
