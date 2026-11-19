@@ -51,7 +51,9 @@ src/
 │  ├─ preview-pick.ts # apontar um elemento da página: a mira e o texto para a conversa (Fase 60)
 │  ├─ memory.ts      # a memória à vista: os CLAUDE.md, a prévia com o diff e o gravar (Fase 65)
 │  ├─ personal-memory.ts # a memória pessoal: EU.md, MEMORIA.md, o diário, o registro e os segredos (Fase 79)
-│  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save e memory_forget (Fase 79)
+│  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save, memory_forget e memory_search (Fases 79 e 80)
+│  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
+│  ├─ embeddings.ts  # o modelo da busca por sentido: baixar, carregar (ONNX Runtime em WASM) e os vetores (Fase 80)
 │  ├─ file-menu.ts   # o "Perguntar ao Wisp" do gerenciador de arquivos e o wisp no PATH do Windows (Fases 64 e 67)
 │  ├─ search-provider.ts # o Wisp na busca do desktop: o KRunner e o GNOME, pelo D-Bus (Fase 72)
 │  ├─ gnome-shell.ts # a extensão do GNOME Shell e o que o Wisp pede a ela (Fase 70)
@@ -1311,3 +1313,33 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     com a prévia, o diff e o backup de sempre), mais as anotações do registro com o desfazer
     (`memory:notes` e `memory:undo`) e a lista das pastas excluídas, gravada pelas
     configurações. A aba anônima nasce pelo `tabs:new-anonymous` (a paleta) e leva os óculos.
+- **A busca no que ele lembra (Fase 80):**
+  - **o índice** (`memory-index.ts`): `memoria.sqlite` no cache, pelo `node:sqlite` (o Node 24 do
+    Electron 44 traz o SQLite com o FTS5; nada nativo a mais). As tabelas: `docs` (cada fonte,
+    com o `mtime` e o tamanho), `chunks` (os trechos, com a fonte, o título, a data, a conversa e
+    o vetor em `BLOB`), `fts` (FTS5, `unicode61 remove_diacritics 2`, com o `rowid` do trecho) e
+    `meta` (o modelo dos vetores e as pastas excluídas da última vez). Cada busca confere o que
+    mudou e refaz só isso, numa transação; uma fonte que sumiu sai;
+  - **as fontes:** o `EU.md` e o `MEMORIA.md` (trechos de 60 palavras, para um fato achar
+    sozinho), os dias do diário e as conversas do histórico (as mensagens e as respostas, pelo
+    `messagesOf` da Fase 29, "Usuário:" e "Claude:"), em trechos de 200 palavras com 40 de
+    sobreposição. Uma conversa anônima ou de uma pasta fora da memória não entra; mudar a lista
+    das pastas confere as conversas de novo;
+  - **a nota:** pelo texto, o BM25 do FTS5 (cada palavra entre aspas, com `*` nas de 4 letras ou
+    mais, juntas por OR), dividido pelo melhor; pelo sentido, o cosseno (os vetores já
+    normalizados, o produto escalar em JS sobre todos os trechos com vetor). Os 50 melhores de
+    cada lado, somados: 70% sentido e 30% texto; sem o modelo, só o texto. Os filtros (a fonte,
+    o período) valem para os dois lados;
+  - **os vetores** (`embeddings.ts`): o `Xenova/multilingual-e5-small` quantizado
+    (`onnx/model_quantized.onnx` e o `tokenizer.json`), em `modelos/` na pasta de dados, baixado
+    de huggingface.co só pelo botão da tela Memória (cada arquivo num temporário, que só entra no
+    lugar inteiro). Roda pelo `onnxruntime-web` (o WASM, com uma thread) e o
+    `@huggingface/tokenizers` (JS puro), carregados com `import()` só quando o modelo existe. O
+    texto vai com o prefixo do e5 (`query:` ou `passage:`), até 512 tokens; o vetor é a média dos
+    tokens pela máscara, normalizada. Do `onnxruntime-web`, o pacote leva só a entrada do Node e o
+    `ort-wasm-simd-threaded` (o `electron-builder.yml`). Trocar de modelo apaga os vetores velhos;
+    os que faltam vêm de oito em oito, com um `setImmediate` entre eles, um minuto depois de abrir
+    e a cada busca;
+  - **a ferramenta** `memory_search` (no `SAFE_TOOLS`, só leitura): `consulta`, `fonte`, `desde`,
+    `ate` e `limite`; devolve cada trecho com a fonte, o dia, o título (e o id da conversa) e a
+    nota. Recusa numa conversa anônima ou numa pasta fora da memória.

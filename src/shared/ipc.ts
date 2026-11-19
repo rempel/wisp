@@ -36,6 +36,7 @@ import type {
   MemoryFile,
   MemoryId,
   MemoryNote,
+  MemoryModelInfo,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -263,6 +264,11 @@ export const IPC = {
   memoryNotes: 'memory:notes',
   /** chat → main (invoke): desfaz uma anotação. Arg: id. Devolve AgentResult. */
   memoryUndo: 'memory:undo',
+  /**
+   * chat → main (invoke): o modelo da busca por sentido (Fase 80). status → MemoryModelInfo;
+   * download baixa (e devolve quando acabar); remove o tira.
+   */
+  memoryModel: 'memory:model',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -866,6 +872,8 @@ export interface WispApi {
     notes(): Promise<MemoryNote[]>
     /** Desfaz uma anotação: tira a linha que entrou, ou devolve as que saíram. */
     undo(id: string): Promise<AgentResult>
+    /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
+    model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
   }
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>

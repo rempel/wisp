@@ -193,6 +193,9 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   na pasta de dados; toda conversa nova começa com eles. A tela Memória mostra cada anotação, com a
   conversa de origem e o desfazer. Segredos nunca entram; a **conversa anônima** não lê nem
   escreve a memória, e as **pastas fora da memória** só leem o `EU.md`.
+- **A busca no que ele lembra** (Fase 80): `memory_search` acha na memória, no diário e nas
+  conversas antigas, pelo texto (sem acentos) e, com o modelo `multilingual-e5-small` baixado na
+  tela Memória (uns 120 MB, só com o seu clique), pelo sentido. O índice é um SQLite no cache.
 
 ### Mudou
 

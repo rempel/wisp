@@ -230,6 +230,21 @@ export interface AgentPreview {
  */
 export type MemoryId = 'me' | 'facts' | 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
 
+/** O modelo da busca por sentido (Fase 80): baixado ou não, e o índice. */
+export interface MemoryModelInfo {
+  installed: boolean
+  bytes: number
+  /** O tamanho aproximado do download e de onde ele vem. */
+  approxBytes: number
+  source: string
+  /** Baixando agora: de 0 a 1. */
+  progress?: number
+  error?: string
+  /** Os trechos no índice e quantos já têm vetor. */
+  chunks: number
+  vectors: number
+}
+
 /** Onde o Wisp anota (Fase 79): o EU.md, o MEMORIA.md ou o diário do dia. */
 export type MemoryTarget = 'eu' | 'memoria' | 'diario'
 

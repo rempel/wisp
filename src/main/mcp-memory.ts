@@ -5,6 +5,7 @@
 
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { z } from 'zod'
+import type { MemoryHit, MemorySource, SearchOptions } from './memory-index'
 import type { MemoryAccess, NoteOrigin, PersonalMemory } from './personal-memory'
 
 /** O que a conversa pode com a memória e de onde vêm as anotações dela. */
@@ -17,6 +18,43 @@ export interface MemoryToolsOptions {
   memory: () => PersonalMemory
   /** O escopo da conversa que chamou (null: a conversa não existe mais). */
   scope: (conversation?: string) => MemoryScope | null
+  /** A busca no que o Wisp lembra (Fase 80). */
+  search?: (query: string, options: SearchOptions) => Promise<MemoryHit[]>
+}
+
+const SOURCES: Record<string, MemorySource | undefined> = {
+  memoria: 'memoria',
+  diario: 'diario',
+  conversas: 'conversa',
+  tudo: undefined
+}
+
+/** "2026-11-19" → o começo (ou o fim) do dia, no fuso do computador. */
+function dayBound(value: string | undefined, end: boolean): number | undefined | null {
+  if (value === undefined) return undefined
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  if (!match) return null
+  const date = new Date(+match[1], +match[2] - 1, +match[3])
+  return end ? date.getTime() + 24 * 60 * 60_000 - 1 : date.getTime()
+}
+
+const LABEL: Record<MemorySource, string> = {
+  memoria: 'memória',
+  diario: 'diário',
+  conversa: 'conversa'
+}
+
+/** Os achados, em texto para o Claude. */
+export function describeHits(hits: MemoryHit[]): string {
+  if (!hits.length) return 'Nada achado. Tente com outras palavras, ou sem o período.'
+  return hits
+    .map((hit) => {
+      const day = new Date(hit.at).toISOString().slice(0, 10)
+      const where = hit.conversation ? ` (conversa ${hit.conversation})` : ''
+      const text = hit.text.length > 700 ? `${hit.text.slice(0, 700)}…` : hit.text
+      return `[${LABEL[hit.source]} · ${day} · ${hit.title}${where} · nota ${hit.score}]\n${text}`
+    })
+    .join('\n\n')
 }
 
 const ALWAYS_LOAD = { 'anthropic/alwaysLoad': true }
@@ -35,7 +73,7 @@ function blocked(scope: MemoryScope | null): string | null {
   if (scope.access === 'read') {
     return (
       'Esta conversa está numa pasta que o usuário tirou da memória pessoal: aqui não se ' +
-      'anota nem se esquece nada.'
+      'anota, não se esquece nem se busca nada nela.'
     )
   }
   return null
@@ -98,6 +136,51 @@ export function registerMemoryTools(
         .memory()
         .forget(onde ?? 'memoria', texto, { all: todas, day: dia, origin: scope.origin })
       return result.ok ? text(result.message) : failed(result.error)
+    }
+  )
+
+  const search = options.search
+  if (!search) return
+  server.registerTool(
+    'memory_search',
+    {
+      title: 'Buscar na memória',
+      description:
+        'Busca no que o Wisp lembra do usuário: a memória (EU.md e MEMORIA.md), o diário dos ' +
+        'dias e as conversas antigas com ele. Acha pelo texto e, com o modelo baixado, pelo ' +
+        'sentido ("o restaurante que a Ana indicou" acha "jantar no Shiro, sugestão dela"). Use ' +
+        'quando ele falar de algo de antes que não está na memória do começo da conversa. ' +
+        '`consulta`: o que procurar, em palavras; `fonte`: "memoria", "diario", "conversas" ou ' +
+        '"tudo" (padrão); `desde` e `ate`: AAAA-MM-DD; `limite`: até 20 (padrão 8). Sem achar, ' +
+        'reformule e busque de novo.',
+      inputSchema: {
+        consulta: z.string(),
+        fonte: z.enum(['memoria', 'diario', 'conversas', 'tudo']).optional(),
+        desde: z.string().optional(),
+        ate: z.string().optional(),
+        limite: z.number().int().min(1).max(20).optional()
+      },
+      annotations: { readOnlyHint: true },
+      _meta: ALWAYS_LOAD
+    },
+    async ({ consulta, fonte, desde, ate, limite }) => {
+      const scope = options.scope(conversation)
+      const reason = blocked(scope)
+      if (reason) return failed(reason)
+      const from = dayBound(desde, false)
+      const to = dayBound(ate, true)
+      if (from === null || to === null) return failed('As datas vão no formato AAAA-MM-DD.')
+      try {
+        const hits = await search(consulta, {
+          source: SOURCES[fonte ?? 'tudo'],
+          from,
+          to,
+          limit: limite
+        })
+        return text(describeHits(hits))
+      } catch (err) {
+        return failed(`A busca falhou: ${(err as Error).message}`)
+      }
     }
   )
 }

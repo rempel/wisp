@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import type { JSX } from 'react'
 import { ListInput } from './SettingsFields'
-import type { MemoryNote } from '../../shared/ipc'
+import type { MemoryModelInfo, MemoryNote } from '../../shared/ipc'
 import { dateLocale, t } from '../../shared/i18n'
 
 const WHERE: Record<MemoryNote['target'], string> = {
@@ -142,6 +142,118 @@ export function MemoryExcluded(): JSX.Element {
         <p className="settings-error" role="status">
           {error}
         </p>
+      )}
+    </section>
+  )
+}
+
+const megabytes = (bytes: number): string => `${Math.round(bytes / 1_000_000)} MB`
+
+/**
+ * A busca por sentido (Fase 80): o modelo de embeddings, que só é baixado com o seu clique, e o
+ * índice (quantos trechos, quantos já com vetor).
+ */
+export function MemoryModel(): JSX.Element {
+  const [info, setInfo] = useState<MemoryModelInfo | null>(null)
+  const [confirming, setConfirming] = useState(false)
+
+  useEffect(() => {
+    let alive = true
+    const load = (): void => {
+      void window.wisp.memory.model('status').then((next) => {
+        if (!alive) return
+        setInfo(next)
+        // Baixando, ou com trechos ainda sem vetor: confere de novo daqui a pouco.
+        if (
+          next &&
+          (next.progress !== undefined || (next.installed && next.vectors < next.chunks))
+        ) {
+          setTimeout(load, 1500)
+        }
+      })
+    }
+    load()
+    return () => {
+      alive = false
+    }
+  }, [])
+
+  const run = async (action: 'download' | 'remove'): Promise<void> => {
+    setConfirming(false)
+    if (action === 'download') {
+      setInfo((old) => (old ? { ...old, progress: 0, error: undefined } : old))
+      // A barra acompanha pela conferência periódica.
+      const poll = setInterval(() => {
+        void window.wisp.memory.model('status').then(setInfo)
+      }, 1000)
+      const next = await window.wisp.memory.model('download')
+      clearInterval(poll)
+      setInfo(next)
+    } else {
+      setInfo(await window.wisp.memory.model('remove'))
+    }
+  }
+
+  const downloading = info?.progress !== undefined
+  return (
+    <section className="memory-file" aria-label={t('Busca por sentido')}>
+      <header>
+        <div>
+          <strong>{t('Busca por sentido')}</strong>{' '}
+          <small>
+            {t(
+              'com o modelo, o Wisp acha nas conversas e no diário pelo sentido, não só pelas palavras'
+            )}
+          </small>
+        </div>
+        {info && !downloading && !confirming && (
+          <button
+            type="button"
+            className="settings-button"
+            onClick={() => (info.installed ? void run('remove') : setConfirming(true))}
+          >
+            {info.installed ? t('Remover o modelo') : t('Baixar o modelo')}
+          </button>
+        )}
+      </header>
+      {info && (
+        <p className="settings-hint" role="status">
+          {downloading
+            ? t('Baixando… {percent}%', { percent: Math.round((info.progress ?? 0) * 100) })
+            : info.installed
+              ? t('Modelo instalado ({size}). {vectors} de {chunks} trechos com vetor.', {
+                  size: megabytes(info.bytes),
+                  vectors: info.vectors,
+                  chunks: info.chunks
+                })
+              : t('Sem o modelo, a busca é só pelas palavras. {chunks} trechos no índice.', {
+                  chunks: info.chunks
+                })}
+        </p>
+      )}
+      {downloading && <progress value={info?.progress ?? 0} max={1} />}
+      {info?.error && (
+        <p className="settings-error" role="alert">
+          {t('O download não deu certo: {error}', { error: info.error })}
+        </p>
+      )}
+      {confirming && info && (
+        <div className="agent-preview" role="region" aria-label={t('Baixar o modelo')}>
+          <p>
+            {t(
+              'O modelo multilingual-e5-small tem uns {size} e vem de {source}. Depois de baixado, tudo roda no seu computador, sem internet.',
+              { size: megabytes(info.approxBytes), source: info.source }
+            )}
+          </p>
+          <div className="rewind-actions">
+            <button type="button" className="settings-button" onClick={() => void run('download')}>
+              {t('Baixar')}
+            </button>
+            <button type="button" className="link" onClick={() => setConfirming(false)}>
+              {t('Cancelar')}
+            </button>
+          </div>
+        </div>
       )}
     </section>
   )

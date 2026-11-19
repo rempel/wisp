@@ -98,6 +98,12 @@ await key('t', 'KeyT', 2)
 await waitFor(() => ev(`document.querySelectorAll('.tab').length === 2`), 5000)
 const knows = await ask('[sabe aniversário da Ana]')
 check('M5 a conversa nova sabe do aniversário', /^Sei:/.test(knows ?? ''), knows)
+const found = await ask('[busca aniversario]')
+check(
+  'M5b a busca na memória (Fase 80) acha a anotação, sem acento',
+  /aniversário da Ana/.test(found ?? '') && /MEMORIA\.md/.test(found ?? ''),
+  found
+)
 
 console.log('== A tela Memória')
 await palette('Memória')

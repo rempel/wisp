@@ -843,6 +843,12 @@ do Claude Desktop.
   - **Pastas fora da memória** (`memoryExcludedFolders`): na tela Memória, as pastas cujas
     conversas (e as das pastas de dentro) leem o `EU.md`, mas não anotam nada. Bom para o
     trabalho de um cliente.
+  - **A busca no que ele lembra** (Fase 80): o Claude busca sozinho na memória, no diário e nas
+    conversas antigas quando você fala de algo de antes ("qual era o restaurante que a Ana
+    indicou?"). Pelas palavras, sem ligar para acentos; e, com o modelo baixado, pelo sentido.
+    Na tela Memória, **Busca por sentido → Baixar o modelo** mostra o tamanho (uns 120 MB) e de
+    onde ele vem (huggingface.co), e só baixa com o seu clique; depois, tudo roda no seu
+    computador. As conversas anônimas e as das pastas fora da memória não entram na busca.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

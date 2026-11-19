@@ -2978,5 +2978,21 @@ export const EN: Record<string, string> = {
   'anotando na memória…': 'noting in memory…',
   'esquecendo…': 'forgetting…',
   'CLAUDE.md instruções regras lembrar anotações esquecer EU.md':
-    'CLAUDE.md instructions rules remember notes forget EU.md'
+    'CLAUDE.md instructions rules remember notes forget EU.md',
+  'Para lembrar do que não está abaixo (o que aconteceu num dia, uma conversa antiga), use memory_search.':
+    'To recall what is not below (what happened on a given day, an old conversation), use memory_search.',
+  'Busca por sentido': 'Search by meaning',
+  'com o modelo, o Wisp acha nas conversas e no diário pelo sentido, não só pelas palavras':
+    'with the model, Wisp finds things in conversations and the journal by meaning, not just by words',
+  'Remover o modelo': 'Remove the model',
+  'Baixar o modelo': 'Download the model',
+  'Baixando… {percent}%': 'Downloading… {percent}%',
+  'Modelo instalado ({size}). {vectors} de {chunks} trechos com vetor.':
+    'Model installed ({size}). {vectors} of {chunks} passages have a vector.',
+  'Sem o modelo, a busca é só pelas palavras. {chunks} trechos no índice.':
+    'Without the model, search goes by words only. {chunks} passages in the index.',
+  'O download não deu certo: {error}': 'The download failed: {error}',
+  'O modelo multilingual-e5-small tem uns {size} e vem de {source}. Depois de baixado, tudo roda no seu computador, sem internet.':
+    'The multilingual-e5-small model is about {size} and comes from {source}. Once downloaded, everything runs on your computer, offline.',
+  Baixar: 'Download'
 }

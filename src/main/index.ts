@@ -64,6 +64,8 @@ import {
 } from './mascot'
 import { startDesktopServer } from './mcp-server'
 import { personalMemory } from './personal-memory'
+import { memoryIndex } from './memory-index'
+import { modelInstalled } from './embeddings'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
@@ -291,7 +293,11 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       weekly: weekly.describe,
       agenda: calendar.describe,
       media: () => media,
-      memory: { memory: personalMemory, scope: (id) => chat?.memoryScope(id) ?? null },
+      memory: {
+        memory: personalMemory,
+        scope: (id) => chat?.memoryScope(id) ?? null,
+        search: (query, options) => memoryIndex().search(query, options)
+      },
       express: ({ emotion, dance, seconds }) => {
         presence.activity()
         if (emotion) actMascot({ kind: 'feel', emotion, ms: holdMs(seconds, FEEL_MS) })
@@ -306,6 +312,15 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   } catch (err) {
     console.warn('[wisp] o servidor MCP não subiu; o chat vai funcionar sem as ferramentas:', err)
   }
+
+  // A busca por sentido (Fase 80): com o modelo baixado, os trechos novos ganham vetor aos poucos,
+  // um minuto depois de abrir (sem o modelo, o índice só se atualiza na hora de buscar).
+  setTimeout(() => {
+    if (modelInstalled())
+      void memoryIndex()
+        .embedPending()
+        .catch(() => undefined)
+  }, 60_000).unref()
 
   // O mascote acompanha a conversa: falando, trabalhando, pedindo permissão, feliz, erro.
   const mood = new MascotMood({

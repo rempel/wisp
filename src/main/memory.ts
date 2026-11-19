@@ -15,9 +15,17 @@ import { usableFolder } from './folders'
 import { DATA_DIR, expandHome } from './paths'
 import { claudeConfigDir } from './skills'
 import { personalMemory } from './personal-memory'
+import { downloadModel, EMBEDDING_MODEL, modelStatus, removeModel } from './embeddings'
+import { memoryIndex } from './memory-index'
 import { wholeFileDiff } from '../shared/diff'
 import { IPC } from '../shared/ipc'
-import type { AgentPreview, AgentResult, MemoryFile, MemoryId } from '../shared/ipc'
+import type {
+  AgentPreview,
+  AgentResult,
+  MemoryFile,
+  MemoryId,
+  MemoryModelInfo
+} from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 /** O maior arquivo de memória que o painel mostra e grava. */
@@ -177,6 +185,33 @@ export function setupMemoryIpc(isSender: (sender: WebContents) => boolean): void
   )
   ipcMain.handle(IPC.memoryNotes, (event) =>
     isSender(event.sender) ? personalMemory().notes() : []
+  )
+  ipcMain.handle(
+    IPC.memoryModel,
+    async (event, action: unknown): Promise<MemoryModelInfo | null> => {
+      if (!isSender(event.sender)) return null
+      if (action === 'download') {
+        await downloadModel()
+        // Com o modelo, os trechos ganham vetor aos poucos, sem travar o app.
+        void memoryIndex()
+          .embedPending()
+          .catch(() => undefined)
+      } else if (action === 'remove') {
+        removeModel()
+      }
+      let stats = { chunks: 0, vectors: 0 }
+      try {
+        stats = memoryIndex().stats()
+      } catch {
+        // O índice ainda não abriu (ou não deu): mostra zero.
+      }
+      return {
+        ...modelStatus(),
+        approxBytes: EMBEDDING_MODEL.approxBytes,
+        source: EMBEDDING_MODEL.source,
+        ...stats
+      }
+    }
   )
   ipcMain.handle(IPC.memoryUndo, (event, id: unknown): AgentResult => {
     if (!isSender(event.sender) || typeof id !== 'string') {

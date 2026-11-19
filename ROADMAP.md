@@ -10,8 +10,8 @@ dias), **G** (uma semana ou mais).
 
 **Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
-confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), a 79 está implementada e
-espera a validação; as outras estão planejadas.
+confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), as que dizem "pronta"
+estão implementadas e esperam a validação; as outras estão planejadas.
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -355,19 +355,24 @@ Notas:
 
 #### Fase 80: a busca no que ele lembra
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/busca-memoria.test.ts`, com o ONNX Runtime
+e o tokenizador de verdade sobre um modelo minúsculo; `e2e/memoria-pessoal.mjs`). **Só o uso
+confirma:** baixar e carregar o `multilingual-e5-small` de verdade (o Hugging Face não estava ao
+alcance de onde a fase foi feita) e a qualidade da busca por sentido.
 
 O desenho é o do OpenClaw: os Markdown como fonte da verdade, um SQLite como índice, a busca por
 texto e por sentido juntas e, sem os vetores, só por texto.
 
 - **O índice (M):** `memoria.sqlite`, com o `node:sqlite` que já vem no Node do Electron (sem
   dependência nativa nova). Entram a memória, o diário e as conversas do histórico (a fonte da
-  Fase 29), em trechos de umas 400 palavras com sobreposição. Um arquivo que muda é reindexado
-  logo depois; o índice é um cache, e apagá-lo só o faz ser refeito.
+  Fase 29), em trechos de umas 200 palavras com sobreposição (o modelo lê até 512 tokens). Um
+  arquivo que muda é reindexado na próxima busca; o índice é um cache, e apagá-lo só o faz ser
+  refeito.
 - **Por texto (M):** FTS5 com BM25, sem acento ("japones" acha "japonês").
 - **Por sentido (G):** um modelo de embeddings multilíngue pequeno (da família
-  `multilingual-e5-small`, uns 120 MB) rodando dentro do Wisp. É opcional: Configurações →
-  Memória oferece baixá-lo, com o tamanho e de onde vem, e só baixa com o seu clique. Depois,
+  `multilingual-e5-small`, uns 120 MB) rodando dentro do Wisp, pelo ONNX Runtime em WebAssembly
+  (só a entrada do Node e um WASM de 15 MB vão no pacote). É opcional: a tela Memória oferece
+  baixá-lo, com o tamanho e de onde vem, e só baixa com o seu clique. Depois,
   tudo roda sem internet. Os vetores ficam no SQLite, e a semelhança é calculada em JS (dá conta
   do volume de uma pessoa sem banco vetorial).
 - **A busca híbrida (P):** as duas notas somadas (70% sentido, 30% texto, como no OpenClaw), e
@@ -379,7 +384,13 @@ texto e por sentido juntas e, sem os vetores, só por texto.
 conversa em que se falou de "jantar no Shiro, sugestão dela", que não tem a palavra
 "restaurante". Sem o modelo, "Shiro" acha a mesma conversa.
 
-Nota: conferir antes que o `node:sqlite` do Electron 44 traz o FTS5 (o do Node 22 traz).
+Notas:
+
+- conferido: o `node:sqlite` do Electron 44 (Node 24, SQLite 3.53) traz o FTS5;
+- com o modelo, os trechos ganham vetor aos poucos (de oito em oito), um minuto depois de abrir
+  e na hora de buscar; o que ainda não tem vetor é achado só pelo texto;
+- as conversas anônimas e as das pastas fora da memória não entram no índice, e numa conversa
+  dessas a `memory_search` não busca.
 
 #### Fase 81: o diário e a faxina
 

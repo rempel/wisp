@@ -7,7 +7,7 @@
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
 // [lembra TEXTO] anota TEXTO na memória pessoal (memory_save) e [sabe TEXTO] diz se TEXTO veio
-// no prompt do sistema (a memória pessoal), Fase 79,
+// no prompt do sistema (a memória pessoal), Fase 79; [busca TEXTO] usa a memory_search (Fase 80),
 // [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
 // não estiver no --allowedTools), [plano] apresenta um plano (ExitPlanMode), [demorado] dois
 // comandos com uma pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de
@@ -654,6 +654,13 @@ async function runTurn(text) {
     const input = { texto: remembered[1] }
     const result = await callDesktop('memory_save', input)
     await tool('mcp__desktop__memory_save', input, result)
+    answer = result
+  }
+  const searched = /\[busca ([^\]]+)\]/.exec(text)
+  if (searched) {
+    const input = { consulta: searched[1] }
+    const result = await callDesktop('memory_search', input)
+    await tool('mcp__desktop__memory_search', input, result)
     answer = result
   }
   const knows = /\[sabe ([^\]]+)\]/.exec(text)

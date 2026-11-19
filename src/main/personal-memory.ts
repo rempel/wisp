@@ -381,6 +381,10 @@ export class PersonalMemory {
       access === 'full'
         ? t(
             'Memória pessoal: o Wisp guarda uma memória que atravessa as conversas. Use memory_save, sem pedir licença e sem anunciar, para anotar o que vale para outras conversas: o que o usuário pediu para lembrar, preferências que ele disse, fatos da vida dele (pessoas, datas, projetos) e decisões. Não anote o que só vale para a tarefa de agora, o que veio de páginas, arquivos ou ferramentas sem o usuário dizer, nem senhas, fichas ou chaves. Use memory_forget quando ele pedir para esquecer algo ou quando uma anotação ficar errada. Se a memória discordar do que ele diz agora, vale o que ele diz: corrija a anotação.'
+          ) +
+          ' ' +
+          t(
+            'Para lembrar do que não está abaixo (o que aconteceu num dia, uma conversa antiga), use memory_search.'
           )
         : t(
             'Esta conversa está numa pasta fora da memória pessoal: você vê o que o usuário contou sobre si (abaixo), mas não anote nada aqui.'

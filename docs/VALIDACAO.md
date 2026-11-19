@@ -1234,3 +1234,19 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       conversa nela, o Claude sabe o que está no `EU.md`, mas pedir para lembrar algo não anota.
 - [ ] **Editar à mão:** edite o `MEMORIA.md` num editor qualquer; a próxima conversa nova já vê
       a mudança.
+
+## A busca no que ele lembra (Fase 80)
+
+- [ ] **Por texto:** numa conversa, fale do "jantar no Shiro, sugestão da Ana". Dias depois (ou
+      numa conversa nova), "onde foi aquele jantar no Shiro?": o Claude usa a `memory_search` e
+      acha a conversa.
+- [ ] **O modelo:** na tela Memória, **Busca por sentido → Baixar o modelo**: aparece o tamanho e
+      o huggingface.co; **Baixar** mostra o andamento e, no fim, "Modelo instalado", com os
+      trechos ganhando vetor aos poucos.
+- [ ] **Por sentido:** com o modelo, "qual era aquele restaurante que a Ana indicou?" acha a
+      conversa do Shiro, sem a palavra "restaurante".
+- [ ] **Sem internet:** com o modelo baixado, desligue a rede: a busca por sentido continua.
+- [ ] **Remover:** **Remover o modelo** apaga a pasta `modelos/`; a busca volta a ser só por texto.
+- [ ] **De fora:** uma conversa anônima não aparece na busca, nem uma de uma pasta fora da memória.
+- [ ] **O pacote:** no .deb e no AppImage, `onnxruntime-web/dist` tem só o `ort.node.min.*` e o
+      `ort-wasm-simd-threaded.*`.

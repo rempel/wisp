@@ -42,6 +42,8 @@ export const SAFE_TOOLS = [
   // Fase 79: a memória pessoal só mexe nos arquivos do próprio Wisp, à vista e com o desfazer.
   'mcp__desktop__memory_save',
   'mcp__desktop__memory_forget',
+  // Fase 80: buscar no que o Wisp lembra é só leitura.
+  'mcp__desktop__memory_search',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',
