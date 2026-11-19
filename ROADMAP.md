@@ -10,7 +10,7 @@ dias), **G** (uma semana ou mais).
 
 **Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
-confirma.
+confirma. As Fases 79 a 86 (o Wisp que lembra e cuida da agenda) estão planejadas.
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -287,6 +287,224 @@ de mentira). **Só o uso confirma:** com o seu `gh` e um PR de verdade.
 **Aceite:** `/pr 123` abre a aba na cópia, com o pedido na caixa; Enter, e a revisão vem em
 tópicos, com arquivo e linha.
 
+## Fases 79 a 86: o Wisp que lembra e cuida da agenda (planejadas, novembro de 2026)
+
+O Wisp deixa de ser só um painel de conversas e passa a ser um assistente pessoal: com uma
+memória que ele mesmo mantém, uma conversa principal que atravessa os dias, uma agenda que ele
+mesmo marca e um canal para falar com ele de fora de casa. A referência são agentes como o
+Hermes e o OpenClaw, mas com as regras do Wisp: o Claude Code continua sendo o cérebro, tudo
+roda no seu desktop, e nada que muda a máquina roda sem um clique seu.
+
+**O que foi decidido** (alinhado com o uso, em novembro de 2026):
+
+- **Onde mora:** só no desktop. Com o computador desligado, nada responde e nada roda; o que
+  chegou nesse tempo é tratado quando o Wisp abre. Um modo servidor fica para depois.
+- **A memória** vale em todas as conversas, e o Wisp escreve nela sem pedir: é a pasta de dados
+  dele, não um arquivo seu nem a máquina. Cada anotação fica à vista, com a origem e o desfazer.
+- **Os arquivos são a fonte da verdade:** Markdown que você lê e edita. O índice da busca é só
+  um cache, refeito a partir deles.
+- **A ordem:** a memória, a conversa principal, a agenda, o Telegram e as skills; cada uma se
+  apoia na de antes.
+
+### A memória
+
+#### Fase 79: a memória que ele mantém
+
+**Status:** planejada.
+
+- **Os arquivos (M):** em `~/.local/share/wisp/memoria/` (no Windows, a pasta de dados do Wisp):
+  - `EU.md`: quem você é, as suas preferências, as pessoas e os projetos da sua vida;
+  - `MEMORIA.md`: os fatos e as decisões que duram ("o deploy do X é na sexta", "prefiro
+    respostas curtas");
+  - `diario/AAAA-MM-DD.md`: o que aconteceu em cada dia;
+  - `historico.jsonl`: cada anotação que o Wisp fez, com a data, a conversa de onde veio e o
+    texto de antes, para o desfazer.
+- **No começo de cada conversa (P):** o `EU.md` e o `MEMORIA.md` entram no prompt (junto do
+  `APPEND_SYSTEM_PROMPT`), com um limite de tamanho; o diário não entra, ele é buscado.
+- **As ferramentas (M):** `memory_save` (um fato no `MEMORIA.md` ou no `EU.md`, ou uma linha no
+  diário de hoje) e `memory_forget`. Não pedem card. O prompt diz quando anotar: o que você pediu
+  para lembrar, preferências ditas, decisões e o que vale para outras conversas; e o que não
+  anotar: o que só vale para a tarefa da hora.
+- **A tela Memória (M):** a da Fase 65 ganha os arquivos novos e uma lista "O que o Wisp anotou",
+  com a conversa de origem e o **Desfazer** de cada anotação.
+- **O que fica de fora (M):**
+  - **segredos nunca:** senhas, fichas, chaves e o conteúdo dos arquivos de segredo (a mesma
+    lista que já barra o celular) são recusados antes de gravar;
+  - **conversa anônima:** uma aba que não lê nem escreve a memória e não entra no diário;
+  - **pastas excluídas:** conversas nas pastas que você marcar (o trabalho de um cliente, por
+    exemplo) não alimentam a memória pessoal, mas leem o `EU.md`.
+
+**Aceite:** dizer numa conversa "lembra que o aniversário da Ana é 3 de março"; numa conversa
+nova, "quando é o aniversário da Ana?" responde certo. Na tela Memória, a anotação aparece com
+a conversa de origem; **Desfazer** a tira e a pergunta deixa de ter resposta.
+
+Nota: a memória pessoal fica fora dos `CLAUDE.md`. Eles continuam sendo seus (e dos projetos), e
+o Wisp não escreve neles.
+
+#### Fase 80: a busca no que ele lembra
+
+**Status:** planejada.
+
+O desenho é o do OpenClaw: os Markdown como fonte da verdade, um SQLite como índice, a busca por
+texto e por sentido juntas e, sem os vetores, só por texto.
+
+- **O índice (M):** `memoria.sqlite`, com o `node:sqlite` que já vem no Node do Electron (sem
+  dependência nativa nova). Entram a memória, o diário e as conversas do histórico (a fonte da
+  Fase 29), em trechos de umas 400 palavras com sobreposição. Um arquivo que muda é reindexado
+  logo depois; o índice é um cache, e apagá-lo só o faz ser refeito.
+- **Por texto (M):** FTS5 com BM25, sem acento ("japones" acha "japonês").
+- **Por sentido (G):** um modelo de embeddings multilíngue pequeno (da família
+  `multilingual-e5-small`, uns 120 MB) rodando dentro do Wisp. É opcional: Configurações →
+  Memória oferece baixá-lo, com o tamanho e de onde vem, e só baixa com o seu clique. Depois,
+  tudo roda sem internet. Os vetores ficam no SQLite, e a semelhança é calculada em JS (dá conta
+  do volume de uma pessoa sem banco vetorial).
+- **A busca híbrida (P):** as duas notas somadas (70% sentido, 30% texto, como no OpenClaw), e
+  os trechos mais próximos com a data e a origem. Sem o modelo, só texto.
+- **A ferramenta (P):** `memory_search`, com o período e a fonte (memória, diário, conversas)
+  opcionais. O Claude reformula e busca de novo quando não acha.
+
+**Aceite:** com o modelo baixado, "qual era aquele restaurante que a Ana indicou?" acha a
+conversa em que se falou de "jantar no Shiro, sugestão dela", que não tem a palavra
+"restaurante". Sem o modelo, "Shiro" acha a mesma conversa.
+
+Notas:
+
+- conferir antes que o `node:sqlite` do Electron 44 traz o FTS5 (o do Node 22 traz);
+- o gerador de vetores fica atrás de uma interface, para o Ollama (Fase 66) entrar depois como
+  outra fonte.
+
+#### Fase 81: o diário e a faxina
+
+**Status:** planejada.
+
+- **Destilar a conversa (M):** quando uma conversa fecha, ou fica parada uns 15 minutos, um
+  Claude Code à parte e sem ferramentas (como a pergunta lateral, Fase 46), com o Haiku, lê o
+  que foi dito desde a última vez e devolve: uma ou duas linhas para o diário do dia e os fatos
+  novos que valem para depois. Os fatos passam pelas mesmas regras do `memory_save` (os
+  segredos, a conversa anônima, as pastas excluídas) e entram no histórico das anotações.
+- **A faxina da semana (M):** uma vez por semana, o `MEMORIA.md` é consolidado (duplicatas
+  juntas, o que ficou velho marcado ou tirado) e o resultado vira um card com o diff: só grava
+  com o seu OK.
+- **À vista (P):** o custo de cada destilação entra no uso do plano, como o das conversas.
+
+**Aceite:** depois de uma conversa sobre a viagem de dezembro, o diário do dia tem uma linha
+sobre ela, sem você ter pedido; a faxina mostra o diff com dois fatos repetidos virando um.
+
+### A conversa principal
+
+#### Fase 82: o Wisp, uma aba que fica
+
+**Status:** planejada.
+
+- **A aba (M):** uma aba fixa, **Wisp**, que não fecha. É onde caem, por padrão, o atalho, a voz,
+  a busca do desktop, o `wisp --ask`, o celular e o Telegram (Fase 85). As outras abas continuam
+  sendo trabalho em pastas e projetos.
+- **Uma sessão por dia (M):** todo dia começa uma sessão nova do Claude Code; a continuidade vem
+  da memória e do diário de ontem, que entra resumido no começo do dia. A aba mostra os dias
+  anteriores, que dá para reabrir.
+- **O modo:** o que você escolher na pílula, como nas outras conversas.
+- **A personalidade (M):** `PERSONALIDADE.md`, na pasta da memória: o jeito de falar, o tom e o
+  que priorizar. Começa com o de hoje (breve, em português, Markdown leve) e entra no prompt de
+  todas as conversas. Você edita na tela Memória; o Wisp pode **sugerir** uma mudança, que vira
+  um card com o diff e só grava com o seu OK.
+
+**Aceite:** de manhã, Ctrl+Alt+W abre a aba Wisp num dia novo; "o que ficou pendente ontem?"
+responde a partir do diário. Pedir "fala comigo de um jeito mais informal" mostra o card com o
+diff do `PERSONALIDADE.md`.
+
+### A agenda
+
+#### Fase 83: a agenda que ele marca
+
+**Status:** planejada.
+
+- **As ferramentas (M):** `schedule_task`, `list_tasks` e `cancel_task`. "Toda segunda às 8h me
+  manda os PRs parados" vira uma tarefa montada pelo Claude, que aparece num **card** com o
+  horário, o prompt e a pasta; só existe depois do seu OK. Os lembretes (`set_reminder`)
+  continuam sem card, como hoje.
+- **Mais horários (M):** além de hora e dias da semana (Fase 26): uma vez só ("daqui a 2 horas
+  confere se o deploy passou"), a cada N horas dentro de uma janela e um dia do mês.
+- **Sempre no modo Pedir:** uma tarefa roda sem ninguém olhando; o que ela quiser fazer na
+  máquina vira card, que vai para o celular ou para o Telegram quando você não está.
+- **A entrega (M):** o resultado de uma tarefa vai para a conversa principal (como uma mensagem do
+  Wisp), para a notificação do sistema, para o Telegram e para o mascote (um balão na ilha). Cada
+  tarefa escolhe quais; o padrão são todos.
+- **Com a memória:** a tarefa roda com a memória como qualquer conversa, e o resultado entra no
+  diário.
+
+**Aceite:** dizer "daqui a 5 minutos me lembra de conferir o forno, e toda sexta às 17h me faz
+um resumo da semana"; o lembrete sai sem card, a tarefa da sexta pede o card e, confirmada,
+aparece em Configurações → Tarefas agendadas. Rodar agora a tarefa põe o resumo na aba Wisp e
+na notificação.
+
+#### Fase 84: o batimento
+
+**Status:** planejada.
+
+- **Os horários (P):** o Wisp confere um checklist em horários fixos (o padrão: 8h, 13h e 17h nos
+  dias úteis), editáveis nas configurações. Com o computador desligado na hora, vale a regra das
+  tarefas: roda ao abrir, se ainda for até duas horas depois.
+- **O checklist (M):** `CHECKLIST.md`, na pasta da memória, que você edita. Começa com:
+  - **a agenda do dia:** os compromissos próximos e os conflitos (Fase 13);
+  - **o GitHub:** o CI quebrado e os PRs esperando a sua revisão (Fase 13);
+  - **os lembretes e as tarefas:** o que venceu, o que vem, o que ficou em aberto no diário de
+    ontem;
+  - **o e-mail:** pelo servidor MCP do Gmail no Claude Code, se você o adicionar (Configurações →
+    Servidores MCP). Só leitura no batimento; mandar um e-mail é uma ferramenta que pede card.
+- **Só fala se houver algo (P):** o batimento roda no Haiku; sem nada que mereça, fica quieto e
+  só anota no diário que conferiu. Com algo, entrega como as tarefas (Fase 83).
+
+**Aceite:** às 8h, com uma reunião às 9h e um CI vermelho, chegam uma notificação e uma mensagem
+na aba Wisp com os dois. Num dia sem nada, nenhuma notificação, e o diário diz que conferiu.
+
+### Fora de casa
+
+#### Fase 85: o Wisp no Telegram
+
+**Status:** planejada.
+
+- **O bot (M):** você cria um bot no @BotFather e cola a ficha em Configurações → Telegram (ela
+  fica no chaveiro). O Wisp busca as mensagens por long polling: só conexões de saída, nenhuma
+  porta aberta. Só o seu usuário do Telegram é atendido (o primeiro que mandar o código de
+  pareamento mostrado no painel); os outros são ignorados.
+- **A conversa (M):** as mensagens caem na aba Wisp e as respostas voltam pelo bot.
+- **As permissões (M):** os cards chegam com **Permitir uma vez** e **Negar**, com as regras do
+  ntfy (Fase 18): nunca "sempre", nem trocar o modo; um comando com arquivos de segredos só pode
+  ser negado.
+- **Além de texto (M):**
+  - **áudios:** transcritos no seu computador pelo whisper.cpp, como a voz do desktop;
+  - **fotos e arquivos:** viram anexos da conversa;
+  - **a resposta:** em texto, em áudio (pelo Piper) ou nos dois, conforme a configuração;
+  - **comandos:** `/lembrar`, `/agenda`, `/tarefas`, `/memoria` e `/novo`.
+- **O que chegou com o Wisp fechado (P):** ao abrir, ele responde o que chegou nas últimas 12
+  horas, avisando que estava desligado; o que é mais velho vira um resumo só, com a pergunta se
+  ainda vale.
+
+**Aceite:** na rua, mandar um áudio "me lembra de comprar pão às 18h"; o lembrete é marcado e a
+resposta vem no Telegram. Pedir "abre o projeto X no editor" manda o card, e **Permitir uma vez**
+abre.
+
+Nota: as mensagens passam pelos servidores do Telegram (a conversa, não a memória inteira). A
+configuração diz isso antes de ligar.
+
+### Aprender com o uso
+
+#### Fase 86: as skills que ele aprende
+
+**Status:** planejada.
+
+- **Perceber (M):** na faxina da semana (Fase 81), o Wisp procura no diário e no histórico os
+  pedidos que se repetem com o mesmo jeito de fazer (os mesmos passos, as mesmas ferramentas).
+- **Propor (M):** uma skill do Claude Code (`SKILL.md`, como as da Fase 15), mostrada num card com
+  o texto inteiro e a pasta onde vai ficar; só é criada com o seu OK. Também dá para pedir
+  ("transforma isso numa skill").
+- **Melhorar (P):** quando uma skill do Wisp erra e você corrige, ele propõe a mudança na skill,
+  também com o diff.
+
+**Aceite:** depois de pedir três vezes, em dias diferentes, "resume os PRs abertos do wisp em
+tópicos", o resumo da semana sugere a skill `resumo-prs`; com o OK, `/resumo-prs` funciona numa
+conversa nova.
+
 ## O que vem depois
 
 Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando for a vez.
@@ -296,6 +514,13 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
 - **Pequenos (P cada):** a busca e os links clicáveis no terminal; a bancada embaixo, e não só à
   direita; destacar o navegador numa janela; o modelo por projeto e as abas agrupadas por
   projeto (Fase 77); editar o plano antes de aceitar (Fase 76).
+
+**Para o assistente**
+
+- **O modo servidor (G).** Um Wisp sem janela num mini-PC ou num servidor sempre ligado, com o
+  desktop como cliente: o Telegram e o batimento funcionando com o computador desligado.
+- **Os vetores pelo Ollama (P).** Outra fonte para a busca por sentido (Fase 80), para quem já
+  tem um servidor local (Fase 66).
 
 **Para o Windows**
 
@@ -335,6 +560,12 @@ Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando 
   pelo celular, por uma página na rede local, a Fase 54.
 - **Um navegador completo na bancada** (senhas salvas, downloads, extensões). O navegador da
   bancada mostra páginas ao lado da conversa; para o dia a dia, o do sistema é melhor.
+- **Um banco vetorial à parte para a memória** (Redis, Qdrant e outros). Para o volume de uma
+  pessoa, o SQLite com a semelhança em JS dá conta (Fase 80), sem um serviço a mais rodando.
+- **Uma sessão eterna na conversa principal.** A compactação perde detalhes e o contexto pesa;
+  uma sessão por dia, com a memória e o diário, dá a mesma continuidade (Fase 82).
+- **O WhatsApp como canal.** A API oficial pede uma conta comercial; as não oficiais arriscam o
+  banimento do número. O Telegram (Fase 85) tem uma API aberta e gratuita.
 
 ## Princípios que ficam
 
@@ -346,6 +577,8 @@ Do MVP e do que o Coucou faz bem:
 - Nenhum arquivo de configuração do usuário é alterado sem backup, diff e confirmação. O que o
   Wisp põe no sistema a pedido seu (um menu, um atalho, uma extensão) leva a marca dele e sai
   quando você desliga.
+- A memória é sua: Markdown que você lê e edita, cada anotação do Wisp à vista com a origem e o
+  desfazer, e segredos nunca entram nela.
 - Sem telemetria. Rede só para o que você configurou. Segredos no Secret Service.
 - Parado, o Wisp não gasta CPU perceptível.
 - Uma etapa por vez, com um aceite que dá para conferir.
