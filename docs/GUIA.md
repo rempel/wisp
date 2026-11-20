@@ -900,6 +900,13 @@ do Claude Desktop.
   positivo ou risco aceito, escreva uma nota, abra a URL na bancada e **guarde o print** dela no
   achado. Isso fica em `wisp-triagem.json` e `wisp-evidencias/`, ao lado do run; os artefatos do
   pentester não mudam.
+- **O pentester no Docker:** com "no Docker", a conversa usa o servidor MCP na imagem do pentester
+  (`docker compose --profile mcp run --rm -i mcp`), e esta máquina não precisa do Python. Isso pede a
+  versão do pentester com o serviço `mcp` (o branch `wisp-integracao`); o pipeline direto usa o
+  `make run`, que agora leva o escopo ao container.
+- **No modo Automático:** um comando do Bash que rode o pentester (`run-pipeline.sh`,
+  `run-agent.sh`, `run-propagation.sh`, `run-phase.sh`, `agent.py`, `make run`, `make phase`) ainda
+  pede o card.
 - **Reteste e laboratório:** no engajamento, **Retestar toda semana** (o dia, a hora, o alvo e as
   fases) roda o pipeline direto sozinho. **Laboratório** mostra os serviços do
   `docker-compose.lab.yml`, para subir e parar.

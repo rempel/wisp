@@ -224,6 +224,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **O pentester, mais redondo:** com o pentester no Docker, o servidor MCP da conversa roda na
+  imagem dele (o serviço `mcp` do compose); os achados vêm do `findings.json` que ele grava a cada
+  fase (sem o Python nesta máquina); e, mesmo no modo Automático, rodar o pipeline, o agente ou o
+  `make run` pelo Bash pede o card. O lado do pentester (o estado no modo MCP, os alertas a cada
+  fase, o Docker e as permissões) está no branch `wisp-integracao` dele.
 - **O clima para o Claude** (Fase 108): a ferramenta `weather` dá o agora e até sete dias, com a
   chance de chuva, para a sua cidade ou outra pelo nome (a Open-Meteo, sem conta). Uma tarefa
   agendada que responde só "NADA" não entrega nada, e assim "me avisa se for chover" só avisa quando

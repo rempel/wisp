@@ -947,6 +947,29 @@ Docker, a tela explica). **Só o uso confirma:** subir o laboratório de verdade
 **Aceite:** subir o laboratório pelo Wisp e rodar um pentest nele, do começo ao relatório, sem
 abrir o terminal.
 
+### O lado do pentester (novembro de 2026)
+
+O que dependia do pentester foi feito no branch `wisp-integracao` dele
+([rempel/pentester](https://github.com/rempel/pentester/tree/wisp-integracao)), à espera do merge:
+
+- **O estado do run no modo MCP:** o `run_phase` passa a gravar as fases no `state.json`
+  (`running` enquanto roda) e o `generate_report`, o `finished_at`; antes, um run pelo Claude
+  ficava com as fases "na fila" e parecia parado 15 minutos depois de acabar.
+- **Os alertas e os achados a cada fase:** o `alerts.jsonl` ganha os achados críticos e altos assim
+  que a fase acaba (também no pipeline direto), e o `findings.json` traz os achados normalizados:
+  com ele em dia, o Wisp não precisa do Python nesta máquina.
+- **O Docker:** o compose repassa o `SCOPE`, o `ENV_PROFILE`, o `PHASE_GROUP` e o `PHASES` (antes, o
+  escopo não entrava no container e o grupo de fases era ignorado); o `.env` ficou opcional; saiu o
+  `OUTPUT_DIR` fixo (uma fase avulsa gravava fora da pasta do run); o serviço `mcp` roda o servidor
+  MCP na imagem, que agora tem o pacote `mcp`; o `Dockerfile.kali` instala o `unzip` (o nuclei era
+  pulado em silêncio); o Makefile normaliza o alvo com a porta, como o pipeline.
+- **As permissões:** o `.claude/settings.json` não libera mais o Bash inteiro; rodar o pipeline, o
+  agente, a propagação, uma fase, o `make run` ou o `docker compose` pede confirmação.
+
+Do lado do Wisp: com o pentester "no Docker", o servidor MCP da conversa é o serviço `mcp` do
+compose; o `findings.json` em dia dispensa o normalizador; e, no modo Automático, o hook do Bash
+ainda pede o card para os comandos que rodam o pentester (`PENTEST_RUNNERS`).
+
 ## Fases 104 a 107: as ferramentas de segurança e de desenvolvimento (planejadas)
 
 Fora do pentester, para o dia a dia.

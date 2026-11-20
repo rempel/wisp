@@ -3,6 +3,7 @@
 // responde e sai, e o relay dos hooks (Fase 35) repassa o evento ao Wisp aberto, sem carregar o
 // resto do app nem abrir janela. O resto é o app de sempre.
 
+import { readFileSync } from 'fs'
 import { RELAY_ARG } from './hooks/protocol'
 import { MODE_HOOK_ARG, modeHookOutput } from './mode-hook'
 
@@ -19,7 +20,13 @@ function quietly(): void {
 const relay = process.argv.indexOf(RELAY_ARG)
 if (process.argv.includes(MODE_HOOK_ARG)) {
   quietly()
-  process.stdout.write(modeHookOutput(process.env), () => process.exit(0))
+  let input = ''
+  try {
+    input = readFileSync(0, 'utf8')
+  } catch {
+    // Sem a entrada: decide só pelo modo.
+  }
+  process.stdout.write(modeHookOutput(process.env, input), () => process.exit(0))
 } else if (relay >= 0) {
   quietly()
   const args = process.argv.slice(relay + 1)

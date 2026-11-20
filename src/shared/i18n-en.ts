@@ -3523,5 +3523,6 @@ export const EN: Record<string, string> = {
     'To warn later only if something happens ("tell me if it\'s going to rain"), schedule a task whose ',
   'prompt responda só NADA quando não houver o que avisar: aí nada é entregue.':
     'prompt answers just NADA when there is nothing to report: then nothing is delivered.',
-  '{name}: conferiu, nada a avisar.': '{name}: checked, nothing to report.'
+  '{name}: conferiu, nada a avisar.': '{name}: checked, nothing to report.',
+  'O Wisp pede aprovação para rodar o pentester.': 'Wisp asks for approval to run the pentester.'
 }

@@ -1579,3 +1579,10 @@ TARGET=<alvo>`, num grupo de processos próprio (o Parar manda o SIGTERM ao grup
   milímetros e o vento; o `describeWeather` a põe em texto. Está nas ferramentas seguras e no prompt
   do Wisp. No `tasks-setup.ts`, uma tarefa cuja resposta é só NADA (`saysNothing`) não é entregue:
   vira uma linha no diário, e a aba dela fecha.
+- **O pentester, mais redondo (depois das Fases 98 a 103):** o `pentestServers` devolve, com o
+  `pentestRunner` em "docker", o servidor `pentest` como `docker compose --project-directory <pasta>
+--profile mcp run --rm -i mcp` (o `env` leva o escopo, que o compose repassa ao container). O
+  `Findings` lê o `findings.json` do run quando ele é mais novo que o `parsed/` e só cai no
+  normalizador pelo Python sem ele. O hook do Bash (`BASH_HOOK`, e o `modeHookOutput` no Windows)
+  recebe o pedido pela entrada padrão: no modo Automático, um comando que case com
+  `PENTEST_RUNNERS` recebe o "ask", e o resto segue para o classificador do Claude Code.
