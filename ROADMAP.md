@@ -949,8 +949,8 @@ abrir o terminal.
 
 ### O lado do pentester (novembro de 2026)
 
-O que dependia do pentester foi feito no branch `wisp-integracao` dele
-([rempel/pentester](https://github.com/rempel/pentester/tree/wisp-integracao)), à espera do merge:
+O que dependia do pentester já está na main dele
+([rempel/pentester#41](https://github.com/rempel/pentester/pull/41)):
 
 - **O estado do run no modo MCP:** o `run_phase` passa a gravar as fases no `state.json`
   (`running` enquanto roda) e o `generate_report`, o `finished_at`; antes, um run pelo Claude

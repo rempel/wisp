@@ -902,7 +902,7 @@ do Claude Desktop.
   pentester não mudam.
 - **O pentester no Docker:** com "no Docker", a conversa usa o servidor MCP na imagem do pentester
   (`docker compose --profile mcp run --rm -i mcp`), e esta máquina não precisa do Python. Isso pede a
-  versão do pentester com o serviço `mcp` (o branch `wisp-integracao`); o pipeline direto usa o
+  versão do pentester com o serviço `mcp` (a main de novembro de 2026); o pipeline direto usa o
   `make run`, que agora leva o escopo ao container.
 - **No modo Automático:** um comando do Bash que rode o pentester (`run-pipeline.sh`,
   `run-agent.sh`, `run-propagation.sh`, `run-phase.sh`, `agent.py`, `make run`, `make phase`) ainda
