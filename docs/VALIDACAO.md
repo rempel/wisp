@@ -1367,3 +1367,28 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Música e clima:** com um player tocando, o pausar do bloco funciona; com a cidade dada, o
       clima aparece, e desligado o Wisp não fala com a Open-Meteo.
 - [ ] **Os temas:** claro, escuro e alto contraste legíveis no trilho, nos blocos e na edição.
+
+## O pentester no Wisp (Fases 98 a 103)
+
+- [ ] **A pasta:** em Configurações → Pentest, a pasta do pentester é aceita (e uma qualquer, não);
+      ela aparece nas pastas fora da memória.
+- [ ] **O engajamento:** com o escopo `juice.lab`, o Novo pentest em `outro.com` é recusado; o
+      `scope.txt` do repositório não muda.
+- [ ] **Pelo Claude:** o Novo pentest abre a conversa com o `/pentest-run`; mandar mostra o card do
+      `init_pentest` (o alvo, o perfil); a fase 01 roda direto e a 14 pede outro card.
+- [ ] **Ao vivo:** com o run rodando (pelo Claude ou pelo terminal), a tela mostra a fase de agora
+      pulsando, os alertas chegando e o log; o fim avisa com as contagens.
+- [ ] **No Docker:** com "no Docker", o pipeline direto roda o `make run` e a tela acompanha.
+- [ ] **Os achados:** num run do Juice Shop, os achados com a severidade; marcar um como falso
+      positivo, fechar e abrir o Wisp: a marca continua; abrir a URL na bancada e guardar o print.
+- [ ] **O reteste:** agendado para daqui a dois minutos, ele roda e aparece na tela.
+- [ ] **O laboratório:** subir e parar o Juice Shop pelo Wisp, aqui e por `ssh://`.
+- [ ] **O Telegram:** com "o resumo, sem o alvo", o aviso de um alerta crítico não tem a URL nem o
+      host.
+
+## O clima para o Claude (Fase 108)
+
+- [ ] "Como vai estar o tempo amanhã?" responde com a previsão da sua cidade (pela `weather`, sem
+      card); "e em Campinas?", com a de lá.
+- [ ] "Todo dia às 7h me avisa se for chover": o card da tarefa aparece; num dia seco, nada chega (só
+      a linha no diário); num dia de chuva, o aviso chega.

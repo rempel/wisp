@@ -3,6 +3,7 @@
 // permissão; e os anexos de uma mensagem, como chegam da página.
 
 import { snapshotDirOf } from './turn-review'
+import { pentestEnv, pentestServers } from './pentest'
 import { existsSync, mkdirSync, statSync, writeFileSync } from 'fs'
 import { randomUUID } from 'crypto'
 import { basename, join } from 'path'
@@ -55,7 +56,10 @@ export const APPEND_SYSTEM_PROMPT =
   t(
     'open_url (que abre o navegador do sistema, só se ele pedir) nem o do Playwright; para rodar '
   ) +
-  t('o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read.')
+  t('o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read. ') +
+  t('Para clima e previsão do tempo, use a ferramenta weather (não o WebSearch nem o WebFetch). ') +
+  t('Para avisar depois só se algo acontecer ("me avisa se for chover"), agende uma tarefa cujo ') +
+  t('prompt responda só NADA quando não houver o que avisar: aí nada é entregue.')
 
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 export function outgoing(value: unknown): OutgoingAttachment[] {
@@ -139,7 +143,7 @@ export const modeFileOf = (conversation: string): string =>
 export function conversationFactory(
   startup: Pick<WispConfig, 'claudePath' | 'extraAllowedTools'>,
   host: ConversationHost,
-  mcpConfig?: (conversation: string) => string
+  mcpConfig?: (conversation: string, more?: Record<string, unknown>) => string
 ): (mode: PermissionMode, provider: Provider, folder: string | null) => Conversation {
   return (mode, provider, folder) => {
     const id = randomUUID()
@@ -153,6 +157,7 @@ export function conversationFactory(
         appendSystemPrompt: () => personaOf(conversation),
         thumbnail: thumbnailOfBase64,
         snapshotDir: snapshotDirOf(id),
+        extraEnv: pentestEnv,
         demo: () => (getConfig().demo ? DEMO : null),
         openrouter: {
           // Um servidor local (Fase 66) não tem chave: o chaveiro nem é consultado.
@@ -164,7 +169,8 @@ export function conversationFactory(
         }
       },
       demo: () => getConfig().demo,
-      mcpConfig: mcpConfig ? () => mcpConfig(id) : undefined,
+      // Na pasta do pentester (Fase 99), o servidor MCP dele entra, com o escopo do engajamento.
+      mcpConfig: mcpConfig ? () => mcpConfig(id, pentestServers(conversation.folder)) : undefined,
       modeFile: modeFileOf(id),
       permissionMode: mode,
       provider,

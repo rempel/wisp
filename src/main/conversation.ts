@@ -8,6 +8,7 @@ import type { Approval, ApprovalRequest } from './mcp-server'
 import type { ConversationOptions } from './conversation-types'
 import { folderRisks, isTrusted, tilde, trustFolder } from './folders'
 import { expandHome } from './paths'
+import { pentestApproval } from './pentest'
 import { EDIT_TOOLS, editAllowed, editedPath, permissionScope } from './permission-scope'
 import { copyAttachments, withAttachments } from './attachments'
 import type { PendingReply } from './hooks/server'
@@ -509,8 +510,12 @@ export class Conversation {
       return Promise.resolve({ allow: false, message: t('O pedido foi cancelado.') })
     }
     const scope = permissionScope(request.toolName, request.input)
-    let extra: Pick<PermissionRequestEvent, 'site' | 'always' | 'scope' | 'exact'> = {}
-    if (request.toolName.startsWith(BROWSER_PREFIX)) {
+    let extra: Pick<PermissionRequestEvent, 'site' | 'always' | 'scope' | 'exact' | 'warning'> = {}
+    // O pentester (Fase 99): o começo e as fases de ataque pedem o card; o resto passa direto.
+    const pentest = pentestApproval(request.toolName, request.input)
+    if (pentest === 'allow') return Promise.resolve({ allow: true })
+    if (pentest) extra = { always: 'none', warning: pentest.warning ?? undefined }
+    else if (request.toolName.startsWith(BROWSER_PREFIX)) {
       const verdict = this.browser.check(request.toolName, request.input)
       if (verdict.allow) return Promise.resolve({ allow: true })
       extra = {

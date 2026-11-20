@@ -205,7 +205,7 @@ export function WeatherBlock(): JSX.Element {
             </span>
           </div>
           <div className="weather-days">
-            {result.report.days.map((day) => (
+            {result.report.days.slice(0, 3).map((day) => (
               <span key={day.day} title={sky(day.code)[1]}>
                 <small>
                   {new Date(day.day)

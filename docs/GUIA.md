@@ -865,9 +865,51 @@ do Claude Desktop.
   sequência de dias seguidos. Ficam em `habitos.json`.
 - **Foco:** os blocos de 25 e 50 minutos são o modo foco do menu do mascote: os avisos ficam quietos
   enquanto conta, e no fim o mascote comemora.
+- **Clima pelo Claude (Fase 108):** pergunte "como vai estar o tempo amanhã?" ou "e em Campinas?":
+  ele usa a ferramenta `weather` (a sua cidade do bloco Clima, ou a que você disser). Para um aviso
+  só quando acontecer, peça "todo dia às 7h me avisa se for chover": a tarefa responde NADA nos dias
+  secos e não entrega nada (fica uma linha no diário).
 - **Clima:** desligado de início. Dê a cidade no bloco e ele mostra o agora e os próximos três dias
   pela Open-Meteo (sem conta), no máximo uma consulta a cada 30 minutos. **Trocar** muda a cidade ou
   desliga.
+
+### O pentester no Wisp (Fases 98 a 103)
+
+- **Ligar:** em Configurações → Pentest, a pasta do seu projeto pentester (o Wisp confere pelo
+  `scripts/mcp_server.py`). Ela entra nas pastas fora da memória pessoal. Ali também: como o pipeline
+  direto roda (no host, o `run-pipeline.sh`; no Docker, o `make run`), quando pedir o card (só no
+  começo, no começo e nas fases de ataque, ou em toda fase), o que vai pelo Telegram (nada, o resumo
+  sem o alvo, o resumo com o alvo) e o Docker do laboratório (vazio, o desta máquina;
+  `ssh://usuario@servidor`, o de outra).
+- **O engajamento:** na tela Pentest, **Novo engajamento**: o nome, o cliente, o escopo autorizado
+  (um padrão por linha, como no `scope.txt`: `alvo.com`, `*.alvo.com`, `10.0.0.*`), o perfil (dev,
+  staging, prod), até quando vale e uma nota. Sem um engajamento ativo e dentro da validade, nada
+  roda. O Wisp passa o escopo ao pentester pela variável `SCOPE`, na conversa, no servidor MCP e no
+  pipeline, e o pentester recusa o que estiver fora.
+- **Começar:** **Novo pentest**, com o alvo, as fases e a confirmação da autorização. **Pelo Claude**
+  abre uma conversa na pasta do pentester com o `/pentest-run` pronto na caixa (o servidor MCP dele
+  entra na conversa; o `init_pentest` e as fases de ataque pedem o card). **O pipeline direto** roda
+  sem o modelo, e o **Parar** o encerra.
+- **Ao vivo:** os runs de `output/`, inclusive os começados pela conversa ou pelo terminal. O run
+  aberto mostra o andamento, a fase de agora, as contagens por severidade e, nas abas, as 30 fases
+  nos grupos (⚡ marca as de ataque), os achados, os alertas e o log. Um alerta crítico ou alto avisa
+  na hora; o fim avisa com as contagens.
+- **Os achados:** pelo normalizador do pentester (precisa do `python3`), com o filtro por
+  severidade, os sem triagem e os novos desde o run anterior. O clique abre o detalhe (a URL, o
+  parâmetro, o payload, a evidência, o CWE, o CVSS, a correção): marque como confirmado, falso
+  positivo ou risco aceito, escreva uma nota, abra a URL na bancada e **guarde o print** dela no
+  achado. Isso fica em `wisp-triagem.json` e `wisp-evidencias/`, ao lado do run; os artefatos do
+  pentester não mudam.
+- **O pentester no Docker:** com "no Docker", a conversa usa o servidor MCP na imagem do pentester
+  (`docker compose --profile mcp run --rm -i mcp`), e esta máquina não precisa do Python. Isso pede a
+  versão do pentester com o serviço `mcp` (o branch `wisp-integracao`); o pipeline direto usa o
+  `make run`, que agora leva o escopo ao container.
+- **No modo Automático:** um comando do Bash que rode o pentester (`run-pipeline.sh`,
+  `run-agent.sh`, `run-propagation.sh`, `run-phase.sh`, `agent.py`, `make run`, `make phase`) ainda
+  pede o card.
+- **Reteste e laboratório:** no engajamento, **Retestar toda semana** (o dia, a hora, o alvo e as
+  fases) roda o pipeline direto sozinho. **Laboratório** mostra os serviços do
+  `docker-compose.lab.yml`, para subir e parar.
 
 ### Memória, modelos locais e o sistema
 

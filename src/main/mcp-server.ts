@@ -21,6 +21,8 @@ import { registerWorkbenchTools } from './mcp-workbench'
 import { registerMemoryTools } from './mcp-memory'
 import { registerScheduleTools } from './mcp-schedule'
 import { registerTodoTools } from './mcp-todos'
+import { registerWeatherTools } from './mcp-weather'
+import type { WeatherToolsOptions } from './mcp-weather'
 import type { TodoToolsOptions } from './mcp-todos'
 import { registerSkillTools } from './learned-skills'
 import type { ScheduleToolsOptions } from './mcp-schedule'
@@ -98,6 +100,8 @@ export interface DesktopServerOptions {
   skills?: { configDir: () => string }
   /** A sua lista de tarefas (Fase 95): todo_add, todo_list e todo_done. */
   todos?: TodoToolsOptions
+  /** A previsão do tempo (Fase 108): weather. */
+  weather?: WeatherToolsOptions
 }
 
 export interface DesktopServer {
@@ -106,7 +110,7 @@ export interface DesktopServer {
    * (`/mcp/<conversa>`), para os pedidos de permissão chegarem à aba certa. Só o dono lê: ele tem
    * o token. É gravado de novo a cada chamada, com os servidores extras de agora.
    */
-  configFor(conversation: string): string
+  configFor(conversation: string, more?: Record<string, unknown>): string
   /** A conversa fechou: o arquivo dela sai. */
   releaseConfig(conversation: string): void
   /**
@@ -320,6 +324,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
   if (options.memory) registerMemoryTools(server, options.memory, conversation)
   if (options.schedule) registerScheduleTools(server, options.schedule)
   if (options.todos) registerTodoTools(server, options.todos)
+  if (options.weather) registerWeatherTools(server, options.weather)
   if (options.skills) registerSkillTools(server, options.skills.configDir)
 
   const screenshot = options.screenshot
@@ -767,7 +772,7 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
     join(dir, `mcp-${process.pid}-${conversation}.json`)
 
   return {
-    configFor(conversation) {
+    configFor(conversation, more) {
       if (!CONVERSATION_ID.test(conversation)) throw new Error('id de conversa inválido')
       const desktop = {
         type: 'http',
@@ -775,7 +780,8 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
         headers: { Authorization: `Bearer ${token}` }
       }
       const path = pathFor(conversation)
-      writeFileSync(path, JSON.stringify({ mcpServers: { ...extra(), desktop } }), { mode: 0o600 })
+      const servers = { ...extra(), ...more, desktop }
+      writeFileSync(path, JSON.stringify({ mcpServers: servers }), { mode: 0o600 })
       chmodSync(path, 0o600)
       written.add(conversation)
       return path

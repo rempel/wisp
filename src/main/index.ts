@@ -374,7 +374,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
 
   chat = setupChat({
     anchor: getMascotBounds,
-    mcpConfig: desktop ? (conversation) => desktop!.configFor(conversation) : undefined,
+    mcpConfig: desktop ? (id, more) => desktop!.configFor(id, more) : undefined,
     releaseMcpConfig: (conversation) => desktop?.releaseConfig(conversation),
     sessionTitle: (id) => sessions.get(id)?.project ?? null,
     onEvent: (event, conversation) => {
@@ -741,9 +741,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     agenda: () => (calendar.agenda.enabled ? calendar.agenda : null),
     reminders: () => reminders.list(),
     github: () => (getConfig().github ? github.describe() : null),
-    activity: () => activity,
-    media: () => media,
-    focus
+    live: () => ({ activity, media }),
+    focus,
+    notify
   })
   // O Wisp no Telegram (Fase 85): desligado até você guardar a ficha de um bot e parear.
   telegram = setupTelegram({

@@ -55,6 +55,10 @@ export function heartbeatPrompt(list: string, time: string): string {
   ].join('\n')
 }
 
+/** A resposta é só NADA (as tarefas com aviso condicional, Fase 108; vazia não conta). */
+export const saysNothing = (reply: string): boolean =>
+  new RegExp(`^\\W*${QUIET_REPLY}\\W*$`, 'i').test(reply.trim())
+
 /** A resposta diz que não há nada? */
 export const isQuiet = (reply: string): boolean =>
   new RegExp(`^\\W*${QUIET_REPLY}\\W*$`, 'i').test(reply.trim()) || !reply.trim()

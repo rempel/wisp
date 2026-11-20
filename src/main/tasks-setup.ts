@@ -13,7 +13,14 @@ import { getConfig, notifyConfigChange, onConfigChange, updateConfig } from './c
 import { deliver, lastReply } from './delivery'
 import { islandMessage, reactMascot } from './mascot'
 import { memoryAccess, MEMORY_DIR, personalMemory } from './personal-memory'
-import { checklist, heartbeatPrompt, heartbeatTasks, isHeartbeat, isQuiet } from './heartbeat'
+import {
+  checklist,
+  heartbeatPrompt,
+  heartbeatTasks,
+  isHeartbeat,
+  isQuiet,
+  saysNothing
+} from './heartbeat'
 import type { Conversation } from './conversation'
 import { describeAlert } from './github'
 import type { GithubAlert } from './github'
@@ -271,10 +278,28 @@ export function setupTasks(options: {
     }
     const inMemory =
       memoryAccess(false, conversation.folder, getConfig().memoryExcludedFolders) === 'full'
+    // Um aviso condicional sem nada a avisar (Fase 108): só uma linha no diário.
+    const reply = lastReply(conversation.history.events())
+    if (outcome === 'done' && saysNothing(reply)) {
+      const origin = {
+        ...(conversation.historyId ? { conversation: conversation.historyId } : {}),
+        title: task.name,
+        auto: true as const
+      }
+      if (inMemory) {
+        personalMemory().save(
+          'diario',
+          t('{name}: conferiu, nada a avisar.', { name: task.name }),
+          origin
+        )
+      }
+      options.chat()?.closeConversation(conversation.id)
+      return
+    }
     deliver(
       {
         title: task.name,
-        text: lastReply(conversation.history.events()),
+        text: reply,
         outcome,
         ...(conversation.historyId ? { conversation: conversation.historyId } : {})
       },

@@ -94,6 +94,7 @@ check(
       'OpenRouter (experimental)',
       'Integrações',
       'Telegram',
+      'Pentest',
       'Celular',
       'Levar o Wisp junto',
       'Avançado'

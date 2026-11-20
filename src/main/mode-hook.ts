@@ -22,10 +22,28 @@ export const ASK_FOR_BASH = JSON.stringify({
 })
 
 /**
- * O que o hook imprime: nada no modo Automático (quem decide é o classificador do Claude Code),
- * e o pedido de aprovação em todos os outros, inclusive sem o arquivo do modo.
+ * Os comandos que rodam o pentester (Fase 99): o pipeline, o agente sem interface, a propagação,
+ * uma fase avulsa ou o make run. Até no modo Automático eles pedem o card: mandam tráfego de
+ * ataque a um alvo. Sem aspas simples (o padrão entra numa linha de shell).
  */
-export function modeHookOutput(env: NodeJS.ProcessEnv): string {
+export const PENTEST_RUNNERS =
+  'run-(pipeline|agent|propagation|phase)\\.sh|scripts/agent\\.py|make +(run|phase)'
+
+/** A resposta para um comando do pentester no modo Automático. */
+export const ASK_FOR_PENTEST = JSON.stringify({
+  hookSpecificOutput: {
+    hookEventName: 'PreToolUse',
+    permissionDecision: 'ask',
+    permissionDecisionReason: t('O Wisp pede aprovação para rodar o pentester.')
+  }
+})
+
+/**
+ * O que o hook imprime: o pedido de aprovação em todo modo menos o Automático (inclusive sem o
+ * arquivo do modo); no Automático, quem decide é o classificador do Claude Code, menos para os
+ * comandos que rodam o pentester. `input` é o JSON do pedido, que chega pela entrada padrão.
+ */
+export function modeHookOutput(env: NodeJS.ProcessEnv, input = ''): string {
   let mode = ''
   try {
     const file = env[MODE_FILE_ENV]
@@ -33,5 +51,6 @@ export function modeHookOutput(env: NodeJS.ProcessEnv): string {
   } catch {
     // Sem o arquivo: pede.
   }
-  return mode === 'auto' ? '' : ASK_FOR_BASH
+  if (mode !== 'auto') return ASK_FOR_BASH
+  return new RegExp(PENTEST_RUNNERS).test(input) ? ASK_FOR_PENTEST : ''
 }

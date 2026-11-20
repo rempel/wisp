@@ -8,6 +8,7 @@
 // (Fase 60), estreitar a página como num celular (Fase 61) e mandar os erros do console para a
 // conversa (Fase 62). O Markdown abre no próprio painel (o renderer o desenha).
 
+import { workbenchCapture } from './pentest'
 import { ipcMain, session, shell, WebContentsView } from 'electron'
 import type { BrowserWindow, IpcMainInvokeEvent, NativeImage, WebContents } from 'electron'
 import { existsSync, watch } from 'fs'
@@ -622,6 +623,8 @@ export interface PreviewControl {
 /** O IPC da pré-visualização (só o painel pede) e o controle dela para o resto do main. */
 export function setupPreview(host: PreviewHost): PreviewControl {
   const tabs = new PreviewTabs(host)
+  // O print da bancada para as evidências do pentester (Fase 101).
+  workbenchCapture.capture = async () => tabs.page?.capture()
   const from = (event: IpcMainInvokeEvent): boolean => host.isSender(event.sender)
   const open = (input: string, base: string | null, fresh = false): PreviewResult => {
     const target = previewTarget(input.slice(0, 4096), base, undefined, host.web())

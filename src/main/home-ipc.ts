@@ -4,7 +4,7 @@
 // O painel de controle (Fases 94 a 97) pede o resto bloco a bloco: a agenda de um período, a
 // atividade por dia, o que o Wisp fez hoje, as suas tarefas e hábitos, o foco, a música e o clima.
 
-import { ipcMain } from 'electron'
+import { app, ipcMain } from 'electron'
 import type { IpcMainInvokeEvent, WebContents } from 'electron'
 import { readFileSync } from 'fs'
 import type { ActivityLog } from './activity'
@@ -13,6 +13,7 @@ import { getConfig, notifyConfigChange, updateConfig } from './config'
 import type { FocusMode } from './focus'
 import { heartbeatTasks } from './heartbeat'
 import { Habits, Todos } from './home-store'
+import { setupPentest } from './pentest'
 import type { MediaPlayers } from './media'
 import { MEMORY_DIR, personalMemory } from './personal-memory'
 import type { Reminder } from './reminders'
@@ -40,11 +41,19 @@ export interface HomeDeps {
   /** Os seus PRs em texto (null: o GitHub está desligado). */
   github(): Promise<string> | null
   now?(): number
-  /** O registro de atividade (Fase 13), para a semana do Wisp. */
-  activity?: () => ActivityLog | null
-  media?: () => MediaPlayers | null
+  /** O registro de atividade (Fase 13, para a semana do Wisp) e os players de música. */
+  live?: () => { activity: ActivityLog | null; media: MediaPlayers | null }
   /** O modo foco (Fase 45), no bloco Foco. */
   focus?: FocusMode
+  /** A notificação do sistema (os avisos do pentester, Fase 100). */
+  notify?: (title: string, body: string) => void
+}
+
+let weatherStore: Weather | null = null
+/** O clima: um só, para o bloco e a ferramenta weather do Claude dividirem a meia hora (Fase 108). */
+export function weatherService(): Weather {
+  weatherStore ??= new Weather(() => getConfig().weather)
+  return weatherStore
 }
 
 let todosStore: Todos | null = null
@@ -181,8 +190,14 @@ export function setupHomeIpc(deps: HomeDeps): void {
   const send = (channel: string, value: unknown): void => {
     if (page && !page.isDestroyed()) page.send(channel, value)
   }
+  // O pentester (Fases 98 a 103) é aberto junto: a tela dele é a irmã do Início.
+  const stopPentest = setupPentest({
+    isSender: deps.isSender,
+    notify: (title, body) => deps.notify?.(title, body)
+  })
+  app.on('before-quit', stopPentest)
   const habits = new Habits()
-  const weather = new Weather(() => getConfig().weather)
+  const weather = weatherService()
   todos().onChange((list) => send(IPC_HOME.todosChanged, list))
   deps.focus?.subscribe(() => send(IPC_HOME.focusChanged, focusState(deps.focus)))
 
@@ -205,7 +220,7 @@ export function setupHomeIpc(deps: HomeDeps): void {
   )
   ipcMain.handle(IPC_HOME.activity, (event, days: unknown) =>
     ok(event) && typeof days === 'number'
-      ? activityDays(deps.activity?.() ?? null, days, now())
+      ? activityDays(deps.live?.().activity ?? null, days, now())
       : []
   )
   ipcMain.handle(IPC_HOME.feed, (event) => {
@@ -244,13 +259,13 @@ export function setupHomeIpc(deps: HomeDeps): void {
   ipcMain.handle(IPC_HOME.music, async (event) =>
     ok(event)
       ? ((await deps
-          .media?.()
-          ?.nowPlaying()
+          .live?.()
+          .media?.nowPlaying()
           .catch(() => null)) ?? null)
       : null
   )
   ipcMain.handle(IPC_HOME.musicAction, async (event, action: unknown) => {
-    const media = deps.media?.()
+    const media = deps.live?.().media
     if (ok(event) && media && action && typeof action === 'object') {
       await media.musicAction(action as IslandMusicAction).catch(() => undefined)
     }

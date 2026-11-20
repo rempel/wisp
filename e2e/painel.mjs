@@ -88,7 +88,7 @@ await ev(`document.querySelector('.home-toolbar .btn').click()`)
 await waitFor(() => ev(`!!document.querySelector('.home-blocks')`), 3000)
 check(
   'P4 a edição mostra a lista dos blocos',
-  (await ev(`document.querySelectorAll('.home-blocks li').length`)) === 20
+  (await ev(`document.querySelectorAll('.home-blocks li').length`)) === 21
 )
 // Pelo teclado: a agenda passa o batimento; as tarefas ficam mais largas.
 await ev(`document.querySelector('[data-block="agenda"] .home-block-grip').focus()`)

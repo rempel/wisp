@@ -2,6 +2,7 @@
 // (listar, abrir numa aba, apagar, fixar), exportar em Markdown, abrir uma pasta ou um projeto
 // numa conversa nova e expandir um prompt salvo (Fase 26).
 
+import { pentestChat } from './pentest'
 import { setupWorktrees } from './worktrees-ipc'
 import { clipboard, ipcMain } from 'electron'
 import type { BrowserWindow, IpcMainEvent, IpcMainInvokeEvent } from 'electron'
@@ -285,5 +286,14 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
       return expandPrompt(prompt.text, promptValues(conversation?.folder ?? null, copied))
     }
   )
+  // O pentester (Fase 100): o Novo pentest pelo Claude abre a conversa na pasta dele, com o pedido
+  // pronto na caixa, para você revisar e mandar.
+  pentestChat.open = (folder, prompt) => {
+    const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
+    conversation.setDraft(prompt)
+    toPage(conversation.id, { type: 'draft', text: conversation.draft })
+    ctx.show()
+    void conversation.checkFolder()
+  }
   return index
 }

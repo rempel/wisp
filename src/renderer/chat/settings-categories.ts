@@ -68,6 +68,12 @@ export const SETTINGS_CATEGORIES: SettingsCategory[] = [
     ]
   },
   {
+    id: 'pentest',
+    label: () => t('Pentest'),
+    hint: () => t('O seu projeto pentester: a pasta, a aprovação e o laboratório'),
+    sections: () => [t('Pentest')]
+  },
+  {
     id: 'fora',
     label: () => t('Fora de casa'),
     hint: () => t('O Telegram e o celular'),

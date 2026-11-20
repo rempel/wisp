@@ -87,6 +87,16 @@ export interface WispConfig {
   homeLayout: HomeBlockLayout[] | null
   /** A cidade do clima do Início (Fase 97); null: o clima desligado (o Wisp não consulta nada). */
   weather: WeatherPlace | null
+  /** A pasta do projeto pentester (Fase 98); null: a tela Pentest fica só com o convite. */
+  pentesterFolder: string | null
+  /** Como o pipeline direto roda: no host (o run-pipeline.sh) ou no Docker (o make run). */
+  pentestRunner: 'host' | 'docker'
+  /** O que pede o card (Fase 99): só o começo, o começo e as fases de ataque, ou toda fase. */
+  pentestAsk: 'inicio' | 'ataque' | 'tudo'
+  /** O que vai pelo Telegram: nada, o resumo (sem o alvo) ou o resumo com o alvo. */
+  pentestTelegram: 'off' | 'resumo' | 'alvo'
+  /** O Docker do laboratório noutra máquina (ssh://usuario@host); null: o desta. */
+  pentestDockerHost: string | null
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -293,6 +303,11 @@ function defaults(): WispConfig {
     windowMode: 'compact',
     homeLayout: null,
     weather: null,
+    pentesterFolder: null,
+    pentestRunner: 'host',
+    pentestAsk: 'ataque',
+    pentestTelegram: 'resumo',
+    pentestDockerHost: null,
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -460,6 +475,15 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
       lat: z.number().min(-90).max(90),
       lon: z.number().min(-180).max(180)
     })
+    .nullable(),
+  pentesterFolder: z.string().trim().min(1).max(500).nullable(),
+  pentestRunner: z.enum(['host', 'docker']),
+  pentestAsk: z.enum(['inicio', 'ataque', 'tudo']),
+  pentestTelegram: z.enum(['off', 'resumo', 'alvo']),
+  pentestDockerHost: z
+    .string()
+    .trim()
+    .regex(/^(ssh|tcp|unix):\/\/[\w.@:/-]{1,200}$/)
     .nullable(),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),

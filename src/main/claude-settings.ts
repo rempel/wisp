@@ -2,6 +2,7 @@
 // segredos que sempre pedem aprovação, o hook que manda todo Bash para o card, o --settings do
 // modo terminal e as opções de uma conversa.
 
+import { PENTEST_ASK } from './pentest-store'
 import { EDIT_MATCHER, SNAPSHOT_ARG } from './turn-snapshot'
 import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
@@ -9,7 +10,13 @@ import type { PermissionMode, Provider } from '../shared/ipc'
 import { WRAPPER_PATH } from './hooks/install'
 import { HOOK_EVENTS, RELAY_ARG, STATUS_ARG, TAB_ARG } from './hooks/protocol'
 import { shellQuote } from './launcher'
-import { ASK_FOR_BASH, MODE_FILE_ENV, MODE_HOOK_ARG } from './mode-hook'
+import {
+  ASK_FOR_BASH,
+  ASK_FOR_PENTEST,
+  MODE_FILE_ENV,
+  MODE_HOOK_ARG,
+  PENTEST_RUNNERS
+} from './mode-hook'
 import type { OpenRouterModel } from './openrouter'
 import { IS_WINDOWS } from './platform'
 import { selfCommandOf } from './self-command'
@@ -50,6 +57,8 @@ export const SAFE_TOOLS = [
   'mcp__desktop__todo_add',
   'mcp__desktop__todo_list',
   'mcp__desktop__todo_done',
+  // Fase 108: a previsão do tempo é só leitura (a Open-Meteo, sem conta).
+  'mcp__desktop__weather',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',
@@ -74,7 +83,12 @@ export const ALWAYS_ASK = [
 ]
 
 /** As regras "ask" das configurações do Claude Code: os arquivos de segredos e o ALWAYS_ASK. */
-const askRules = (): string[] => [...SENSITIVE_PATHS.map((path) => `Read(${path})`), ...ALWAYS_ASK]
+const askRules = (): string[] => [
+  ...SENSITIVE_PATHS.map((path) => `Read(${path})`),
+  ...ALWAYS_ASK,
+  // Fase 99: o começo e o ataque do pentester passam pelo Wisp, mesmo com o allow do projeto.
+  ...PENTEST_ASK
+]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
 export const PERMISSION_TOOL = 'mcp__desktop__approve'
@@ -152,11 +166,15 @@ export { MODE_FILE_ENV }
  * Configurações extras da sessão (--settings):
  * - um hook que manda todo comando Bash para a aprovação. Sem ele o Claude Code roda sozinho
  *   comandos que considera só de leitura (ps, whoami, ls na pasta de trabalho, e também um `cat`
- *   de uma chave). No modo Automático ele fica quieto: quem decide é o classificador do Claude
- *   Code. O modo vem de um arquivo, porque muda no meio da conversa e o --settings não.
+ *   de uma chave). No modo Automático ele fica quieto (quem decide é o classificador do Claude
+ *   Code), menos para os comandos que rodam o pentester (PENTEST_RUNNERS). O modo vem de um
+ *   arquivo, porque muda no meio da conversa e o --settings não.
  * - as regras "ask" dos arquivos de segredos.
  */
-const BASH_HOOK = `[ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ] || printf %s '${ASK_FOR_BASH}'`
+const BASH_HOOK =
+  `if [ "$(cat "$${MODE_FILE_ENV}" 2>/dev/null)" = auto ]; then ` +
+  `{ grep -qE '${PENTEST_RUNNERS}' && printf %s '${ASK_FOR_PENTEST}'; } || true; ` +
+  `else printf %s '${ASK_FOR_BASH}'; fi`
 
 /**
  * O hook do Bash: no Linux, a linha de shell; no Windows, a forma exec (command + args, sem shell),
@@ -323,6 +341,8 @@ export interface ClaudeOptions {
   modeFile?: string
   /** A pasta das cópias de antes das edições (Fase 42), que o hook delas lê. */
   snapshotDir?: string
+  /** Variáveis a mais para o processo, pela pasta onde ele roda (o escopo do pentester, Fase 98). */
+  extraEnv?: (cwd: string) => Record<string, string>
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */

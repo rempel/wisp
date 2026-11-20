@@ -63,6 +63,11 @@ src/
 │  ├─ home-store.ts  # as suas tarefas (tarefas.json) e os hábitos (habitos.json) (Fases 95 e 96)
 │  ├─ mcp-todos.ts   # a sua lista pelo Claude: todo_add, todo_list e todo_done (Fase 95)
 │  ├─ weather.ts     # o clima pela Open-Meteo: desligado sem cidade, de meia em meia hora (Fase 97)
+│  ├─ mcp-weather.ts # a previsão para o Claude: a ferramenta weather, com a chance de chuva (Fase 108)
+│  ├─ pentest.ts     # o pentester no Wisp: o IPC da tela, o acompanhamento ao vivo, os avisos, o reteste e a política (Fases 98 a 103)
+│  ├─ pentest-runs.ts # o que o pentester grava: os runs, as fases, os alertas, o log e os achados pelo normalizador dele (Fases 100 e 101)
+│  ├─ pentest-store.ts # os engajamentos, o escopo (a SCOPE) e a política de aprovação (Fases 98, 99 e 102)
+│  ├─ pentest-runner.ts # o pipeline direto (host ou Docker) e o docker compose do laboratório (Fases 100 e 103)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1532,3 +1537,52 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     (`backdrop-filter`), o trilho (a sidebar recolhida, no modo completo) e o miolo de cada bloco. No
     alto contraste, tudo sólido e com borda; com o movimento reduzido, sem o desfoque. Os prints
     saem de `scripts/prints-inicio.mjs`, com uma agenda, tarefas e hábitos de exemplo.
+- **O pentester no Wisp (Fases 98 a 103):**
+  - **por contrato:** o Wisp não importa nada do pentester. Lê o que ele grava em
+    `output/<alvo>/<data>/` (`state.json`, `pipeline.log`, `alerts.jsonl`, `finding-review.json`,
+    `reports/`) e chama o normalizador dele (`agent.domain.run_loader.load_findings`) num `python3 -c`
+    na pasta dele, com 30 s de limite e sem `.pyc`. Os achados de um run ficam na memória enquanto
+    o `parsed/` não muda. O que é do Wisp (a triagem, os prints) fica em `wisp-triagem.json` e
+    `wisp-evidencias/`, ao lado do run;
+  - **o escopo** (`pentest-store.ts`): o engajamento (o escopo, o perfil, a validade, o reteste) em
+    `pentest/engajamentos.json` nos dados do Wisp. A `SCOPE` e o `ENV_PROFILE` vão ao pentester pelo
+    `extraEnv` do Claude Code (`claude.ts`, para a conversa e o Bash dela), pelo `env` do servidor MCP
+    e pelo ambiente do pipeline direto. O padrão do escopo vira uma expressão regular como o
+    `fnmatch` dele;
+  - **o servidor MCP**: o Wisp roda o Claude Code com `--strict-mcp-config`; numa conversa na pasta do
+    pentester, `pentestServers` põe no `--mcp-config` os servidores do `.mcp.json` dele (os
+    argumentos relativos viram caminhos na pasta, e o `env` ganha o escopo);
+  - **a aprovação** (`pentestDecision`): as ferramentas `init_pentest`, `run_phase`, `hunt`,
+    `propagate`, `expand_scope` e `establish_auth` estão nas regras "ask" do `--settings` do Wisp,
+    que vencem o `allow` do `.claude/settings.json` do pentester; o `requestApproval` da conversa
+    pergunta à política se passa direto (o recon, pelo `pentestAsk`) ou mostra o card, com
+    `always: 'none'` e o aviso de fora do escopo (o campo `warning` do pedido);
+  - **ao vivo** (`pentest.ts`): um timer de 2 s só enquanto há um run rodando, e uma olhada por minuto
+    (que também confere o reteste). Rodando é o pipeline do Wisp vivo, ou um run sem
+    `finished_at` mexido há menos de 15 minutos (e não um pipeline do Wisp que já saiu). A fase de
+    agora é a última citada no log que ainda não acabou no `state.json`. Os alertas novos críticos e
+    altos viram a notificação e, pelo `channels.telegram` da entrega (Fase 83), o resumo sem o
+    detalhe;
+  - **o pipeline direto** (`pentest-runner.ts`): `bash scripts/run-pipeline.sh <alvo>` ou `make run
+TARGET=<alvo>`, num grupo de processos próprio (o Parar manda o SIGTERM ao grupo). O run é dele
+    pela pasta do alvo (com e sem a porta) e pela hora de começo;
+  - **a tela** (`renderer/chat/pentest/`): `PentestView` (o engajamento, os runs, o Novo pentest, o
+    laboratório), `RunView` (as fases nos grupos, as contagens, as abas), `FindingsPanel` (os
+    filtros, o detalhe, a triagem, a evidência pelo print da bancada, que o `preview.ts` registra em
+    `workbenchCapture`) e `EngagementForm`. O "Pelo Claude" abre a conversa pelo `pentestChat`, que o
+    `chat-library.ts` registra (a conversa na pasta, com o `/pentest-run` na caixa). Os testes usam a
+    réplica de `test/fixtures/pentester` (a estrutura, dois runs, um normalizador e um
+    `run-pipeline.sh` de mentira).
+- **O clima para o Claude (Fase 108):** a `weather` do servidor `desktop` (`mcp-weather.ts`) usa o
+  mesmo `Weather` do bloco (`weatherService`, no `home-ipc.ts`), que agora guarda a previsão por
+  lugar (a cidade do bloco ou outra achada pela busca da Open-Meteo) e traz a chance de chuva, os
+  milímetros e o vento; o `describeWeather` a põe em texto. Está nas ferramentas seguras e no prompt
+  do Wisp. No `tasks-setup.ts`, uma tarefa cuja resposta é só NADA (`saysNothing`) não é entregue:
+  vira uma linha no diário, e a aba dela fecha.
+- **O pentester, mais redondo (depois das Fases 98 a 103):** o `pentestServers` devolve, com o
+  `pentestRunner` em "docker", o servidor `pentest` como `docker compose --project-directory <pasta>
+--profile mcp run --rm -i mcp` (o `env` leva o escopo, que o compose repassa ao container). O
+  `Findings` lê o `findings.json` do run quando ele é mais novo que o `parsed/` e só cai no
+  normalizador pelo Python sem ele. O hook do Bash (`BASH_HOOK`, e o `modeHookOutput` no Windows)
+  recebe o pedido pela entrada padrão: no modo Automático, um comando que case com
+  `PENTEST_RUNNERS` recebe o "ask", e o resto segue para o classificador do Claude Code.

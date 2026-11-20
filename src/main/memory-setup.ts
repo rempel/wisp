@@ -7,7 +7,7 @@ import { getConfig, notifyConfigChange, updateConfig } from './config'
 import { modelInstalled } from './embeddings'
 import type { DesktopServerOptions } from './mcp-server'
 import { memoryIndex } from './memory-index'
-import { todos } from './home-ipc'
+import { todos, weatherService } from './home-ipc'
 import { claudeConfigDir } from './skills'
 import { Distiller, distillFile } from './distill'
 import { History } from './history'
@@ -66,7 +66,7 @@ export function distiller(): Distiller {
 /** O que o servidor `desktop` precisa para a memória (Fases 79 e 80) e a agenda (Fase 83). */
 export function memoryServerOptions(
   chat: () => Chat | null
-): Pick<DesktopServerOptions, 'memory' | 'schedule' | 'skills' | 'todos'> {
+): Pick<DesktopServerOptions, 'memory' | 'schedule' | 'skills' | 'todos' | 'weather'> {
   return {
     memory: {
       memory: personalMemory,
@@ -75,6 +75,7 @@ export function memoryServerOptions(
     },
     skills: { configDir: () => claudeConfigDir() },
     todos: { todos },
+    weather: { weather: weatherService, home: () => getConfig().weather },
     // Grava no config.json, como as configurações.
     schedule: {
       tasks: () => getConfig().scheduledTasks,

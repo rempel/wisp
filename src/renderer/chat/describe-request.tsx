@@ -26,6 +26,75 @@ function str(input: unknown, key: string): string {
 }
 
 const BROWSER = 'mcp__playwright__'
+const PENTEST = 'mcp__pentest__'
+
+/** As fases de ataque do pentester (injeção, XSS, path traversal, SSRF, formulários, exploração). */
+const RISKY = new Set([14, 15, 16, 19, 25, 30])
+
+/** Os pedidos do pentester (Fase 99): o que vai acontecer com o alvo, em palavras. */
+function describePentest(tool: string, input: unknown): { title: string; body: ReactNode } {
+  const args = (input ?? {}) as Record<string, unknown>
+  const target = str(input, 'target') || str(input, 'override_url')
+  const line = (label: string, value: unknown): ReactNode =>
+    value === undefined || value === '' ? null : (
+      <li key={label}>
+        <strong>{label}:</strong> {String(value)}
+      </li>
+    )
+  if (tool === 'init_pentest') {
+    return {
+      title: t('Começar um pentest em {target}?', { target: target || '?' }),
+      body: (
+        <>
+          <ul className="permission-list">
+            {line(t('Perfil'), args.env_profile ?? 'dev')}
+            {line(t('Fases'), args.phase_group ?? t('todas'))}
+            {args.allow_risky_inject ? line(t('Injeção em produção'), t('liberada')) : null}
+          </ul>
+          <p>
+            {t(
+              'Aprovar é a sua confirmação de que há autorização por escrito para testar este alvo. O pentester grava tudo no audit.log.'
+            )}
+          </p>
+        </>
+      )
+    }
+  }
+  if (tool === 'run_phase') {
+    const phase = Number(args.phase_num)
+    return {
+      title: RISKY.has(phase)
+        ? t('Rodar a fase de ataque {phase}?', { phase })
+        : t('Rodar a fase {phase}?', { phase }),
+      body: (
+        <ul className="permission-list">
+          {line(t('Alvo'), target || t('o do pentest'))}
+          {RISKY.has(phase) ? (
+            <li>{t('Manda payloads ao alvo (injeção, SSRF, formulários ou exploração).')}</li>
+          ) : null}
+        </ul>
+      )
+    }
+  }
+  const titles: Record<string, string> = {
+    hunt: t('Caçar vulnerabilidades ({kind})?', { kind: str(input, 'vuln_class') || t('todas') }),
+    propagate: t('Encadear os achados em novos testes?'),
+    expand_scope: t('Pôr novos alvos no escopo do pentest?'),
+    establish_auth: t('Criar uma conta descartável e entrar no alvo?')
+  }
+  return {
+    title: titles[tool] ?? t('Usar a ferramenta {tool} do pentester?', { tool }),
+    body: (
+      <ul className="permission-list">
+        {Array.isArray(args.new_targets)
+          ? line(t('Novos alvos'), (args.new_targets as unknown[]).join(', '))
+          : null}
+        {line(t('Motivo'), args.reason)}
+        {line(t('Alvo'), target)}
+      </ul>
+    )
+  }
+}
 /** A ferramenta com que o Claude apresenta o plano (modo Planejar). */
 export const PLAN = 'ExitPlanMode'
 /** O card do Wisp para confiar numa pasta antes de o Claude Code rodar nela. */
@@ -163,6 +232,7 @@ export function describe(
 ): { title: string; body: ReactNode } {
   if (toolName.startsWith(BROWSER))
     return describeBrowser(toolName.slice(BROWSER.length), input, site)
+  if (toolName.startsWith(PENTEST)) return describePentest(toolName.slice(PENTEST.length), input)
   if (toolName === TRUST) {
     const value = (input as Record<string, unknown> | null)?.items
     const items = Array.isArray(value) ? value.map(String) : []
