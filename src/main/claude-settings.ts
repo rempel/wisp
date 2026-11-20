@@ -51,6 +51,8 @@ export const SAFE_TOOLS = [
   'mcp__desktop__todo_add',
   'mcp__desktop__todo_list',
   'mcp__desktop__todo_done',
+  // Fase 108: a previsão do tempo é só leitura (a Open-Meteo, sem conta).
+  'mcp__desktop__weather',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',

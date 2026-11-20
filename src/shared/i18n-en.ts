@@ -2749,8 +2749,8 @@ export const EN: Record<string, string> = {
     "open, show or test a page (the project's localhost, an HTML file or a website), ",
   'open_url (que abre o navegador do sistema, só se ele pedir) nem o do Playwright; para rodar ':
     'open_url (which opens the system browser, only if they ask for it) or the Playwright one; to run ',
-  'o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read.':
-    'what the user should follow or what keeps running, use terminal_run and terminal_read.',
+  'o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read. ':
+    'what the user should follow or what keeps running, use terminal_run and terminal_read. ',
   'localhost:5173, um site ou um arquivo': 'localhost:5173, a website or a file',
   'Endereço ou arquivo': 'Address or file',
   'Abra o servidor do projeto (localhost), um arquivo (HTML, PDF ou imagem) ou um site. O Claude também abre páginas aqui quando você pede.':
@@ -3516,5 +3516,12 @@ export const EN: Record<string, string> = {
   '{done}/{total} fases': '{done}/{total} phases',
   '{n} achados do run anterior não aparecem mais (resolvidos?).':
     '{n} findings from the previous run are gone (fixed?).',
-  '{title} (fase {phase})': '{title} (phase {phase})'
+  '{title} (fase {phase})': '{title} (phase {phase})',
+  'Para clima e previsão do tempo, use a ferramenta weather (não o WebSearch nem o WebFetch). ':
+    'For weather and forecasts, use the weather tool (not WebSearch or WebFetch). ',
+  'Para avisar depois só se algo acontecer ("me avisa se for chover"), agende uma tarefa cujo ':
+    'To warn later only if something happens ("tell me if it\'s going to rain"), schedule a task whose ',
+  'prompt responda só NADA quando não houver o que avisar: aí nada é entregue.':
+    'prompt answers just NADA when there is nothing to report: then nothing is delivered.',
+  '{name}: conferiu, nada a avisar.': '{name}: checked, nothing to report.'
 }

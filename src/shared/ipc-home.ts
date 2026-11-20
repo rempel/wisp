@@ -118,7 +118,18 @@ export interface WeatherReport {
   code: number
   max: number
   min: number
-  days: { day: number; code: number; max: number; min: number }[]
+  /** A chance de chuva hoje (%), e o vento agora (km/h), se vieram. */
+  rain?: number | null
+  wind?: number | null
+  /** Os próximos dias (até sete). */
+  days: {
+    day: number
+    code: number
+    max: number
+    min: number
+    rain?: number | null
+    rainMm?: number | null
+  }[]
   /** Quando veio. */
   at: number
 }

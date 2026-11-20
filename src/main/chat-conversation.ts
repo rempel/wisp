@@ -56,7 +56,10 @@ export const APPEND_SYSTEM_PROMPT =
   t(
     'open_url (que abre o navegador do sistema, só se ele pedir) nem o do Playwright; para rodar '
   ) +
-  t('o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read.')
+  t('o que o usuário deve acompanhar ou que continua rodando, use terminal_run e terminal_read. ') +
+  t('Para clima e previsão do tempo, use a ferramenta weather (não o WebSearch nem o WebFetch). ') +
+  t('Para avisar depois só se algo acontecer ("me avisa se for chover"), agende uma tarefa cujo ') +
+  t('prompt responda só NADA quando não houver o que avisar: aí nada é entregue.')
 
 /** Os anexos de uma mensagem, conferidos: caminhos não vazios e miniaturas no formato certo. */
 export function outgoing(value: unknown): OutgoingAttachment[] {

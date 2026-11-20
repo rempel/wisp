@@ -54,7 +54,10 @@ export function registerScheduleTools(server: McpServer, options: ScheduleToolsO
         'set_reminder. `repetir`: "uma-vez" (com `data` AAAA-MM-DD e `hora`, ou `daqui_minutos`), ' +
         '"semanal" (`hora` e `dias`, 0 é domingo; sem `dias`, todo dia), "a-cada" (`a_cada_horas`, ' +
         'de `hora` até `ate`, nos `dias`) ou "mensal" (`dia_do_mes` e `hora`). `prompt`: o pedido ' +
-        'completo, que se entenda sozinho numa conversa nova. `pasta`: onde rodar (opcional).',
+        'completo, que se entenda sozinho numa conversa nova. `pasta`: onde rodar (opcional). ' +
+        'Para um aviso condicional ("me avisa se for chover amanhã", "se o site cair"), escreva o ' +
+        'prompt para responder exatamente NADA quando não houver o que avisar: a resposta NADA não ' +
+        'é entregue (fica só uma linha no diário).',
       inputSchema: {
         nome: z.string(),
         prompt: z.string(),

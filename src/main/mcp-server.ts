@@ -21,6 +21,8 @@ import { registerWorkbenchTools } from './mcp-workbench'
 import { registerMemoryTools } from './mcp-memory'
 import { registerScheduleTools } from './mcp-schedule'
 import { registerTodoTools } from './mcp-todos'
+import { registerWeatherTools } from './mcp-weather'
+import type { WeatherToolsOptions } from './mcp-weather'
 import type { TodoToolsOptions } from './mcp-todos'
 import { registerSkillTools } from './learned-skills'
 import type { ScheduleToolsOptions } from './mcp-schedule'
@@ -98,6 +100,8 @@ export interface DesktopServerOptions {
   skills?: { configDir: () => string }
   /** A sua lista de tarefas (Fase 95): todo_add, todo_list e todo_done. */
   todos?: TodoToolsOptions
+  /** A previsão do tempo (Fase 108): weather. */
+  weather?: WeatherToolsOptions
 }
 
 export interface DesktopServer {
@@ -320,6 +324,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
   if (options.memory) registerMemoryTools(server, options.memory, conversation)
   if (options.schedule) registerScheduleTools(server, options.schedule)
   if (options.todos) registerTodoTools(server, options.todos)
+  if (options.weather) registerWeatherTools(server, options.weather)
   if (options.skills) registerSkillTools(server, options.skills.configDir)
 
   const screenshot = options.screenshot

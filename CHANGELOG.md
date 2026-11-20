@@ -224,6 +224,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **O clima para o Claude** (Fase 108): a ferramenta `weather` dá o agora e até sete dias, com a
+  chance de chuva, para a sua cidade ou outra pelo nome (a Open-Meteo, sem conta). Uma tarefa
+  agendada que responde só "NADA" não entrega nada, e assim "me avisa se for chover" só avisa quando
+  vai chover.
 - **O pentester no Wisp** (Fases 98 a 103): a tela **Pentest** acompanha o seu projeto
   [pentester](https://github.com/rempel/pentester) ao vivo, lendo o que ele grava em `output/`: as 30
   fases nos grupos delas (com a de agora pulsando), as contagens por severidade, os alertas chegando,

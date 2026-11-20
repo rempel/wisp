@@ -962,6 +962,27 @@ Fora do pentester, para o dia a dia.
   propõe a correção numa cópia; e um hook opcional pede uma revisão de segurança do diff antes do
   push (segredos, injeção, autenticação).
 
+## Fase 108: o clima para o Claude (novembro de 2026)
+
+Pedir ao Wisp "vê a previsão do tempo e me avisa" não funcionava: o clima da Fase 97 só existia no
+bloco do Início, e o Claude tentava o WebSearch e o WebFetch, que leem mal as páginas de previsão.
+
+**Status:** pronta, esperando validação (testes: `test/clima.test.ts`, com a ferramenta pelo
+servidor `desktop`, a cidade guardada, outra pelo nome e nenhuma). **Só o uso confirma:** o Claude
+de verdade escolhendo a ferramenta e uma tarefa "me avisa se for chover" ficando quieta num dia seco.
+
+- **A ferramenta (P):** `weather`, no servidor `desktop`: o agora (a temperatura, o céu, o vento) e
+  até sete dias, com a chance de chuva e os milímetros, pela mesma Open-Meteo do bloco (sem chave,
+  só leitura, sem card). Vale a cidade guardada no bloco Clima, ou outra pelo nome. Só consulta
+  quando o Claude pede, e divide a meia hora de memória com o bloco.
+- **O prompt (P):** uma linha dizendo para usar a `weather` em clima e previsão.
+- **O aviso condicional (P):** uma tarefa agendada que responde só **NADA** não entrega nada (fica
+  uma linha no diário), como o batimento. "Me avisa se for chover amanhã" vira uma tarefa que
+  confere a previsão e só fala quando vai chover.
+
+**Aceite:** "como vai estar o tempo amanhã em Campinas?" responde pela `weather`; "todo dia às 7h
+me avisa se for chover" avisa só nos dias de chuva.
+
 ## O que vem depois
 
 Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando for a vez.

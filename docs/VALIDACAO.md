@@ -1385,3 +1385,10 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **O laboratório:** subir e parar o Juice Shop pelo Wisp, aqui e por `ssh://`.
 - [ ] **O Telegram:** com "o resumo, sem o alvo", o aviso de um alerta crítico não tem a URL nem o
       host.
+
+## O clima para o Claude (Fase 108)
+
+- [ ] "Como vai estar o tempo amanhã?" responde com a previsão da sua cidade (pela `weather`, sem
+      card); "e em Campinas?", com a de lá.
+- [ ] "Todo dia às 7h me avisa se for chover": o card da tarefa aparece; num dia seco, nada chega (só
+      a linha no diário); num dia de chuva, o aviso chega.

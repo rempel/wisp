@@ -865,6 +865,10 @@ do Claude Desktop.
   sequência de dias seguidos. Ficam em `habitos.json`.
 - **Foco:** os blocos de 25 e 50 minutos são o modo foco do menu do mascote: os avisos ficam quietos
   enquanto conta, e no fim o mascote comemora.
+- **Clima pelo Claude (Fase 108):** pergunte "como vai estar o tempo amanhã?" ou "e em Campinas?":
+  ele usa a ferramenta `weather` (a sua cidade do bloco Clima, ou a que você disser). Para um aviso
+  só quando acontecer, peça "todo dia às 7h me avisa se for chover": a tarefa responde NADA nos dias
+  secos e não entrega nada (fica uma linha no diário).
 - **Clima:** desligado de início. Dê a cidade no bloco e ele mostra o agora e os próximos três dias
   pela Open-Meteo (sem conta), no máximo uma consulta a cada 30 minutos. **Trocar** muda a cidade ou
   desliga.

@@ -63,6 +63,7 @@ src/
 │  ├─ home-store.ts  # as suas tarefas (tarefas.json) e os hábitos (habitos.json) (Fases 95 e 96)
 │  ├─ mcp-todos.ts   # a sua lista pelo Claude: todo_add, todo_list e todo_done (Fase 95)
 │  ├─ weather.ts     # o clima pela Open-Meteo: desligado sem cidade, de meia em meia hora (Fase 97)
+│  ├─ mcp-weather.ts # a previsão para o Claude: a ferramenta weather, com a chance de chuva (Fase 108)
 │  ├─ pentest.ts     # o pentester no Wisp: o IPC da tela, o acompanhamento ao vivo, os avisos, o reteste e a política (Fases 98 a 103)
 │  ├─ pentest-runs.ts # o que o pentester grava: os runs, as fases, os alertas, o log e os achados pelo normalizador dele (Fases 100 e 101)
 │  ├─ pentest-store.ts # os engajamentos, o escopo (a SCOPE) e a política de aprovação (Fases 98, 99 e 102)
@@ -1572,3 +1573,9 @@ TARGET=<alvo>`, num grupo de processos próprio (o Parar manda o SIGTERM ao grup
     `chat-library.ts` registra (a conversa na pasta, com o `/pentest-run` na caixa). Os testes usam a
     réplica de `test/fixtures/pentester` (a estrutura, dois runs, um normalizador e um
     `run-pipeline.sh` de mentira).
+- **O clima para o Claude (Fase 108):** a `weather` do servidor `desktop` (`mcp-weather.ts`) usa o
+  mesmo `Weather` do bloco (`weatherService`, no `home-ipc.ts`), que agora guarda a previsão por
+  lugar (a cidade do bloco ou outra achada pela busca da Open-Meteo) e traz a chance de chuva, os
+  milímetros e o vento; o `describeWeather` a põe em texto. Está nas ferramentas seguras e no prompt
+  do Wisp. No `tasks-setup.ts`, uma tarefa cuja resposta é só NADA (`saysNothing`) não é entregue:
+  vira uma linha no diário, e a aba dela fecha.

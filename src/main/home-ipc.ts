@@ -49,6 +49,13 @@ export interface HomeDeps {
   notify?: (title: string, body: string) => void
 }
 
+let weatherStore: Weather | null = null
+/** O clima: um só, para o bloco e a ferramenta weather do Claude dividirem a meia hora (Fase 108). */
+export function weatherService(): Weather {
+  weatherStore ??= new Weather(() => getConfig().weather)
+  return weatherStore
+}
+
 let todosStore: Todos | null = null
 /** As suas tarefas: uma lista só no app (o bloco e as ferramentas todo_* mexem nela). */
 export function todos(): Todos {
@@ -190,7 +197,7 @@ export function setupHomeIpc(deps: HomeDeps): void {
   })
   app.on('before-quit', stopPentest)
   const habits = new Habits()
-  const weather = new Weather(() => getConfig().weather)
+  const weather = weatherService()
   todos().onChange((list) => send(IPC_HOME.todosChanged, list))
   deps.focus?.subscribe(() => send(IPC_HOME.focusChanged, focusState(deps.focus)))
 
