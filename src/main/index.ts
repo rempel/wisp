@@ -740,7 +740,10 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     isSender: (sender) => chat?.isSender(sender) ?? false,
     agenda: () => (calendar.agenda.enabled ? calendar.agenda : null),
     reminders: () => reminders.list(),
-    github: () => (getConfig().github ? github.describe() : null)
+    github: () => (getConfig().github ? github.describe() : null),
+    activity: () => activity,
+    media: () => media,
+    focus
   })
   // O Wisp no Telegram (Fase 85): desligado até você guardar a ficha de um bot e parear.
   telegram = setupTelegram({

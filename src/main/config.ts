@@ -14,7 +14,7 @@ import { IS_WINDOWS } from './platform'
 import { MAX_LINKS } from './calendar-links'
 import type { CalendarLink } from './calendar-links'
 import { PERMISSION_MODES } from '../shared/ipc'
-import type { PermissionMode } from '../shared/ipc'
+import type { HomeBlockLayout, PermissionMode, WeatherPlace } from '../shared/ipc'
 import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
 import { DANCES } from '../shared/emotions'
 import type { Dance } from '../shared/emotions'
@@ -83,6 +83,10 @@ export interface WispConfig {
   telegramVoiceReply: 'text' | 'audio' | 'both'
   /** O painel compacto, ao lado do mascote, ou a janela completa, com a sidebar (Fase 87). */
   windowMode: 'compact' | 'full'
+  /** Os blocos do Início, na ordem, com o tamanho e se aparecem (Fase 93); null: o padrão. */
+  homeLayout: HomeBlockLayout[] | null
+  /** A cidade do clima do Início (Fase 97); null: o clima desligado (o Wisp não consulta nada). */
+  weather: WeatherPlace | null
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -287,6 +291,8 @@ function defaults(): WispConfig {
     telegramUserName: null,
     telegramVoiceReply: 'audio',
     windowMode: 'compact',
+    homeLayout: null,
+    weather: null,
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -437,6 +443,24 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   telegramUserName: z.string().max(100).nullable(),
   telegramVoiceReply: z.enum(['text', 'audio', 'both']),
   windowMode: z.enum(['compact', 'full']),
+  homeLayout: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[a-z-]{1,30}$/),
+        w: z.number().int().min(1).max(12),
+        h: z.number().int().min(1).max(12),
+        hidden: z.boolean()
+      })
+    )
+    .max(40)
+    .nullable(),
+  weather: z
+    .object({
+      place: z.string().min(1).max(100),
+      lat: z.number().min(-90).max(90),
+      lon: z.number().min(-180).max(180)
+    })
+    .nullable(),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),

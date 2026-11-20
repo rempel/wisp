@@ -96,6 +96,7 @@ export * from './ipc-island'
 export * from './ipc-sessions'
 export * from './ipc-settings'
 export * from './ipc-workbench'
+export * from './ipc-home'
 
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
@@ -883,6 +884,8 @@ export interface WispApi {
   /** Os subagentes do Claude Code (Fase 50). */
   /** A memória à vista (Fase 65) e a memória pessoal (Fases 79 a 81). */
   memory: MemoryApi
+  /** O Início como painel de controle (Fases 92 a 97). */
+  home: import('./ipc-home').HomeApi
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>

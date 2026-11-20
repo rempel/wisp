@@ -833,12 +833,41 @@ do Claude Desktop.
   **Wisp**, as conversas, o quadro, a memória, as sessões, o uso e a bancada; os projetos e as
   conversas recentes; embaixo, as tarefas agendadas, as configurações e o modo. O botão do topo a
   recolhe em ícones. No compacto, o primeiro ícone da faixa a abre por cima.
-- **O Início:** a saudação e o dia, a agenda de hoje, as próximas tarefas e lembretes, o GitHub, o
-  uso do plano, o último batimento e as anotações recentes da memória, e as conversas recentes. No
-  modo completo, é o que o primeiro abrir do dia mostra.
+- **O Início:** veja "O Início como painel de controle", logo abaixo. No modo completo, é o que o
+  primeiro abrir do dia mostra.
 - **As configurações:** em categorias (Geral, Assistente, Aparência, Mascote e sons, Voz, Atalhos e
   sistema, Integrações, Claude Code, Fora de casa e Avançado), uma por vez, com a busca que acha em
   qualquer uma. No compacto, a categoria é um seletor no alto.
+
+### O Início como painel de controle (Fases 92 a 97)
+
+- **O trilho:** no modo completo, a barra lateral começa como uma faixa de ícones flutuante; o
+  botão do topo dela abre a barra completa (com a busca, os projetos e as recentes), e o Wisp lembra.
+- **O alto:** a saudação, o resumo do dia (os compromissos, as tarefas do Wisp e o que espera
+  você), a caixa **Pergunte ao Wisp** (a pergunta vai para a aba Wisp, que se abre) e o relógio.
+- **Editar o Início:** o botão abre a edição. Arraste um bloco pela alça (uma barra mostra onde ele
+  cai), mude o tamanho pelo canto de baixo e esconda pelo olho. A lista **Blocos**, à direita, traz
+  de volta os escondidos; **Restaurar o padrão** volta ao desenho do modelo. Pelo teclado, com o
+  foco na alça: as setas mudam de lugar e, com Shift, o tamanho. Fica no `config.json`
+  (`homeLayout`); numa janela estreita, os blocos se ajustam às colunas que cabem.
+- **Os blocos:** a agenda de hoje, o calendário do mês (um ponto nos dias com compromisso; o clique
+  mostra o dia), a semana em colunas, A seguir, o batimento (quanto falta para o próximo), o uso do
+  plano, o agendado e lembretes, as anotações (o "+" anota na memória), Hoje no Wisp (as linhas do
+  diário de hoje), as conversas, o quadro de tarefas, o Precisa de você (os pedidos esperando nas
+  abas, com Permitir e Negar ali mesmo; sem nenhum, as conversas trabalhando), o GitHub, a semana do
+  Wisp, a atividade (os quadradinhos de nove semanas), as suas tarefas, os hábitos, o foco, o
+  Tocando agora e o clima.
+- **Minhas tarefas:** a sua lista, com o prazo, a estrela e os filtros (Todas, Hoje, Importantes,
+  Feitas); as feitas somem depois de 30 dias. O Wisp também mexe nela: "põe na minha lista renovar o
+  domínio até sexta" vira uma tarefa (`todo_add`), e ele marca como feita (`todo_done`). Fica em
+  `tarefas.json`, nos dados do Wisp.
+- **Hábitos:** o "+" cria um; os círculos marcam os dias da semana, e o número com o 🔥 é a
+  sequência de dias seguidos. Ficam em `habitos.json`.
+- **Foco:** os blocos de 25 e 50 minutos são o modo foco do menu do mascote: os avisos ficam quietos
+  enquanto conta, e no fim o mascote comemora.
+- **Clima:** desligado de início. Dê a cidade no bloco e ele mostra o agora e os próximos três dias
+  pela Open-Meteo (sem conta), no máximo uma consulta a cada 30 minutos. **Trocar** muda a cidade ou
+  desliga.
 
 ### Memória, modelos locais e o sistema
 

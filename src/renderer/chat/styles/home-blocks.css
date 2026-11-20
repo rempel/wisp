@@ -1,0 +1,665 @@
+/* O miolo de cada bloco do Início (Fases 94 a 97): a agenda, o calendário e a semana, o uso, o
+   que o Wisp fez hoje, os hábitos, a atividade, o quadro, o Precisa de você, as suas tarefas, a
+   música e o clima. As peças comuns (o cabeçalho, o anel, as linhas) ficam no home.css. */
+
+/* A agenda. */
+.event {
+  display: grid;
+  grid-template-columns: 46px 3px 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 8px 6px 2px;
+  border-radius: 10px;
+}
+
+.event.past {
+  opacity: 0.55;
+}
+
+.event.soon {
+  background: var(--accent-soft);
+}
+
+.event-time {
+  text-align: right;
+  color: var(--muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.event-bar {
+  align-self: stretch;
+  border-radius: 3px;
+  background: var(--tone, var(--accent));
+}
+
+.event-text {
+  min-width: 0;
+}
+
+.event-text strong {
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.event-text small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.events.compact .event {
+  padding: 4px 6px 4px 0;
+}
+
+.month {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  text-align: center;
+}
+
+.month-weekday {
+  padding-bottom: 2px;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.month-day {
+  position: relative;
+  height: 28px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+
+.month-day:hover {
+  background: var(--hover);
+}
+
+.month-day.out {
+  color: var(--muted);
+  opacity: 0.55;
+}
+
+.month-day.busy::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: 3px;
+  width: 4px;
+  height: 4px;
+  margin-left: -2px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.month-day.picked {
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.month-day.today {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
+}
+
+.month-day.today::after {
+  background: var(--on-accent);
+}
+
+.week {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.week-head,
+.week-body {
+  display: grid;
+  grid-template-columns: 30px repeat(7, 1fr);
+}
+
+.week-head span {
+  padding-bottom: 6px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.week-head strong {
+  display: block;
+  color: var(--text);
+  font-size: 15px;
+}
+
+.week-head .today strong {
+  color: var(--accent);
+}
+
+.week-body {
+  flex: 1;
+  min-height: 0;
+}
+
+.week-hours {
+  position: relative;
+}
+
+.week-hours span {
+  position: absolute;
+  right: 6px;
+  transform: translateY(-50%);
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.week-col {
+  position: relative;
+  border-left: 1px solid var(--line);
+}
+
+.week-event {
+  position: absolute;
+  left: 3px;
+  right: 3px;
+  overflow: hidden;
+  padding: 2px 5px;
+  border-left: 3px solid var(--tone);
+  border-radius: 6px;
+  background: var(--tone-soft);
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.week-now {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--rose);
+}
+
+.next-up {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px;
+  border-radius: 14px;
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--amber) 20%, transparent),
+    color-mix(in srgb, var(--accent-2) 12%, transparent)
+  );
+}
+
+.next-up strong {
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.next-up small {
+  color: var(--muted);
+}
+
+/* O uso. */
+.usage-block {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.usage-side {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.usage-side strong {
+  display: block;
+  font-size: 15px;
+  font-weight: 600;
+}
+
+/* O que o Wisp fez hoje. */
+.feed li {
+  display: grid;
+  grid-template-columns: 44px 1fr;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 1px solid var(--line);
+  line-height: 1.45;
+}
+
+.feed li:first-child {
+  border-top: 0;
+}
+
+.feed-time {
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* A semana e os hábitos. */
+.habit-grid {
+  display: grid;
+  align-items: center;
+  gap: 8px 6px;
+  font-size: 12.5px;
+}
+
+.habit-day {
+  text-align: center;
+  color: var(--muted);
+  font-size: 11px;
+  text-transform: uppercase;
+}
+
+.habit-day.today {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.habit-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.habit-mark {
+  width: 24px;
+  height: 24px;
+  margin: auto;
+  border: 1.5px solid var(--line);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: #fff;
+}
+
+button.habit-mark {
+  cursor: pointer;
+}
+
+button.habit-mark:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.habit-mark.on {
+  border: 0;
+  background: linear-gradient(135deg, var(--tone, var(--accent)), var(--accent-2));
+}
+
+.habit-mark svg {
+  width: 13px;
+  height: 13px;
+}
+
+.habit-streak {
+  min-width: 34px;
+  color: var(--amber);
+  font-size: 12px;
+  text-align: right;
+}
+
+.habit-remove,
+.todo-remove {
+  visibility: hidden;
+  border: 0;
+  padding: 2px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.habit-name:hover .habit-remove,
+.todo:hover .todo-remove,
+.habit-remove:focus-visible,
+.todo-remove:focus-visible {
+  visibility: visible;
+}
+
+.activity-stats {
+  display: flex;
+  gap: 22px;
+}
+
+.activity-stats strong {
+  display: block;
+  font-size: 20px;
+  font-weight: 650;
+}
+
+.activity-stats small {
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.heat {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(7, 1fr);
+  grid-auto-columns: minmax(0, 14px);
+  gap: 3px;
+}
+
+.heat i {
+  aspect-ratio: 1;
+  border-radius: 3px;
+  background: var(--raised);
+}
+
+.heat i.l1 {
+  background: color-mix(in srgb, var(--accent) 25%, var(--raised));
+}
+.heat i.l2 {
+  background: color-mix(in srgb, var(--accent) 50%, var(--raised));
+}
+.heat i.l3 {
+  background: color-mix(in srgb, var(--accent) 75%, var(--raised));
+}
+.heat i.l4 {
+  background: var(--accent);
+}
+
+/* O quadro. */
+.lanes {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.lane {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  min-height: 0;
+  padding: 9px;
+  border-radius: 12px;
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.lane-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.lane-count {
+  margin-left: auto;
+  font-weight: 500;
+}
+
+.lane-card {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 9px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--surface);
+  box-shadow: 0 0 0 1px var(--line);
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.lane-card strong {
+  font-weight: 500;
+  font-size: 12.5px;
+}
+
+.lane-card small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* O Precisa de você. */
+.need {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+}
+
+/* As suas tarefas. */
+.todo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+}
+
+.todo:first-child {
+  border-top: 0;
+}
+
+.todo-check {
+  flex: none;
+  width: 19px;
+  height: 19px;
+  border: 1.6px solid var(--muted);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: transparent;
+  color: var(--on-accent);
+  cursor: pointer;
+}
+
+.todo-check svg {
+  width: 12px;
+  height: 12px;
+}
+
+.todo.done .todo-check {
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.todo-text {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.todo.done .todo-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.todo-by {
+  display: inline-flex;
+}
+
+.todo-due {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+.todo-due.late {
+  color: var(--rose);
+  font-weight: 500;
+}
+
+.todo-star {
+  flex: none;
+  border: 0;
+  padding: 2px;
+  background: none;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.todo-star.on {
+  color: var(--amber);
+}
+
+/* A música e o clima. */
+.music {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  min-height: 0;
+}
+
+.music-art {
+  flex: none;
+  width: 72px;
+  height: 72px;
+  border-radius: 14px;
+  object-fit: cover;
+}
+
+.music-art.empty {
+  display: grid;
+  place-items: center;
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+
+.music-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.music-info small {
+  color: var(--muted);
+}
+
+.music-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.music-controls .play {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.weather {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.weather-now {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.weather-sky {
+  font-size: 38px;
+  line-height: 1;
+}
+
+.weather-now strong {
+  font-size: 34px;
+  font-weight: 300;
+}
+
+.weather-text {
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+}
+
+.weather-text small {
+  color: var(--muted);
+}
+
+.weather-days {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  text-align: center;
+}
+
+.weather-days span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-size: 18px;
+}
+
+.weather-days small {
+  color: var(--muted);
+  font-size: 11px;
+}
+
+/* As conversas trabalhando, no Precisa de você. */
+.block-ok {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 11px;
+  border: 0;
+  border-radius: 99px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.chip:hover {
+  background: var(--hover);
+}

@@ -3,6 +3,7 @@
 // mascote comemora e uma notificação diz que acabou. Pelo menu do mascote ou da bandeja. Não
 // sobrevive a fechar o Wisp (abrir de novo é começar sem foco).
 
+import { dayKey } from '../shared/home-days'
 import { t } from '../shared/i18n'
 
 /** Os blocos que o menu oferece, em minutos. */
@@ -20,8 +21,32 @@ export class FocusMode {
   private timer: NodeJS.Timeout | null = null
   private ends: number | null = null
   private minutes = 0
+  /** Os blocos que acabaram hoje (o bloco Foco do Início conta, Fase 96). */
+  private done = { day: '', count: 0 }
+  private readonly listeners = new Set<() => void>()
 
   constructor(private readonly options: FocusOptions) {}
+
+  /** Avisa a cada começo, parada ou fim (o Início acompanha); devolve o cancelar. */
+  subscribe(listener: () => void): () => void {
+    this.listeners.add(listener)
+    return () => this.listeners.delete(listener)
+  }
+
+  private changed(): void {
+    this.options.changed?.()
+    for (const listener of this.listeners) listener()
+  }
+
+  /** O tamanho do bloco de agora, em minutos (0 sem foco). */
+  length(): number {
+    return this.active() ? this.minutes : 0
+  }
+
+  /** Quantos blocos acabaram hoje. */
+  doneToday(): number {
+    return this.done.day === dayKey(this.now()) ? this.done.count : 0
+  }
 
   private now(): number {
     return this.options.now?.() ?? Date.now()
@@ -42,13 +67,13 @@ export class FocusMode {
     this.minutes = minutes
     this.ends = this.now() + minutes * 60_000
     this.tick()
-    this.options.changed?.()
+    this.changed()
   }
 
   stop(): void {
     if (this.ends === null) return
     this.clear()
-    this.options.changed?.()
+    this.changed()
   }
 
   /** O computador voltou da suspensão: confere na hora se o bloco já acabou. */
@@ -70,8 +95,10 @@ export class FocusMode {
       return
     }
     this.clear()
+    const today = dayKey(this.now())
+    this.done = { day: today, count: (this.done.day === today ? this.done.count : 0) + 1 }
     this.options.done(this.minutes)
-    this.options.changed?.()
+    this.changed()
   }
 
   dispose(): void {

@@ -703,6 +703,127 @@ interface, e só depois os prints entram no README (eles saem de `scripts/prints
 
 **Aceite:** os prints do README mostram o modo completo nos três temas.
 
+## Fases 92 a 97: o Início como painel de controle (novembro de 2026)
+
+O modo completo ganha o desenho do modelo C (o "bento"), escolhido entre quatro modelos: um trilho
+de ícones que abre na barra lateral completa, cartões de vidro sobre um fundo com brilho, e um
+Início que é um painel de controle montado por você, com blocos que se arrastam, mudam de tamanho,
+somem e voltam. Junto, as funções dos exemplos que o Wisp ainda não tinha.
+
+**O que foi decidido** (alinhado com o uso, em novembro de 2026):
+
+- **O visual do modelo C:** o trilho de ícones por padrão, com um botão que abre a barra lateral
+  completa (e o Wisp lembra); os cartões translúcidos; o relógio grande; a caixa "Pergunte ao
+  Wisp" no topo.
+- **Todos os blocos possíveis:** cada um pode ser arrastado, redimensionado, escondido e mostrado
+  de novo; a arrumação fica guardada.
+- **As funções que faltavam:** a sua lista de tarefas, os hábitos, o foco (o temporizador), o
+  calendário do mês e da semana, o "Precisa de você", o que o Wisp fez hoje, o player de música e o
+  clima. O clima é o único que usa a rede de fora, e só se você ligar.
+
+#### Fase 92: o visual do modelo C
+
+**Status:** pronta, esperando validação (testes: `e2e/painel.mjs`, com o trilho, o relógio e a
+pergunta que vai para a aba Wisp).
+
+- **O trilho (M):** no modo completo, a barra lateral começa recolhida num trilho de ícones
+  flutuante, como no modelo; o botão do topo abre a barra completa (a busca, os projetos, as
+  recentes) e o Wisp lembra a escolha.
+- **O vidro (M):** os cartões translúcidos sobre o fundo com o brilho do ciano e do violeta, nos
+  temas claro e escuro; no alto contraste, cartões sólidos e com borda.
+- **O topo do Início (M):** a saudação, o dia, a caixa **Pergunte ao Wisp** (manda para a aba
+  Wisp e abre a conversa) e o relógio.
+
+**Aceite:** no modo completo, o Início abre com o trilho, os cartões de vidro e o relógio; o botão
+do trilho abre a barra completa; uma pergunta na caixa vai para a aba Wisp.
+
+#### Fase 93: os blocos móveis
+
+**Status:** pronta, esperando validação (testes: `test/painel.test.ts`, com a arrumação conferida,
+movida e redimensionada; `e2e/painel.mjs`, com o mouse, o teclado e o fechar e abrir).
+
+- **A grade (G):** doze colunas, os blocos encaixando como no bento; cada bloco tem a largura e a
+  altura dele, dentro de um mínimo e um máximo.
+- **Editar o Início (M):** um botão liga a edição: arrastar pela alça muda a ordem, o canto muda o
+  tamanho, o olho esconde; a lista **Blocos** mostra os escondidos para trazer de volta, e
+  **Restaurar o padrão** desfaz tudo. Pelo teclado também: mover para antes e depois, aumentar e
+  diminuir.
+- **Guardado (P):** a arrumação fica no `config.json` (`homeLayout`); numa janela estreita, os
+  blocos se ajustam sem perder o que você arrumou.
+
+**Aceite:** arrastar a agenda para o fim, alargar as tarefas e esconder o uso do plano; fechar e
+abrir o Wisp: o Início volta igual; Restaurar o padrão volta ao modelo.
+
+Nota: arrastando, o bloco segue o ponteiro e uma barra mostra onde ele cai; a ordem muda ao soltar
+(mudar enquanto passa por cima fazia os blocos pularem).
+
+#### Fase 94: os blocos do que já existe
+
+**Status:** pronta, esperando validação (testes: `test/painel.test.ts`, com o diário e a atividade
+por dia; `e2e/painel.mjs`). **Só o uso confirma:** o calendário e a semana com a sua agenda de
+verdade.
+
+- **A agenda (M):** a agenda de hoje (o próximo destacado), o **calendário do mês** (com um ponto
+  nos dias com compromisso; o clique mostra o dia), **a semana** em colunas (com a linha do agora)
+  e **A seguir** (o próximo compromisso, com quanto falta).
+- **O Wisp (M):** o **batimento** (um anel com quanto falta para o próximo e o último resultado),
+  o **uso do plano** (os anéis), o **agendado e lembretes**, as **anotações** (com o "+" que anota
+  na memória) e o **hoje no Wisp** (o que ele fez: as tarefas que rodaram, o que anotou, as
+  mensagens do Telegram, do diário de hoje).
+- **As conversas (M):** as **conversas recentes**, o **quadro de tarefas** (as colunas, em
+  pequeno) e o **Precisa de você** (os pedidos de permissão e as perguntas esperando nas abas, com
+  Permitir e Negar ali mesmo).
+- **Fora (P):** o **GitHub** e **a semana do Wisp** (por dia: conversas, tarefas feitas e
+  batimentos, do registro de atividade da Fase 13), com os quadradinhos das últimas semanas.
+
+**Aceite:** com a agenda ligada, o calendário marca os dias com compromisso; um pedido de
+permissão numa aba aparece no Precisa de você e o Permitir dali libera o comando.
+
+#### Fase 95: as suas tarefas
+
+**Status:** pronta, esperando validação (testes: `test/painel.test.ts`, com as ferramentas pelo
+servidor `desktop`; `e2e/painel.mjs`). **Só o uso confirma:** o Claude de verdade escolhendo o
+`todo_add` quando você pede.
+
+- **A lista (M):** **Minhas tarefas**, com o prazo, a estrela de importante e os filtros Todas,
+  Hoje, Importantes e Feitas; marcar como feita, desfazer, apagar. Fica em `tarefas.json`, nos
+  dados do Wisp.
+- **Com o Wisp (M):** as ferramentas `todo_add`, `todo_list` e `todo_done`: "põe na minha lista
+  comprar café" vira uma tarefa; o batimento pode olhar os prazos.
+
+**Aceite:** pedir ao Wisp "anota na minha lista: renovar o domínio até sexta" põe a tarefa no
+bloco, com o prazo; marcar no bloco aparece como feita para o Wisp.
+
+#### Fase 96: os hábitos e o foco
+
+**Status:** pronta, esperando validação (testes: `test/painel.test.ts`, com os dias seguidos;
+`e2e/painel.mjs`).
+
+- **Os hábitos (M):** os seus hábitos (o nome e a cor), marcados por dia na semana, como no
+  exemplo; a sequência de dias seguidos.
+- **O foco (M):** o temporizador num anel, com os blocos de 25 e 50 minutos; no fim, o aviso, o som
+  e o mascote comemorando. Continua contando com o Início fechado.
+
+**Aceite:** começar um foco de 25 minutos, fechar a janela: no fim, o aviso chega; marcar
+"Exercício" hoje conta mais um dia seguido.
+
+Nota: o bloco Foco usa o modo foco que o Wisp já tinha (Fase 45, no menu do mascote): é um foco só,
+com os avisos quietos enquanto conta, e não um segundo temporizador.
+
+#### Fase 97: a música e o clima
+
+**Status:** pronta, esperando validação (testes: `test/painel.test.ts`, com o clima desligado sem
+cidade e a meia hora). **Só o uso confirma:** o player e a Open-Meteo de verdade.
+
+- **Tocando agora (P):** o player em foco (a capa, a música, tocar e pausar, a próxima), o mesmo
+  da ilha (Fase 37), sem rede.
+- **O clima (M):** desligado de início. Ligado (com a cidade, no próprio bloco), mostra o agora e
+  os próximos dias pela Open-Meteo (sem chave), consultada no máximo de meia em meia hora e só
+  com o bloco à vista.
+
+**Aceite:** com o Spotify tocando, o bloco mostra a música e o pausar funciona; com o clima
+desligado, o Wisp não fala com a Open-Meteo.
+
 ## O que vem depois
 
 Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando for a vez.

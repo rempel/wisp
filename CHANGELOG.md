@@ -224,6 +224,17 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **O Início como painel de controle** (Fases 92 a 97), no desenho escolhido entre quatro modelos:
+  no modo completo, a barra lateral começa como um **trilho de ícones** (o botão do topo abre a
+  completa), os blocos são de vidro sobre um fundo com brilho, e o alto tem a saudação, a caixa
+  **Pergunte ao Wisp** (vai para a aba Wisp) e o relógio. **Editar o Início** arrasta os blocos,
+  muda o tamanho pelo canto, esconde e traz de volta (também pelo teclado), guardado no
+  `config.json`. Vinte blocos: a agenda de hoje, o **calendário do mês**, **a semana** em colunas, **A
+  seguir**, o batimento, o uso do plano, o agendado e lembretes, as anotações (com o "+"), **Hoje no
+  Wisp** (o diário), as conversas, o quadro, o **Precisa de você** (Permitir e Negar ali mesmo), o
+  GitHub, a semana do Wisp, a atividade em quadradinhos e, novos no Wisp, **Minhas tarefas** (que o
+  Claude também mexe, com `todo_add`, `todo_list` e `todo_done`), os **hábitos**, o **foco**, o
+  **Tocando agora** e o **clima** (desligado até você dar a cidade).
 - **A interface completa** (Fases 87 a 91): dois modos, o **painel compacto** de sempre e a **janela
   completa**, com uma barra lateral no estilo do Claude desktop (nova conversa, a busca pelo que foi
   dito, o Início, a Wisp, os projetos e as recentes; recolhe em ícones). O **Início** junta o seu dia:

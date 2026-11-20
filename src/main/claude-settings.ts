@@ -46,6 +46,10 @@ export const SAFE_TOOLS = [
   'mcp__desktop__memory_search',
   // Fase 83: listar as tarefas é só leitura (agendar e cancelar pedem o card).
   'mcp__desktop__list_tasks',
+  // Fase 95: a sua lista de tarefas é do próprio Wisp, à vista no Início e com o desfazer.
+  'mcp__desktop__todo_add',
+  'mcp__desktop__todo_list',
+  'mcp__desktop__todo_done',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',

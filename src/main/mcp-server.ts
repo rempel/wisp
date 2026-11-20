@@ -20,6 +20,8 @@ import { activateWindow, describeWindow, findWindows, listWindows } from './wind
 import { registerWorkbenchTools } from './mcp-workbench'
 import { registerMemoryTools } from './mcp-memory'
 import { registerScheduleTools } from './mcp-schedule'
+import { registerTodoTools } from './mcp-todos'
+import type { TodoToolsOptions } from './mcp-todos'
 import { registerSkillTools } from './learned-skills'
 import type { ScheduleToolsOptions } from './mcp-schedule'
 import type { MemoryToolsOptions } from './mcp-memory'
@@ -94,6 +96,8 @@ export interface DesktopServerOptions {
   schedule?: ScheduleToolsOptions
   /** As skills que ele aprende (Fase 86): propose_skill, na pasta do Claude Code. */
   skills?: { configDir: () => string }
+  /** A sua lista de tarefas (Fase 95): todo_add, todo_list e todo_done. */
+  todos?: TodoToolsOptions
 }
 
 export interface DesktopServer {
@@ -315,6 +319,7 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
   if (options.workbench) registerWorkbenchTools(server, options.workbench, conversation)
   if (options.memory) registerMemoryTools(server, options.memory, conversation)
   if (options.schedule) registerScheduleTools(server, options.schedule)
+  if (options.todos) registerTodoTools(server, options.todos)
   if (options.skills) registerSkillTools(server, options.skills.configDir)
 
   const screenshot = options.screenshot

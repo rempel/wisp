@@ -1,0 +1,819 @@
+/* O Início como painel de controle (Fases 92 a 97), no desenho do modelo C: o fundo com o brilho
+   do ciano e do violeta, os blocos de vidro numa grade de 12 colunas, o trilho de ícones e o
+   relógio grande. No alto contraste, tudo sólido e com borda. */
+
+:root {
+  --accent-2: #7c5cff;
+  --violet: #7c5cff;
+  --violet-soft: #ece8ff;
+  --rose: #d6455d;
+  --rose-soft: #fde8ec;
+  --green: #0b8a7d;
+  --green-soft: #dcf5f1;
+  --glass: rgb(255 255 255 / 0.72);
+  --glass-line: rgb(15 23 42 / 0.07);
+  --glass-shadow: 0 0 0 1px var(--glass-line), 0 10px 30px rgb(15 23 42 / 0.06);
+  --glow-1: rgb(124 92 255 / 0.2);
+  --glow-2: rgb(10 138 166 / 0.16);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --accent-2: #a78bfa;
+    --violet: #a78bfa;
+    --violet-soft: #241d3d;
+    --rose: #ff7b8a;
+    --rose-soft: #311a20;
+    --green: #4fd8c4;
+    --green-soft: #12302c;
+    --glass: rgb(24 28 36 / 0.62);
+    --glass-line: rgb(255 255 255 / 0.07);
+    --glass-shadow: 0 0 0 1px var(--glass-line), 0 10px 30px rgb(0 0 0 / 0.25);
+    --glow-1: rgb(167 139 250 / 0.24);
+    --glow-2: rgb(46 211 238 / 0.14);
+  }
+}
+
+/* As cores de cada coisa: o compromisso, o hábito, a bolinha. */
+.tone-accent,
+.tone-ciano {
+  --tone: var(--accent);
+  --tone-soft: var(--accent-soft);
+}
+.tone-violet,
+.tone-violeta {
+  --tone: var(--violet);
+  --tone-soft: var(--violet-soft);
+}
+.tone-amber,
+.tone-ambar {
+  --tone: var(--amber);
+  --tone-soft: var(--warning-bg);
+}
+.tone-green,
+.tone-verde {
+  --tone: var(--green);
+  --tone-soft: var(--green-soft);
+}
+.tone-rose,
+.tone-rosa {
+  --tone: var(--rose);
+  --tone-soft: var(--rose-soft);
+}
+
+/* ---- O fundo e o trilho (Fase 92) ------------------------------------------------------------- */
+
+.chat.mode-full {
+  background:
+    radial-gradient(900px 600px at 88% -12%, var(--glow-1), transparent 70%),
+    radial-gradient(800px 600px at 8% 112%, var(--glow-2), transparent 70%), var(--bg);
+}
+
+.chat.mode-full .chat-main,
+.chat.mode-full .sidebar {
+  background: transparent;
+}
+
+/* Recolhida, a sidebar vira o trilho de ícones flutuante do modelo. */
+.chat.mode-full .sidebar.collapsed {
+  width: 68px;
+  margin: 12px 0 12px 12px;
+  padding: 14px 10px;
+  gap: 6px;
+  border: 0;
+  border-radius: 22px;
+  background: var(--glass);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px);
+  align-items: center;
+}
+
+.chat.mode-full .sidebar.collapsed .sidebar-item {
+  width: 44px;
+  height: 44px;
+  justify-content: center;
+  border-radius: 14px;
+}
+
+.chat.mode-full .sidebar.collapsed .sidebar-item.active {
+  background: linear-gradient(135deg, var(--accent), var(--accent-2));
+  color: #fff;
+  box-shadow: 0 8px 20px color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+.chat.mode-full .sidebar.collapsed .sidebar-item.active .sidebar-icon {
+  color: #fff;
+}
+
+.chat.mode-full .sidebar:not(.collapsed) {
+  border-right: 1px solid var(--glass-line);
+  background: color-mix(in srgb, var(--bg) 55%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+/* ---- O Início --------------------------------------------------------------------------------- */
+
+.home {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+}
+
+.home-main {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  padding: 18px 26px 30px;
+}
+
+.chat.mode-compact .home-main {
+  padding: 14px 12px 22px;
+}
+
+/* O alto: a saudação, a pergunta e o relógio. */
+.home-hero {
+  display: grid;
+  grid-template-columns: auto minmax(240px, 560px) auto;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px 28px;
+  margin-bottom: 14px;
+}
+
+.chat.mode-compact .home-hero {
+  grid-template-columns: 1fr;
+}
+
+.home-hello h1 {
+  margin: 0;
+  font-size: 30px;
+  font-weight: 650;
+  line-height: 1.15;
+  letter-spacing: -0.01em;
+}
+
+.home-hello em {
+  font-style: normal;
+  white-space: nowrap;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+
+.home-hello p {
+  margin: 6px 0 0;
+  color: var(--muted);
+}
+
+.home-ask {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 7px 7px 14px;
+  border-radius: 18px;
+  background: var(--glass);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.home-ask input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+}
+
+.home-ask-send {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--accent);
+  color: var(--on-accent);
+  cursor: pointer;
+}
+
+.home-ask-send:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.home-clock {
+  text-align: right;
+}
+
+.home-clock strong {
+  display: block;
+  font-size: 54px;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.home-clock span {
+  display: block;
+  margin-top: 6px;
+  color: var(--muted);
+}
+
+.chat.mode-compact .home-clock {
+  display: none;
+}
+
+.home-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 10px;
+}
+
+/* ---- A grade e os blocos (Fase 93) ------------------------------------------------------------ */
+
+.home-grid {
+  display: grid;
+  gap: 16px;
+  grid-auto-flow: row dense;
+}
+
+.home-block {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 15px 17px;
+  overflow: hidden;
+  border-radius: 20px;
+  background: var(--glass);
+  box-shadow: var(--glass-shadow);
+  backdrop-filter: blur(18px);
+}
+
+.home-grid.editing .home-block {
+  outline: 1.5px dashed color-mix(in srgb, var(--accent) 45%, transparent);
+  outline-offset: -1.5px;
+}
+
+.home-block.dragging,
+.home-block.resizing {
+  opacity: 0.85;
+  outline-style: solid;
+}
+
+/* A barra de edição aparece no bloco sob o mouse (ou com o foco nele). */
+.home-block:not(:hover, :focus-within, .dragging, .resizing) .home-block-edit {
+  opacity: 0;
+}
+
+.home-block-edit {
+  position: absolute;
+  transition: opacity 0.12s;
+  top: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: var(--shadow);
+}
+
+.home-block-edit button {
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.home-block-edit button:hover {
+  background: var(--hover);
+  color: var(--text);
+}
+
+.home-block-grip {
+  cursor: grab;
+  touch-action: none;
+}
+
+.home-block.dragging .home-block-grip {
+  cursor: grabbing;
+}
+
+.home-block-size {
+  padding: 0 4px;
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-block-resize {
+  position: absolute;
+  right: 4px;
+  bottom: 4px;
+  z-index: 2;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border-radius: 7px;
+  color: var(--accent);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+/* A lista dos blocos, na edição. */
+.home-blocks {
+  flex: none;
+  width: 268px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 14px;
+  border-left: 1px solid var(--glass-line);
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  overflow-y: auto;
+}
+
+.home-blocks h2 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.home-blocks p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.home-blocks ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.home-blocks li button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: 9px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.home-blocks li button.on {
+  color: var(--text);
+}
+
+.home-blocks li button.on svg {
+  color: var(--accent);
+}
+
+.home-blocks li button:hover {
+  background: var(--hover);
+}
+
+.home-blocks footer {
+  margin-top: auto;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.chat.mode-compact .home-blocks {
+  position: absolute;
+  inset: 0 0 0 auto;
+  z-index: 5;
+  width: min(268px, 85%);
+}
+
+/* ---- As peças dos blocos ---------------------------------------------------------------------- */
+
+.home .btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 9px;
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 12.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
+}
+
+.home .btn:hover {
+  background: var(--hover);
+}
+
+.home .btn.primary {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+.home .btn.small {
+  height: 27px;
+  padding: 0 10px;
+}
+
+.home .link {
+  border: 0;
+  padding: 0;
+  background: none;
+  color: var(--accent);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.home .icon-button.small {
+  width: 26px;
+  height: 26px;
+}
+
+.home .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  height: 21px;
+  padding: 0 8px;
+  border-radius: 99px;
+  background: var(--tone-soft, var(--raised));
+  color: var(--tone, var(--muted));
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.home .muted {
+  color: var(--muted);
+}
+
+.home .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ellipsis {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-align: center;
+}
+
+.block-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 26px;
+}
+
+.block-head h3 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.block-icon {
+  display: inline-flex;
+  color: var(--accent);
+}
+
+.block-tools {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.block-empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.block-ok {
+  margin: 0;
+  color: var(--green);
+  font-size: 12.5px;
+}
+
+.block-center {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  text-align: center;
+}
+
+.error-text {
+  color: var(--danger-text);
+}
+
+/* O anel e a barra. */
+.ring {
+  position: relative;
+  flex: none;
+}
+
+.ring-track {
+  fill: none;
+  stroke: var(--raised);
+}
+
+.ring-text {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.ring-text strong {
+  font-weight: 650;
+  font-variant-numeric: tabular-nums;
+}
+
+.ring-text small {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+
+.meter {
+  height: 7px;
+  border-radius: 99px;
+  background: var(--raised);
+  overflow: hidden;
+}
+
+.meter span {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-2));
+}
+
+/* As listas de linhas. */
+.rows,
+.events,
+.feed,
+.todos,
+.needs {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.rows li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 7px 0;
+  border-top: 1px solid var(--line);
+  min-width: 0;
+}
+
+.rows li:first-child {
+  border-top: 0;
+}
+
+.rows.notes li {
+  align-items: flex-start;
+}
+
+.row-dot,
+.status-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tone, var(--muted));
+}
+
+.status-dot.run {
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.status-dot.wait {
+  background: var(--amber);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--amber) 25%, transparent);
+}
+
+.status-dot.done {
+  background: var(--green);
+}
+
+.status-dot.idle {
+  background: color-mix(in srgb, var(--muted) 60%, transparent);
+}
+
+.row-text {
+  flex: 1;
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.row-text strong {
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row-text small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.row-when {
+  flex: none;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.row-button {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 0;
+  padding: 0;
+  background: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-button:hover strong {
+  color: var(--accent);
+}
+
+.inline-add {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.inline-add input {
+  flex: 1;
+  min-width: 120px;
+  height: 30px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+}
+
+.inline-add input[type='date'] {
+  flex: none;
+  min-width: 0;
+}
+
+.segmented {
+  align-self: flex-start;
+  display: flex;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--raised);
+}
+
+.segmented button {
+  border: 0;
+  padding: 4px 10px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.segmented button.on {
+  background: var(--accent);
+  color: var(--on-accent);
+  font-weight: 500;
+}
+
+/* ---- O alto contraste e o movimento reduzido -------------------------------------------------- */
+
+:root.contrast .home-block,
+:root.contrast .home-ask,
+:root.contrast .home-blocks,
+:root.contrast .chat.mode-full .sidebar.collapsed {
+  background: var(--surface);
+  backdrop-filter: none;
+  box-shadow: none;
+  border: 1px solid var(--border);
+}
+
+:root.contrast .chat.mode-full {
+  background: var(--bg);
+}
+
+:root.contrast .home-hello em {
+  background: none;
+  color: var(--accent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .home-block,
+  .home-ask {
+    backdrop-filter: none;
+  }
+}
+
+/* Arrastando: o bloco segue o ponteiro, por cima; uma barra mostra onde ele cai. */
+.home-block.dragging {
+  z-index: 10;
+  pointer-events: none;
+  box-shadow:
+    var(--glass-shadow),
+    0 18px 40px rgb(0 0 0 / 0.25);
+}
+
+.home-block.drop-before,
+.home-block.drop-after {
+  overflow: visible;
+}
+
+.home-block.drop-before::before,
+.home-block.drop-after::before {
+  content: '';
+  position: absolute;
+  top: 8px;
+  bottom: 8px;
+  width: 4px;
+  border-radius: 4px;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+.home-block.drop-before::before {
+  left: -11px;
+}
+
+.home-block.drop-after::before {
+  right: -11px;
+}

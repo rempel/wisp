@@ -1348,3 +1348,22 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       compacto, o seletor troca a categoria.
 - [ ] **O desenho:** a conversa no modo completo fica numa coluna no meio; os três temas (claro,
       escuro, alto contraste) ficam legíveis na sidebar, no Início e nas configurações.
+
+## O Início como painel de controle (Fases 92 a 97)
+
+- [ ] **O trilho:** no modo completo, a barra lateral é a faixa de ícones; o botão do topo abre a
+      completa, e fechar e abrir o Wisp lembra.
+- [ ] **A pergunta:** "Como está a minha semana?" na caixa do alto abre a aba Wisp com a pergunta.
+- [ ] **A edição:** arrastar a agenda para o fim, alargar as tarefas pelo canto e esconder o uso;
+      fechar e abrir: igual. Restaurar o padrão volta ao modelo.
+- [ ] **A agenda:** o calendário marca os dias com compromisso da sua agenda; a semana mostra a
+      linha do agora.
+- [ ] **Precisa de você:** um pedido de permissão numa aba aparece no bloco; o Permitir de lá libera
+      o comando.
+- [ ] **Tarefas:** pedir ao Wisp "põe na minha lista renovar o domínio até sexta" aparece no bloco,
+      com o prazo; marcar no bloco, e perguntar a ele o que falta.
+- [ ] **Hábitos e foco:** marcar "Exercício" hoje; começar 25 minutos, fechar a janela e esperar o
+      aviso.
+- [ ] **Música e clima:** com um player tocando, o pausar do bloco funciona; com a cidade dada, o
+      clima aparece, e desligado o Wisp não fala com a Open-Meteo.
+- [ ] **Os temas:** claro, escuro e alto contraste legíveis no trilho, nos blocos e na edição.

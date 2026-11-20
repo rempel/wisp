@@ -98,12 +98,14 @@ export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<ChatView>('chat')
-  // A sidebar (Fase 88): recolhida no modo completo (lembrado), e por cima no compacto.
+  // A sidebar (Fase 88): recolhida (o trilho) ou aberta no modo completo, lembrado; por cima no
+  // compacto.
   const [collapsed, setCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('wisp.sidebar') === 'recolhida'
+      // No modo completo, ela começa como o trilho de ícones (Fase 92).
+      return localStorage.getItem('wisp.sidebar') !== 'aberta'
     } catch {
-      return false
+      return true
     }
   })
   const [drawer, setDrawer] = useState(false)
@@ -570,6 +572,19 @@ export default function Chat(): JSX.Element {
     [apply]
   )
 
+  /** A pergunta da caixa do Início (Fase 92): vai para a aba Wisp, que se abre. */
+  const ask = useCallback(
+    (text: string): void => {
+      const main = tabsRef.current.tabs.find((tab) => tab.kind === 'chat' && tab.main)
+      if (!main) return
+      apply(main.id, { type: 'user-message', text, attachments: [] })
+      window.wisp.chat.send(main.id, text, [])
+      window.wisp.tabs.show(main.id)
+      setView('chat')
+    },
+    [apply]
+  )
+
   // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
   const statuses = new Map<string, TabStatus>()
   for (const tab of tabs.tabs) {
@@ -800,7 +815,14 @@ export default function Chat(): JSX.Element {
 
           <div className="chat-body">
             {view === 'home' ? (
-              <HomeView onView={setView} usage={usage} />
+              <HomeView
+                onView={setView}
+                usage={usage}
+                tabs={tabs}
+                conversations={conversations}
+                settings={settings}
+                onAsk={ask}
+              />
             ) : view === 'settings' ? (
               <SettingsView
                 onAgents={() => setView('agents')}

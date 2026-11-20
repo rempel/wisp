@@ -39,7 +39,7 @@ src/
 │  ├─ worktrees-ipc.ts # a cópia pelo painel: a barra, o menu das pastas e a arrumação (Fase 43)
 │  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
 │  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
-│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
+│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45); o bloco Foco do Início acompanha (Fase 96)
 │  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
 │  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
@@ -59,7 +59,10 @@ src/
 │  ├─ telegram.ts    # o bot do Telegram: a Bot API, o pareamento, as mensagens, os áudios e os cards (Fase 85)
 │  ├─ telegram-setup.ts # o Telegram no app: a ficha no chaveiro, a Wisp, o ffmpeg, o IPC (Fase 85)
 │  ├─ learned-skills.ts # as skills que ele aprende: gravar o SKILL.md (com o backup) e a propose_skill (Fase 86)
-│  ├─ home-ipc.ts    # o Início: a agenda, as tarefas, os lembretes, o GitHub e a memória num pedido só (Fase 89)
+│  ├─ home-ipc.ts    # o Início: o resumo do dia (Fase 89) e o que cada bloco pede (a agenda de um período, a atividade, o diário, a música, o clima; Fases 94 a 97)
+│  ├─ home-store.ts  # as suas tarefas (tarefas.json) e os hábitos (habitos.json) (Fases 95 e 96)
+│  ├─ mcp-todos.ts   # a sua lista pelo Claude: todo_add, todo_list e todo_done (Fase 95)
+│  ├─ weather.ts     # o clima pela Open-Meteo: desligado sem cidade, de meia em meia hora (Fase 97)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1498,3 +1501,34 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
   - **o desenho** (`styles/shell.css`): a sidebar, a gaveta, o Início, a lista das categorias e a
     coluna de leitura da conversa no modo completo (as mensagens com folga para caber em 800 px no
     meio). Os prints da janela completa saem de `scripts/prints-interface.mjs`, no modo demonstração.
+- **O Início como painel de controle (Fases 92 a 97):**
+  - **a arrumação** (`renderer/chat/home/layout.ts`): o catálogo dos 20 blocos (o tamanho padrão, o
+    mínimo e o máximo, em colunas de 12 e linhas de 56 px) e as mudanças puras (mover, passar o
+    vizinho, redimensionar, esconder). O que vem do `config.json` (`homeLayout`, conferido pelo zod)
+    passa pelo `resolveLayout`: sem repetidos nem desconhecidos, os tamanhos no permitido e os blocos
+    de uma versão nova no fim. Numa janela estreita, a largura vira 6 ou 2 colunas (`spanFor`), sem
+    mexer no guardado;
+  - **a grade** (`home/HomeGrid.tsx`): um CSS grid com `dense`. Na edição, a alça captura o ponteiro:
+    o bloco segue o ponteiro (um `transform`, sem mexer na grade), o bloco embaixo dele (pelo
+    `elementsFromPoint`) ganha a barra de onde cai, e a ordem muda ao soltar. O canto conta as
+    colunas e as linhas que o ponteiro andou. Pelo teclado, as setas na alça (com Shift, o tamanho).
+    Cada mudança acabada vai para o `config.json` (`settings.set`), 300 ms depois;
+  - **os dados** (`home/context.ts`): o `HomeView` lê o resumo do dia (o `home:snapshot`) e as
+    recentes de minuto em minuto e passa, com o uso, as abas e o estado de cada conversa (o
+    Precisa de você lê os pedidos pendentes de lá), num contexto. Os blocos que leem mais pedem só
+    o deles, pelos `home:*` do `ipc-home.ts`: a agenda de um período (até seis semanas), a atividade
+    por dia (do `atividade.jsonl` da Fase 13), as linhas do diário de hoje, as suas tarefas (com o
+    aviso quando o Claude muda), os hábitos, o foco, a música (de 5 em 5 s, só com o bloco à vista)
+    e o clima;
+  - **as suas tarefas** (`home-store.ts` e `mcp-todos.ts`): uma lista só, no main, que o bloco e as
+    ferramentas `todo_*` (seguras: só mexem no arquivo do Wisp, à vista e com o desfazer do bloco)
+    dividem; cada mudança avisa a página. As feitas há mais de 30 dias saem da lista;
+  - **o foco**: o bloco usa o `FocusMode` da Fase 45, que ganhou o `subscribe` (o Início acompanha) e
+    a conta dos blocos acabados no dia. Um foco só, com os avisos quietos;
+  - **o clima** (`weather.ts`): só com `weather` no `config.json` (a cidade, achada pela busca da
+    Open-Meteo no bloco); a previsão fica na memória por 30 minutos, e sem rede o último resultado
+    serve;
+  - **o desenho** (`styles/home.css` e `styles/home-blocks.css`): o fundo com o brilho, o vidro
+    (`backdrop-filter`), o trilho (a sidebar recolhida, no modo completo) e o miolo de cada bloco. No
+    alto contraste, tudo sólido e com borda; com o movimento reduzido, sem o desfoque. Os prints
+    saem de `scripts/prints-inicio.mjs`, com uma agenda, tarefas e hábitos de exemplo.

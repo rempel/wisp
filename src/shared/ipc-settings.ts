@@ -6,6 +6,7 @@ import type { AvatarName } from './avatars'
 import type { Dance } from './emotions'
 import type { SavedPrompt, ScheduledTask } from './prompts'
 import type { DiffHunk, PermissionMode, Provider } from './ipc-chat'
+import type { HomeBlockLayout } from './ipc-home'
 
 /** O resumo de uma semana (de segunda a segunda), só com contagens (Fase 13). */
 export interface WeekSummary {
@@ -60,6 +61,8 @@ export interface Settings {
   telegramVoiceReply: 'text' | 'audio' | 'both'
   /** O modo da janela (Fase 87). */
   windowMode: 'compact' | 'full'
+  /** Os blocos do Início (Fase 93); null: o padrão. */
+  homeLayout: HomeBlockLayout[] | null
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -132,6 +135,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'telegram',
   'telegramVoiceReply',
   'windowMode',
+  'homeLayout',
   'editorCommand',
   'terminalCommand',
   'model',

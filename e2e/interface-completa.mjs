@@ -61,21 +61,21 @@ check(
 )
 const homeShown = await waitFor(() => ev(`!!document.querySelector('.home-grid')`), 5000)
 check('I5 o primeiro abrir do dia no modo completo mostra o Início', !!homeShown)
-const cards = await ev(`[...document.querySelectorAll('.home-card h3')].map(h => h.textContent)`)
+const cards = await ev(
+  `[...document.querySelectorAll('.home-block')].map(b => b.getAttribute('aria-label'))`
+)
 check(
-  'I6 o Início tem os cartões do dia',
-  [
-    'Agenda de hoje',
-    'Próximas tarefas e lembretes',
-    'GitHub',
-    'Uso do plano',
-    'Memória',
-    'Conversas recentes'
-  ].every((title) => cards.includes(title)),
+  'I6 o Início tem os blocos do dia',
+  ['Agenda de hoje', 'Minhas tarefas', 'Agendado e lembretes', 'Uso do plano', 'Conversas'].every(
+    (title) => cards.includes(title)
+  ),
   JSON.stringify(cards)
 )
 
 console.log('== A busca da sidebar')
+// A sidebar começa como o trilho de ícones (Fase 92): o botão do topo abre a completa.
+await ev(`document.querySelector('.sidebar-collapse').click()`)
+await waitFor(() => ev(`!!document.querySelector('.sidebar-search input')`), 3000)
 await ev(`document.querySelector('.sidebar-search input').focus()`)
 await chat.send('Input.insertText', { text: 'deploy' })
 const found = await waitFor(

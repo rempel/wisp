@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import { IPC } from '../shared/ipc'
+import { IPC, IPC_HOME } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
+  FocusState,
+  Todo,
   BoardCard,
   PreviewState,
   Accessory,
@@ -242,6 +244,24 @@ const api: WispApi = {
     add: (title, prompt, folder) => ipcRenderer.invoke(IPC.boardAdd, title, prompt, folder),
     action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
     onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
+  },
+  home: {
+    agenda: (from, to) => ipcRenderer.invoke(IPC_HOME.agenda, from, to),
+    activity: (days) => ipcRenderer.invoke(IPC_HOME.activity, days),
+    feed: () => ipcRenderer.invoke(IPC_HOME.feed),
+    note: (text) => ipcRenderer.invoke(IPC_HOME.note, text),
+    todos: () => ipcRenderer.invoke(IPC_HOME.todos),
+    changeTodo: (change) => ipcRenderer.invoke(IPC_HOME.todoChange, change),
+    onTodos: (listener) => subscribe<[Todo[]]>(IPC_HOME.todosChanged, listener),
+    habits: () => ipcRenderer.invoke(IPC_HOME.habits),
+    changeHabit: (change) => ipcRenderer.invoke(IPC_HOME.habitChange, change),
+    focus: () => ipcRenderer.invoke(IPC_HOME.focus),
+    focusAction: (action) => ipcRenderer.invoke(IPC_HOME.focusAction, action),
+    onFocus: (listener) => subscribe<[FocusState]>(IPC_HOME.focusChanged, listener),
+    music: () => ipcRenderer.invoke(IPC_HOME.music),
+    musicAction: (action) => ipcRenderer.invoke(IPC_HOME.musicAction, action),
+    weather: () => ipcRenderer.invoke(IPC_HOME.weather),
+    weatherPlace: (name) => ipcRenderer.invoke(IPC_HOME.weatherPlace, name)
   },
   memory: {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),
