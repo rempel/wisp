@@ -97,6 +97,7 @@ export * from './ipc-sessions'
 export * from './ipc-settings'
 export * from './ipc-workbench'
 export * from './ipc-home'
+export * from './ipc-pentest'
 
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
@@ -886,6 +887,8 @@ export interface WispApi {
   memory: MemoryApi
   /** O Início como painel de controle (Fases 92 a 97). */
   home: import('./ipc-home').HomeApi
+  /** O pentester (Fases 98 a 103). */
+  pentest: import('./ipc-pentest').PentestApi
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>

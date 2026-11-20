@@ -49,7 +49,8 @@ export const BLOCKS: BlockSpec[] = [
   spec('habitos', 6, 5, [4, 3], true),
   spec('foco', 3, 5, [2, 4], true),
   spec('musica', 4, 3, [3, 2], true),
-  spec('clima', 3, 4, [2, 3], true)
+  spec('clima', 3, 4, [2, 3], true),
+  spec('pentest', 4, 4, [3, 3], true)
 ]
 
 const byId = new Map(BLOCKS.map((block) => [block.id, block]))

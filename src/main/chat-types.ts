@@ -188,7 +188,7 @@ export interface ChatOptions {
    * O --mcp-config de uma conversa (o servidor `desktop`); sem ele, as conversas rodam sem as
    * ferramentas de desktop.
    */
-  mcpConfig?: (conversation: string) => string
+  mcpConfig?: (conversation: string, more?: Record<string, unknown>) => string
   /** A conversa fechou: o arquivo do --mcp-config dela sai. */
   releaseMcpConfig?: (conversation: string) => void
   /** O nome de uma sessão do terminal (o projeto), para a aba dela; null se ela não existe. */

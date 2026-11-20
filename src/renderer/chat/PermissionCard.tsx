@@ -99,6 +99,11 @@ export function PermissionCard({
       aria-label={t('Pedido: {title}', { title })}
     >
       <div className="permission-title">{title}</div>
+      {request.warning && (
+        <div className="permission-warning" role="alert">
+          {request.warning}
+        </div>
+      )}
       <div className="permission-body">{body}</div>
       {request.status === 'pending' && plan ? (
         <div className="permission-actions plan-actions">

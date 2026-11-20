@@ -18,6 +18,7 @@ import { OpenRouterKey } from './OpenRouterKey'
 import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
 import { TelegramSection } from './TelegramSection'
+import { PentestSection } from './PentestSection'
 import { RemoteChatSection } from './RemoteChatSection'
 import { PortableSection } from './PortableSection'
 import {
@@ -805,6 +806,7 @@ export function SettingsView({
         </Section>
 
         <TelegramSection save={save} />
+        <PentestSection values={values} save={save} />
         <Section title={t('Celular')}>
           <PhoneSection status={snapshot.phone} />
           <RemoteChatSection

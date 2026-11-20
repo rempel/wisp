@@ -81,6 +81,8 @@ export type Item =
       exact?: boolean
       /** Respostas dadas, quando é uma pergunta do Claude. */
       answers?: Record<string, string>
+      /** O aviso em destaque (o pentester fora do engajamento, Fase 99). */
+      warning?: string
     }
 
 /** Uma ferramenta que um subagente chamou. */
@@ -392,7 +394,7 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
     case 'notice':
       return append(state, notice(state.items, event.level, event.text))
     case 'permission-request': {
-      const { id, toolName, input, toolUseId, site, always, scope, exact } = event
+      const { id, toolName, input, toolUseId, site, always, scope, exact, warning } = event
       const tool = toolUseId ? findItem(state, 'tool', toolUseId) : undefined
       const waiting =
         tool && tool.status === 'running'
@@ -408,7 +410,8 @@ function applyEvent(state: ChatState, event: ChatEvent): ChatState {
         ...(site ? { site } : {}),
         ...(always ? { always } : {}),
         ...(scope ? { scope } : {}),
-        ...(exact ? { exact } : {})
+        ...(exact ? { exact } : {}),
+        ...(warning ? { warning } : {})
       })
     }
     case 'permission-resolved': {

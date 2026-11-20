@@ -63,6 +63,12 @@ export interface Settings {
   windowMode: 'compact' | 'full'
   /** Os blocos do Início (Fase 93); null: o padrão. */
   homeLayout: HomeBlockLayout[] | null
+  /** O pentester (Fases 98 a 103). */
+  pentesterFolder: string | null
+  pentestRunner: 'host' | 'docker'
+  pentestAsk: 'inicio' | 'ataque' | 'tudo'
+  pentestTelegram: 'off' | 'resumo' | 'alvo'
+  pentestDockerHost: string | null
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -136,6 +142,11 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'telegramVoiceReply',
   'windowMode',
   'homeLayout',
+  'pentesterFolder',
+  'pentestRunner',
+  'pentestAsk',
+  'pentestTelegram',
+  'pentestDockerHost',
   'editorCommand',
   'terminalCommand',
   'model',

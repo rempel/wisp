@@ -11,6 +11,7 @@ import {
   PlusIcon,
   SearchIcon,
   SettingsIcon,
+  ShieldIcon,
   TerminalIcon,
   WorkbenchIcon
 } from './icons'
@@ -33,7 +34,7 @@ import { dateLocale, t } from '../../shared/i18n'
 
 /** As telas que a sidebar abre. */
 export type SidebarView =
-  'home' | 'chat' | 'history' | 'board' | 'memory' | 'sessions' | 'usage' | 'settings'
+  'home' | 'chat' | 'history' | 'board' | 'pentest' | 'memory' | 'sessions' | 'usage' | 'settings'
 
 /** Quantas conversas recentes a sidebar mostra. */
 const RECENT = 30
@@ -49,6 +50,8 @@ export interface SidebarProps {
   onCollapse: (collapsed: boolean) => void
   /** Quantos pedidos esperam nas sessões do terminal. */
   requests: number
+  /** Os alertas críticos e altos do pentest que está rodando (Fase 100). */
+  pentestAlerts?: number
   projects: Project[]
   workbenchOpen: boolean
   onWorkbench: () => void
@@ -253,6 +256,14 @@ export function Sidebar(props: SidebarProps): JSX.Element {
           active={view === 'board'}
           collapsed={collapsed}
           onClick={() => go('board')}
+        />
+        <NavItem
+          icon={<ShieldIcon />}
+          label={t('Pentest')}
+          active={view === 'pentest'}
+          badge={props.pentestAlerts}
+          collapsed={collapsed}
+          onClick={() => go('pentest')}
         />
         <NavItem
           icon={<MemoryIcon />}

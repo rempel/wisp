@@ -224,6 +224,17 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **O pentester no Wisp** (Fases 98 a 103): a tela **Pentest** acompanha o seu projeto
+  [pentester](https://github.com/rempel/pentester) ao vivo, lendo o que ele grava em `output/`: as 30
+  fases nos grupos delas (com a de agora pulsando), as contagens por severidade, os alertas chegando,
+  o log, o relatório. Os **achados** vêm do normalizador dele, com a revisão, o que é novo e o que
+  sumiu desde o run anterior, a sua **triagem** (confirmado, falso positivo, risco aceito) e o
+  **print da bancada** como evidência. O **engajamento** guarda o escopo autorizado, o perfil e a
+  validade, e vai ao pentester pela variável `SCOPE` (o `scope.txt` dele não muda). No Claude, o
+  `init_pentest` e as fases de ataque pedem o **card**, mesmo com o allow do projeto; fora do escopo,
+  o card avisa. Mais: o **pipeline direto** (no host ou no Docker), que o Wisp acompanha e para; o
+  **reteste semanal**; o **laboratório** do `docker-compose.lab.yml` (aqui ou por SSH); o bloco
+  Pentest no Início; e os avisos dos alertas críticos e altos (o Telegram leva só o resumo).
 - **O Início como painel de controle** (Fases 92 a 97), no desenho escolhido entre quatro modelos:
   no modo completo, a barra lateral começa como um **trilho de ícones** (o botão do topo abre a
   completa), os blocos são de vidro sobre um fundo com brilho, e o alto tem a saudação, a caixa

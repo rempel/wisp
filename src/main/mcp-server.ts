@@ -106,7 +106,7 @@ export interface DesktopServer {
    * (`/mcp/<conversa>`), para os pedidos de permissão chegarem à aba certa. Só o dono lê: ele tem
    * o token. É gravado de novo a cada chamada, com os servidores extras de agora.
    */
-  configFor(conversation: string): string
+  configFor(conversation: string, more?: Record<string, unknown>): string
   /** A conversa fechou: o arquivo dela sai. */
   releaseConfig(conversation: string): void
   /**
@@ -767,7 +767,7 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
     join(dir, `mcp-${process.pid}-${conversation}.json`)
 
   return {
-    configFor(conversation) {
+    configFor(conversation, more) {
       if (!CONVERSATION_ID.test(conversation)) throw new Error('id de conversa inválido')
       const desktop = {
         type: 'http',
@@ -775,7 +775,8 @@ export async function startDesktopServer(options: DesktopServerOptions): Promise
         headers: { Authorization: `Bearer ${token}` }
       }
       const path = pathFor(conversation)
-      writeFileSync(path, JSON.stringify({ mcpServers: { ...extra(), desktop } }), { mode: 0o600 })
+      const servers = { ...extra(), ...more, desktop }
+      writeFileSync(path, JSON.stringify({ mcpServers: servers }), { mode: 0o600 })
       chmodSync(path, 0o600)
       written.add(conversation)
       return path

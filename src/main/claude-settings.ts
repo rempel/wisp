@@ -2,6 +2,7 @@
 // segredos que sempre pedem aprovação, o hook que manda todo Bash para o card, o --settings do
 // modo terminal e as opções de uma conversa.
 
+import { PENTEST_ASK } from './pentest-store'
 import { EDIT_MATCHER, SNAPSHOT_ARG } from './turn-snapshot'
 import { homedir } from 'os'
 import { PERMISSION_MODES } from '../shared/ipc'
@@ -74,7 +75,12 @@ export const ALWAYS_ASK = [
 ]
 
 /** As regras "ask" das configurações do Claude Code: os arquivos de segredos e o ALWAYS_ASK. */
-const askRules = (): string[] => [...SENSITIVE_PATHS.map((path) => `Read(${path})`), ...ALWAYS_ASK]
+const askRules = (): string[] => [
+  ...SENSITIVE_PATHS.map((path) => `Read(${path})`),
+  ...ALWAYS_ASK,
+  // Fase 99: o começo e o ataque do pentester passam pelo Wisp, mesmo com o allow do projeto.
+  ...PENTEST_ASK
+]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
 export const PERMISSION_TOOL = 'mcp__desktop__approve'
@@ -323,6 +329,8 @@ export interface ClaudeOptions {
   modeFile?: string
   /** A pasta das cópias de antes das edições (Fase 42), que o hook delas lê. */
   snapshotDir?: string
+  /** Variáveis a mais para o processo, pela pasta onde ele roda (o escopo do pentester, Fase 98). */
+  extraEnv?: (cwd: string) => Record<string, string>
   /** Modelo inicial (config.model): um apelido ou nome que o --model aceita; null é o padrão. */
   model: string | null
   /** O session_id mudou (o CLI criou uma cópia com --fork-session, por exemplo). */

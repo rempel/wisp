@@ -271,6 +271,7 @@ export class ClaudeSession extends StreamReader {
       seedTerminalConfig(cwd)
     }
     if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
+    Object.assign(env, this.options.extraEnv?.(cwd))
     env.TERM = 'xterm-256color'
     env.COLORTERM = 'truecolor'
     this.terminalCostBase = this.cost
@@ -567,6 +568,7 @@ export class ClaudeSession extends StreamReader {
       Object.assign(env, openrouterEnv(this.secret, this.model))
     }
     if (this.options.modeFile) env[MODE_FILE_ENV] = this.options.modeFile
+    Object.assign(env, this.options.extraEnv?.(this.cwd ?? this.folder ?? this.options.workspace()))
     // A pasta das cópias de antes das edições (Fase 42), que o hook delas lê.
     if (this.options.snapshotDir) env[SNAPSHOT_ENV] = this.options.snapshotDir
     if (demo) {

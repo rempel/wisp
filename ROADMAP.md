@@ -824,6 +824,144 @@ cidade e a meia hora). **Só o uso confirma:** o player e a Open-Meteo de verdad
 **Aceite:** com o Spotify tocando, o bloco mostra a música e o pausar funciona; com o clima
 desligado, o Wisp não fala com a Open-Meteo.
 
+## Fases 98 a 103: o pentester no Wisp (novembro de 2026)
+
+O seu projeto [pentester](https://github.com/rempel/pentester) (o pipeline de 30 fases, o servidor
+MCP com as 14 ferramentas, o escopo, a auditoria e os relatórios) continua sendo o motor; o Wisp vira
+o painel dele. Hoje, abrir a pasta do pentester no Wisp já roda o pentest, mas só pela conversa: os
+artefatos caem nas pastas e o relatório sai no fim, sem dar para acompanhar a fase de agora nem os
+achados chegando.
+
+**O que foi decidido** (alinhado com o uso, em novembro de 2026):
+
+- **Por contrato, sem juntar o código:** o Wisp lê o que o pentester grava (`state.json`,
+  `pipeline.log`, `alerts.jsonl`, `parsed/`, `finding-review.json`, os relatórios), usa o
+  normalizador de achados dele e o servidor MCP dele. O pentester não precisa mudar nada, e roda
+  no host (o Kali) ou na imagem Docker (a pasta `output/` é a mesma).
+- **A autorização é um clique seu:** o `init_pentest` e as fases de ataque passam pelo card, mesmo
+  com o `.claude/settings.json` do pentester liberando tudo.
+- **Os dados do cliente ficam na máquina:** fora da memória pessoal, e o Telegram só leva o resumo
+  (a contagem e a severidade), nunca a URL, o payload ou a evidência.
+
+#### Fase 98: o pentester e os engajamentos
+
+**Status:** pronta, esperando validação (testes: `test/pentest.test.ts`, com o escopo e o
+engajamento; `e2e/pentest.mjs`, com a pasta pelas configurações e o SCOPE chegando ao pipeline).
+
+- **A pasta (P):** nas configurações, a pasta do pentester (o Wisp reconhece pelo
+  `scripts/mcp_server.py` e pelas fases) e como ele roda: no host ou no Docker. A pasta entra nas
+  pastas fora da memória pessoal.
+- **O engajamento (M):** o cliente, os alvos autorizados (os padrões do `scope.txt`: `alvo.com`,
+  `*.alvo.com`, `10.0.0.*`), o perfil (dev, staging, prod), até quando vale a autorização e uma nota
+  (o contrato, o pedido). Um ativo por vez.
+- **O escopo único (M):** o Wisp grava o escopo do engajamento num arquivo dele e passa o
+  `SCOPE_FILE` para o pentester (a conversa, o servidor MCP e o pipeline), sem mexer no seu
+  `scope.txt`. Fora da validade, nada roda.
+
+**Aceite:** com um engajamento de `juice.lab`, um pentest em `outro.com` é recusado pelo próprio
+pentester; o `scope.txt` do repositório não mudou.
+
+Nota: o Wisp roda o Claude Code só com os servidores MCP que ele escolhe (`--strict-mcp-config`);
+na pasta do pentester, o servidor do `.mcp.json` dele entra, com os caminhos resolvidos e o
+`SCOPE` nas variáveis. O pipeline guarda o run com a porta no nome da pasta (`juice-lab-3000`); o
+`make run` tira a porta, e o Wisp reconhece os dois.
+
+#### Fase 99: a aprovação
+
+**Status:** pronta, esperando validação (testes: `test/pentest.test.ts`, com a política e a regra
+"ask" vencendo o allow do pentester). **Só o uso confirma:** o card com o Claude de verdade e o
+servidor MCP do pentester.
+
+- **O card do começo (M):** o `init_pentest` mostra o alvo, o perfil, se está no escopo do
+  engajamento e a validade; aprovar é a autorização.
+- **As fases de ataque (M):** a injeção, o SSRF, os formulários e a exploração (14, 15, 16, 19, 25 e
+  30), o `hunt`, o `propagate`, o `expand_scope` e o `establish_auth` pedem o card; o recon e a
+  leitura dos artefatos passam direto. Nas configurações: pedir só no começo, no começo e no ataque,
+  ou em toda fase.
+
+**Aceite:** pedir ao Claude um pentest na pasta do pentester mostra o card do `init_pentest`; a
+fase 14 mostra outro; a 01 roda direto.
+
+#### Fase 100: o run ao vivo
+
+**Status:** pronta, esperando validação (testes: `e2e/pentest.mjs`, com o pipeline direto da
+réplica rodando ao vivo, o alerta chegando e o parar). **Só o uso confirma:** um run de verdade no
+Kali e no Docker.
+
+- **A tela Pentest (G):** os runs de cada alvo (de `output/`), e o run aberto: as 30 fases nos
+  grupos delas (recon, fuzz, web, injeção…), com o estado de cada uma e a de agora; os contadores
+  por severidade; os alertas chegando; o log ao vivo; o tempo; os relatórios (o HTML abre na
+  bancada).
+- **Começar daqui (M):** **Novo pentest** com o alvo (conferido no escopo), o perfil e o grupo: pelo
+  Claude (abre uma conversa na pasta com o `/pentest-run`) ou o pipeline direto, sem o modelo (o
+  `run-pipeline.sh`, ou o `make run` no Docker), que o Wisp acompanha e para.
+- **Os avisos (P):** um alerta crítico ou alto avisa na hora (a notificação e o mascote); o fim do
+  run avisa com as contagens. O Telegram leva só o resumo, se você quiser.
+- **No Início (P):** o bloco Pentest, com a fase de agora e as contagens.
+
+**Aceite:** com um run rodando, a tela mostra a fase de agora mudando e os alertas aparecendo sem
+recarregar; o fim avisa com "2 altos, 5 médios".
+
+Nota: um run começado fora do Wisp (pela conversa ou no terminal) é achado por uma olhada por
+minuto e acompanhado dali em diante; sem mexer no `state.json` nem no log por 15 minutos e sem o
+fim, ele é dado como parado. O normalizador roda sem gravar `.pyc` na pasta do pentester.
+
+#### Fase 101: os achados e as evidências
+
+**Status:** pronta, esperando validação (testes: `test/pentest.test.ts`, com o normalizador, o novo
+e o resolvido; `e2e/pentest.mjs`, com a triagem).
+
+- **Os achados (M):** a lista do run pelo normalizador do pentester (o tipo, a severidade, a
+  confiança, a URL, o parâmetro, o CWE, o CVSS, a evidência, a correção), com os filtros e a
+  revisão dele (confirmado, suspeito de falso positivo, revisar).
+- **A sua triagem (P):** marcar cada um como confirmado, falso positivo ou aceito, com uma nota,
+  num arquivo do Wisp ao lado do run (os artefatos do pentester ficam intactos).
+- **As evidências (M):** abrir a URL na bancada e guardar o print dela no achado.
+- **O que mudou (P):** os achados novos e os resolvidos desde o run anterior do mesmo alvo.
+
+**Aceite:** num run do Juice Shop, os achados aparecem com a severidade e a evidência; marcar um como
+falso positivo e reabrir o Wisp mantém a marca; o print da bancada fica no achado.
+
+#### Fase 102: o reteste agendado
+
+**Status:** pronta, esperando validação (testes: `test/pentest.test.ts`, com o dia, o minuto, o
+ativo e a validade).
+
+- **Toda semana (M):** no engajamento, um reteste no dia e na hora que você escolher, com o pipeline
+  direto e o perfil do engajamento (sem o modelo, sem card no meio da noite: a autorização foi o
+  agendamento, dentro da validade).
+- **Só o que importa (P):** o aviso diz o que é novo e o que foi resolvido desde o último run.
+
+**Aceite:** um reteste agendado para daqui a um minuto roda, aparece na tela e avisa com o que
+mudou.
+
+#### Fase 103: o laboratório
+
+**Status:** pronta, esperando validação (testes: o `docker compose ps` nos dois formatos; sem o
+Docker, a tela explica). **Só o uso confirma:** subir o laboratório de verdade, aqui e por SSH.
+
+- **Os alvos de treino (M):** os serviços do `docker-compose.lab.yml` (o Juice Shop, o WordPress…)
+  com o estado de cada um, para subir e parar; no Docker desta máquina ou no de outra (o
+  `DOCKER_HOST`, por SSH).
+
+**Aceite:** subir o laboratório pelo Wisp e rodar um pentest nele, do começo ao relatório, sem
+abrir o terminal.
+
+## Fases 104 a 107: as ferramentas de segurança e de desenvolvimento (planejadas)
+
+Fora do pentester, para o dia a dia.
+
+- **Fase 104, o repetidor HTTP (M):** editar e reenviar uma requisição capturada na bancada, dentro
+  do escopo do engajamento.
+- **Fase 105, os utilitários (P):** decodificar JWT, base64, URL e hex, gerar hashes, na paleta e
+  num bloco.
+- **Fase 106, o vigia das dependências (M):** o osv-scanner, o `npm audit` e o `pip-audit` nos seus
+  projetos, numa tarefa agendada; avisa só o que é novo, e vira um cartão no quadro para corrigir
+  numa cópia.
+- **Fase 107, o CI vermelho e a revisão antes do push (M):** com um CI quebrado, o Wisp lê o log e
+  propõe a correção numa cópia; e um hook opcional pede uma revisão de segurança do diff antes do
+  push (segredos, injeção, autenticação).
+
 ## O que vem depois
 
 Propostas, sem ordem fechada. Cada uma vira uma fase, com o aceite dela, quando for a vez.

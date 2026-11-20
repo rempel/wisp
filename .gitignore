@@ -9,3 +9,4 @@ out
 .flatpak-builder
 wisp-release-key.pem
 *.tsbuildinfo
+__pycache__/

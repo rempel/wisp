@@ -444,6 +444,8 @@ export type ChatEvent =
       scope?: string
       /** O comando inteiro é o escopo (comando composto, perigoso ou com segredos). */
       exact?: boolean
+      /** Um aviso em destaque no card (o pentester: um alvo fora do engajamento, Fase 99). */
+      warning?: string
     }
   /**
    * O pedido foi respondido, ou cancelado (o turno acabou ou o Claude desistiu). Perguntas

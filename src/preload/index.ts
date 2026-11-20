@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import { IPC, IPC_HOME } from '../shared/ipc'
+import { IPC, IPC_HOME, IPC_PENTEST } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
@@ -262,6 +262,25 @@ const api: WispApi = {
     musicAction: (action) => ipcRenderer.invoke(IPC_HOME.musicAction, action),
     weather: () => ipcRenderer.invoke(IPC_HOME.weather),
     weatherPlace: (name) => ipcRenderer.invoke(IPC_HOME.weatherPlace, name)
+  },
+  pentest: {
+    state: () => ipcRenderer.invoke(IPC_PENTEST.state),
+    onChanged: (listener) => subscribe<[]>(IPC_PENTEST.changed, listener),
+    saveEngagement: (engagement) => ipcRenderer.invoke(IPC_PENTEST.engagement, engagement),
+    removeEngagement: (id) => ipcRenderer.invoke(IPC_PENTEST.removeEngagement, id),
+    activate: (id) => ipcRenderer.invoke(IPC_PENTEST.activate, id),
+    run: (id) => ipcRenderer.invoke(IPC_PENTEST.run, id),
+    findings: (id) => ipcRenderer.invoke(IPC_PENTEST.findings, id),
+    triage: (run, finding, triage, note) =>
+      ipcRenderer.invoke(IPC_PENTEST.triage, run, finding, triage, note),
+    start: (request) => ipcRenderer.invoke(IPC_PENTEST.start, request),
+    stop: (run) => ipcRenderer.invoke(IPC_PENTEST.stop, run),
+    evidence: (run, finding) => ipcRenderer.invoke(IPC_PENTEST.evidence, run, finding),
+    openReport: (run) => ipcRenderer.invoke(IPC_PENTEST.openReport, run),
+    openFolder: (run) => ipcRenderer.invoke(IPC_PENTEST.openFolder, run),
+    lab: () => ipcRenderer.invoke(IPC_PENTEST.lab),
+    labAction: (action, service) => ipcRenderer.invoke(IPC_PENTEST.labAction, action, service),
+    detect: (folder) => ipcRenderer.invoke(IPC_PENTEST.detect, folder)
   },
   memory: {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),

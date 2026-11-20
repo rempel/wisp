@@ -37,7 +37,8 @@ const VIEW_TITLES: Record<string, [string, string]> = {
   usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
   agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
   memory: [t('Memória'), t('o que o Claude lê antes de cada conversa')],
-  board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
+  board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')],
+  pentest: [t('Pentest'), t('o pentester, ao vivo')]
 }
 
 /** As telas do painel. */
@@ -53,6 +54,7 @@ export type ChatView =
   | 'agents'
   | 'memory'
   | 'board'
+  | 'pentest'
 
 export function ChatHeader({
   view,

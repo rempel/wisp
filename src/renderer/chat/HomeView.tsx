@@ -35,6 +35,7 @@ import {
 import { BoardBlock, ConversationsBlock, GithubBlock, NeedsYouBlock } from './home/blocks-work'
 import { FocusBlock, HabitsBlock, TodosBlock } from './home/blocks-personal'
 import { MusicBlock, WeatherBlock } from './home/blocks-media'
+import { PentestBlock } from './home/blocks-pentest'
 import { dateLocale, t } from '../../shared/i18n'
 
 /** Os blocos: o título (na lista e para o leitor de tela) e o conteúdo. */
@@ -63,7 +64,8 @@ function catalog(): Record<string, GridBlock> {
     habitos: block(t('Hábitos'), HabitsBlock),
     foco: block(t('Foco'), FocusBlock),
     musica: block(t('Tocando agora'), MusicBlock),
-    clima: block(t('Clima'), WeatherBlock)
+    clima: block(t('Clima'), WeatherBlock),
+    pentest: block(t('Pentest'), PentestBlock)
   }
 }
 
