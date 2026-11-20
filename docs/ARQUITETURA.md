@@ -1497,4 +1497,4 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     categoria, e só uma;
   - **o desenho** (`styles/shell.css`): a sidebar, a gaveta, o Início, a lista das categorias e a
     coluna de leitura da conversa no modo completo (as mensagens com folga para caber em 800 px no
-    meio). Os prints do README saem de `scripts/prints-interface.mjs`, no modo demonstração.
+    meio). Os prints da janela completa saem de `scripts/prints-interface.mjs`, no modo demonstração.

@@ -693,7 +693,8 @@ Nota: além das categorias do plano, Integrações ficou à parte (o GitHub, o G
 
 #### Fase 91: o acabamento
 
-**Status:** pronta, esperando validação (os prints saem de `scripts/prints-interface.mjs`).
+**Status:** em revisão: a coluna de leitura está pronta; o desenho espera a sua revisão da
+interface, e só depois os prints entram no README (eles saem de `scripts/prints-interface.mjs`).
 
 - **A conversa no modo completo (M):** centralizada numa coluna de leitura, com a caixa de mensagem
   larga e arredondada, como no Claude desktop.
