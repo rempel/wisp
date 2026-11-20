@@ -10,3 +10,5 @@ out
 wisp-release-key.pem
 *.tsbuildinfo
 __pycache__/
+# o fixture do pentester traz o pipeline.log dos runs
+!test/fixtures/pentester/output/**/pipeline.log
