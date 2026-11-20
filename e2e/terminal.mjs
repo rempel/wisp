@@ -76,7 +76,8 @@ await type('oi\r')
 await shows(/Oi do terminal!/)
 await idle()
 const tabTitle = await ev(`document.querySelector('.tab.active .tab-title')?.textContent`)
-check('T4 a resposta aparece, e a aba ganha o título', tabTitle === 'oi', tabTitle)
+// A primeira aba é a Wisp (Fase 82): o nome dela não muda com a primeira mensagem.
+check('T4 a resposta aparece, e a aba continua a Wisp', tabTitle === 'Wisp', tabTitle)
 const pill = await waitFor(
   () =>
     ev(

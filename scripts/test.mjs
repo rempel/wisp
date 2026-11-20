@@ -23,8 +23,9 @@ const common = {
   platform: 'node',
   format: 'cjs',
   target: 'node22',
-  // O node-pty é nativo: vem do node_modules, como no app.
-  external: ['electron', 'node-pty'],
+  // O node-pty é nativo, e o ONNX Runtime carrega o WASM ao lado dele: vêm do node_modules, como
+  // no app.
+  external: ['electron', 'node-pty', 'onnxruntime-web', '@huggingface/tokenizers'],
   logLevel: 'warning',
   // Os ?raw e ?asset do electron-vite não aparecem nos módulos testados.
   loader: { '.md': 'text' }

@@ -224,8 +224,75 @@ export interface AgentPreview {
   unchanged: boolean
 }
 
-/** Um arquivo de memória do Claude Code (um CLAUDE.md), para a tela Memória (Fase 65). */
-export type MemoryId = 'user' | 'workspace' | 'project' | 'project-dir' | 'local'
+/**
+ * Um arquivo de memória, para a tela Memória: os da memória pessoal do Wisp (Fase 79: `me`, o
+ * EU.md, e `facts`, o MEMORIA.md) e os CLAUDE.md do Claude Code (Fase 65).
+ */
+export type MemoryId =
+  | 'me'
+  | 'facts'
+  | 'personality'
+  | 'checklist'
+  | 'user'
+  | 'workspace'
+  | 'project'
+  | 'project-dir'
+  | 'local'
+
+/** O modelo da busca por sentido (Fase 80): baixado ou não, e o índice. */
+export interface MemoryModelInfo {
+  installed: boolean
+  bytes: number
+  /** O tamanho aproximado do download e de onde ele vem. */
+  approxBytes: number
+  source: string
+  /** Baixando agora: de 0 a 1. */
+  progress?: number
+  error?: string
+  /** Os trechos no índice e quantos já têm vetor. */
+  chunks: number
+  vectors: number
+}
+
+/** Onde o Wisp anota (Fase 79): o EU.md, o MEMORIA.md ou o diário do dia. */
+export type MemoryTarget = 'eu' | 'memoria' | 'diario'
+
+/** Uma anotação do Wisp na memória pessoal, para a tela Memória (Fase 79). */
+export interface MemoryNote {
+  id: string
+  at: number
+  /** Anotou (`save`) ou esqueceu (`forget`). */
+  action: 'save' | 'forget'
+  target: MemoryTarget
+  /** O arquivo, relativo à pasta da memória. */
+  file: string
+  text: string
+  /** O título da conversa de onde veio. */
+  title?: string
+  /** O id dela no histórico, para abrir. */
+  conversation?: string
+  /** Quando foi desfeita. */
+  undone?: number
+  /** Veio da destilação da conversa (Fase 81). */
+  auto?: boolean
+}
+
+/** A destilação e a faxina da memória (Fase 81), para a tela Memória. */
+export interface MemoryCleanupInfo {
+  /** A destilação está ligada (memoryDistill). */
+  distill: boolean
+  /** Quantas conversas esperam ser destiladas. */
+  waiting: number
+  /** O custo nos últimos 30 dias (em dólares, como o Claude Code informa). */
+  runs: number
+  cost: number
+  /** A faxina que espera o seu OK: o diff do MEMORIA.md. */
+  pending?: { at: number; preview: AgentPreview; stale: boolean }
+  /** As skills sugeridas pela faxina (Fase 86): o SKILL.md inteiro, esperando o seu clique. */
+  skills: { name: string; description: string; reason: string; text: string; exists: boolean }[]
+  /** O que aconteceu (rodar, gravar, descartar). */
+  message?: string
+}
 export interface MemoryFile {
   id: MemoryId
   path: string
@@ -289,6 +356,8 @@ export interface ConversationSummary {
   provider?: 'openrouter'
   /** Fixada no topo do histórico. */
   pinned?: boolean
+  /** Um dia da conversa principal, a aba Wisp (Fase 82). */
+  main?: boolean
 }
 
 /**
@@ -562,6 +631,10 @@ export type TabInfo =
       folder?: string
       /** O projeto da pasta da conversa (Fase 77): o nome e a cor dele. */
       inProject?: { name: string; color: ProjectColor }
+      /** Uma conversa anônima, sem a memória pessoal (Fase 79). */
+      anonymous?: boolean
+      /** A conversa principal, a aba Wisp (Fase 82): fica sempre aberta, a primeira. */
+      main?: boolean
     }
   | { id: string; kind: 'session'; title: string; sessionId: string }
 
@@ -580,6 +653,29 @@ export interface TabsState {
 export interface WindowState {
   maximized: boolean
   detached: boolean
+  /** O painel compacto ou a janela completa, com a sidebar (Fase 87). */
+  mode: 'compact' | 'full'
 }
 
 export type NoticeLevel = 'info' | 'warning' | 'error'
+
+/** A tela Memória (Fases 65 e 79 a 81), pela API do preload (window.wisp.memory). */
+export interface MemoryApi {
+  list(folder: string | null): Promise<MemoryFile[]>
+  preview(
+    id: MemoryId,
+    folder: string | null,
+    text: string
+  ): Promise<AgentPreview | { error: string }>
+  save(id: MemoryId, folder: string | null, text: string, fingerprint: string): Promise<AgentResult>
+  /** As anotações do Wisp na memória pessoal, da mais nova para a mais velha (Fase 79). */
+  notes(): Promise<MemoryNote[]>
+  /** Desfaz uma anotação: tira a linha que entrou, ou devolve as que saíram. */
+  undo(id: string): Promise<AgentResult>
+  /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
+  model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
+  /** A destilação e a faxina da semana (Fase 81): ver, rodar agora, gravar ou descartar. */
+  cleanup(
+    action: 'status' | 'run' | 'accept' | 'discard' | `skill-${'accept' | 'discard'}:${string}`
+  ): Promise<MemoryCleanupInfo>
+}

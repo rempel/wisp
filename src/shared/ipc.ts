@@ -33,8 +33,7 @@ import type {
   PreviewState,
   UsageReport,
   AgentInfo,
-  MemoryFile,
-  MemoryId,
+  MemoryApi,
   BoardCard,
   BoardColumn,
   BoardResult,
@@ -86,7 +85,9 @@ import type {
   SkillResult,
   TaskResult,
   WeekSummaries,
-  RemoteChatState
+  RemoteChatState,
+  TelegramBridge,
+  HomeSnapshot
 } from './ipc-settings'
 
 export * from './ipc-chat'
@@ -95,6 +96,7 @@ export * from './ipc-island'
 export * from './ipc-sessions'
 export * from './ipc-settings'
 export * from './ipc-workbench'
+export * from './ipc-home'
 
 export const IPC = {
   /** renderer → main: começou um arraste. Args: (offsetX, offsetY) do ponto agarrado. */
@@ -258,6 +260,20 @@ export const IPC = {
   memoryList: 'memory:list',
   memoryPreview: 'memory:preview',
   memorySave: 'memory:save',
+  /** chat → main (invoke): as anotações do Wisp na memória pessoal (Fase 79) → MemoryNote[]. */
+  memoryNotes: 'memory:notes',
+  /** chat → main (invoke): desfaz uma anotação. Arg: id. Devolve AgentResult. */
+  memoryUndo: 'memory:undo',
+  /**
+   * chat → main (invoke): o modelo da busca por sentido (Fase 80). status → MemoryModelInfo;
+   * download baixa (e devolve quando acabar); remove o tira.
+   */
+  memoryModel: 'memory:model',
+  /**
+   * chat → main (invoke): a destilação e a faxina (Fase 81). Arg: 'status', 'run' (a faxina
+   * agora), 'accept' (gravar a proposta) ou 'discard'. Devolve MemoryCleanupInfo.
+   */
+  memoryCleanup: 'memory:cleanup',
   agentsList: 'agents:list',
   /** chat → main (invoke): o diff de gravar um subagente. Args: (AgentSpec, pasta). */
   agentsPreview: 'agents:preview',
@@ -300,6 +316,15 @@ export const IPC = {
    * Args: (servidor, ficha de acesso ou ''). Devolve PhonePairResult.
    */
   phonePair: 'phone:pair',
+  /**
+   * chat → main (invoke): o Telegram (Fase 85). status → TelegramStatus; token(ficha) confere no
+   * Telegram e guarda no chaveiro → { ok, message }; pair → o código de 6 números (ou null);
+   * forget tira a ficha e o pareamento.
+   */
+  telegramStatus: 'telegram:status',
+  telegramToken: 'telegram:token',
+  telegramPair: 'telegram:pair',
+  telegramForget: 'telegram:forget',
   /** chat → main (invoke): o link do pareamento de novo (o QR code). Devolve PhonePairResult. */
   phoneLink: 'phone:link',
   /**
@@ -348,6 +373,8 @@ export const IPC = {
   tabsState: 'tabs:state',
   /** chat → main: abrir uma conversa nova numa aba (Ctrl+T). */
   tabsNew: 'tabs:new',
+  /** chat → main: abrir uma conversa anônima numa aba, sem a memória pessoal (Fase 79). */
+  tabsNewAnonymous: 'tabs:new-anonymous',
   /** chat → main: fechar uma aba. Arg: id da aba. */
   tabsClose: 'tabs:close',
   /** chat → main: mostrar uma aba no painel em foco. Arg: id da aba. */
@@ -364,6 +391,10 @@ export const IPC = {
   windowMaximize: 'window:maximize',
   /** chat → main: a janela volta para perto do mascote. */
   windowDock: 'window:dock',
+  /** chat → main (invoke): o Início (Fase 89) → HomeSnapshot. */
+  homeSnapshot: 'home:snapshot',
+  /** chat → main: troca o modo da janela (Fase 87). Arg: 'compact' ou 'full'. */
+  windowMode: 'window:mode',
   /** main → chat: a janela mudou (maximizada, solta). Arg: WindowState. */
   windowState: 'window:state',
   /** chat → main: fechar um painel (as abas continuam abertas). Arg: índice. */
@@ -395,6 +426,8 @@ export const IPC = {
   skillsRemove: 'skills:remove',
   /** chat → main: abrir a pasta das skills pessoais no gerenciador de arquivos. */
   skillsOpenFolder: 'skills:open-folder',
+  /** chat → main (invoke): o SKILL.md de uma skill pessoal, para o card da propose_skill. */
+  skillsText: 'skills:text',
   /** main → chat: o humor do mascote mudou (o avatar do cabeçalho acompanha). Arg: MascotState. */
   chatMood: 'chat:mood',
   /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
@@ -636,6 +669,10 @@ export interface WispApi {
     hide(): void
     /** Maximiza ou restaura a janela do painel. */
     maximize(): void
+    /** O painel compacto ou a janela completa (Fase 87). */
+    setWindowMode(mode: 'compact' | 'full'): void
+    /** O Início (Fase 89): a agenda, as tarefas, o GitHub, a memória. */
+    home(): Promise<HomeSnapshot | null>
     /** A janela volta para perto do mascote (e para de lembrar onde você a deixou). */
     dock(): void
     onWindowState(listener: (state: WindowState) => void): () => void
@@ -708,6 +745,8 @@ export interface WispApi {
     onState(listener: (state: TabsState) => void): () => void
     /** Uma conversa nova numa aba, no painel em foco. */
     create(): void
+    /** Uma conversa anônima numa aba nova: não lê nem escreve a memória pessoal (Fase 79). */
+    createAnonymous(): void
     close(id: string): void
     /** Mostra a aba no painel em foco (ou foca o painel onde ela já está). */
     show(id: string): void
@@ -738,6 +777,8 @@ export interface WispApi {
     install(): Promise<SkillResult>
     remove(name: string): Promise<SkillResult>
     openFolder(): void
+    /** O SKILL.md de agora de uma skill pessoal (null: não existe), para o card (Fase 86). */
+    text(name: string): Promise<{ path: string; text: string | null } | null>
   }
   /** A voz: o botão do microfone do painel. */
   voice: {
@@ -790,6 +831,8 @@ export interface WispApi {
     welcomeDone(): void
   }
   /** Aprovar pelo celular (Fase 18): o pareamento com o ntfy. */
+  /** O Wisp no Telegram (Fase 85). */
+  telegram: TelegramBridge
   phone: {
     pair(server: string, token: string): Promise<PhonePairResult>
     link(): Promise<PhonePairResult>
@@ -839,21 +882,10 @@ export interface WispApi {
     onChanged(listener: (cards: BoardCard[]) => void): () => void
   }
   /** Os subagentes do Claude Code (Fase 50). */
-  /** A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê. */
-  memory: {
-    list(folder: string | null): Promise<MemoryFile[]>
-    preview(
-      id: MemoryId,
-      folder: string | null,
-      text: string
-    ): Promise<AgentPreview | { error: string }>
-    save(
-      id: MemoryId,
-      folder: string | null,
-      text: string,
-      fingerprint: string
-    ): Promise<AgentResult>
-  }
+  /** A memória à vista (Fase 65) e a memória pessoal (Fases 79 a 81). */
+  memory: MemoryApi
+  /** O Início como painel de controle (Fases 92 a 97). */
+  home: import('./ipc-home').HomeApi
   agents: {
     list(folder: string | null): Promise<AgentInfo[]>
     preview(spec: AgentSpec, folder: string | null): Promise<AgentPreview | { error: string }>

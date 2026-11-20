@@ -1,6 +1,8 @@
 import type { JSX, ReactNode } from 'react'
 import { explainCommand } from '../../shared/commands'
 import { Markdown } from './Markdown'
+import { ScheduleBody } from './ScheduleBody'
+import { SkillBody } from './SkillBody'
 import { toolLabel } from './state'
 import type { Item } from './state'
 import { t } from '../../shared/i18n'
@@ -263,6 +265,17 @@ export function describe(
       }
     case 'mcp__desktop__open_project':
       return { title: t('Abrir um projeto no editor'), body: path('path') }
+    case 'mcp__desktop__schedule_task':
+      // A agenda que o Claude marca (Fase 83): o que vai ser gravado, como vai ser gravado.
+      return { title: t('Agendar uma tarefa'), body: <ScheduleBody input={input} /> }
+    case 'mcp__desktop__propose_skill':
+      // As skills que ele aprende (Fase 86): o texto inteiro, ou o diff da que já existe.
+      return { title: t('Criar ou mudar uma skill'), body: <SkillBody input={input} /> }
+    case 'mcp__desktop__cancel_task':
+      return {
+        title: t('Cancelar uma tarefa agendada'),
+        body: <code className="permission-path">{str(input, 'id')}</code>
+      }
     case 'mcp__desktop__terminal_run': {
       // O terminal da bancada (Fase 57): o comando, explicado pela mesma tabela do Bash.
       const explained = explainCommand(str(input, 'comando'))

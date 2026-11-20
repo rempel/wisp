@@ -188,6 +188,59 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 - **Projetos** (Fase 77): uma pasta com nome, cor e o modo de costume; as abas dela levam a cor.
 - **Revisar um PR** (Fase 78): `/pr 123` abre uma conversa numa cópia do Git, no commit do PR,
   com o pedido de revisão na caixa.
+- **A memória pessoal** (Fase 79): o Wisp lembra de você entre as conversas. O Claude anota sozinho
+  (`memory_save`, sem card) no `EU.md`, no `MEMORIA.md` e no diário do dia, que ficam em Markdown
+  na pasta de dados; toda conversa nova começa com eles. A tela Memória mostra cada anotação, com a
+  conversa de origem e o desfazer. Segredos nunca entram; a **conversa anônima** não lê nem
+  escreve a memória, e as **pastas fora da memória** só leem o `EU.md`.
+- **A busca no que ele lembra** (Fase 80): `memory_search` acha na memória, no diário e nas
+  conversas antigas, pelo texto (sem acentos) e, com o modelo `multilingual-e5-small` baixado na
+  tela Memória (uns 120 MB, só com o seu clique), pelo sentido. O índice é um SQLite no cache.
+- **O diário e a faxina** (Fase 81): uma conversa parada há 15 minutos (ou fechada) é destilada
+  pelo Haiku, sem ferramentas: uma ou duas linhas no diário do dia e os fatos novos na memória,
+  com as regras de sempre. Uma vez por semana, a faxina sugere arrumar o `MEMORIA.md`, e só grava
+  com o seu OK, com o diff.
+- **A Wisp, uma aba que fica** (Fase 82): a conversa principal, sempre a primeira aba e sem o
+  fechar, uma sessão por dia (a de ontem fica no histórico, e os dias anteriores aparecem na
+  conversa vazia), com o diário de ontem e de hoje no prompt. A voz, o `wisp --ask` e a busca do
+  desktop vão para ela quando o painel não está em foco. E o `PERSONALIDADE.md`: o jeito do Wisp
+  falar, que você edita na tela Memória e que ele pode sugerir mudar, pelo card com o diff.
+- **A agenda que ele marca** (Fase 83): "toda segunda às 8h me manda os PRs parados" vira uma
+  tarefa pela `schedule_task`, que sempre passa pelo card (até no modo Automático); `list_tasks` e
+  `cancel_task` completam. Horários novos: uma vez só (num dia ou daqui a X minutos), a cada N
+  horas numa janela e todo mês. O resultado de cada tarefa vai para a Wisp, a notificação, o
+  mascote (e o Telegram) e entra no diário.
+- **O batimento** (Fase 84): às 8h, 13h e 17h nos dias úteis (editável), o Wisp confere o
+  `CHECKLIST.md` (a agenda, o GitHub, os lembretes e as tarefas, o diário, o e-mail) no Haiku,
+  numa aba à parte que fecha sozinha, e só fala se houver algo: o aviso vai para a Wisp, a
+  notificação, o mascote e o diário. Sem nada, só o diário fica sabendo.
+- **O Wisp no Telegram** (Fase 85): um bot seu (a ficha no chaveiro), lido por long polling, só
+  com conexões de saída, que só atende o usuário pareado por um código. As mensagens caem na Wisp
+  e a resposta volta; áudios (whisper), fotos e arquivos entram; a resposta pode vir em áudio
+  (Piper); `/agenda`, `/tarefas`, `/memoria`, `/lembrar` e `/novo`. Os cards chegam com Permitir
+  uma vez e Negar, com as regras do ntfy. O que chegou com o Wisp fechado é respondido ao abrir
+  (até 12 horas; o mais velho vira um resumo). As tarefas e o batimento também avisam por lá.
+- **As skills que ele aprende** (Fase 86): "transforma isso numa skill" vira a `propose_skill`, que
+  sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
+  da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
+  sugere skills na tela Memória, para você criar com um clique.
+- **O Início como painel de controle** (Fases 92 a 97), no desenho escolhido entre quatro modelos:
+  no modo completo, a barra lateral começa como um **trilho de ícones** (o botão do topo abre a
+  completa), os blocos são de vidro sobre um fundo com brilho, e o alto tem a saudação, a caixa
+  **Pergunte ao Wisp** (vai para a aba Wisp) e o relógio. **Editar o Início** arrasta os blocos,
+  muda o tamanho pelo canto, esconde e traz de volta (também pelo teclado), guardado no
+  `config.json`. Vinte blocos: a agenda de hoje, o **calendário do mês**, **a semana** em colunas, **A
+  seguir**, o batimento, o uso do plano, o agendado e lembretes, as anotações (com o "+"), **Hoje no
+  Wisp** (o diário), as conversas, o quadro, o **Precisa de você** (Permitir e Negar ali mesmo), o
+  GitHub, a semana do Wisp, a atividade em quadradinhos e, novos no Wisp, **Minhas tarefas** (que o
+  Claude também mexe, com `todo_add`, `todo_list` e `todo_done`), os **hábitos**, o **foco**, o
+  **Tocando agora** e o **clima** (desligado até você dar a cidade).
+- **A interface completa** (Fases 87 a 91): dois modos, o **painel compacto** de sempre e a **janela
+  completa**, com uma barra lateral no estilo do Claude desktop (nova conversa, a busca pelo que foi
+  dito, o Início, a Wisp, os projetos e as recentes; recolhe em ícones). O **Início** junta o seu dia:
+  a agenda, as tarefas e lembretes, o GitHub, o uso do plano, o batimento e a memória. As
+  **configurações** abrem uma categoria por vez, com a busca. No compacto, a barra lateral abre por
+  cima. A conversa, no modo completo, fica numa coluna de leitura.
 
 ### Mudou
 

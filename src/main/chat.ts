@@ -12,11 +12,21 @@ import type { TurnReviews } from './turn-review'
 import { ChatTabs, MAX_TABS } from './chat-tabs'
 import type { SavedTabs } from './chat-tabs'
 import { CHAT_HEIGHT, PANE_MIN_WIDTH, PanelPlacement } from './chat-window'
-import { conversationFactory, modeFileOf, previewOf } from './chat-conversation'
+import { conversationFactory, memoryScopeOf, modeFileOf, previewOf } from './chat-conversation'
+import { ChatRuns, watchMainDay } from './chat-runs'
+import { distiller } from './memory-setup'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
-import { CONFIG_PATH, configProblems, getConfig, onConfigChange, onConfigProblems } from './config'
+import {
+  CONFIG_PATH,
+  configProblems,
+  getConfig,
+  notifyConfigChange,
+  onConfigChange,
+  onConfigProblems,
+  updateConfig
+} from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { History } from './history'
@@ -128,6 +138,10 @@ export function setupChat({
     makeConversation: (mode, folder) => makeConversation(mode, undefined, folder ?? null),
     sessionTitle,
     closed(conversation) {
+      // A destilação (Fase 81): o que a conversa disse de novo vira diário e memória.
+      void distiller()
+        .closed(conversation.historyId)
+        .catch(() => undefined)
       conversation.dispose()
       releaseMcpConfig?.(conversation.id)
       rmSync(modeFileOf(conversation.id), { force: true })
@@ -152,11 +166,15 @@ export function setupChat({
     else queued.push([conversation, event])
   }
 
+  // As tarefas que rodam e quem quer saber do fim dos turnos (Fases 83 a 85).
+  const runs = new ChatRuns()
+
   const host: ConversationHost = {
     emit(conversation, event, live) {
       if (live) {
         if (event.type === 'usage') lastUsage = [conversation.id, event]
         if (event.type === 'mode') scheduleSave()
+        if (event.type === 'turn-end') runs.turnEnded(conversation, event.outcome)
         onEvent?.(event, conversation.id)
       }
       toPage(conversation.id, event)
@@ -220,7 +238,7 @@ export function setupChat({
     saveTimer = null
     try {
       mkdirSync(DATA_DIR, { recursive: true })
-      writeFileSync(TABS_FILE, JSON.stringify(tabs.snapshot(placement.window)), { mode: 0o600 })
+      writeFileSync(TABS_FILE, JSON.stringify(tabs.snapshot(placement.saved())), { mode: 0o600 })
     } catch (err) {
       console.warn('[wisp] não consegui guardar as abas:', err)
     }
@@ -243,6 +261,8 @@ export function setupChat({
       )
       const old = typeof entry.history === 'string' ? store.load(entry.history) : null
       if (old) for (const event of conversation.restore(old)) toPage(conversation.id, event)
+      else if (entry.anonymous === true) conversation.history.anonymous = true
+      if (entry.main === true) conversation.history.main = true
       // No modo terminal, o Claude Code sobe quando a aba aparece.
       if (entry.view === 'terminal') conversation.presetView('terminal')
       if (typeof entry.draft === 'string' && entry.draft) {
@@ -252,13 +272,29 @@ export function setupChat({
       return conversation
     })
     placement.restore(saved?.window)
+    placement.mode = getConfig().windowMode
   }
 
   restoreTabs()
 
+  // A Wisp (Fase 82): uma sessão por dia; o primeiro abrir do dia a mostra.
+  const mainOnNewDay = watchMainDay(tabs, showTab)
+  /**
+   * Para onde vai um pedido de fora do painel (a voz, o --ask, a busca do desktop): para a
+   * conversa em foco se você está olhando o painel; senão, para a Wisp (Fase 82).
+   */
+  const askTarget = (): Conversation =>
+    win?.isVisible() && win.isFocused() ? focusedConversation() : tabs.main()
+
   // O modo demonstração ligou ou desligou (no menu, na tela de configurações, no arquivo): as
   // conversas recomeçam, para respostas gravadas e de verdade não se misturarem.
   let demoOn = getConfig().demo
+  // O modo mudou (o botão, a paleta ou o config.json): a janela vai para o lugar do modo novo.
+  onConfigChange((config) => {
+    if (config.windowMode === placement.mode) return
+    placement.setMode(win, config.windowMode, tabs.layout)
+    sendWindow()
+  })
   onConfigChange((config) => {
     if (config.demo === demoOn) return
     demoOn = config.demo
@@ -399,6 +435,12 @@ export function setupChat({
     if (!fromChat(event) || tabs.full) return
     tabs.addChat()
   })
+  ipcMain.on(IPC.tabsNewAnonymous, (event) => {
+    if (!fromChat(event) || tabs.full) return
+    const conversation = tabs.addChat()
+    conversation.history.anonymous = true
+    tabs.changed()
+  })
   ipcMain.on(IPC.tabsClose, (event, id: unknown) => {
     if (fromChat(event) && typeof id === 'string') tabs.close(id)
   })
@@ -433,6 +475,12 @@ export function setupChat({
   })
   ipcMain.on(IPC.windowDock, (event) => {
     if (fromChat(event) && win) placement.dock(win, tabs.layout)
+  })
+  // O modo da janela (Fase 87): compacto, ao lado do mascote, ou completo, com a sidebar.
+  ipcMain.on(IPC.windowMode, (event, mode: unknown) => {
+    if (!fromChat(event) || (mode !== 'compact' && mode !== 'full')) return
+    updateConfig({ windowMode: mode })
+    notifyConfigChange()
   })
   ipcMain.on(IPC.tabsUnsplit, (event, pane: unknown) => {
     if (fromChat(event) && Number.isInteger(pane)) tabs.unsplit(pane as number)
@@ -512,7 +560,11 @@ export function setupChat({
   /** O estado da janela para a página (o botão de maximizar e o de voltar para perto do mascote). */
   function sendWindow(): void {
     if (!win || !pageReady) return
-    const state: WindowState = { maximized: win.isMaximized(), detached: placement.window.detached }
+    const state: WindowState = {
+      maximized: win.isMaximized(),
+      detached: placement.window.detached,
+      mode: placement.mode
+    }
     win.webContents.send(IPC.windowState, state)
   }
 
@@ -636,11 +688,15 @@ export function setupChat({
     },
     toggle() {
       if (!win) {
+        mainOnNewDay()
         win = createWindow()
         return
       }
       if (win.isVisible() && win.isFocused()) hide(win)
-      else show(win)
+      else {
+        mainOnNewDay()
+        show(win)
+      }
     },
     open() {
       if (!win) win = createWindow()
@@ -665,7 +721,8 @@ export function setupChat({
       else show(win)
     },
     ask(text, { voice = false } = {}) {
-      let conversation = focusedConversation()
+      let conversation = askTarget()
+      if (!tabs.panes.includes(conversation.id)) showTab(conversation.id)
       // A conversa em foco está respondendo: o que foi falado entra na fila dela, como no
       // terminal; uma pergunta do --ask vai numa aba nova, e a outra segue.
       const queue = voice && conversation.busy && conversation.canSend
@@ -690,7 +747,7 @@ export function setupChat({
       return conversation.id
     },
     askQuiet(text, files, { voice = false } = {}) {
-      let conversation = focusedConversation()
+      let conversation = askTarget()
       if (!conversation.canSend || conversation.busy) {
         if (tabs.full) return null
         conversation = tabs.addChat()
@@ -699,7 +756,22 @@ export function setupChat({
       return conversation.send(text, files, previewOf, voice) ? conversation.id : null
     },
     compose,
-    runTask(task, event) {
+    sendToMain(text, files, voice) {
+      const main = tabs.main()
+      if (main.busy && !main.canSend) return null
+      main.showUser(text, voice, files.map(previewOf))
+      return main.send(text, files, previewOf, voice) ? main.id : null
+    },
+    resetMain() {
+      const main = tabs.main()
+      if (!main.busy) main.reset()
+    },
+    onTurnEnd: (listener) => runs.onTurnEnd(listener),
+    closeConversation(id) {
+      runs.forget(id)
+      tabs.close(id)
+    },
+    runTask(task, event, options = {}) {
       if (tabs.full) {
         return {
           ok: false,
@@ -721,8 +793,12 @@ export function setupChat({
       }
       const conversation = makeConversation('default', undefined, folder)
       conversation.title = task.name
+      if (options.model) conversation.setModel(options.model)
+      runs.track(conversation.id, task, !!options.quiet)
       tabs.push(conversation)
-      if (!(win?.isVisible() && win.isFocused())) tabs.showInFocused(conversation.id)
+      if (!options.quiet && !(win?.isVisible() && win.isFocused())) {
+        tabs.showInFocused(conversation.id)
+      }
       tabs.changed()
       const text = expandPrompt(task.prompt, promptValues(folder, '', event ?? ''))
       conversation.showUser(text, false)
@@ -807,6 +883,14 @@ export function setupChat({
     },
     window: () => win,
     folderOf: (id) => (id ? conversationById(id) : focusedConversation())?.folder ?? null,
+    onTaskDone: (listener) => runs.onTaskDone(listener),
+    postToMain(text) {
+      tabs.main().notice('info', text)
+    },
+    memoryScope(id) {
+      const conversation = conversationById(id)
+      return conversation ? memoryScopeOf(conversation) : null
+    },
     sideWidth: (px, grow) => placement.setSide(win, tabs.layout, px, grow),
     notifySessions() {
       if (win && pageReady) win.webContents.send(IPC.sessionsChanged)

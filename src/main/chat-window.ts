@@ -20,10 +20,19 @@ const PANE_MIN_HEIGHT = 240
 const GAP = 8
 /** O mascote a menos disto do topo da tela (a ilha): o painel abre embaixo dele (px). */
 const TOP_ANCHOR = 40
+/** O modo completo (Fase 87): o tamanho da primeira vez e o menor. */
+export const FULL_SIZE = { width: 1200, height: 800 }
+export const FULL_MIN = { width: 760, height: 480 }
+
+/** O painel compacto (ao lado do mascote) ou a janela completa, com a sidebar (Fase 87). */
+export type WindowMode = 'compact' | 'full'
 
 export class PanelPlacement {
   /** A janela: solta (onde você a deixou) ou ao lado do mascote. */
   window: SavedWindow = { detached: false, maximized: false }
+  /** O modo (Fase 87) e onde a janela completa fica, à parte do painel compacto. */
+  mode: WindowMode = 'compact'
+  full: { bounds?: Rectangle; maximized: boolean } = { maximized: false }
   /** A largura de cada painel (você pode ter redimensionado) e quantos a janela mostra. */
   paneWidth = PANE_WIDTH
   shownPanes = 1
@@ -87,6 +96,7 @@ export class PanelPlacement {
    * mascote. Uma posição que não cabe mais em nenhum monitor volta para perto do mascote.
    */
   place(chat: BrowserWindow, layout: Layout | null): void {
+    if (this.mode === 'full') return this.placeFull(chat)
     const bounds = this.window.bounds
     if (this.window.detached && bounds) {
       const area = screen.getDisplayMatching(bounds).workArea
@@ -111,6 +121,73 @@ export class PanelPlacement {
     this.besideMascot(chat, this.paneWidth * columns(layout) + this.side)
   }
 
+  /**
+   * A janela completa (Fase 87): onde você a deixou (se ainda couber num monitor) ou, da primeira
+   * vez, uns 1200 × 800 no meio da tela do mascote.
+   */
+  private placeFull(chat: BrowserWindow): void {
+    chat.setMinimumSize(FULL_MIN.width, FULL_MIN.height)
+    const saved = this.full.bounds
+    const fits =
+      saved &&
+      screen.getAllDisplays().some(({ workArea: area }) => {
+        return (
+          saved.x < area.x + area.width - 80 &&
+          saved.x + saved.width > area.x + 80 &&
+          saved.y < area.y + area.height - 60 &&
+          saved.y + 40 > area.y
+        )
+      })
+    let bounds: Rectangle
+    if (saved && fits) {
+      const area = screen.getDisplayMatching(saved).workArea
+      bounds = {
+        ...saved,
+        width: Math.min(saved.width, area.width),
+        height: Math.min(saved.height, area.height)
+      }
+    } else {
+      const mascot = this.anchor()
+      const area = (mascot ? screen.getDisplayMatching(mascot) : screen.getPrimaryDisplay())
+        .workArea
+      const width = Math.min(FULL_SIZE.width, area.width - 40)
+      const height = Math.min(FULL_SIZE.height, area.height - 40)
+      bounds = {
+        x: Math.round(area.x + (area.width - width) / 2),
+        y: Math.round(area.y + (area.height - height) / 2),
+        width,
+        height
+      }
+    }
+    chat.setBounds(bounds)
+    this.placed(chat)
+    if (this.full.maximized && !chat.isMaximized()) chat.maximize()
+  }
+
+  /**
+   * Troca o modo (Fase 87): a janela sai de maximizada e vai para o lugar do modo novo. O tamanho
+   * mínimo acompanha.
+   */
+  setMode(chat: BrowserWindow | null, mode: WindowMode, layout: Layout | null): void {
+    if (mode === this.mode) return
+    this.mode = mode
+    this.changed()
+    if (!chat) return
+    if (chat.isMaximized()) {
+      this.switching = true
+      chat.unmaximize()
+      this.switching = false
+    }
+    if (mode === 'compact') {
+      const [minWidth, minHeight] = this.minimumSize(chat, layout)
+      chat.setMinimumSize(minWidth, minHeight)
+    }
+    this.place(chat, layout)
+  }
+
+  /** Trocando de modo: o "unmaximize" que vem daí não é seu. */
+  private switching = false
+
   /** Volta para perto do mascote (o botão da página). */
   dock(chat: BrowserWindow, layout: Layout | null): void {
     this.window = { detached: false, maximized: false }
@@ -122,6 +199,9 @@ export class PanelPlacement {
   /** O tamanho mínimo da janela para a grade caber (sem passar do monitor). */
   minimumSize(chat: BrowserWindow, layout: Layout | null): [number, number] {
     const area = screen.getDisplayMatching(chat.getBounds()).workArea
+    if (this.mode === 'full') {
+      return [Math.min(FULL_MIN.width, area.width), Math.min(FULL_MIN.height, area.height)]
+    }
     return [
       Math.min(
         PANE_MIN_WIDTH * columns(layout) + (this.side ? WORKBENCH_WIDTH.min : 0),
@@ -141,7 +221,7 @@ export class PanelPlacement {
     chat.setMinimumSize(minWidth, minHeight)
     const cols = columns(layout)
     if (this.shownPanes === cols) return
-    if (this.window.detached || chat.isMaximized()) {
+    if (this.mode === 'full' || this.window.detached || chat.isMaximized()) {
       this.shownPanes = cols
       return
     }
@@ -162,7 +242,7 @@ export class PanelPlacement {
     if (!chat) return
     const [minWidth, minHeight] = this.minimumSize(chat, layout)
     chat.setMinimumSize(minWidth, minHeight)
-    if (this.window.detached || chat.isMaximized()) return
+    if (this.mode === 'full' || this.window.detached || chat.isMaximized()) return
     const cols = columns(layout)
     if (grow) return this.besideMascot(chat, this.paneWidth * cols + side)
     const [width] = chat.getSize()
@@ -188,6 +268,11 @@ export class PanelPlacement {
     chat.on('resize', moved)
     let detachedBefore = false
     chat.on('maximize', () => {
+      if (this.mode === 'full') {
+        this.full = { ...this.full, maximized: true }
+        this.changed()
+        return
+      }
       detachedBefore = this.window.detached
       this.window = {
         detached: true,
@@ -197,6 +282,12 @@ export class PanelPlacement {
       this.changed()
     })
     chat.on('unmaximize', () => {
+      if (this.switching) return
+      if (this.mode === 'full') {
+        this.full = { ...this.full, maximized: false }
+        this.changed()
+        return
+      }
       this.window = { ...this.window, maximized: false, detached: detachedBefore }
       this.changed()
     })
@@ -224,8 +315,13 @@ export class PanelPlacement {
     ) {
       return
     }
-    this.window = { detached: true, maximized: false, bounds }
     this.placedBounds = bounds
+    if (this.mode === 'full') {
+      this.full = { ...this.full, bounds }
+      this.changed()
+      return
+    }
+    this.window = { detached: true, maximized: false, bounds }
     this.changed()
   }
 
@@ -244,5 +340,19 @@ export class PanelPlacement {
       maximized: window.maximized === true,
       ...(sane ? { bounds } : {})
     }
+    // A janela completa (Fase 87).
+    const full = window.full
+    const fullBounds = full?.bounds
+    const fullSane =
+      fullBounds &&
+      [fullBounds.x, fullBounds.y, fullBounds.width, fullBounds.height].every(Number.isFinite) &&
+      fullBounds.width >= FULL_MIN.width &&
+      fullBounds.height >= FULL_MIN.height
+    this.full = { maximized: full?.maximized === true, ...(fullSane ? { bounds: fullBounds } : {}) }
+  }
+
+  /** O que vai para o disco: o lugar do compacto e o da janela completa. */
+  saved(): SavedWindow {
+    return { ...this.window, full: this.full }
   }
 }

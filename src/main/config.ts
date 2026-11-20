@@ -14,7 +14,7 @@ import { IS_WINDOWS } from './platform'
 import { MAX_LINKS } from './calendar-links'
 import type { CalendarLink } from './calendar-links'
 import { PERMISSION_MODES } from '../shared/ipc'
-import type { PermissionMode } from '../shared/ipc'
+import type { HomeBlockLayout, PermissionMode, WeatherPlace } from '../shared/ipc'
 import { AVATARS, DEFAULT_AVATAR } from '../shared/avatars'
 import { DANCES } from '../shared/emotions'
 import type { Dance } from '../shared/emotions'
@@ -30,6 +30,8 @@ import {
   MAX_TASKS,
   PROMPT_NAME,
   RESERVED_NAMES,
+  TASK_DELIVERIES,
+  TASK_REPEATS,
   TASK_TRIGGERS,
   TIME,
   defaultPrompts
@@ -54,6 +56,37 @@ export interface WispConfig {
   claudePath: string
   editorCommand: string
   projectRoots: string[]
+  /**
+   * As pastas cujas conversas ficam fora da memória pessoal (Fase 79): leem o EU.md, mas não
+   * anotam nada (o trabalho de um cliente, por exemplo). Valem as de dentro também.
+   */
+  memoryExcludedFolders: string[]
+  /**
+   * A destilação (Fase 81): o Haiku lê as conversas paradas e anota o diário e os fatos novos;
+   * e a faxina da semana propõe arrumar o MEMORIA.md.
+   */
+  memoryDistill: boolean
+  /**
+   * O batimento (Fase 84): nos horários e dias, o Wisp confere o CHECKLIST.md (no Haiku, numa aba
+   * à parte) e só fala se houver algo.
+   */
+  heartbeat: boolean
+  heartbeatTimes: string[]
+  heartbeatDays: number[]
+  /**
+   * O Wisp no Telegram (Fase 85): ligado, o usuário pareado (o único atendido) e como responder
+   * (texto, áudio quando você mandou áudio, ou os dois). A ficha do bot fica no chaveiro.
+   */
+  telegram: boolean
+  telegramUser: number | null
+  telegramUserName: string | null
+  telegramVoiceReply: 'text' | 'audio' | 'both'
+  /** O painel compacto, ao lado do mascote, ou a janela completa, com a sidebar (Fase 87). */
+  windowMode: 'compact' | 'full'
+  /** Os blocos do Início, na ordem, com o tamanho e se aparecem (Fase 93); null: o padrão. */
+  homeLayout: HomeBlockLayout[] | null
+  /** A cidade do clima do Início (Fase 97); null: o clima desligado (o Wisp não consulta nada). */
+  weather: WeatherPlace | null
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -248,6 +281,18 @@ function defaults(): WispConfig {
     claudePath: 'claude',
     editorCommand: 'code',
     projectRoots: ['~/projetos'],
+    memoryExcludedFolders: [],
+    memoryDistill: true,
+    heartbeat: true,
+    heartbeatTimes: ['08:00', '13:00', '17:00'],
+    heartbeatDays: [1, 2, 3, 4, 5],
+    telegram: false,
+    telegramUser: null,
+    telegramUserName: null,
+    telegramVoiceReply: 'audio',
+    windowMode: 'compact',
+    homeLayout: null,
+    weather: null,
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -385,6 +430,37 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   claudePath: z.string().trim().min(1),
   editorCommand: z.string().trim().min(1),
   projectRoots: z.array(z.string()),
+  memoryExcludedFolders: z.array(z.string().trim().min(1)).max(50),
+  memoryDistill: z.boolean(),
+  heartbeat: z.boolean(),
+  heartbeatTimes: z
+    .array(z.string().regex(TIME))
+    .max(12)
+    .refine((list) => new Set(list).size === list.length),
+  heartbeatDays: z.array(z.number().int().min(0).max(6)).max(7),
+  telegram: z.boolean(),
+  telegramUser: z.number().int().positive().nullable(),
+  telegramUserName: z.string().max(100).nullable(),
+  telegramVoiceReply: z.enum(['text', 'audio', 'both']),
+  windowMode: z.enum(['compact', 'full']),
+  homeLayout: z
+    .array(
+      z.object({
+        id: z.string().regex(/^[a-z-]{1,30}$/),
+        w: z.number().int().min(1).max(12),
+        h: z.number().int().min(1).max(12),
+        hidden: z.boolean()
+      })
+    )
+    .max(40)
+    .nullable(),
+  weather: z
+    .object({
+      place: z.string().min(1).max(100),
+      lat: z.number().min(-90).max(90),
+      lon: z.number().min(-180).max(180)
+    })
+    .nullable(),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),
@@ -507,6 +583,17 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
         watch: z.string().trim().min(1).max(500).nullable().optional(),
         time: z.string().regex(TIME),
         days: z.array(z.number().int().min(0).max(6)).max(7),
+        // Fase 83: os horários novos, para onde vai o resultado e quem criou.
+        repeat: z.enum(TASK_REPEATS).optional(),
+        date: z
+          .string()
+          .regex(/^\d{4}-\d{2}-\d{2}$/)
+          .optional(),
+        everyHours: z.number().min(1).max(24).optional(),
+        until: z.string().regex(TIME).optional(),
+        dayOfMonth: z.number().int().min(1).max(31).optional(),
+        deliver: z.array(z.enum(TASK_DELIVERIES)).max(4).optional(),
+        by: z.literal('claude').optional(),
         folder: z.string().trim().min(1).max(500).nullable(),
         enabled: z.boolean()
       })
@@ -620,6 +707,8 @@ const EXPECTED: Partial<Record<keyof WispConfig, string>> = {
   claudePath: t('Diga o comando ou o caminho do Claude Code.'),
   editorCommand: t('Diga o comando do editor (code, codium…).'),
   projectRoots: t('Uma pasta por linha.'),
+  memoryExcludedFolders: t('Uma pasta por linha, até 50.'),
+  heartbeatTimes: t('Horários HH:MM, sem repetir, até 12.'),
   extraAllowedTools: t('Um nome de ferramenta por linha.'),
   enabledMcpServers: t('Os nomes dos servidores: letras, números, - e _.'),
   model: t('Só letras, números e . _ - : (um apelido como sonnet ou o nome completo).'),

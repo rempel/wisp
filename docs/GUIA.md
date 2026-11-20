@@ -823,12 +823,127 @@ do Claude Desktop.
 - Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente
   e volta quando eles fecham.
 
+### A interface completa (Fases 87 a 91)
+
+- **Dois modos:** o botão ao lado do maximizar (ou **Alternar entre a janela completa e o painel
+  compacto**, na paleta) troca o painel compacto, ao lado do mascote, por uma janela grande, e o
+  Wisp lembra o modo, o lugar e o tamanho de cada um (`windowMode`).
+- **A barra lateral:** no modo completo, à esquerda: **Nova conversa**, a busca (pelo título
+  enquanto você digita e, com duas letras, pelo que foi dito, com o trecho), o **Início**, a
+  **Wisp**, as conversas, o quadro, a memória, as sessões, o uso e a bancada; os projetos e as
+  conversas recentes; embaixo, as tarefas agendadas, as configurações e o modo. O botão do topo a
+  recolhe em ícones. No compacto, o primeiro ícone da faixa a abre por cima.
+- **O Início:** veja "O Início como painel de controle", logo abaixo. No modo completo, é o que o
+  primeiro abrir do dia mostra.
+- **As configurações:** em categorias (Geral, Assistente, Aparência, Mascote e sons, Voz, Atalhos e
+  sistema, Integrações, Claude Code, Fora de casa e Avançado), uma por vez, com a busca que acha em
+  qualquer uma. No compacto, a categoria é um seletor no alto.
+
+### O Início como painel de controle (Fases 92 a 97)
+
+- **O trilho:** no modo completo, a barra lateral começa como uma faixa de ícones flutuante; o
+  botão do topo dela abre a barra completa (com a busca, os projetos e as recentes), e o Wisp lembra.
+- **O alto:** a saudação, o resumo do dia (os compromissos, as tarefas do Wisp e o que espera
+  você), a caixa **Pergunte ao Wisp** (a pergunta vai para a aba Wisp, que se abre) e o relógio.
+- **Editar o Início:** o botão abre a edição. Arraste um bloco pela alça (uma barra mostra onde ele
+  cai), mude o tamanho pelo canto de baixo e esconda pelo olho. A lista **Blocos**, à direita, traz
+  de volta os escondidos; **Restaurar o padrão** volta ao desenho do modelo. Pelo teclado, com o
+  foco na alça: as setas mudam de lugar e, com Shift, o tamanho. Fica no `config.json`
+  (`homeLayout`); numa janela estreita, os blocos se ajustam às colunas que cabem.
+- **Os blocos:** a agenda de hoje, o calendário do mês (um ponto nos dias com compromisso; o clique
+  mostra o dia), a semana em colunas, A seguir, o batimento (quanto falta para o próximo), o uso do
+  plano, o agendado e lembretes, as anotações (o "+" anota na memória), Hoje no Wisp (as linhas do
+  diário de hoje), as conversas, o quadro de tarefas, o Precisa de você (os pedidos esperando nas
+  abas, com Permitir e Negar ali mesmo; sem nenhum, as conversas trabalhando), o GitHub, a semana do
+  Wisp, a atividade (os quadradinhos de nove semanas), as suas tarefas, os hábitos, o foco, o
+  Tocando agora e o clima.
+- **Minhas tarefas:** a sua lista, com o prazo, a estrela e os filtros (Todas, Hoje, Importantes,
+  Feitas); as feitas somem depois de 30 dias. O Wisp também mexe nela: "põe na minha lista renovar o
+  domínio até sexta" vira uma tarefa (`todo_add`), e ele marca como feita (`todo_done`). Fica em
+  `tarefas.json`, nos dados do Wisp.
+- **Hábitos:** o "+" cria um; os círculos marcam os dias da semana, e o número com o 🔥 é a
+  sequência de dias seguidos. Ficam em `habitos.json`.
+- **Foco:** os blocos de 25 e 50 minutos são o modo foco do menu do mascote: os avisos ficam quietos
+  enquanto conta, e no fim o mascote comemora.
+- **Clima:** desligado de início. Dê a cidade no bloco e ele mostra o agora e os próximos três dias
+  pela Open-Meteo (sem conta), no máximo uma consulta a cada 30 minutos. **Trocar** muda a cidade ou
+  desliga.
+
 ### Memória, modelos locais e o sistema
 
 - **Memória** (Fase 65): na paleta, **Memória** mostra os `CLAUDE.md` que o Claude lê antes de
   cada conversa (o seu, em `~/.claude`; o do Wisp; e os do projeto da conversa em foco). **Editar**
   abre o texto; **Ver o que muda** mostra o diff, e gravar guarda um backup do arquivo de antes.
   Vale nas conversas novas (Ctrl+K).
+- **A memória pessoal** (Fase 79): o Wisp lembra de você entre as conversas. Quando você conta
+  algo que vale para depois ("lembra que o aniversário da Ana é 3 de março", "prefiro respostas
+  curtas"), o Claude anota sozinho, sem card, em arquivos Markdown na pasta de dados do Wisp
+  (`~/.local/share/wisp/memoria/`): o `EU.md` (quem você é), o `MEMORIA.md` (fatos e decisões) e
+  o diário de cada dia. Toda conversa nova começa sabendo o que está no `EU.md` e no
+  `MEMORIA.md`. "Esquece isso" tira a anotação.
+  - **À vista:** em cima, na tela **Memória**, os dois arquivos (para ler e editar, com o diff) e
+    **O que o Wisp anotou**: cada anotação, com a conversa de onde veio e o **Desfazer**.
+  - **Segredos nunca entram:** uma senha, uma ficha ou uma chave é recusada antes de gravar.
+  - **Conversa anônima:** na paleta, **Nova conversa anônima** abre uma aba (com os óculos 🕶)
+    que não lê nem escreve a memória. Reaberta do histórico, continua anônima.
+  - **Pastas fora da memória** (`memoryExcludedFolders`): na tela Memória, as pastas cujas
+    conversas (e as das pastas de dentro) leem o `EU.md`, mas não anotam nada. Bom para o
+    trabalho de um cliente.
+  - **A busca no que ele lembra** (Fase 80): o Claude busca sozinho na memória, no diário e nas
+    conversas antigas quando você fala de algo de antes ("qual era o restaurante que a Ana
+    indicou?"). Pelas palavras, sem ligar para acentos; e, com o modelo baixado, pelo sentido.
+    Na tela Memória, **Busca por sentido → Baixar o modelo** mostra o tamanho (uns 120 MB) e de
+    onde ele vem (huggingface.co), e só baixa com o seu clique; depois, tudo roda no seu
+    computador. As conversas anônimas e as das pastas fora da memória não entram na busca.
+  - **O diário e a faxina** (Fase 81, `memoryDistill`): uma conversa parada há uns 15 minutos (ou
+    que você fechou) é lida pelo Haiku, sem ferramentas, que anota uma ou duas linhas no diário
+    do dia e os fatos novos, sem você pedir (aparecem em **O que o Wisp anotou** "pela
+    destilação", com o desfazer). Uma vez por semana, a faxina sugere arrumar o `MEMORIA.md`
+    (juntar repetidos, tirar o que passou): uma notificação avisa, e a tela Memória mostra o diff
+    com **Gravar** e **Descartar**. O custo dos últimos 30 dias aparece ali; a caixa **Destilar
+    as conversas sozinho** desliga tudo.
+- **A Wisp** (Fase 82): a primeira aba, com a estrela ✦, é a conversa principal. Ela não fecha e
+  é uma por dia: quando o dia vira (e ela está parada), começa outra, com o diário de ontem e o
+  de hoje no prompt; a de ontem fica no histórico, e a conversa vazia da Wisp mostra os dias
+  anteriores para reabrir. A voz, o `wisp --ask`, a busca do desktop e o "Perguntar ao Wisp" caem
+  nela quando você não está com o painel em foco (com ele em foco, na aba em foco), e o primeiro
+  Ctrl+Alt+W do dia a mostra.
+- **A personalidade** (Fase 82): o `PERSONALIDADE.md`, na tela Memória, diz como o Wisp fala com
+  você (o tom, o jeito, o que priorizar), em todas as conversas. Peça "fala comigo de um jeito
+  mais informal": o Claude propõe a mudança no arquivo, e o card mostra o diff para você decidir.
+- **A agenda que ele marca** (Fase 83): peça "toda sexta às 17h me faz um resumo da semana" ou
+  "daqui a 2 horas confere se o deploy passou": o Claude monta a tarefa e um card mostra o nome, o
+  horário em palavras, o prompt e para onde vai o resultado; ela só existe com o seu OK (em
+  qualquer modo). Além de "toda semana nos dias", dá para "uma vez só", "a cada N horas, das 8h
+  às 22h" e "todo mês no dia 5". Quando a tarefa termina, o que o Claude respondeu aparece na
+  Wisp, numa notificação e no balão do mascote (e no Telegram, se ligado), e uma linha vai para
+  o diário. "Quais tarefas eu tenho?" e "cancela a do resumo" também funcionam (cancelar pede o
+  card).
+- **O batimento** (Fase 84): em Configurações, logo abaixo das tarefas agendadas. Nos horários
+  (8h, 13h e 17h nos dias úteis, por padrão), o Wisp confere o seu checklist, o `CHECKLIST.md` da
+  tela Memória: a agenda, o GitHub, os lembretes e as tarefas, o que ficou em aberto ontem e o
+  e-mail (com um servidor MCP de e-mail, como o do Gmail, ligado para o Wisp). Roda no Haiku, numa
+  aba à parte que fecha sozinha, só olhando. Sem nada que mereça, fica quieto e só anota no
+  diário que conferiu; com algo, o aviso chega na Wisp, numa notificação e no mascote. Um horário
+  perdido com o computador desligado roda ao abrir, até duas horas depois. **Conferir agora**
+  roda na hora.
+- **O Wisp no Telegram** (Fase 85): em Configurações → Telegram. Crie um bot no @BotFather (no
+  Telegram), cole a ficha dele e **Guardar** (ela vai para o chaveiro); **Parear o meu usuário**
+  mostra um código de 6 números: mande ao bot, e pronto. Daí em diante, o que você manda ao bot
+  cai na Wisp (aparece no computador também) e a resposta volta por lá. Dá para mandar áudios
+  (transcritos no seu computador; pede o `ffmpeg` e o whisper), fotos e arquivos, e usar
+  `/agenda`, `/tarefas`, `/memoria`, `/lembrar …` e `/novo`. A resposta vem em áudio quando você
+  manda áudio (com o Piper), ou como escolher. Os pedidos de permissão chegam com **Permitir uma
+  vez** e **Negar** (um comando com arquivos de segredos, só negar), na hora se você está
+  conversando por lá. Com o computador desligado, nada responde; ao abrir, o Wisp responde o que
+  chegou nas últimas 12 horas e resume o resto. As tarefas e o batimento também avisam pelo
+  Telegram. Só o seu usuário é atendido, e as mensagens passam pelos servidores do Telegram.
+- **As skills que ele aprende** (Fase 86): peça "transforma isso numa skill" e o Claude propõe
+  uma skill do Claude Code (em `~/.claude/skills/<nome>`): o card mostra o texto inteiro e onde
+  ela fica, e ela só existe com o seu OK; depois, vale como `/<nome>` nas conversas novas. Uma
+  skill do Wisp que errou e você corrigiu ganha a proposta de mudança, com o diff (a de antes
+  fica num backup). Uma vez por semana, junto da faxina, o Wisp procura o que você pede sempre do
+  mesmo jeito e sugere skills na tela Memória, com **Criar a skill** e **Descartar**.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

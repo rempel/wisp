@@ -598,6 +598,10 @@ export function toolActivity(name: string, input: unknown): string {
       return t('mudando o volume…')
     case 'mcp__desktop__express':
       return t('mostrando uma emoção no mascote…')
+    case 'mcp__desktop__memory_save':
+      return t('anotando na memória…')
+    case 'mcp__desktop__memory_forget':
+      return t('esquecendo…')
     default:
       return name.startsWith('mcp__playwright__')
         ? t('usando o navegador…')

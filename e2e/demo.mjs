@@ -82,6 +82,7 @@ check(
       'Conversas',
       'Prompts salvos',
       'Tarefas agendadas',
+      'Batimento',
       'Mascote e sons',
       'Aparência e acessibilidade',
       'Atalhos e sistema',
@@ -92,6 +93,7 @@ check(
       'Servidores MCP',
       'OpenRouter (experimental)',
       'Integrações',
+      'Telegram',
       'Celular',
       'Levar o Wisp junto',
       'Avançado'

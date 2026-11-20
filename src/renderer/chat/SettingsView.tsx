@@ -7,6 +7,7 @@ import type { Dance } from '../../shared/emotions'
 import { MODEL_CHOICES, PERMISSION_MODES } from '../../shared/ipc'
 import type { Settings, SettingsResult, SettingsSnapshot } from '../../shared/ipc'
 import { PromptsSection, TasksSection } from './AutomationSection'
+import { HeartbeatSection } from './HeartbeatSection'
 import { MascotGallery } from './MascotGallery'
 import { McpSection } from './McpSection'
 import { MODE_TEXT } from './modes'
@@ -16,6 +17,7 @@ import { VoiceTest } from './VoiceTest'
 import { OpenRouterKey } from './OpenRouterKey'
 import { CalendarLinks } from './CalendarLinks'
 import { PhoneSection } from './PhoneSection'
+import { TelegramSection } from './TelegramSection'
 import { RemoteChatSection } from './RemoteChatSection'
 import { PortableSection } from './PortableSection'
 import {
@@ -29,6 +31,8 @@ import {
 } from './SettingsFields'
 import { parseReplacements } from '../../shared/dictation'
 import { IntegrationToggles } from './IntegrationToggles'
+import { SettingsHeading, SettingsNav } from './SettingsNav'
+import { savedCategory, useSettingsFilter } from './settings-categories'
 import { t } from '../../shared/i18n'
 
 type Patch = Partial<Settings> & { autostart?: boolean }
@@ -86,6 +90,7 @@ export function SettingsView({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(0)
   const [query, setQuery] = useState('')
+  const [category, setCategory] = useState(savedCategory)
   const scroll = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -105,19 +110,8 @@ export function SettingsView({
     return () => window.clearTimeout(timer)
   }, [saved])
 
-  // A busca (Fase 52): só as seções com o texto procurado ficam à vista (sem acento nem caixa).
-  useEffect(() => {
-    const fold = (text: string): string =>
-      text
-        .normalize('NFD')
-        .replace(/\p{Diacritic}/gu, '')
-        .toLowerCase()
-    const wanted = fold(query.trim())
-    for (const section of scroll.current?.querySelectorAll<HTMLElement>('.settings-section') ??
-      []) {
-      section.hidden = !!wanted && !fold(section.textContent ?? '').includes(wanted)
-    }
-  }, [query, snapshot])
+  // As categorias (Fase 90) e a busca (Fase 52): só fica à vista o que vale agora.
+  useSettingsFilter(scroll, category, query, snapshot)
 
   if (!snapshot) return <div className="settings" />
   const values = snapshot.values
@@ -136,22 +130,10 @@ export function SettingsView({
   }
 
   return (
-    <div className="settings">
-      <input
-        type="search"
-        className="settings-search"
-        value={query}
-        placeholder={t('Buscar nas configurações (ex.: som, atalho, voz)')}
-        aria-label={t('Buscar nas configurações')}
-        onChange={(event) => setQuery(event.target.value)}
-        onKeyDown={(event) => {
-          if (event.key === 'Escape' && query) {
-            event.stopPropagation()
-            setQuery('')
-          }
-        }}
-      />
+    <div className="settings settings-split">
+      <SettingsNav category={category} onCategory={setCategory} query={query} onQuery={setQuery} />
       <div className="settings-scroll" ref={scroll}>
+        <SettingsHeading category={category} query={query} />
         {snapshot.problems.length > 0 && (
           <div className="settings-problems" role="alert">
             <strong>{t('O config.json tem problemas')}</strong>
@@ -267,6 +249,7 @@ export function SettingsView({
           error={errors.scheduledTasks}
           save={save}
         />
+        <HeartbeatSection values={values} error={errors.heartbeatTimes} save={save} />
 
         <Section title={t('Mascote e sons')}>
           <Row
@@ -821,6 +804,7 @@ export function SettingsView({
           />
         </Section>
 
+        <TelegramSection save={save} />
         <Section title={t('Celular')}>
           <PhoneSection status={snapshot.phone} />
           <RemoteChatSection

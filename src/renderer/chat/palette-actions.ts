@@ -163,6 +163,25 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
       run: () => api.tabs.create()
     },
     {
+      id: 'window-mode',
+      group: 'action',
+      title: t('Alternar entre a janela completa e o painel compacto'),
+      keywords: t('sidebar barra lateral modo janela maximizar dashboard'),
+      run: () =>
+        void api.settings
+          .get()
+          .then((snapshot) =>
+            api.chat.setWindowMode(snapshot?.values.windowMode === 'full' ? 'compact' : 'full')
+          )
+    },
+    {
+      id: 'tab-anonymous',
+      group: 'action',
+      title: t('Nova conversa anônima'),
+      keywords: t('privada sem memória incógnito'),
+      run: () => api.tabs.createAnonymous()
+    },
+    {
       id: 'folder',
       group: 'action',
       title: t('Abrir uma pasta numa conversa…'),
@@ -205,7 +224,7 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
     ['diagnostics', t('Diagnóstico'), t('problemas versão')],
     ['usage', t('Painel de uso'), t('tokens custo gastos')],
     ['agents', t('Subagentes'), t('agentes ajudantes')],
-    ['memory', t('Memória'), t('CLAUDE.md instruções regras lembrar')],
+    ['memory', t('Memória'), t('CLAUDE.md instruções regras lembrar anotações esquecer EU.md')],
     ['board', t('Quadro de tarefas'), t('kanban cartões cópias')]
   ]
   for (const [view, title, keywords] of views) {

@@ -32,21 +32,11 @@ import { DiagnosticsView, WelcomeView } from './Diagnostics'
 import { Grid } from './Grid'
 import { cardWaiting, fromTerminal, isCardShortcut, isWispTerminalShortcut } from './terminal-keys'
 import { HistoryView } from './HistoryView'
-import {
-  Avatar,
-  BackIcon,
-  BoardIcon,
-  CloseIcon,
-  DemoIcon,
-  DockIcon,
-  HistoryIcon,
-  MaximizeIcon,
-  PaperclipIcon,
-  RestoreIcon,
-  SettingsIcon,
-  TerminalIcon,
-  WorkbenchIcon
-} from './icons'
+import { CloseIcon, PaperclipIcon } from './icons'
+import { ChatHeader } from './ChatHeader'
+import type { ChatView } from './ChatHeader'
+import { Sidebar } from './Sidebar'
+import { HomeView } from './HomeView'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -54,12 +44,10 @@ import type { PaletteItem } from './palette'
 import { SessionPane } from './SessionPane'
 import { SessionsView } from './SessionsView'
 import { SettingsView } from './SettingsView'
-import { awaitingPermission, initialState, reducer, statusText } from './state'
+import { awaitingPermission, initialState, reducer } from './state'
 import type { Action, ChatState, Item } from './state'
 import { TabBar } from './TabBar'
 import type { TabStatus } from './TabBar'
-import { CostPill } from './CostPill'
-import { UsagePill } from './UsagePill'
 import { useSessions } from './useSessions'
 import { Workbench } from './Workbench'
 import { toggleWorkbench, useWorkbench } from './workbench-store'
@@ -106,34 +94,21 @@ async function zoomPanel(key: string): Promise<void> {
   if (next !== now) await window.wisp.settings.set({ panelZoom: next })
 }
 
-/** O título e a linha de baixo do cabeçalho de cada tela. */
-const VIEW_TITLES: Record<string, [string, string]> = {
-  history: [t('Conversas'), t('guardadas neste computador')],
-  settings: [t('Configurações'), t('gravadas no config.json')],
-  sessions: [t('Sessões'), t('do Claude Code no terminal')],
-  diagnostics: [t('Diagnóstico'), t('o que o Wisp precisa e o que está ligado')],
-  welcome: [t('Primeiros passos'), t('uma coisa de cada vez')],
-  usage: [t('Uso'), t('tokens e custo, das sessões do Claude Code nesta máquina')],
-  agents: [t('Subagentes'), t('os ajudantes que o Claude chama sozinho')],
-  memory: [t('Memória'), t('o que o Claude lê antes de cada conversa')],
-  board: [t('Quadro de tarefas'), t('cada cartão numa cópia do projeto')]
-}
-
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
-  const [view, setView] = useState<
-    | 'chat'
-    | 'history'
-    | 'sessions'
-    | 'settings'
-    | 'diagnostics'
-    | 'welcome'
-    | 'usage'
-    | 'agents'
-    | 'memory'
-    | 'board'
-  >('chat')
+  const [view, setView] = useState<ChatView>('chat')
+  // A sidebar (Fase 88): recolhida (o trilho) ou aberta no modo completo, lembrado; por cima no
+  // compacto.
+  const [collapsed, setCollapsed] = useState(() => {
+    try {
+      // No modo completo, ela começa como o trilho de ícones (Fase 92).
+      return localStorage.getItem('wisp.sidebar') !== 'aberta'
+    } catch {
+      return true
+    }
+  })
+  const [drawer, setDrawer] = useState(false)
   // As configurações: o modo demonstração muda o cabeçalho e o painel vazio.
   const [settings, setSettings] = useState<SettingsSnapshot | null>(null)
   /** O próximo compromisso da agenda (o painel vazio mostra). */
@@ -150,9 +125,27 @@ export default function Chat(): JSX.Element {
   /** A janela: maximizada, e solta (onde você a deixou) ou ao lado do mascote. */
   const [windowState, setWindowState] = useState<WindowState>({
     maximized: false,
-    detached: false
+    detached: false,
+    mode: 'compact'
   })
-  useEffect(() => window.wisp.chat.onWindowState(setWindowState), [])
+  const full = windowState.mode === 'full'
+  useEffect(
+    () =>
+      window.wisp.chat.onWindowState((next) => {
+        setWindowState(next)
+        // No modo completo, o primeiro abrir do dia mostra o Início (Fase 89).
+        if (next.mode !== 'full') return
+        const today = new Date().toDateString()
+        try {
+          if (localStorage.getItem('wisp.inicio') === today) return
+          localStorage.setItem('wisp.inicio', today)
+        } catch {
+          return
+        }
+        setView('home')
+      }),
+    []
+  )
   // O chip "usar o que você copiou" (mostrado no painel em foco).
   const [clip, setClip] = useState<ClipboardOffer | null>(null)
   // A voz: o botão do microfone do painel em foco acompanha (ouvindo, transcrevendo, falando).
@@ -579,6 +572,19 @@ export default function Chat(): JSX.Element {
     [apply]
   )
 
+  /** A pergunta da caixa do Início (Fase 92): vai para a aba Wisp, que se abre. */
+  const ask = useCallback(
+    (text: string): void => {
+      const main = tabsRef.current.tabs.find((tab) => tab.kind === 'chat' && tab.main)
+      if (!main) return
+      apply(main.id, { type: 'user-message', text, attachments: [] })
+      window.wisp.chat.send(main.id, text, [])
+      window.wisp.tabs.show(main.id)
+      setView('chat')
+    },
+    [apply]
+  )
+
   // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
   const statuses = new Map<string, TabStatus>()
   for (const tab of tabs.tabs) {
@@ -673,6 +679,7 @@ export default function Chat(): JSX.Element {
         demo={demo}
         local={!!settings?.values.localModelsUrl}
         agenda={agendaNext}
+        main={tab.kind === 'chat' && !!tab.main}
         onSent={onSent(id)}
         onBroadcast={broadcast}
       />
@@ -747,7 +754,10 @@ export default function Chat(): JSX.Element {
 
   return (
     <AvatarContext.Provider value={settings?.values.avatar ?? DEFAULT_AVATAR}>
-      <div className={`chat mood-${mood}${split ? ' split' : ''}`} ref={root}>
+      <div
+        className={`chat mood-${mood}${split ? ' split' : ''} mode-${windowState.mode}`}
+        ref={root}
+      >
         {dragging && (
           <div className="drop-overlay" aria-hidden>
             <PaperclipIcon />
@@ -758,198 +768,110 @@ export default function Chat(): JSX.Element {
             </span>
           </div>
         )}
-        <header className="header">
-          {view !== 'chat' ? (
-            <>
-              <button
-                type="button"
-                className="icon-button"
-                onClick={() => setView('chat')}
-                title={t('Voltar para a conversa (Esc)')}
-                aria-label={t('Voltar para a conversa')}
-              >
-                <BackIcon />
-              </button>
-              <div className="title">
-                <strong>{VIEW_TITLES[view][0]}</strong>
-                <span className="status">{VIEW_TITLES[view][1]}</span>
-              </div>
-            </>
-          ) : (
-            <>
-              <Avatar size={26} mood={mood} />
-              <div className="title">
-                <strong>Wisp</strong>
-                <span className={`status${focusedState?.busy ? ' busy' : ''}`}>
-                  {focusedState ? statusText(focusedState) : t('sessão do terminal')}
-                </span>
-              </div>
-            </>
-          )}
-          {demo && (
-            <button
-              type="button"
-              className="demo-pill"
-              onClick={() => void window.wisp.settings.set({ demo: false })}
-              title={t(
-                'Modo demonstração: as respostas são gravadas, e nada roda de verdade. Clique para desligar.'
-              )}
-              aria-label={t('Modo demonstração (clique para desligar)')}
-            >
-              <DemoIcon />
-              {t('Demo')}
-            </button>
-          )}
-          {!demo &&
-            (focusedState?.provider === 'openrouter' ? (
-              <CostPill cost={focusedState.cost} />
-            ) : (
-              usage && <UsagePill usage={usage} onPanel={() => setView('usage')} />
-            ))}
-          {/* A navegação fica numa barra à esquerda (o CSS a põe lá); o cabeçalho fica com o título. */}
-          <nav className="header-nav" aria-label={t('Telas do painel')}>
-            <button
-              type="button"
-              className={`icon-button badge-host${view === 'sessions' ? ' active' : ''}`}
-              onClick={() => setView((current) => (current === 'sessions' ? 'chat' : 'sessions'))}
-              title={
-                requests
-                  ? t('Sessões do terminal ({requests} {v2})', {
-                      requests,
-                      v2: requests === 1 ? t('pedido') : t('pedidos')
-                    })
-                  : t('Sessões do Claude Code no terminal')
-              }
-              aria-label={t('Sessões do terminal')}
-              aria-pressed={view === 'sessions'}
-            >
-              <TerminalIcon />
-              {requests > 0 && <span className="badge">{requests}</span>}
-            </button>
-            <button
-              type="button"
-              className={`icon-button${view === 'board' ? ' active' : ''}`}
-              onClick={() => setView((current) => (current === 'board' ? 'chat' : 'board'))}
-              title={t('Quadro de tarefas')}
-              aria-label={t('Quadro de tarefas')}
-              aria-pressed={view === 'board'}
-            >
-              <BoardIcon />
-            </button>
-            <button
-              type="button"
-              className={`icon-button${view === 'history' ? ' active' : ''}`}
-              onClick={() => setView((current) => (current === 'history' ? 'chat' : 'history'))}
-              title={t('Conversas anteriores')}
-              aria-label={t('Conversas anteriores')}
-              aria-pressed={view === 'history'}
-            >
-              <HistoryIcon />
-            </button>
-            <button
-              type="button"
-              className={`icon-button workbench-toggle nav-end${view === 'chat' && workbench?.open ? ' active' : ''}`}
-              onClick={() => {
-                if (view !== 'chat') setView('chat')
-                if (view === 'chat' || !workbench?.open) toggleWorkbench(workbench)
+        {(full || drawer) && (
+          <div
+            className={full ? 'sidebar-host' : 'sidebar-drawer'}
+            onClick={(event) => !full && event.target === event.currentTarget && setDrawer(false)}
+          >
+            <Sidebar
+              view={view}
+              onView={setView}
+              tabs={tabs}
+              mood={mood}
+              mode={windowState.mode}
+              collapsed={full && collapsed}
+              onCollapse={(next) => {
+                setCollapsed(next)
+                try {
+                  localStorage.setItem('wisp.sidebar', next ? 'recolhida' : 'aberta')
+                } catch {
+                  // Sem o armazenamento: vale só nesta abertura.
+                }
               }}
-              title={t('Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)')}
-              aria-label={t('Bancada: navegador e terminal')}
-              aria-pressed={view === 'chat' && !!workbench?.open}
-            >
-              <WorkbenchIcon />
-            </button>
-            <button
-              type="button"
-              className={`icon-button${view === 'settings' ? ' active' : ''}`}
-              onClick={() => setView((current) => (current === 'settings' ? 'chat' : 'settings'))}
-              title={t('Configurações')}
-              aria-label={t('Configurações')}
-              aria-pressed={view === 'settings'}
-            >
-              <SettingsIcon />
-            </button>
-          </nav>
-          {windowState.detached && !windowState.maximized && (
-            <button
-              type="button"
-              className="icon-button window-dock"
-              onClick={() => window.wisp.chat.dock()}
-              title={t('Voltar para perto do mascote')}
-              aria-label={t('Voltar para perto do mascote')}
-            >
-              <DockIcon />
-            </button>
-          )}
-          <button
-            type="button"
-            className="icon-button window-maximize"
-            onClick={() => window.wisp.chat.maximize()}
-            title={windowState.maximized ? t('Restaurar') : t('Maximizar')}
-            aria-label={windowState.maximized ? t('Restaurar') : t('Maximizar')}
-          >
-            {windowState.maximized ? <RestoreIcon /> : <MaximizeIcon />}
-          </button>
-          <button
-            type="button"
-            className="icon-button"
-            onClick={() => window.wisp.chat.hide()}
-            title={t('Fechar (Esc)')}
-            aria-label={t('Fechar')}
-          >
-            <CloseIcon />
-          </button>
-        </header>
-
-        <div className="chat-body">
-          {view === 'settings' ? (
-            <SettingsView
-              onAgents={() => setView('agents')}
-              onDiagnostics={() => setView('diagnostics')}
-              onWelcome={() => setView('welcome')}
+              requests={requests}
+              projects={settings?.values.projects ?? []}
+              workbenchOpen={!!workbench?.open}
+              onWorkbench={() => {
+                setView('chat')
+                toggleWorkbench(workbench)
+              }}
+              onDone={full ? undefined : () => setDrawer(false)}
             />
-          ) : view === 'diagnostics' ? (
-            <DiagnosticsView onSettings={() => setView('settings')} />
-          ) : view === 'welcome' ? (
-            <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
-          ) : view === 'history' ? (
-            <HistoryView onClose={() => setView('chat')} />
-          ) : view === 'usage' ? (
-            <UsageView />
-          ) : view === 'board' ? (
-            <BoardView onShow={() => setView('chat')} />
-          ) : view === 'memory' ? (
-            <MemoryView folder={focusedFolder} />
-          ) : view === 'agents' ? (
-            <AgentsView folder={focusedFolder} />
-          ) : view === 'sessions' ? (
-            <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
-          ) : (
-            <>
-              {tabs.tabs.length > 0 && (
-                <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
-              )}
-              <div className="workspace">
-                <div className="panes">
-                  <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
-                </div>
-                {workbench?.open && (
-                  <Workbench
-                    state={workbench}
-                    folder={focusedFolder}
-                    conversation={focusedTab?.kind === 'chat' ? focusedTab.id : null}
-                    busy={!!focusedState?.busy}
-                    items={focusedState?.items ?? NO_ITEMS}
-                    covered={palette || dragging || draggingTab !== null}
-                    onCompose={(text) => {
-                      const conversation = focusedConversation()
-                      if (conversation) bus.emit(conversation, { type: 'compose', text })
-                    }}
-                  />
+          </div>
+        )}
+        <div className="chat-main">
+          <ChatHeader
+            view={view}
+            setView={setView}
+            mood={mood}
+            focusedState={focusedState}
+            demo={demo}
+            usage={usage}
+            requests={requests}
+            workbench={workbench}
+            windowState={windowState}
+            onDrawer={() => setDrawer(true)}
+          />
+
+          <div className="chat-body">
+            {view === 'home' ? (
+              <HomeView
+                onView={setView}
+                usage={usage}
+                tabs={tabs}
+                conversations={conversations}
+                settings={settings}
+                onAsk={ask}
+              />
+            ) : view === 'settings' ? (
+              <SettingsView
+                onAgents={() => setView('agents')}
+                onDiagnostics={() => setView('diagnostics')}
+                onWelcome={() => setView('welcome')}
+              />
+            ) : view === 'diagnostics' ? (
+              <DiagnosticsView onSettings={() => setView('settings')} />
+            ) : view === 'welcome' ? (
+              <WelcomeView onDone={() => setView('chat')} onSettings={() => setView('settings')} />
+            ) : view === 'history' ? (
+              <HistoryView onClose={() => setView('chat')} />
+            ) : view === 'usage' ? (
+              <UsageView />
+            ) : view === 'board' ? (
+              <BoardView onShow={() => setView('chat')} />
+            ) : view === 'memory' ? (
+              <MemoryView folder={focusedFolder} />
+            ) : view === 'agents' ? (
+              <AgentsView folder={focusedFolder} />
+            ) : view === 'sessions' ? (
+              <SessionsView snapshot={sessions} onContinue={() => setView('chat')} />
+            ) : (
+              <>
+                {tabs.tabs.length > 0 && (
+                  <TabBar state={tabs} statuses={statuses} onDragTab={setDraggingTab} />
                 )}
-              </div>
-            </>
-          )}
+                <div className="workspace">
+                  <div className="panes">
+                    <Grid layout={tabs.layout} renderPane={renderPane} draggingTab={draggingTab} />
+                  </div>
+                  {workbench?.open && (
+                    <Workbench
+                      state={workbench}
+                      folder={focusedFolder}
+                      conversation={focusedTab?.kind === 'chat' ? focusedTab.id : null}
+                      busy={!!focusedState?.busy}
+                      items={focusedState?.items ?? NO_ITEMS}
+                      covered={palette || dragging || draggingTab !== null}
+                      onCompose={(text) => {
+                        const conversation = focusedConversation()
+                        if (conversation) bus.emit(conversation, { type: 'compose', text })
+                      }}
+                    />
+                  )}
+                </div>
+              </>
+            )}
+          </div>
         </div>
         {palette && <CommandPalette actions={actions} onClose={closePalette} />}
         <FileViewer />

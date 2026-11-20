@@ -1213,3 +1213,157 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
       tópicos. No fim, o `gh pr review` pede o card.
 - [ ] **Os olhos no GNOME:** com a extensão ligada, no GNOME com Wayland, os olhos do mascote
       seguem o cursor pela tela toda.
+
+## A memória pessoal (Fase 79)
+
+- [ ] **Anotar:** numa conversa, "lembra que o aniversário da Ana é 3 de março": o Claude anota
+      sem card. Numa conversa nova (Ctrl+K), "quando é o aniversário da Ana?" responde certo.
+- [ ] **À vista:** na tela Memória (paleta), o `MEMORIA.md` mostra a anotação, e **O que o Wisp
+      anotou** a lista com a conversa de origem (o clique a abre). **Desfazer** a tira; numa
+      conversa nova, a pergunta deixa de ter resposta.
+- [ ] **Sobre você:** "prefiro respostas curtas, sem títulos": a anotação vai para o `EU.md`, e
+      as conversas novas obedecem.
+- [ ] **Esquecer:** "esquece o aniversário da Ana": a anotação sai, e o registro mostra
+      **Esqueceu**, com o desfazer.
+- [ ] **Segredos:** "lembra que a senha do wifi é batata123": o Claude diz que segredos não
+      entram, e o arquivo continua sem ela.
+- [ ] **Anônima:** **Nova conversa anônima** na paleta: a aba tem os óculos; "o que você sabe de
+      mim?" não traz nada da memória, e pedir para lembrar algo não anota. Feche o Wisp e abra:
+      a aba continua anônima.
+- [ ] **Pastas fora da memória:** ponha uma pasta de projeto na lista da tela Memória; numa
+      conversa nela, o Claude sabe o que está no `EU.md`, mas pedir para lembrar algo não anota.
+- [ ] **Editar à mão:** edite o `MEMORIA.md` num editor qualquer; a próxima conversa nova já vê
+      a mudança.
+
+## A busca no que ele lembra (Fase 80)
+
+- [ ] **Por texto:** numa conversa, fale do "jantar no Shiro, sugestão da Ana". Dias depois (ou
+      numa conversa nova), "onde foi aquele jantar no Shiro?": o Claude usa a `memory_search` e
+      acha a conversa.
+- [ ] **O modelo:** na tela Memória, **Busca por sentido → Baixar o modelo**: aparece o tamanho e
+      o huggingface.co; **Baixar** mostra o andamento e, no fim, "Modelo instalado", com os
+      trechos ganhando vetor aos poucos.
+- [ ] **Por sentido:** com o modelo, "qual era aquele restaurante que a Ana indicou?" acha a
+      conversa do Shiro, sem a palavra "restaurante".
+- [ ] **Sem internet:** com o modelo baixado, desligue a rede: a busca por sentido continua.
+- [ ] **Remover:** **Remover o modelo** apaga a pasta `modelos/`; a busca volta a ser só por texto.
+- [ ] **De fora:** uma conversa anônima não aparece na busca, nem uma de uma pasta fora da memória.
+- [ ] **O pacote:** no .deb e no AppImage, `onnxruntime-web/dist` tem só o `ort.node.min.*` e o
+      `ort-wasm-simd-threaded.*`.
+
+## O diário e a faxina (Fase 81)
+
+- [ ] **O diário:** converse sobre a viagem de dezembro e deixe a conversa parada uns 15 minutos
+      (ou feche a aba): o diário do dia ganha uma linha sobre ela, e **O que o Wisp anotou**
+      mostra "pela destilação".
+- [ ] **Os fatos:** numa conversa, conte algo de você sem pedir para lembrar ("meu cunhado é o
+      Pedro"); depois da destilação, aparece no `EU.md`.
+- [ ] **De fora:** uma conversa anônima e uma numa pasta fora da memória não são destiladas.
+- [ ] **A faxina:** com duas anotações repetidas no `MEMORIA.md`, **Fazer a faxina agora**: o diff
+      mostra as duas virando uma; **Gravar** muda o arquivo, com o backup.
+- [ ] **O custo:** a tela Memória mostra quantas vezes rodou e o custo.
+- [ ] **Desligar:** sem **Destilar as conversas sozinho**, nada é destilado.
+
+## A Wisp, uma aba que fica (Fase 82)
+
+- [ ] **A aba:** a primeira aba é a **Wisp**, com a estrela, sem o ×; Ctrl+W nela não fecha.
+      Feche e abra o Wisp: ela continua a primeira.
+- [ ] **Para onde vai:** com o painel escondido, `wisp --ask "oi"` e a voz caem na Wisp; com o
+      painel em foco numa aba de projeto, caem nela.
+- [ ] **O dia novo:** converse na Wisp à noite; de manhã, Ctrl+Alt+W mostra a Wisp vazia, com o
+      aviso do dia novo e a conversa de ontem em **Os dias anteriores**. "O que ficou pendente
+      ontem?" responde pelo diário.
+- [ ] **A personalidade:** na tela Memória, o `PERSONALIDADE.md` aparece com o jeito de sempre.
+      "Fala comigo de um jeito mais informal" mostra o card com o diff do arquivo; aceito, as
+      conversas novas mudam de tom.
+
+## A agenda que ele marca (Fase 83)
+
+- [ ] **Agendar:** "daqui a 5 minutos confere se o site está no ar e me diz": o card mostra
+      "Agendar uma tarefa", o horário ("uma vez, em … às …"), o prompt e os destinos. **Permitir**:
+      a tarefa aparece em Configurações → Tarefas agendadas.
+- [ ] **No modo Automático:** o mesmo pedido mostra o card do mesmo jeito.
+- [ ] **A entrega:** quando a tarefa roda e termina, a resposta aparece na Wisp, numa
+      notificação e no balão do mascote, e o diário do dia ganha uma linha. A tarefa de uma vez
+      some da lista.
+- [ ] **Os horários:** "a cada 2 horas, das 9 às 18, nos dias úteis, me lembra de alongar" e "todo
+      dia 5 às 10h, os boletos do mês": as configurações mostram os dois em palavras.
+- [ ] **Listar e cancelar:** "quais tarefas eu tenho?" lista; "cancela a dos boletos" pede o card e
+      tira.
+
+## O batimento (Fase 84)
+
+- [ ] **Sem nada:** num dia calmo, **Conferir agora**: uma aba aparece na lista e some sozinha;
+      nenhuma notificação, e o diário do dia diz "conferiu, nada de novo".
+- [ ] **Com algo:** com uma reunião daqui a pouco e um CI vermelho, **Conferir agora**: chegam uma
+      notificação e um aviso na Wisp com os dois.
+- [ ] **No horário:** com um horário de batimento daqui a 2 minutos, ele roda sozinho.
+- [ ] **Perdido:** feche o Wisp antes de um horário e abra até duas horas depois: ele roda ao
+      abrir.
+- [ ] **O e-mail:** com o servidor MCP do Gmail ligado para o Wisp, o batimento menciona um e-mail
+      importante não lido.
+- [ ] **O checklist:** tire o GitHub do `CHECKLIST.md` na tela Memória: o próximo batimento não
+      fala mais de PRs.
+
+## O Wisp no Telegram (Fase 85)
+
+- [ ] **O bot:** crie um bot no @BotFather, cole a ficha em Configurações → Telegram e
+      **Guardar**: aparece o @ do bot. A ficha está no chaveiro, e não no `config.json`.
+- [ ] **O pareamento:** **Parear o meu usuário**, mande o código ao bot: ele responde "Pareado com o
+      Wisp", e as configurações mostram você. Mensagens de outra conta não têm resposta.
+- [ ] **Conversar:** na rua, "que horas são em Tóquio?": a resposta vem no Telegram, e a conversa
+      aparece na Wisp.
+- [ ] **Áudio:** mande um áudio "me lembra de comprar pão às 18h": o lembrete é marcado e a resposta
+      vem em áudio.
+- [ ] **Foto:** mande a foto de um documento com "o que é isto?": a resposta fala dela.
+- [ ] **Um card:** "abre o projeto X no editor": o card chega com **Permitir uma vez** e **Negar**;
+      **Permitir uma vez** abre.
+- [ ] **Desligado:** com o Wisp fechado, mande uma mensagem; ao abrir, ele responde avisando que
+      estava desligado.
+- [ ] **Os avisos:** com o Telegram ligado, uma tarefa agendada e o batimento com algo a dizer
+      chegam lá também.
+- [ ] **Esquecer:** **Esquecer o bot** tira a ficha do chaveiro e desliga.
+
+## As skills que ele aprende (Fase 86)
+
+- [ ] **Pedir:** depois de um pedido que você faz sempre, "transforma isso numa skill": o card
+      mostra o SKILL.md inteiro e a pasta; **Permitir** cria, e `/<nome>` funciona numa conversa
+      nova.
+- [ ] **Melhorar:** use a skill, corrija o que ela fez errado e diga para ela aprender: o card
+      mostra o diff, e a de antes fica num backup.
+- [ ] **Perceber:** peça três vezes, em dias diferentes, "resume os PRs abertos do wisp em
+      tópicos"; **Fazer a faxina agora** na tela Memória: aparece a sugestão de `resumo-prs`, e
+      **Criar a skill** a cria.
+
+## A interface completa (Fases 87 a 91)
+
+- [ ] **Os modos:** o botão ao lado do maximizar abre a janela completa; feche e abra o Wisp: ela
+      volta, no mesmo lugar e tamanho; o botão de compactar volta ao painel ao lado do mascote.
+- [ ] **A sidebar:** "deploy" na busca lista as conversas em que se falou disso, com o trecho; o
+      clique reabre. Os projetos abrem uma conversa na pasta deles. O botão do topo recolhe e
+      reabre, e o Wisp lembra.
+- [ ] **O Início:** de manhã, no modo completo, o primeiro abrir mostra o Início com a sua agenda,
+      as tarefas do dia, o GitHub e o uso do plano; cada **Ver todas** leva ao lugar certo.
+- [ ] **As configurações:** cada categoria mostra só as dela; a busca acha em qualquer uma; no
+      compacto, o seletor troca a categoria.
+- [ ] **O desenho:** a conversa no modo completo fica numa coluna no meio; os três temas (claro,
+      escuro, alto contraste) ficam legíveis na sidebar, no Início e nas configurações.
+
+## O Início como painel de controle (Fases 92 a 97)
+
+- [ ] **O trilho:** no modo completo, a barra lateral é a faixa de ícones; o botão do topo abre a
+      completa, e fechar e abrir o Wisp lembra.
+- [ ] **A pergunta:** "Como está a minha semana?" na caixa do alto abre a aba Wisp com a pergunta.
+- [ ] **A edição:** arrastar a agenda para o fim, alargar as tarefas pelo canto e esconder o uso;
+      fechar e abrir: igual. Restaurar o padrão volta ao modelo.
+- [ ] **A agenda:** o calendário marca os dias com compromisso da sua agenda; a semana mostra a
+      linha do agora.
+- [ ] **Precisa de você:** um pedido de permissão numa aba aparece no bloco; o Permitir de lá libera
+      o comando.
+- [ ] **Tarefas:** pedir ao Wisp "põe na minha lista renovar o domínio até sexta" aparece no bloco,
+      com o prazo; marcar no bloco, e perguntar a ele o que falta.
+- [ ] **Hábitos e foco:** marcar "Exercício" hoje; começar 25 minutos, fechar a janela e esperar o
+      aviso.
+- [ ] **Música e clima:** com um player tocando, o pausar do bloco funciona; com a cidade dada, o
+      clima aparece, e desligado o Wisp não fala com a Open-Meteo.
+- [ ] **Os temas:** claro, escuro e alto contraste legíveis no trilho, nos blocos e na edição.

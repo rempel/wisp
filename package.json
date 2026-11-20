@@ -34,9 +34,11 @@
     "i18n": "node scripts/i18n.mjs"
   },
   "dependencies": {
+    "@huggingface/tokenizers": "^0.2.0",
     "@modelcontextprotocol/sdk": "^1.32.1",
     "@playwright/mcp": "0.0.83",
     "node-pty": "^1.1.0",
+    "onnxruntime-web": "^1.31.1",
     "zod": "^4.6.5"
   },
   "devDependencies": {

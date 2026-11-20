@@ -39,7 +39,7 @@ src/
 │  ├─ worktrees-ipc.ts # a cópia pelo painel: a barra, o menu das pastas e a arrumação (Fase 43)
 │  ├─ tasks-setup.ts # as tarefas: o agendador, os gatilhos por evento e o rodar (Fases 26 e 44)
 │  ├─ selection.ts   # explicar a seleção: o texto marcado para uma conversa (Fase 45)
-│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45)
+│  ├─ focus.ts       # o modo foco: o bloco quieto e o fim dele (Fase 45); o bloco Foco do Início acompanha (Fase 96)
 │  ├─ chat-points.ts # voltar a um ponto, ramificar e a pergunta lateral, pelo painel (Fase 46)
 │  ├─ aside.ts       # a pergunta lateral: um Claude Code à parte, sem ferramentas (Fase 46)
 │  ├─ conversation-types.ts # o que uma conversa recebe de quem a cria (Fase 46)
@@ -50,6 +50,24 @@ src/
 │  ├─ preview-target.ts # o que a pré-visualização abre e para onde navega (puro; Fases 47 e 58)
 │  ├─ preview-pick.ts # apontar um elemento da página: a mira e o texto para a conversa (Fase 60)
 │  ├─ memory.ts      # a memória à vista: os CLAUDE.md, a prévia com o diff e o gravar (Fase 65)
+│  ├─ personal-memory.ts # a memória pessoal: EU.md, MEMORIA.md, o diário, o registro e os segredos (Fase 79)
+│  ├─ mcp-memory.ts  # as ferramentas do Claude para a memória pessoal: memory_save, memory_forget e memory_search (Fases 79 e 80)
+│  ├─ memory-index.ts # a busca no que ele lembra: o SQLite com o FTS5 e os vetores, e a nota somada (Fase 80)
+│  ├─ mcp-schedule.ts # a agenda que o Claude marca: schedule_task, list_tasks e cancel_task (Fase 83)
+│  ├─ heartbeat.ts   # o batimento: o CHECKLIST.md, o pedido, a resposta quieta e as tarefas internas (Fase 84)
+│  ├─ chat-runs.ts   # o que o painel acompanha: as tarefas que rodam, o fim dos turnos e o dia da Wisp (Fases 82 a 85)
+│  ├─ telegram.ts    # o bot do Telegram: a Bot API, o pareamento, as mensagens, os áudios e os cards (Fase 85)
+│  ├─ telegram-setup.ts # o Telegram no app: a ficha no chaveiro, a Wisp, o ffmpeg, o IPC (Fase 85)
+│  ├─ learned-skills.ts # as skills que ele aprende: gravar o SKILL.md (com o backup) e a propose_skill (Fase 86)
+│  ├─ home-ipc.ts    # o Início: o resumo do dia (Fase 89) e o que cada bloco pede (a agenda de um período, a atividade, o diário, a música, o clima; Fases 94 a 97)
+│  ├─ home-store.ts  # as suas tarefas (tarefas.json) e os hábitos (habitos.json) (Fases 95 e 96)
+│  ├─ mcp-todos.ts   # a sua lista pelo Claude: todo_add, todo_list e todo_done (Fase 95)
+│  ├─ weather.ts     # o clima pela Open-Meteo: desligado sem cidade, de meia em meia hora (Fase 97)
+│  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
+│  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
+│  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
+│  ├─ claude-once.ts # o Claude Code de uma vez só: sem ferramentas, uma resposta em JSON e o custo (Fase 81)
+│  ├─ embeddings.ts  # o modelo da busca por sentido: baixar, carregar (ONNX Runtime em WASM) e os vetores (Fase 80)
 │  ├─ file-menu.ts   # o "Perguntar ao Wisp" do gerenciador de arquivos e o wisp no PATH do Windows (Fases 64 e 67)
 │  ├─ search-provider.ts # o Wisp na busca do desktop: o KRunner e o GNOME, pelo D-Bus (Fase 72)
 │  ├─ gnome-shell.ts # a extensão do GNOME Shell e o que o Wisp pede a ela (Fase 70)
@@ -1275,3 +1293,242 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     redesenha só os itens que mudaram, pelo número de cada um, sem mexer na rolagem de quem lê lá
     em cima. O Markdown vira nós do DOM (nada de `innerHTML`), e os links só podem ser http ou
     https. Lê o código do QR também quando ele chega com ela aberta (o `hashchange`).
+- **A memória pessoal (Fase 79):**
+  - **os arquivos** (`personal-memory.ts`), em `memoria/` na pasta de dados: `EU.md` (quem você
+    é), `MEMORIA.md` (fatos e decisões) e `diario/AAAA-MM-DD.md`. Uma anotação é uma linha
+    `- texto` (no diário, `- HH:MM texto`). Os arquivos são a fonte da verdade e são lidos de novo
+    a cada operação; a gravação é atômica (um temporário e o `rename`), com permissão 600. Os
+    limites: 500 caracteres por anotação; 20 KB no `EU.md` e 50 KB no `MEMORIA.md` e em cada
+    dia do diário;
+  - **o registro** (`historico.jsonl`): cada anotar e esquecer, com as linhas que entraram ou
+    saíram, a conversa de origem (o id no histórico e o título) e quando foi desfeita (as 1.000
+    últimas). Desfazer tira a linha que entrou (se ainda estiver lá) ou devolve as que saíram;
+  - **os segredos:** recusados antes de gravar, pelo formato (chaves privadas PEM, `sk-`, `ghp_`,
+    `github_pat_`, `glpat-`, `xox?-`, `AKIA`, `AIza`, JWT), por um rótulo seguido de valor
+    ("senha: …", "a senha do wifi é …", "token=…") e por um pedaço de 32 ou mais letras e números
+    misturados (cara de chave ou hash);
+  - **o prompt:** o `appendSystemPrompt` das conversas virou uma função, chamada a cada processo
+    do Claude Code que sobe (`chat-conversation.ts`): a persona de sempre mais
+    `PersonalMemory.prompt(acesso)`, com as instruções de quando anotar e o `EU.md` e o
+    `MEMORIA.md` sem os comentários, num bloco `<memoria_pessoal>` marcado como anotações, não
+    pedidos. Um arquivo grande entra só com o fim (4 mil caracteres do `EU.md`, 8 mil do
+    `MEMORIA.md`), com o aviso;
+  - **o acesso de cada conversa** (`memoryAccess`): `off` numa aba anônima (o `anonymous` do
+    `History` da conversa, que vale para a aba, vai no cabeçalho do histórico e no `abas.json`, e
+    volta ao reabrir); `read` numa pasta de `memoryExcludedFolders` ou dentro de uma (os caminhos
+    resolvidos pelo `realpath`; uma cópia do Git, Fase 43, vale como o repositório de onde saiu,
+    pelo `copias.json`), que só lê o `EU.md`; `full` no resto;
+  - **as ferramentas** (`mcp-memory.ts`): `memory_save` (`texto`, `onde`: eu, memoria ou diario)
+    e `memory_forget` (`texto`, `onde`, `dia`, `todas`), no `SAFE_TOOLS`: só mexem nos arquivos do
+    Wisp. Cada chamada pergunta ao `Chat.memoryScope` da conversa (pelo endereço dela no
+    servidor) o acesso e a origem; anônima ou numa pasta excluída, recusam com o motivo. Esquecer
+    acha as anotações pelo texto, sem acentos nem maiúsculas; com mais de uma, só com `todas`;
+  - **na tela Memória:** o `EU.md` e o `MEMORIA.md` entram na lista da Fase 65 (`me` e `facts`,
+    com a prévia, o diff e o backup de sempre), mais as anotações do registro com o desfazer
+    (`memory:notes` e `memory:undo`) e a lista das pastas excluídas, gravada pelas
+    configurações. A aba anônima nasce pelo `tabs:new-anonymous` (a paleta) e leva os óculos.
+- **A busca no que ele lembra (Fase 80):**
+  - **o índice** (`memory-index.ts`): `memoria.sqlite` no cache, pelo `node:sqlite` (o Node 24 do
+    Electron 44 traz o SQLite com o FTS5; nada nativo a mais). As tabelas: `docs` (cada fonte,
+    com o `mtime` e o tamanho), `chunks` (os trechos, com a fonte, o título, a data, a conversa e
+    o vetor em `BLOB`), `fts` (FTS5, `unicode61 remove_diacritics 2`, com o `rowid` do trecho) e
+    `meta` (o modelo dos vetores e as pastas excluídas da última vez). Cada busca confere o que
+    mudou e refaz só isso, numa transação; uma fonte que sumiu sai;
+  - **as fontes:** o `EU.md` e o `MEMORIA.md` (trechos de 60 palavras, para um fato achar
+    sozinho), os dias do diário e as conversas do histórico (as mensagens e as respostas, pelo
+    `messagesOf` da Fase 29, "Usuário:" e "Claude:"), em trechos de 200 palavras com 40 de
+    sobreposição. Uma conversa anônima ou de uma pasta fora da memória não entra; mudar a lista
+    das pastas confere as conversas de novo;
+  - **a nota:** pelo texto, o BM25 do FTS5 (cada palavra entre aspas, com `*` nas de 4 letras ou
+    mais, juntas por OR), dividido pelo melhor; pelo sentido, o cosseno (os vetores já
+    normalizados, o produto escalar em JS sobre todos os trechos com vetor). Os 50 melhores de
+    cada lado, somados: 70% sentido e 30% texto; sem o modelo, só o texto. Os filtros (a fonte,
+    o período) valem para os dois lados;
+  - **os vetores** (`embeddings.ts`): o `Xenova/multilingual-e5-small` quantizado
+    (`onnx/model_quantized.onnx` e o `tokenizer.json`), em `modelos/` na pasta de dados, baixado
+    de huggingface.co só pelo botão da tela Memória (cada arquivo num temporário, que só entra no
+    lugar inteiro). Roda pelo `onnxruntime-web` (o WASM, com uma thread) e o
+    `@huggingface/tokenizers` (JS puro), carregados com `import()` só quando o modelo existe. O
+    texto vai com o prefixo do e5 (`query:` ou `passage:`), até 512 tokens; o vetor é a média dos
+    tokens pela máscara, normalizada. Do `onnxruntime-web`, o pacote leva só a entrada do Node e o
+    `ort-wasm-simd-threaded` (o `electron-builder.yml`). Trocar de modelo apaga os vetores velhos;
+    os que faltam vêm de oito em oito, com um `setImmediate` entre eles, um minuto depois de abrir
+    e a cada busca;
+  - **a ferramenta** `memory_search` (no `SAFE_TOOLS`, só leitura): `consulta`, `fonte`, `desde`,
+    `ate` e `limite`; devolve cada trecho com a fonte, o dia, o título (e o id da conversa) e a
+    nota. Recusa numa conversa anônima ou numa pasta fora da memória.
+- **O diário e a faxina (Fase 81):**
+  - **o Claude Code de uma vez só** (`claude-once.ts`): `-p --output-format json
+--no-session-persistence --max-turns 1`, as ferramentas da pergunta lateral negadas,
+    `--strict-mcp-config` (nenhum servidor), `--model=haiku`, a pergunta pela entrada e a pasta da
+    memória como pasta de trabalho. Devolve o texto e o `total_cost_usd`;
+  - **destilar** (`distill.ts`): o fim de cada resposta (`turn-end`, no `chat.ts`) marca a
+    conversa como esperando, com a hora; o relógio de minuto em minuto (`memory-setup.ts`) destila
+    as paradas há 15 minutos, e fechar a aba destila na hora. Vai para o Haiku o trecho novo (as
+    mensagens depois das já destiladas, pelo `messagesOf`, até os últimos 24 mil caracteres), com
+    o `EU.md` e o `MEMORIA.md` de agora (sem os comentários), pedindo um JSON com `diario` (até 2),
+    `eu` e `memoria` (até 5 cada). Cada item passa pelo `PersonalMemory.save` (os segredos, as
+    repetições), com a origem marcada `auto`. Uma conversa anônima, de uma pasta fora da memória
+    ou com menos de 100 caracteres novos sai da fila sem ir ao Haiku; uma resposta que não é JSON
+    deixa a conversa na fila. O estado (quantas mensagens de cada uma já foram, as que esperam, os
+    custos, a faxina) fica em `destilacao.json`;
+  - **a faxina:** a cada 7 dias (a primeira, 7 dias depois de ligar), o `MEMORIA.md` inteiro vai
+    para o Haiku, que devolve `{"memoria": "…"}` arrumado. Uma resposta vazia, que joga fora mais
+    de dois terços das anotações ou igual à de antes não vira proposta. A proposta guarda a
+    impressão do arquivo de quando rodou; a tela Memória mostra o diff (`previewMemory`) e gravar
+    passa pelo `saveMemory` (o backup ao lado), só com o arquivo ainda igual.
+- **A Wisp, uma aba que fica (Fase 82):**
+  - **a aba:** o `main` do `History` da conversa (da aba, como o `anonymous`), guardado no
+    `abas.json` e no cabeçalho de cada conversa dela. O `ChatTabs.main()` a devolve (criando, na
+    frente, se não houver; com duas marcadas, só a primeira fica); ela não fecha, não serve de
+    "aba vazia" (`emptyFocused`) para reabrir outra conversa e volta sempre como a primeira. A
+    página recebe o `main` no `TabInfo` (a estrela, sem o fechar) e no `Pane` (os dias
+    anteriores, `MainDays.tsx`, pelo `main` do `ConversationSummary`);
+  - **o dia:** o `History.startedAt` diz quando a conversa aberta começou (no começo, ou a data
+    da guardada ao reabrir). Ao abrir e de minuto em minuto, o `chat.ts` confere: virou o dia,
+    com a Wisp parada e sem card esperando, ela recomeça (o `reset` do Ctrl+K) com um aviso. O
+    primeiro `toggle` do painel no dia mostra a Wisp;
+  - **para onde vão os pedidos:** o `ask` e o `askQuiet` (a voz, o `--ask`, a busca do desktop,
+    o menu do gerenciador de arquivos) vão para a conversa em foco com o painel visível e em
+    foco; senão, para a Wisp;
+  - **o prompt** (`personaOf`, em `chat-conversation.ts`): a persona de sempre, a personalidade
+    (`PersonalMemory.personality()`, que cria o `PERSONALIDADE.md` com o jeito de sempre na
+    primeira vez e diz o caminho dele e que mudar é com o Edit), a memória pessoal e, na Wisp com
+    a memória, o `dayContext()`: o último diário dos sete dias antes de hoje e o de hoje, até 2
+    mil caracteres cada. O `PERSONALIDADE.md` também entra na tela Memória (`personality`).
+- **A agenda que ele marca (Fase 83):**
+  - **os horários** (`shared/prompts.ts`): a `ScheduledTask` ganhou `repeat` (`weekly`, o de
+    sempre; `once`, com a `date`; `every`, a cada `everyHours` da `time` até a `until`, nos
+    `days`; `monthly`, no `dayOfMonth`, o último dia num mês mais curto), `deliver` e `by`. O
+    `runsOn` diz as vezes de um dia; o `nextRun` procura para a frente (8 dias, 62 no mensal, 400
+    no de uma vez) e o `lastDue` uma semana para trás, e o agendador da Fase 26 segue igual. O
+    `scheduleSignature` leva os campos novos; o `describeSchedule` diz o horário em palavras;
+  - **o pedido** (`shared/schedule-input.ts`): o `taskFromInput` transforma a entrada da
+    `schedule_task` (os nomes em português: `repetir`, `data`, `daqui_minutos`, `hora`, `dias`,
+    `a_cada_horas`, `ate`, `dia_do_mes`, `pasta`, `entregar`) na tarefa, ou diz o que está
+    errado. O card (`ScheduleBody.tsx`) e a ferramenta usam o mesmo, então o card mostra o que vai
+    ser gravado;
+  - **o card sempre:** o `ALWAYS_ASK` (`claude-settings.ts`) entra nas regras `ask` do
+    `--settings` do chat e do modo terminal: a `schedule_task` e a `cancel_task` pedem o card em
+    qualquer modo. A `list_tasks` está no `SAFE_TOOLS`. Gravar é o `updateConfig` com o aviso de
+    mudança (o agendador e a tela acompanham);
+  - **a entrega** (`delivery.ts`): o `chat.ts` guarda as conversas das tarefas que rodam; no
+    primeiro `turn-end` de uma, avisa quem pediu (`onTaskDone`). O `tasks-setup.ts` pega a última
+    resposta (`lastReply`: as mensagens do Claude depois da última sua) e manda para os lugares
+    da tarefa: um aviso em Markdown na Wisp (`postToMain`), a notificação (a primeira linha), o
+    balão da ilha com o sininho do mascote e o `channels.telegram` (Fase 85), mais uma linha no
+    diário (só fora das pastas fora da memória). Uma tarefa `once` sai da lista depois de rodar
+    pelo agendador.
+- **O batimento (Fase 84):**
+  - **as tarefas internas** (`heartbeat.ts`): com o `heartbeat` ligado, cada horário de
+    `heartbeatTimes` vira uma `ScheduledTask` com o id `batimento-HH:MM`, nos `heartbeatDays`,
+    que o agendador da Fase 26 recebe junto das suas (e assim roda um horário perdido ao abrir,
+    até duas horas depois). O `runNow` também as acha (o **Conferir agora**);
+  - **o pedido:** montado na hora, com o `CHECKLIST.md` de agora (criado com o de sempre na
+    primeira vez, sem os comentários): as ferramentas para olhar, a regra de só olhar e a de
+    responder só `NADA` sem nada a dizer;
+  - **a conversa:** o `runTask` com `quiet` e `model: 'haiku'`: a aba entra na lista sem ir para
+    um painel, o modelo é trocado antes da primeira mensagem, e ela fica fora da destilação. No
+    `turn-end`, o `tasks-setup.ts` lê a resposta: quieta (`NADA`, ou vazia), uma linha no diário
+    ("conferiu, nada de novo"); senão, a entrega de uma tarefa (a Wisp, a notificação, o mascote,
+    o Telegram e o diário). Uma que não terminou bem anota que não deu para conferir. A aba fecha
+    nos três casos (`closeConversation`).
+- **O Wisp no Telegram (Fase 85):**
+  - **a Bot API** (`TelegramApi`): `getUpdates` (long polling de 50 s, só `message` e
+    `callback_query`), `sendMessage` (cortado em 4.000 caracteres, nas quebras de linha), os
+    botões em linha, `editMessageText`, `answerCallbackQuery`, `getFile` e o download (até 20 MB),
+    e o `sendVoice` (multipart). O endereço é `https://api.telegram.org`, ou o de
+    `WISP_TELEGRAM_API` (os testes). Os erros dizem o método, nunca a ficha;
+  - **o pareamento:** um código de 6 números (`randomInt`) que vale 10 minutos; a primeira
+    mensagem com ele (ou `/start <código>`) guarda o usuário (`telegramUser`) e liga. Depois, o
+    resto de quem não é ele é ignorado, sem resposta;
+  - **as mensagens:** o laço de long polling trata os botões na hora e põe as mensagens numa fila
+    (uma por vez, sem prender o laço: um card precisa ser respondido enquanto a Wisp responde).
+    Cada uma: os comandos (o `/novo` recomeça a Wisp; os outros viram pedidos), o áudio (o
+    `ffmpeg` para PCM de 16 kHz e o `transcribe` do whisper), a foto maior e os documentos (em
+    `anexos/telegram/`, com o nome limpo). O `sendToMain` do painel manda à Wisp sem abrir o
+    painel, e o `onTurnEnd` dela devolve a resposta (`lastReply`). A resposta vai em áudio (o
+    Piper e o `ffmpeg` para Ogg/Opus) conforme o `telegramVoiceReply`;
+  - **o que chegou com ele fechado:** o `offset` fica em `telegram.json`; na primeira leva, o que
+    tem mais de 12 horas vira um resumo, e responder o resto começa avisando que ele estava
+    desligado;
+  - **os cards:** o `summarize` do ntfy (Fase 18) dá o título, o texto e o "só negar". Vão na hora
+    com uma conversa pelo Telegram nos últimos 30 minutos ou a tela bloqueada; senão, depois do
+    `phoneAfterSeconds`. Cada botão leva uma ficha de uso único do card; só o usuário pareado
+    responde, pelo `answerRemote` do painel. O card sai da lista antes de responder (a resposta
+    dispara o "respondido" na hora), e a mensagem diz como acabou; respondido no computador, ela
+    diz isso;
+  - **os avisos:** o `channels.telegram` da `delivery.ts` manda o título e o texto das tarefas e
+    do batimento (Fases 83 e 84) para o usuário pareado.
+- **As skills que ele aprende (Fase 86):**
+  - **o texto** (`shared/skill-text.ts`): o `skillDraftOf` confere o pedido (`nome` em
+    minúsculas e hífens, até 40; a `descricao`, até 300; as `instrucoes`, até 8 mil) e o
+    `skillText` monta o SKILL.md: o cabeçalho (`name` e `description`), a marca do Wisp (um
+    comentário) e as instruções. O card (`SkillBody.tsx`) e a gravação usam o mesmo, então o card
+    mostra o que vai ser gravado; com uma skill que já existe (`skills:text`), o diff;
+  - **gravar** (`learned-skills.ts`): em `<CLAUDE_CONFIG_DIR ou ~/.claude>/skills/<nome>/SKILL.md`,
+    pelo temporário e o `rename`; uma que já existe ganha o backup datado ao lado. Um texto com
+    cara de segredo (`looksSecret`) é recusado;
+  - **a ferramenta** `propose_skill`: no `ALWAYS_ASK` (o card em qualquer modo). A descrição diz
+    quando usar: quando você pede, ou para melhorar uma skill do Wisp que errou;
+  - **as sugestões:** na faxina da semana (e no **Fazer a faxina agora**), o `suggestSkills` do
+    `distill.ts` manda ao Haiku os seus pedidos dos últimos 7 dias (`recentRequests`: as suas
+    mensagens das conversas que valem para a memória, com o dia, até 300) e o diário de hoje, com
+    as skills que já existem; ele devolve até duas. As válidas e novas esperam em
+    `destilacao.json` (até 6), com uma notificação; a tela Memória mostra o SKILL.md de cada uma,
+    e **Criar a skill** grava (`memory:cleanup` com `skill-accept:<nome>`).
+
+- **A interface completa (Fases 87 a 91):**
+  - **os dois modos** (`chat-window.ts`): o `PanelPlacement` ganhou o `mode` (o `windowMode` do
+    config) e um lugar só da janela completa (`full`, guardado no `abas.json` junto do compacto). No
+    completo, a janela abre onde estava (se ainda couber num monitor) ou com 1200 × 800 no meio da
+    tela do mascote, com o mínimo de 760 × 480; a grade e a bancada repartem o espaço sem mudar o
+    tamanho dela; maximizar, mover e redimensionar valem só para o modo dela. Trocar de modo
+    desfaz o maximizado sem contar como seu e põe a janela no lugar do modo novo;
+  - **a página:** o cabeçalho saiu para o `ChatHeader.tsx` (o título da tela, a faixa de ícones do
+    compacto, o botão da sidebar por cima e o alternar do modo). A `Sidebar.tsx` fica fixa no
+    completo (recolhida ou não, lembrado no `localStorage`) e por cima no compacto (fecha ao
+    escolher). As recentes vêm do `history.list` (relido quando as abas mudam); a busca, com duas
+    letras ou mais, do `history.search` da Fase 29;
+  - **o Início** (`HomeView.tsx` e `home-ipc.ts`): um pedido só traz a agenda de hoje (o
+    `between` da agenda), as próximas cinco tarefas (as suas e o batimento, pelo `nextRun`), os
+    próximos lembretes, o `describe` do GitHub (com 4 s de espera, no máximo), a última linha do
+    batimento no diário e as anotações recentes. Aberto, ele se atualiza de minuto em minuto;
+  - **as configurações** (`SettingsNav.tsx` e `settings-categories.ts`): cada categoria lista os
+    títulos das seções dela; o filtro esconde as seções de fora (ou, com a busca, as que não têm o
+    texto). O `test/interface.test.ts` lê os `<Section>` do código e confere que cada um está em uma
+    categoria, e só uma;
+  - **o desenho** (`styles/shell.css`): a sidebar, a gaveta, o Início, a lista das categorias e a
+    coluna de leitura da conversa no modo completo (as mensagens com folga para caber em 800 px no
+    meio). Os prints da janela completa saem de `scripts/prints-interface.mjs`, no modo demonstração.
+- **O Início como painel de controle (Fases 92 a 97):**
+  - **a arrumação** (`renderer/chat/home/layout.ts`): o catálogo dos 20 blocos (o tamanho padrão, o
+    mínimo e o máximo, em colunas de 12 e linhas de 56 px) e as mudanças puras (mover, passar o
+    vizinho, redimensionar, esconder). O que vem do `config.json` (`homeLayout`, conferido pelo zod)
+    passa pelo `resolveLayout`: sem repetidos nem desconhecidos, os tamanhos no permitido e os blocos
+    de uma versão nova no fim. Numa janela estreita, a largura vira 6 ou 2 colunas (`spanFor`), sem
+    mexer no guardado;
+  - **a grade** (`home/HomeGrid.tsx`): um CSS grid com `dense`. Na edição, a alça captura o ponteiro:
+    o bloco segue o ponteiro (um `transform`, sem mexer na grade), o bloco embaixo dele (pelo
+    `elementsFromPoint`) ganha a barra de onde cai, e a ordem muda ao soltar. O canto conta as
+    colunas e as linhas que o ponteiro andou. Pelo teclado, as setas na alça (com Shift, o tamanho).
+    Cada mudança acabada vai para o `config.json` (`settings.set`), 300 ms depois;
+  - **os dados** (`home/context.ts`): o `HomeView` lê o resumo do dia (o `home:snapshot`) e as
+    recentes de minuto em minuto e passa, com o uso, as abas e o estado de cada conversa (o
+    Precisa de você lê os pedidos pendentes de lá), num contexto. Os blocos que leem mais pedem só
+    o deles, pelos `home:*` do `ipc-home.ts`: a agenda de um período (até seis semanas), a atividade
+    por dia (do `atividade.jsonl` da Fase 13), as linhas do diário de hoje, as suas tarefas (com o
+    aviso quando o Claude muda), os hábitos, o foco, a música (de 5 em 5 s, só com o bloco à vista)
+    e o clima;
+  - **as suas tarefas** (`home-store.ts` e `mcp-todos.ts`): uma lista só, no main, que o bloco e as
+    ferramentas `todo_*` (seguras: só mexem no arquivo do Wisp, à vista e com o desfazer do bloco)
+    dividem; cada mudança avisa a página. As feitas há mais de 30 dias saem da lista;
+  - **o foco**: o bloco usa o `FocusMode` da Fase 45, que ganhou o `subscribe` (o Início acompanha) e
+    a conta dos blocos acabados no dia. Um foco só, com os avisos quietos;
+  - **o clima** (`weather.ts`): só com `weather` no `config.json` (a cidade, achada pela busca da
+    Open-Meteo no bloco); a previsão fica na memória por 30 minutos, e sem rede o último resultado
+    serve;
+  - **o desenho** (`styles/home.css` e `styles/home-blocks.css`): o fundo com o brilho, o vidro
+    (`backdrop-filter`), o trilho (a sidebar recolhida, no modo completo) e o miolo de cada bloco. No
+    alto contraste, tudo sólido e com borda; com o movimento reduzido, sem o desfoque. Os prints
+    saem de `scripts/prints-inicio.mjs`, com uma agenda, tarefas e hábitos de exemplo.

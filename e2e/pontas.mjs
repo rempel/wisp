@@ -52,26 +52,35 @@ await chat.send('Input.insertText', { text: 'Memória' })
 await sleep(300)
 await key('Enter', 'Enter', 0, 13)
 const shown = await waitFor(
-  () => ev(`document.querySelector('.memory-file .memory-text')?.innerText ?? null`),
+  () =>
+    ev(
+      `document.querySelector('.memory-file[data-memory="user"] .memory-text')?.innerText ?? null`
+    ),
   5000
 )
 check('P1 a paleta abre a Memória, com o seu CLAUDE.md', /Minhas regras/.test(shown ?? ''), shown)
-await ev(`document.querySelector('.memory-file .settings-button').click()`)
-await waitFor(() => ev(`!!document.querySelector('.memory-file textarea')`), 5000)
+await ev(`document.querySelector('.memory-file[data-memory="user"] .settings-button').click()`)
+await waitFor(
+  () => ev(`!!document.querySelector('.memory-file[data-memory="user"] textarea')`),
+  5000
+)
 await ev(`(() => {
-  const area = document.querySelector('.memory-file textarea')
+  const area = document.querySelector('.memory-file[data-memory="user"] textarea')
   const setter = Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value').set
   setter.call(area, '# Minhas regras\\n\\n- Responda curto.\\n- Use pnpm.\\n')
   area.dispatchEvent(new Event('input', { bubbles: true }))
 })()`)
-await ev(`document.querySelector('.memory-file form').requestSubmit()`)
+await ev(`document.querySelector('.memory-file[data-memory="user"] form').requestSubmit()`)
 const diff = await waitFor(
-  () => ev(`document.querySelector('.memory-file .agent-preview')?.innerText ?? null`),
+  () =>
+    ev(
+      `document.querySelector('.memory-file[data-memory="user"] .agent-preview')?.innerText ?? null`
+    ),
   5000
 )
 check('P2 Ver o que muda mostra o diff antes de gravar', /Use pnpm/.test(diff ?? ''), diff)
 await ev(
-  `[...document.querySelectorAll('.memory-file .rewind-actions button')].find((b) => b.textContent.trim() === 'Gravar').click()`
+  `[...document.querySelectorAll('.memory-file[data-memory="user"] .rewind-actions button')].find((b) => b.textContent.trim() === 'Gravar').click()`
 )
 const saved = await waitFor(
   () =>

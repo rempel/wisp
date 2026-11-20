@@ -39,6 +39,17 @@ export const SAFE_TOOLS = [
   'mcp__desktop__weekly_summary',
   // Fase 27: as emoções e as danças do mascote só mexem no desenho dele.
   'mcp__desktop__express',
+  // Fase 79: a memória pessoal só mexe nos arquivos do próprio Wisp, à vista e com o desfazer.
+  'mcp__desktop__memory_save',
+  'mcp__desktop__memory_forget',
+  // Fase 80: buscar no que o Wisp lembra é só leitura.
+  'mcp__desktop__memory_search',
+  // Fase 83: listar as tarefas é só leitura (agendar e cancelar pedem o card).
+  'mcp__desktop__list_tasks',
+  // Fase 95: a sua lista de tarefas é do próprio Wisp, à vista no Início e com o desfazer.
+  'mcp__desktop__todo_add',
+  'mcp__desktop__todo_list',
+  'mcp__desktop__todo_done',
   // Fase 57: abrir, ver e ler a página do navegador da bancada (só desta máquina, à sua vista)
   // e ler o terminal do próprio Claude. Clicar, preencher e rodar passam pelo card.
   'mcp__desktop__preview_open',
@@ -49,6 +60,21 @@ export const SAFE_TOOLS = [
   'mcp__desktop__preview_resize',
   'mcp__desktop__terminal_read'
 ]
+
+/**
+ * As ferramentas que sempre pedem o card, em qualquer modo (a regra "ask" vale até no
+ * Automático): agendar e cancelar uma tarefa (Fase 83), que agem no futuro sem ninguém olhando, e
+ * propor uma skill (Fase 86).
+ */
+export const ALWAYS_ASK = [
+  'mcp__desktop__schedule_task',
+  'mcp__desktop__cancel_task',
+  // Fase 86: criar ou mudar uma skill mexe na sua configuração do Claude Code.
+  'mcp__desktop__propose_skill'
+]
+
+/** As regras "ask" das configurações do Claude Code: os arquivos de segredos e o ALWAYS_ASK. */
+const askRules = (): string[] => [...SENSITIVE_PATHS.map((path) => `Read(${path})`), ...ALWAYS_ASK]
 
 /** Ferramenta do servidor `desktop` que mostra o card de permissão (seção 5.4). */
 export const PERMISSION_TOOL = 'mcp__desktop__approve'
@@ -172,7 +198,7 @@ function snapshotHook(relay = WRAPPER_PATH): Record<string, unknown> | null {
 export function sessionSettings(): string {
   const snapshot = snapshotHook()
   return JSON.stringify({
-    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    permissions: { ask: askRules() },
     hooks: {
       PreToolUse: [
         { matcher: 'Bash', hooks: [bashHook()] },
@@ -201,7 +227,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
   }
   if (IS_WINDOWS && !windows) {
     return JSON.stringify({
-      permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+      permissions: { ask: askRules() },
       hooks
     })
   }
@@ -224,7 +250,7 @@ export function terminalSettings(tab: string, relay = WRAPPER_PATH): string {
     ]
   }
   return JSON.stringify({
-    permissions: { ask: SENSITIVE_PATHS.map((path) => `Read(${path})`) },
+    permissions: { ask: askRules() },
     hooks,
     statusLine: {
       type: 'command',
@@ -280,7 +306,11 @@ export interface ClaudeOptions {
    */
   workspace: () => string
   allowedTools: string[]
-  appendSystemPrompt: string
+  /**
+   * O que vai no --append-system-prompt: a persona do Wisp. Uma função é chamada a cada processo
+   * que sobe (a memória pessoal entra assim, Fase 79).
+   */
+  appendSystemPrompt: string | (() => string)
   /**
    * O arquivo do --mcp-config com o servidor `desktop` desta conversa, pedido a cada processo
    * novo. Sem ele (o servidor não subiu), a conversa funciona sem as ferramentas de desktop, e o

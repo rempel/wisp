@@ -9,6 +9,7 @@ import {
   checks,
   connect,
   fakeLog,
+  settingsCategory,
   sleep,
   startApp,
   stopApp,
@@ -172,6 +173,7 @@ wisp(home, '--show')
 await sleep(500)
 await ev(`document.querySelector('.header .icon-button[aria-label="Configurações"]').click()`)
 await waitFor(() => ev(`!!document.querySelector('.settings .automation')`), 5000)
+await settingsCategory(ev, 'Assistente')
 const settings = await ev(`document.querySelector('.settings').innerText`)
 // Os títulos das seções vêm em maiúsculas (o CSS): a busca não liga para isso.
 const automation = settings.slice(settings.search(/prompts salvos/i))

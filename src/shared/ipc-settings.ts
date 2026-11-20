@@ -6,6 +6,7 @@ import type { AvatarName } from './avatars'
 import type { Dance } from './emotions'
 import type { SavedPrompt, ScheduledTask } from './prompts'
 import type { DiffHunk, PermissionMode, Provider } from './ipc-chat'
+import type { HomeBlockLayout } from './ipc-home'
 
 /** O resumo de uma semana (de segunda a segunda), só com contagens (Fase 13). */
 export interface WeekSummary {
@@ -47,6 +48,21 @@ export interface AgendaItem {
 /** Os campos do config.json que a tela de configurações mostra e muda. */
 export interface Settings {
   projectRoots: string[]
+  /** As pastas fora da memória pessoal (Fase 79). */
+  memoryExcludedFolders: string[]
+  /** A destilação e a faxina da memória (Fase 81). */
+  memoryDistill: boolean
+  /** O batimento (Fase 84): ligado, os horários e os dias. */
+  heartbeat: boolean
+  heartbeatTimes: string[]
+  heartbeatDays: number[]
+  /** O Telegram (Fase 85): ligado e como responder (o usuário e a ficha vêm pelo telegram:*). */
+  telegram: boolean
+  telegramVoiceReply: 'text' | 'audio' | 'both'
+  /** O modo da janela (Fase 87). */
+  windowMode: 'compact' | 'full'
+  /** Os blocos do Início (Fase 93); null: o padrão. */
+  homeLayout: HomeBlockLayout[] | null
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -111,6 +127,15 @@ export interface Settings {
 
 export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'projectRoots',
+  'memoryExcludedFolders',
+  'memoryDistill',
+  'heartbeat',
+  'heartbeatTimes',
+  'heartbeatDays',
+  'telegram',
+  'telegramVoiceReply',
+  'windowMode',
+  'homeLayout',
   'editorCommand',
   'terminalCommand',
   'model',
@@ -254,6 +279,18 @@ export interface RemoteChatState {
 export type PanelView = 'welcome' | 'diagnostics' | 'palette' | 'usage' | 'agents' | 'board'
 
 /** Em que pé está a aprovação pelo celular. */
+/** O Telegram nas configurações (Fase 85). */
+export interface TelegramStatus {
+  /** A ficha do bot está no chaveiro. */
+  hasToken: boolean
+  /** O @ do bot, se o Telegram respondeu. */
+  botName: string | null
+  enabled: boolean
+  /** O usuário pareado (o @ ou o nome); null: ainda sem. */
+  user: string | null
+  voiceReply: 'text' | 'audio' | 'both'
+}
+
 export interface PhoneStatus {
   /** Ligada (pareada e confirmada pelo celular). */
   enabled: boolean
@@ -376,3 +413,26 @@ export interface PortablePreview {
 
 /** Exportar ou importar: deu certo (com o que fez) ou o motivo; null, a pessoa desistiu. */
 export type PortableResult = { ok: boolean; message: string } | null
+
+/** O Telegram nas configurações (Fase 85), pela API do preload (window.wisp.telegram). */
+export interface TelegramBridge {
+  status(): Promise<TelegramStatus | null>
+  token(token: string): Promise<{ ok: boolean; message: string }>
+  pair(): Promise<string | null>
+  forget(): Promise<boolean>
+}
+
+/** O Início (Fase 89): o seu dia num lugar só. */
+export interface HomeSnapshot {
+  /** A agenda de hoje (null: ela está desligada). */
+  events: (AgendaItem & { allDay: boolean })[] | null
+  /** As próximas tarefas agendadas (as suas e o batimento), com a próxima vez. */
+  tasks: { id: string; name: string; at: number; schedule: string }[]
+  reminders: { text: string; at: number }[]
+  /** Os seus PRs, em texto (null: o GitHub desligado ou sem resposta a tempo). */
+  github: string | null
+  /** A linha do último batimento no diário de hoje. */
+  heartbeat: string | null
+  /** As anotações recentes da memória. */
+  notes: { text: string; at: number }[]
+}

@@ -1,0 +1,475 @@
+/* A casca da interface completa (Fases 87 a 89): o painel principal, a sidebar (fixa no modo
+   completo, por cima no compacto) e o Início. A estrutura é a do Claude desktop; as cores, as do
+   Wisp. */
+
+/* O que fica ao lado da sidebar: o cabeçalho e a tela. */
+.chat-main {
+  position: relative;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ---- Os dois modos --------------------------------------------------------------------------- */
+
+.chat.mode-full {
+  flex-direction: row;
+}
+
+/* No modo completo, a navegação é a sidebar: a faixa de ícones sai. */
+.chat.mode-full .header-nav {
+  display: none;
+}
+
+.chat.mode-full .chat-body {
+  margin-left: 0;
+}
+
+.chat.mode-full .header {
+  height: 52px;
+  padding-left: 18px;
+}
+
+/* ---- A sidebar ------------------------------------------------------------------------------- */
+
+.sidebar-host {
+  flex: none;
+  display: flex;
+  min-height: 0;
+}
+
+.sidebar {
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 268px;
+  min-height: 0;
+  padding: 10px 10px 8px;
+  border-right: 1px solid var(--line);
+  background: var(--bg);
+  transition: width 0.18s ease;
+}
+
+.sidebar.collapsed {
+  width: 56px;
+  padding: 10px 8px 8px;
+}
+
+.sidebar-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin-bottom: 6px;
+  padding: 0 4px;
+  user-select: none;
+  -webkit-app-region: drag;
+}
+
+.sidebar-top button {
+  -webkit-app-region: no-drag;
+}
+
+.sidebar-brand {
+  flex: 1;
+  font-size: 15px;
+  letter-spacing: 0.01em;
+}
+
+.sidebar.collapsed .sidebar-top {
+  flex-direction: column;
+  height: auto;
+  gap: 6px;
+}
+
+.sidebar-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-item:hover {
+  background: var(--hover);
+}
+
+.sidebar-item.active {
+  background: var(--raised);
+  font-weight: 600;
+}
+
+.sidebar.collapsed .sidebar-item {
+  justify-content: center;
+  padding: 0;
+}
+
+.sidebar-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  color: var(--muted);
+}
+
+.sidebar-item.active .sidebar-icon {
+  color: var(--accent);
+}
+
+.sidebar-label {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-item .badge {
+  position: static;
+  margin-left: auto;
+}
+
+.sidebar.collapsed .sidebar-item .badge {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+}
+
+.sidebar-search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 34px;
+  margin: 2px 0 6px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--muted);
+}
+
+.sidebar-search input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+}
+
+.sidebar-search:focus-within {
+  box-shadow: 0 0 0 2px var(--accent-soft);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+/* As recentes e os projetos ocupam o que sobra, com a rolagem só deles. */
+.sidebar-lists {
+  flex: 1;
+  min-height: 0;
+  margin: 0 -4px;
+  padding: 0 4px;
+  overflow-y: auto;
+}
+
+.sidebar.collapsed::after {
+  content: '';
+  flex: 1;
+}
+
+.sidebar-section h3 {
+  margin: 14px 10px 4px;
+  color: var(--muted);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.sidebar-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sidebar-row:hover {
+  background: var(--hover);
+}
+
+.sidebar-row.open .sidebar-row-title {
+  font-weight: 600;
+}
+
+.sidebar-row-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.sidebar-row-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-snippet {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar-snippet mark {
+  border-radius: 3px;
+  background: var(--accent-soft);
+  color: inherit;
+}
+
+.sidebar-when {
+  flex: none;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.sidebar-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.sidebar-pin {
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+}
+
+.sidebar-empty {
+  margin: 6px 10px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+.sidebar-foot {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-top: 8px;
+  border-top: 1px solid var(--line);
+}
+
+/* No compacto, a sidebar abre por cima da conversa, com um véu atrás. */
+.sidebar-drawer {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  background: rgb(0 0 0 / 0.28);
+  animation: drawer-fade 0.15s ease;
+}
+
+.sidebar-drawer .sidebar {
+  width: min(300px, 86vw);
+  box-shadow: var(--shadow);
+  animation: drawer-in 0.18s ease;
+}
+
+@keyframes drawer-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes drawer-in {
+  from {
+    transform: translateX(-24px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar,
+  .sidebar-drawer,
+  .sidebar-drawer .sidebar {
+    transition: none;
+    animation: none;
+  }
+}
+
+/* ---- As configurações em categorias (Fase 90) ------------------------------------------------- */
+
+/* No compacto: a busca e o seletor da categoria no alto; a lista fica escondida. */
+.settings-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 14px 6px;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-nav .settings-search {
+  margin: 0;
+}
+
+.settings-category-select {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: var(--raised);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+
+.settings-categories {
+  display: none;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.settings-heading h1 {
+  margin: 10px 0 2px;
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.settings-heading p {
+  margin: 0 0 6px;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+
+/* No modo completo: a lista das categorias à esquerda, como no Claude desktop. */
+.chat.mode-full .settings-split {
+  flex-direction: row;
+}
+
+.chat.mode-full .settings-nav {
+  flex: none;
+  width: 230px;
+  gap: 10px;
+  padding: 18px 12px;
+  border-right: 1px solid var(--line);
+  border-bottom: 0;
+  overflow-y: auto;
+}
+
+.chat.mode-full .settings-category-select {
+  display: none;
+}
+
+.chat.mode-full .settings-categories {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.settings-category {
+  width: 100%;
+  min-height: 32px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 13.5px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.settings-category:hover {
+  background: var(--hover);
+}
+
+.settings-category.active {
+  background: var(--raised);
+  font-weight: 600;
+}
+
+.chat.mode-full .settings-scroll {
+  padding: 18px 32px 48px;
+}
+
+.chat.mode-full .settings-scroll > * {
+  max-width: 720px;
+}
+
+.chat.mode-full .settings-heading h1 {
+  margin-top: 0;
+  font-size: 22px;
+}
+
+.chat.mode-full .settings-heading {
+  margin-bottom: 8px;
+}
+
+.chat.mode-full .settings-section h2 {
+  margin-top: 8px;
+  color: var(--text);
+  font-size: 14px;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+/* ---- O acabamento do modo completo (Fase 91) -------------------------------------------------- */
+
+/* A conversa numa coluna de leitura no meio, como no Claude desktop; com a tela dividida, os
+   painéis estreitos ficam com a folga de sempre. */
+.chat.mode-full .messages {
+  padding-inline: max(20px, calc((100% - 800px) / 2));
+}
+
+.chat.mode-full .composer {
+  max-width: 840px;
+}
+
+.chat.mode-full .empty .hello {
+  font-size: 22px;
+  font-weight: 600;
+}
+
+/* No alto contraste, os itens da lista não ganham contorno: só o ativo (e o foco, que é de todos). */
+.sidebar-item,
+.sidebar-row,
+.settings-category {
+  border-color: transparent;
+}
+
+.sidebar-item.active,
+.settings-category.active {
+  border-color: var(--border);
+}

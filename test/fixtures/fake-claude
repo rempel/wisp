@@ -6,6 +6,11 @@
 // [modelo] responde o modelo, [bloco] responde com um bloco de shell, [chave ruim] a OpenRouter recusa a chave (401), [modo] responde o modo de permissão, [pede COMANDO] pede ao Wisp
 // (ferramenta approve do servidor MCP dele, como o --permission-prompt-tool) para rodar o
 // COMANDO no Bash, [sente EMOÇÃO] e [dança DANÇA] usam a ferramenta express do mascote,
+// [lembra TEXTO] anota TEXTO na memória pessoal (memory_save) e [sabe TEXTO] diz se TEXTO veio
+// no prompt do sistema (a memória pessoal), Fase 79; [busca TEXTO] usa a memory_search (Fase 80),
+// [agenda NOME|PROMPT|MINUTOS] pede e usa a schedule_task (Fase 83), o pedido do batimento
+// ("Batimento do Wisp") responde NADA com [quieto] no checklist e um aviso sem ele (Fase 84),
+// [skill NOME|DESCRIÇÃO|INSTRUÇÕES] pede e usa a propose_skill (Fase 86),
 // [mcp SERVIDOR FERRAMENTA] usa a ferramenta de um servidor MCP do --mcp-config (pedindo, se ela
 // não estiver no --allowedTools), [plano] apresenta um plano (ExitPlanMode), [demorado] dois
 // comandos com uma pausa entre eles (uma mensagem mandada no meio chega ali, como no CLI de
@@ -219,13 +224,27 @@ if (flag('--output-format') === 'json') {
   process.stdin.on('data', (chunk) => (input += chunk))
   process.stdin.on('end', () => {
     const said = memory.map((turn) => turn.user).join(' | ')
-    const result = `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
+    // FAKE_JSON_REPLY: a resposta pronta (a destilação da memória, Fase 81); o pedido fica em
+    // $HOME/.fake-claude/once.log, com o modelo.
+    const fixed = process.env.FAKE_JSON_REPLY
+    if (fixed !== undefined) {
+      fs.mkdirSync(STATE, { recursive: true })
+      fs.appendFileSync(
+        path.join(STATE, 'once.log'),
+        JSON.stringify({
+          model: flag('--model') ?? args.find((a) => a.startsWith('--model='))?.slice(8) ?? null,
+          input
+        }) + '\n'
+      )
+    }
+    const result = fixed ?? `De lado: ${input.trim()}${said ? ` (lembro de: ${said})` : ''}`
     process.stdout.write(
       JSON.stringify({
         type: 'result',
         subtype: 'success',
         is_error: false,
         result,
+        total_cost_usd: fixed !== undefined ? 0.0021 : 0,
         session_id: sessionId
       }) + '\n'
     )
@@ -645,6 +664,55 @@ async function runTurn(text) {
     const result = await callDesktop('express', input)
     await tool('mcp__desktop__express', input, result)
     answer = felt ? `Mostrei ${felt[1]}.` : `Dancei ${danced[1]}.`
+  }
+  // A memória pessoal (Fase 79): a memory_save, que não pede permissão, e o que veio no prompt.
+  const remembered = /\[lembra ([^\]]+)\]/.exec(text)
+  if (remembered) {
+    const input = { texto: remembered[1] }
+    const result = await callDesktop('memory_save', input)
+    await tool('mcp__desktop__memory_save', input, result)
+    answer = result
+  }
+  // O batimento (Fase 84): com [quieto] no checklist, nada a dizer; sem, um aviso.
+  if (text.includes('Batimento do Wisp')) {
+    answer = text.includes('[quieto]')
+      ? 'NADA'
+      : 'Reunião às 9h com o time; o CI do PR #12 está vermelho.'
+  }
+  // As skills que ele aprende (Fase 86): [skill NOME|DESCRIÇÃO|INSTRUÇÕES] pede o card da
+  // propose_skill e, aprovado, grava.
+  const skilled = /\[skill ([^|\]]+)\|([^|\]]+)\|([^|\]]+)\]/.exec(text)
+  if (skilled) {
+    const input = { nome: skilled[1], descricao: skilled[2], instrucoes: skilled[3] }
+    const decision = await approve('mcp__desktop__propose_skill', input, `toolu_${++n}`)
+    answer =
+      decision.behavior === 'allow'
+        ? await callDesktop('propose_skill', input)
+        : `Não criei: ${decision.message}`
+  }
+  // A agenda que o Claude marca (Fase 83): [agenda NOME|PROMPT|MINUTOS] pede o card da
+  // schedule_task (como o Claude Code de verdade, pela regra "ask") e, aprovado, agenda.
+  const scheduled = /\[agenda ([^|\]]+)\|([^|\]]+)\|(\d+)\]/.exec(text)
+  if (scheduled) {
+    const input = { nome: scheduled[1], prompt: scheduled[2], daqui_minutos: Number(scheduled[3]) }
+    const decision = await approve('mcp__desktop__schedule_task', input, `toolu_${++n}`)
+    answer =
+      decision.behavior === 'allow'
+        ? await callDesktop('schedule_task', input)
+        : `Não agendei: ${decision.message}`
+  }
+  const searched = /\[busca ([^\]]+)\]/.exec(text)
+  if (searched) {
+    const input = { consulta: searched[1] }
+    const result = await callDesktop('memory_search', input)
+    await tool('mcp__desktop__memory_search', input, result)
+    answer = result
+  }
+  const knows = /\[sabe ([^\]]+)\]/.exec(text)
+  if (knows) {
+    answer = (flag('--append-system-prompt') ?? '').includes(knows[1])
+      ? `Sei: ${knows[1]}.`
+      : `Não sei de ${knows[1]}.`
   }
   const used = /\[mcp ([\w-]+) ([\w-]+)\]/.exec(text)
   if (used) {

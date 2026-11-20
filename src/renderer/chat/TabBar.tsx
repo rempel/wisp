@@ -73,23 +73,43 @@ export function TabBar({
                 ) : (
                   <span className="tab-dot" aria-hidden />
                 )}
+                {tab.kind === 'chat' && tab.main && (
+                  <span
+                    className="tab-main-mark"
+                    title={t('A conversa principal: uma por dia, sempre aberta')}
+                    aria-hidden
+                  >
+                    ✦
+                  </span>
+                )}
                 {tab.kind === 'chat' && tab.folder && (
                   <span className="tab-folder" aria-hidden>
                     <FolderIcon />
                   </span>
                 )}
+                {tab.kind === 'chat' && tab.anonymous && (
+                  <span
+                    className="tab-anonymous"
+                    title={t('Conversa anônima: não lê nem escreve a memória pessoal')}
+                  >
+                    <span aria-hidden>🕶</span>
+                    <span className="sr-only">{t('(anônima)')}</span>
+                  </span>
+                )}
                 <span className="tab-title">{tab.title}</span>
                 {label && <span className="sr-only">({label})</span>}
               </button>
-              <button
-                type="button"
-                className="tab-close"
-                onClick={() => window.wisp.tabs.close(tab.id)}
-                title={tab.kind === 'chat' ? t('Fechar a aba (Ctrl+W)') : t('Fechar a aba')}
-                aria-label={t('Fechar {title}', { title: tab.title })}
-              >
-                <CloseIcon />
-              </button>
+              {!(tab.kind === 'chat' && tab.main) && (
+                <button
+                  type="button"
+                  className="tab-close"
+                  onClick={() => window.wisp.tabs.close(tab.id)}
+                  title={tab.kind === 'chat' ? t('Fechar a aba (Ctrl+W)') : t('Fechar a aba')}
+                  aria-label={t('Fechar {title}', { title: tab.title })}
+                >
+                  <CloseIcon />
+                </button>
+              )}
             </div>
           )
         })}

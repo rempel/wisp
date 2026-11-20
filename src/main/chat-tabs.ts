@@ -43,6 +43,10 @@ export interface SavedChatTab {
   view?: ConversationView
   /** O rascunho da caixa de texto (Fase 21). */
   draft?: string
+  /** A aba é anônima, sem a memória pessoal (Fase 79). */
+  anonymous?: true
+  /** A aba é a conversa principal, a Wisp (Fase 82). */
+  main?: true
 }
 
 /**
@@ -63,6 +67,8 @@ export interface SavedWindow {
   detached: boolean
   maximized: boolean
   bounds?: Rectangle
+  /** A janela completa (Fase 87): onde ela fica e se está maximizada. */
+  full?: { bounds?: Rectangle; maximized: boolean }
 }
 
 /** O que as abas pedem ao painel. */
@@ -126,11 +132,17 @@ export class ChatTabs {
     }
     const { title, project, folder } = tab.conversation
     const owner = projectOf(folder, getConfig().projects)
+    const anonymous = tab.conversation.history.anonymous
+    const main = tab.conversation.history.main
     return {
       id: tab.id,
       kind: 'chat',
       // Uma conversa numa pasta, ainda sem mensagens, leva o nome do projeto.
-      title: title ?? project ?? t('Nova conversa'),
+      title: main
+        ? 'Wisp'
+        : (title ?? project ?? (anonymous ? t('Conversa anônima') : t('Nova conversa'))),
+      ...(main ? { main: true } : {}),
+      ...(anonymous ? { anonymous: true } : {}),
       ...(project ? { project } : {}),
       ...(folder ? { folder: tilde(folder) } : {}),
       ...(owner ? { inProject: { name: owner.name, color: owner.color } } : {})
@@ -169,9 +181,29 @@ export class ChatTabs {
   /** A conversa da aba em foco, se nada foi dito nela: dá para usar em vez de abrir outra. */
   emptyFocused(): Conversation | null {
     const conversation = this.conversationById(this.panes[this.focused])
-    return conversation && !conversation.title && !conversation.busy && !conversation.historyId
+    // A Wisp (Fase 82) não é usada para outra coisa: ela é a conversa do dia.
+    return conversation &&
+      !conversation.history.main &&
+      !conversation.title &&
+      !conversation.busy &&
+      !conversation.historyId
       ? conversation
       : null
+  }
+
+  /**
+   * A conversa principal, a aba Wisp (Fase 82): sempre aberta, a primeira. Criada aqui se ainda
+   * não existe (e, se houver mais de uma marcada, só a primeira continua sendo).
+   */
+  main(): Conversation {
+    const mains = this.conversations().filter((conversation) => conversation.history.main)
+    for (const extra of mains.slice(1)) extra.history.main = false
+    if (mains[0]) return mains[0]
+    const conversation = this.host.makeConversation()
+    conversation.history.main = true
+    conversation.history.anonymous = false
+    this.list.unshift({ id: conversation.id, kind: 'chat', conversation })
+    return conversation
   }
 
   /** Uma conversa para algo novo: a aba em foco, se estiver vazia, ou uma aba nova. */
@@ -198,6 +230,9 @@ export class ChatTabs {
   close(id: string): void {
     const index = this.list.findIndex((tab) => tab.id === id)
     if (index < 0) return
+    // A Wisp (Fase 82) não fecha.
+    const target = this.list[index]
+    if (target.kind === 'chat' && target.conversation.history.main) return
     const [tab] = this.list.splice(index, 1)
     if (tab.kind === 'chat') this.host.closed(tab.conversation)
     if (this.lastChat === id) this.lastChat = null
@@ -295,7 +330,9 @@ export class ChatTabs {
               mode: tab.conversation.mode,
               ...(tab.conversation.folder ? { folder: tab.conversation.folder } : {}),
               ...(tab.conversation.view === 'terminal' ? { view: 'terminal' as const } : {}),
-              ...(tab.conversation.draft ? { draft: tab.conversation.draft } : {})
+              ...(tab.conversation.draft ? { draft: tab.conversation.draft } : {}),
+              ...(tab.conversation.history.anonymous ? { anonymous: true as const } : {}),
+              ...(tab.conversation.history.main ? { main: true as const } : {})
             }
           : { kind: 'session', sessionId: tab.sessionId, title: tab.title }
       ),
@@ -326,7 +363,10 @@ export class ChatTabs {
       }
       if (entry?.kind === 'chat') this.push(restoreChat(entry))
     }
-    if (!this.list.length) this.push(this.host.makeConversation())
+    // A Wisp (Fase 82) sempre existe, e é a primeira.
+    const main = this.main()
+    const at = this.list.findIndex((tab) => tab.id === main.id)
+    if (at > 0) this.list.unshift(...this.list.splice(at, 1))
     // A grade guarda o índice de cada aba; a versão 1 guardava só a fileira de painéis.
     const byIndex = (value: unknown): unknown => {
       if (!value || typeof value !== 'object') return value

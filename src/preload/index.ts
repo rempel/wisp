@@ -1,9 +1,11 @@
 import { contextBridge, ipcRenderer, webUtils } from 'electron'
 import type { IpcRendererEvent } from 'electron'
-import { IPC } from '../shared/ipc'
+import { IPC, IPC_HOME } from '../shared/ipc'
 import type { AvatarName } from '../shared/avatars'
 import type { MascotAct } from '../shared/emotions'
 import type {
+  FocusState,
+  Todo,
   BoardCard,
   PreviewState,
   Accessory,
@@ -100,6 +102,8 @@ const api: WispApi = {
     newConversation: (conversation) => ipcRenderer.send(IPC.chatNew, conversation),
     hide: () => ipcRenderer.send(IPC.chatHide),
     maximize: () => ipcRenderer.send(IPC.windowMaximize),
+    setWindowMode: (mode) => ipcRenderer.send(IPC.windowMode, mode),
+    home: () => ipcRenderer.invoke(IPC.homeSnapshot),
     dock: () => ipcRenderer.send(IPC.windowDock),
     onWindowState: (listener) => subscribe<[WindowState]>(IPC.windowState, listener),
     setModel: (conversation, choice) => ipcRenderer.send(IPC.chatModel, conversation, choice),
@@ -138,6 +142,7 @@ const api: WispApi = {
   tabs: {
     onState: (listener) => subscribe<[TabsState]>(IPC.tabsState, listener),
     create: () => ipcRenderer.send(IPC.tabsNew),
+    createAnonymous: () => ipcRenderer.send(IPC.tabsNewAnonymous),
     close: (id) => ipcRenderer.send(IPC.tabsClose, id),
     show: (id) => ipcRenderer.send(IPC.tabsShow, id),
     focus: (pane) => ipcRenderer.send(IPC.tabsFocus, pane),
@@ -179,7 +184,8 @@ const api: WispApi = {
     pick: () => ipcRenderer.invoke(IPC.skillsPick),
     install: () => ipcRenderer.invoke(IPC.skillsInstall),
     remove: (name) => ipcRenderer.invoke(IPC.skillsRemove, name),
-    openFolder: () => ipcRenderer.send(IPC.skillsOpenFolder)
+    openFolder: () => ipcRenderer.send(IPC.skillsOpenFolder),
+    text: (name) => ipcRenderer.invoke(IPC.skillsText, name)
   },
   openrouter: {
     models: () => ipcRenderer.invoke(IPC.openrouterModels),
@@ -197,6 +203,12 @@ const api: WispApi = {
     action: (action) => ipcRenderer.invoke(IPC.diagnosticsAction, action),
     onView: (listener) => subscribe<[PanelView]>(IPC.panelView, listener),
     welcomeDone: () => ipcRenderer.send(IPC.welcomeDone)
+  },
+  telegram: {
+    status: () => ipcRenderer.invoke(IPC.telegramStatus),
+    token: (token) => ipcRenderer.invoke(IPC.telegramToken, token),
+    pair: () => ipcRenderer.invoke(IPC.telegramPair),
+    forget: () => ipcRenderer.invoke(IPC.telegramForget)
   },
   phone: {
     pair: (server, token) => ipcRenderer.invoke(IPC.phonePair, server, token),
@@ -233,11 +245,33 @@ const api: WispApi = {
     action: (action, card, column) => ipcRenderer.invoke(IPC.boardAction, action, card, column),
     onChanged: (listener) => subscribe<[BoardCard[]]>(IPC.boardChanged, listener)
   },
+  home: {
+    agenda: (from, to) => ipcRenderer.invoke(IPC_HOME.agenda, from, to),
+    activity: (days) => ipcRenderer.invoke(IPC_HOME.activity, days),
+    feed: () => ipcRenderer.invoke(IPC_HOME.feed),
+    note: (text) => ipcRenderer.invoke(IPC_HOME.note, text),
+    todos: () => ipcRenderer.invoke(IPC_HOME.todos),
+    changeTodo: (change) => ipcRenderer.invoke(IPC_HOME.todoChange, change),
+    onTodos: (listener) => subscribe<[Todo[]]>(IPC_HOME.todosChanged, listener),
+    habits: () => ipcRenderer.invoke(IPC_HOME.habits),
+    changeHabit: (change) => ipcRenderer.invoke(IPC_HOME.habitChange, change),
+    focus: () => ipcRenderer.invoke(IPC_HOME.focus),
+    focusAction: (action) => ipcRenderer.invoke(IPC_HOME.focusAction, action),
+    onFocus: (listener) => subscribe<[FocusState]>(IPC_HOME.focusChanged, listener),
+    music: () => ipcRenderer.invoke(IPC_HOME.music),
+    musicAction: (action) => ipcRenderer.invoke(IPC_HOME.musicAction, action),
+    weather: () => ipcRenderer.invoke(IPC_HOME.weather),
+    weatherPlace: (name) => ipcRenderer.invoke(IPC_HOME.weatherPlace, name)
+  },
   memory: {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),
     preview: (id, folder, text) => ipcRenderer.invoke(IPC.memoryPreview, id, folder, text),
     save: (id, folder, text, fingerprint) =>
-      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint)
+      ipcRenderer.invoke(IPC.memorySave, id, folder, text, fingerprint),
+    notes: () => ipcRenderer.invoke(IPC.memoryNotes),
+    undo: (id) => ipcRenderer.invoke(IPC.memoryUndo, id),
+    model: (action) => ipcRenderer.invoke(IPC.memoryModel, action),
+    cleanup: (action) => ipcRenderer.invoke(IPC.memoryCleanup, action)
   },
   agents: {
     list: (folder) => ipcRenderer.invoke(IPC.agentsList, folder),

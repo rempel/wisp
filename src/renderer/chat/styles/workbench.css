@@ -356,6 +356,81 @@
   background: transparent;
 }
 
+/* A memória pessoal (Fase 79): os títulos dos dois grupos e as anotações do Wisp. */
+.memory-heading {
+  margin: 18px 0 8px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.memory-group:first-of-type .memory-heading {
+  margin-top: 4px;
+}
+
+.memory-note-list {
+  max-height: 320px;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.memory-note-list li {
+  padding: 8px 0;
+  border-top: 1px solid var(--border);
+}
+
+.memory-note-list li:first-child {
+  border-top: 0;
+}
+
+.memory-note-list li.undone .memory-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.memory-note-text {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.memory-note-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memory-note-meta .link {
+  overflow: hidden;
+  max-width: 100%;
+  font-size: 12px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.memory-note-list li > .link {
+  font-size: 12px;
+}
+
+.memory-note-list li > small {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.memory-note-text {
+  margin: 4px 0;
+  font-size: 13px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
 /* A aba Mudanças (Fase 74): um arquivo por linha, com o diff ao abrir. */
 .workbench-changes-total {
   flex: 1;
@@ -596,4 +671,33 @@
 
 .project-row input {
   flex: 1;
+}
+
+/* O Telegram nas configurações (Fase 85): a ficha e o código do pareamento. */
+.telegram-token {
+  display: flex;
+  gap: 6px;
+}
+
+.telegram-token input {
+  flex: 1;
+  min-width: 0;
+}
+
+.telegram-code strong {
+  font-family: var(--mono);
+  font-size: 18px;
+  letter-spacing: 0.15em;
+}
+
+/* As skills sugeridas (Fase 86): o SKILL.md fica recolhido até você abrir. */
+.memory-skill {
+  margin-top: 10px;
+}
+
+.memory-skill pre {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
 }

@@ -18,6 +18,13 @@ import { describeIn, describeWhen, parseWhen } from './reminders'
 import type { Reminder } from './reminders'
 import { activateWindow, describeWindow, findWindows, listWindows } from './windows'
 import { registerWorkbenchTools } from './mcp-workbench'
+import { registerMemoryTools } from './mcp-memory'
+import { registerScheduleTools } from './mcp-schedule'
+import { registerTodoTools } from './mcp-todos'
+import type { TodoToolsOptions } from './mcp-todos'
+import { registerSkillTools } from './learned-skills'
+import type { ScheduleToolsOptions } from './mcp-schedule'
+import type { MemoryToolsOptions } from './mcp-memory'
 import type { WorkbenchControl } from './workbench'
 
 /** Um pedido de permissão que o Claude Code faz pelo --permission-prompt-tool. */
@@ -83,6 +90,14 @@ export interface DesktopServerOptions {
   workbench?: () => WorkbenchControl | null
   /** Mostra uma emoção ou uma dança no mascote, por `seconds` segundos (Fase 27). */
   express?: (act: { emotion?: Emotion; dance?: Dance; seconds?: number }) => void
+  /** A memória pessoal (Fase 79): memory_save e memory_forget. */
+  memory?: MemoryToolsOptions
+  /** A agenda que o Claude marca (Fase 83): schedule_task, list_tasks e cancel_task. */
+  schedule?: ScheduleToolsOptions
+  /** As skills que ele aprende (Fase 86): propose_skill, na pasta do Claude Code. */
+  skills?: { configDir: () => string }
+  /** A sua lista de tarefas (Fase 95): todo_add, todo_list e todo_done. */
+  todos?: TodoToolsOptions
 }
 
 export interface DesktopServer {
@@ -302,6 +317,10 @@ function buildMcpServer(options: DesktopServerOptions, conversation?: string): M
   )
 
   if (options.workbench) registerWorkbenchTools(server, options.workbench, conversation)
+  if (options.memory) registerMemoryTools(server, options.memory, conversation)
+  if (options.schedule) registerScheduleTools(server, options.schedule)
+  if (options.todos) registerTodoTools(server, options.todos)
+  if (options.skills) registerSkillTools(server, options.skills.configDir)
 
   const screenshot = options.screenshot
   if (screenshot) {

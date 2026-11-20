@@ -4,6 +4,8 @@ import type { BrowserWindow, Rectangle, WebContents } from 'electron'
 import type { RelayEvent } from './hooks/protocol'
 import type { PendingReply } from './hooks/server'
 import type { Approval, ApprovalRequest } from './mcp-server'
+import type { MemoryScope } from './mcp-memory'
+import type { Conversation } from './conversation'
 import type { ScreenImage } from './screenshot'
 import type {
   AgendaItem,
@@ -19,6 +21,13 @@ import type {
   VoiceStatus
 } from '../shared/ipc'
 import type { ScheduledTask } from '../shared/prompts'
+
+/** Quem quer saber que uma tarefa agendada terminou: a tarefa, a conversa e como acabou. */
+export type TaskDoneListener = (
+  task: ScheduledTask,
+  conversation: Conversation,
+  outcome: 'done' | 'error' | 'stopped'
+) => void
 
 export interface Chat {
   /** Mostra o painel ao lado do mascote, traz para a frente ou esconde. */
@@ -43,7 +52,29 @@ export interface Chat {
    * config.json não vale aqui). Com você olhando o painel, a aba nova não toma o lugar da que está
    * à vista.
    */
-  runTask(task: ScheduledTask, event?: string): TaskResult
+  runTask(
+    task: ScheduledTask,
+    event?: string,
+    options?: {
+      /** Numa aba que não aparece e sem a destilação (o batimento, Fase 84). */
+      quiet?: boolean
+      /** O modelo da conversa (o batimento usa o Haiku). */
+      model?: string
+    }
+  ): TaskResult
+  /** Fecha a aba de uma conversa (a do batimento, depois de entregar). */
+  closeConversation(id: string): void
+  /**
+   * Manda uma mensagem de fora (o Telegram, Fase 85) para a Wisp, sem abrir o painel. Devolve a
+   * conversa, ou null se ela está respondendo e não dá para mandar agora.
+   */
+  sendToMain(text: string, files: OutgoingAttachment[], voice: boolean): string | null
+  /** A Wisp começa uma conversa nova (o /novo do Telegram). */
+  resetMain(): void
+  /** O fim de cada turno, em qualquer conversa (o Telegram espera o da Wisp). */
+  onTurnEnd(
+    listener: (conversation: Conversation, outcome: 'done' | 'error' | 'stopped') => void
+  ): void
   /** Mostra uma frase dita ao Wisp que ele mesmo resolve (um comando rápido de voz). */
   utterance(text: string): void
   /** Quantos cards de permissão (não perguntas) esperam resposta, em todas as abas. */
@@ -99,6 +130,12 @@ export interface Chat {
   window(): BrowserWindow | null
   /** A pasta de uma conversa (sem o id, a da conversa em foco; null: sem pasta), para a bancada. */
   folderOf(id: string | undefined): string | null
+  /** Uma tarefa agendada terminou o primeiro turno (Fase 83). */
+  onTaskDone(listener: TaskDoneListener): void
+  /** Um aviso em Markdown na Wisp, a conversa principal (Fases 83 e 84). */
+  postToMain(text: string): void
+  /** O que uma conversa pode com a memória pessoal (Fase 79); null se ela não existe mais. */
+  memoryScope(id: string | undefined): MemoryScope | null
   /** A largura que a bancada ocupa na janela; `grow`: a janela ao lado do mascote acompanha. */
   sideWidth(px: number, grow: boolean): void
   /** As sessões do terminal mudaram: a aba Sessões busca de novo. */

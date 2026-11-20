@@ -45,6 +45,10 @@ interface Header {
   cwd?: string
   /** A conversa foi pela OpenRouter (sem o campo, pela assinatura). */
   provider?: 'openrouter'
+  /** Uma conversa anônima: sem a memória pessoal (Fase 79). */
+  anonymous?: true
+  /** Um dia da conversa principal, a aba Wisp (Fase 82). */
+  main?: true
 }
 
 /** O Claude Code passou a usar outro session_id (raro); o --resume usa o último. */
@@ -145,6 +149,8 @@ export interface SavedConversation {
   cwd?: string
   /** Por onde a conversa foi: retomar pelo mesmo lado (as sessões de cada um ficam separadas). */
   provider?: 'openrouter'
+  /** Uma conversa anônima (Fase 79): reaberta, continua sem a memória pessoal. */
+  anonymous?: true
   events: ChatEvent[]
 }
 
@@ -170,6 +176,15 @@ export class History {
   provider: Provider = 'subscription'
   /** A pasta das conversas gravadas daqui para a frente (uma conversa numa pasta). */
   cwd: string | null = null
+  /**
+   * A aba é anônima (Fase 79): a conversa não lê nem escreve a memória pessoal. Vale para a aba
+   * (uma conversa nova nela continua anônima); reabrir uma conversa do histórico traz a dela.
+   */
+  anonymous = false
+  /** A aba é a conversa principal, a Wisp (Fase 82): vale para a aba, como a anônima. */
+  main = false
+  /** Quando a conversa aberta começou (null: nenhuma), para a Wisp saber que o dia virou. */
+  startedAt: number | null = null
 
   constructor(private readonly dir = HISTORY_DIR) {}
 
@@ -227,6 +242,7 @@ export class History {
     if (event.type === 'reset') {
       this.flush()
       this.current = null
+      this.startedAt = null
       this.seed = null
       return
     }
@@ -292,6 +308,7 @@ export class History {
         current: open.has(id) || id === this.current?.id,
         ...(header.cwd ? { project: basename(header.cwd), folder: header.cwd } : {}),
         ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+        ...(header.main === true ? { main: true } : {}),
         ...(pins.has(id) ? { pinned: true } : {})
       })
     }
@@ -337,6 +354,7 @@ export class History {
       createdAt: header.createdAt,
       ...(typeof header.cwd === 'string' && header.cwd ? { cwd: header.cwd } : {}),
       ...(header.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+      ...(header.anonymous === true ? { anonymous: true as const } : {}),
       events
     }
   }
@@ -344,7 +362,9 @@ export class History {
   /** Continua gravando numa conversa reaberta do histórico. */
   continue(saved: SavedConversation): void {
     this.flush()
+    this.anonymous = saved.anonymous === true
     this.current = { id: saved.id, sessionId: saved.sessionId, file: this.file(saved.id) }
+    this.startedAt = saved.createdAt
   }
 
   /** Apaga uma conversa. Se for a aberta, ela para de ser gravada. */
@@ -374,6 +394,7 @@ export class History {
     // Uma sessão do terminal ganha um id de conversa próprio: o dela pode já ter outra conversa.
     const id = seed ? randomUUID() : sessionId
     this.current = { id, sessionId, file: this.file(id) }
+    this.startedAt = Date.now()
     this.append({
       type: 'conversa',
       v: 1,
@@ -381,7 +402,9 @@ export class History {
       createdAt: Date.now(),
       title,
       ...(seed?.cwd ? { cwd: seed.cwd } : this.cwd ? { cwd: this.cwd } : {}),
-      ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {})
+      ...(this.provider === 'openrouter' ? { provider: 'openrouter' as const } : {}),
+      ...(this.anonymous ? { anonymous: true as const } : {}),
+      ...(this.main ? { main: true as const } : {})
     } satisfies Header)
     if (seed && sessionId !== id) this.append({ type: 'sessao', sessionId } satisfies SessionLine)
     for (const event of seed?.preface ?? []) this.append(event)

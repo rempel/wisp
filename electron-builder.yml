@@ -30,6 +30,11 @@ files:
   # com esta, e uma lista só de exclusões vira "**/*": o pacote levava o projeto inteiro (src,
   # test, e2e, docs).
   - '!node_modules/node-pty/{deps,third_party,src,scripts,typings}/**'
+  # Do ONNX Runtime (a busca por sentido da memória, Fase 80), só a entrada do Node e o WASM que ela
+  # carrega: o resto (as outras variantes, os mapas, o código-fonte) são uns 125 MB.
+  - '!node_modules/onnxruntime-web/{dist,lib,docs}/**'
+  - node_modules/onnxruntime-web/dist/ort.node.min.{js,mjs}
+  - node_modules/onnxruntime-web/dist/ort-wasm-simd-threaded.{mjs,wasm}
 # O node-pty usa a N-API: o pty.node compilado no npm install serve para o Electron sem
 # recompilar (e recompilar baixaria os cabeçalhos do Electron).
 npmRebuild: false

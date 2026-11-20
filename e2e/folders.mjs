@@ -5,7 +5,17 @@
 // (com a prévia) e vão para a lixeira pelas configurações. Uso: node e2e/folders.mjs.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { checks, connect, sleep, startApp, stopApp, testHome, waitFor, wisp } from './lib.mjs'
+import {
+  checks,
+  connect,
+  settingsCategory,
+  sleep,
+  startApp,
+  stopApp,
+  testHome,
+  waitFor,
+  wisp
+} from './lib.mjs'
 
 const { check, failed } = checks()
 const home = testHome({ projectRoots: ['~/projetos'] })
@@ -157,6 +167,8 @@ check(
 
 console.log('== Skills nas configurações')
 await ev(`document.querySelector('.header .icon-button[aria-label="Configurações"]').click()`)
+await waitFor(() => ev(`!!document.querySelector('.settings-category')`), 5000)
+await settingsCategory(ev, 'Claude Code')
 const list = await waitFor(
   () =>
     ev(

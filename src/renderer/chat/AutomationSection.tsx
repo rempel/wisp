@@ -3,7 +3,14 @@ import type { JSX } from 'react'
 import type { Settings, TaskResult } from '../../shared/ipc'
 import { dateLocale, t } from '../../shared/i18n'
 import { formatAgo, formatReset } from '../../shared/format'
-import { MAX_PROMPTS, MAX_TASKS, nextRun, TASK_TRIGGERS, variable } from '../../shared/prompts'
+import {
+  describeSchedule,
+  MAX_PROMPTS,
+  MAX_TASKS,
+  nextRun,
+  TASK_TRIGGERS,
+  variable
+} from '../../shared/prompts'
 import type { SavedPrompt, ScheduledTask, TaskTrigger } from '../../shared/prompts'
 
 // Os prompts salvos e as tarefas agendadas (Fase 26), nas configurações. Cada mudança grava a
@@ -310,11 +317,14 @@ function TaskEditor({
   const upcoming = fresh ? null : nextRun(value, new Date())
   const trigger = draft.trigger ?? 'time'
   const timed = trigger === 'time'
+  // Os horários novos (Fase 83: uma vez, a cada N horas, todo mês) aparecem em palavras; o
+  // editor de hora e dias é o da semana.
+  const weekly = (draft.repeat ?? 'weekly') === 'weekly'
   // O que falta para agendar: o horário pede um dia; o arquivo novo, a pasta.
   const ready =
     !!draft.name.trim() &&
     !!draft.prompt.trim() &&
-    (timed ? draft.days.length > 0 : trigger !== 'new-file' || !!draft.watch?.trim())
+    (timed ? draft.days.length > 0 || !weekly : trigger !== 'new-file' || !!draft.watch?.trim())
   return (
     <div className={`automation-item${value.enabled || fresh ? '' : ' off'}`}>
       <div className="automation-head">
@@ -364,7 +374,13 @@ function TaskEditor({
           onBlur={() => commit()}
         />
       )}
-      {timed && (
+      {timed && !weekly && (
+        <p className="settings-hint automation-schedule">
+          {describeSchedule(draft)}
+          {draft.by === 'claude' ? ` · ${t('agendada pelo Claude')}` : ''}
+        </p>
+      )}
+      {timed && weekly && (
         <div className="automation-when">
           <input
             type="time"

@@ -1,7 +1,9 @@
 // A memória à vista (Fase 65): os CLAUDE.md que o Claude Code lê em toda conversa (o seu, o do
 // espaço do Wisp e os do projeto da conversa em foco), para ver e editar pelo painel. Como em
 // todo arquivo de configuração do usuário: a prévia mostra o diff antes, o arquivo velho ganha
-// um backup ao lado e gravar só vale se o arquivo ainda estiver como na prévia.
+// um backup ao lado e gravar só vale se o arquivo ainda estiver como na prévia. Desde a Fase 79,
+// também o EU.md e o MEMORIA.md da memória pessoal (personal-memory.ts) e as anotações do Wisp,
+// com o desfazer.
 
 import { ipcMain } from 'electron'
 import type { WebContents } from 'electron'
@@ -11,15 +13,40 @@ import { dirname, join } from 'path'
 import { backupFile, stamp } from './backup'
 import { usableFolder } from './folders'
 import { DATA_DIR, expandHome } from './paths'
+import { getConfig } from './config'
+import type { Distiller } from './distill'
+import { currentSkill, writeSkill } from './learned-skills'
+import { skillText } from '../shared/skill-text'
 import { claudeConfigDir } from './skills'
+import { personalMemory } from './personal-memory'
+import { downloadModel, EMBEDDING_MODEL, modelStatus, removeModel } from './embeddings'
+import { memoryIndex } from './memory-index'
+import { distiller } from './memory-setup'
 import { wholeFileDiff } from '../shared/diff'
 import { IPC } from '../shared/ipc'
-import type { AgentPreview, AgentResult, MemoryFile, MemoryId } from '../shared/ipc'
+import type {
+  AgentPreview,
+  AgentResult,
+  MemoryFile,
+  MemoryId,
+  MemoryCleanupInfo,
+  MemoryModelInfo
+} from '../shared/ipc'
 import { t } from '../shared/i18n'
 
 /** O maior arquivo de memória que o painel mostra e grava. */
 const MAX_MEMORY = 200_000
-export const MEMORY_IDS: MemoryId[] = ['user', 'workspace', 'project', 'project-dir', 'local']
+export const MEMORY_IDS: MemoryId[] = [
+  'me',
+  'facts',
+  'personality',
+  'checklist',
+  'user',
+  'workspace',
+  'project',
+  'project-dir',
+  'local'
+]
 
 /** Onde fica cada arquivo de memória (null: a conversa não está numa pasta de projeto). */
 export function memoryPath(
@@ -28,6 +55,10 @@ export function memoryPath(
   configDir = claudeConfigDir(),
   dataDir = DATA_DIR
 ): string | null {
+  if (id === 'me') return join(dataDir, 'memoria', 'EU.md')
+  if (id === 'facts') return join(dataDir, 'memoria', 'MEMORIA.md')
+  if (id === 'personality') return join(dataDir, 'memoria', 'PERSONALIDADE.md')
+  if (id === 'checklist') return join(dataDir, 'memoria', 'CHECKLIST.md')
   if (id === 'user') return join(configDir, 'CLAUDE.md')
   if (id === 'workspace') return join(dataDir, 'workspace', 'CLAUDE.md')
   const root = folder ? usableFolder(expandHome(folder)) : null
@@ -162,4 +193,110 @@ export function setupMemoryIpc(isSender: (sender: WebContents) => boolean): void
       return saveMemory(id, folderOf(folder), text, fingerprint)
     }
   )
+  ipcMain.handle(IPC.memoryNotes, (event) =>
+    isSender(event.sender) ? personalMemory().notes() : []
+  )
+  ipcMain.handle(
+    IPC.memoryModel,
+    async (event, action: unknown): Promise<MemoryModelInfo | null> => {
+      if (!isSender(event.sender)) return null
+      if (action === 'download') {
+        await downloadModel()
+        // Com o modelo, os trechos ganham vetor aos poucos, sem travar o app.
+        void memoryIndex()
+          .embedPending()
+          .catch(() => undefined)
+      } else if (action === 'remove') {
+        removeModel()
+      }
+      let stats = { chunks: 0, vectors: 0 }
+      try {
+        stats = memoryIndex().stats()
+      } catch {
+        // O índice ainda não abriu (ou não deu): mostra zero.
+      }
+      return {
+        ...modelStatus(),
+        approxBytes: EMBEDDING_MODEL.approxBytes,
+        source: EMBEDDING_MODEL.source,
+        ...stats
+      }
+    }
+  )
+  ipcMain.handle(IPC.memoryCleanup, async (event, action: unknown) =>
+    isSender(event.sender) ? cleanupAction(action) : null
+  )
+  ipcMain.handle(IPC.memoryUndo, (event, id: unknown): AgentResult => {
+    if (!isSender(event.sender) || typeof id !== 'string') {
+      return { ok: false, message: t('pedido inválido') }
+    }
+    const result = personalMemory().undo(id)
+    return result.ok ? result : { ok: false, message: result.error }
+  })
+}
+
+/** A destilação e a faxina (Fase 81), pela tela Memória. */
+export async function cleanupAction(
+  action: unknown,
+  source: Distiller = distiller(),
+  configDir = claudeConfigDir(),
+  dataDir = DATA_DIR
+): Promise<MemoryCleanupInfo> {
+  let message: string | undefined
+  const skill = typeof action === 'string' ? /^skill-(accept|discard):(.+)$/.exec(action) : null
+  if (skill) {
+    const suggestion = source.skillSuggestions().find((item) => item.name === skill[2])
+    if (suggestion && skill[1] === 'accept') {
+      const written = writeSkill(suggestion, configDir)
+      message = written.ok
+        ? t('Skill criada em {path}: vale nas conversas novas, como /{name}.', {
+            path: written.path,
+            name: suggestion.name
+          })
+        : written.error
+      if (written.ok) source.dropSkill(suggestion.name)
+    } else if (suggestion) {
+      source.dropSkill(suggestion.name)
+      message = t('A sugestão foi descartada.')
+    }
+  } else if (action === 'run') {
+    const result = await source.cleanup()
+    await source.suggestSkills()
+    message =
+      result.message === 'pending'
+        ? t('A faxina sugere mudanças: veja abaixo.')
+        : result.message === 'unchanged' || result.message === 'empty'
+          ? t('A faxina não achou nada para arrumar.')
+          : t('A faxina não deu certo: {error}', { error: result.message })
+  } else if (action === 'accept') {
+    const pending = source.pendingCleanup()
+    if (pending && !pending.stale) {
+      const saved = saveMemory('facts', null, pending.text, pending.fingerprint, configDir, dataDir)
+      message = saved.message
+      if (saved.ok) source.dropCleanup()
+    } else {
+      message = t('O MEMORIA.md mudou depois da faxina: rode-a de novo.')
+    }
+  } else if (action === 'discard') {
+    source.dropCleanup()
+    message = t('A sugestão da faxina foi descartada.')
+  }
+  const pending = source.pendingCleanup()
+  const preview = pending ? previewMemory('facts', null, pending.text, configDir, dataDir) : null
+  return {
+    distill: getConfig().memoryDistill,
+    waiting: source.waiting(),
+    ...source.costs(),
+    skills: source.skillSuggestions().map((item) => ({
+      name: item.name,
+      description: item.description,
+      reason: item.reason,
+      text: skillText(item),
+      exists: currentSkill(item.name, configDir) !== null
+    })),
+    ...(pending && preview && !('error' in preview)
+      ? { pending: { at: pending.at, preview, stale: pending.stale } }
+      : {}),
+    ...(message ? { message } : {})
+  }
 }
