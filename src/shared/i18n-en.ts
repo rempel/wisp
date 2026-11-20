@@ -3147,5 +3147,21 @@ export const EN: Record<string, string> = {
   'Mande este código para o seu bot no Telegram (vale 10 minutos):':
     'Send this code to your bot on Telegram (valid for 10 minutes):',
   'Parear o meu usuário': 'Pair my user',
-  'Esquecer o bot': 'Forget the bot'
+  'Esquecer o bot': 'Forget the bot',
+  'O Wisp sugere uma skill': 'Wisp suggests a skill',
+  'Para o que você pede sempre do mesmo jeito: {names}. Veja na tela Memória.':
+    'For what you always ask the same way: {names}. See the Memory screen.',
+  'Skill criada em {path}: vale nas conversas novas, como /{name}.':
+    'Skill created in {path}: it applies to new conversations, as /{name}.',
+  'A sugestão foi descartada.': 'The suggestion was discarded.',
+  'Skill sugerida: {name}': 'Suggested skill: {name}',
+  'O Wisp sugere a skill /{name}': 'Wisp suggests the skill /{name}',
+  'O SKILL.md (substitui o de agora, com um backup ao lado)':
+    'The SKILL.md (replaces the current one, with a backup next to it)',
+  'O SKILL.md, em ~/.claude/skills/{name}': 'The SKILL.md, in ~/.claude/skills/{name}',
+  'Criar a skill': 'Create the skill',
+  'Cria {path}.': 'Creates {path}.',
+  'Muda {path} (a de antes ganha um backup ao lado):':
+    'Changes {path} (the old one gets a backup next to it):',
+  'Criar ou mudar uma skill': 'Create or change a skill'
 }

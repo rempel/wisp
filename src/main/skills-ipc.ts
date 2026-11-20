@@ -7,6 +7,8 @@ import { mkdirSync } from 'fs'
 import { join } from 'path'
 import { pickFolder } from './pick'
 import { claudeConfigDir, inspectSkill, installSkill, listSkills, SKILL_NAME } from './skills'
+import { currentSkill, skillFile } from './learned-skills'
+import { tilde } from './folders'
 import { IPC } from '../shared/ipc'
 import type { SkillInfo, SkillResult } from '../shared/ipc'
 
@@ -16,6 +18,11 @@ export function setupSkillsIpc(isSender: (sender: WebContents) => boolean): void
   ipcMain.handle(IPC.skillsList, (event): SkillInfo[] =>
     isSender(event.sender) ? listSkills() : []
   )
+  // O card da propose_skill (Fase 86): o texto de agora, para mostrar o diff.
+  ipcMain.handle(IPC.skillsText, (event, name: unknown) => {
+    if (!isSender(event.sender) || typeof name !== 'string' || !SKILL_NAME.test(name)) return null
+    return { path: tilde(skillFile(name)), text: currentSkill(name) }
+  })
   ipcMain.handle(IPC.skillsPick, async (event) => {
     if (!isSender(event.sender)) return null
     picked = null

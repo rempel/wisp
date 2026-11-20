@@ -288,6 +288,8 @@ export interface MemoryCleanupInfo {
   cost: number
   /** A faxina que espera o seu OK: o diff do MEMORIA.md. */
   pending?: { at: number; preview: AgentPreview; stale: boolean }
+  /** As skills sugeridas pela faxina (Fase 86): o SKILL.md inteiro, esperando o seu clique. */
+  skills: { name: string; description: string; reason: string; text: string; exists: boolean }[]
   /** O que aconteceu (rodar, gravar, descartar). */
   message?: string
 }
@@ -671,5 +673,7 @@ export interface MemoryApi {
   /** O modelo da busca por sentido (Fase 80): ver, baixar (com o seu clique) e tirar. */
   model(action: 'status' | 'download' | 'remove'): Promise<MemoryModelInfo>
   /** A destilação e a faxina da semana (Fase 81): ver, rodar agora, gravar ou descartar. */
-  cleanup(action: 'status' | 'run' | 'accept' | 'discard'): Promise<MemoryCleanupInfo>
+  cleanup(
+    action: 'status' | 'run' | 'accept' | 'discard' | `skill-${'accept' | 'discard'}:${string}`
+  ): Promise<MemoryCleanupInfo>
 }

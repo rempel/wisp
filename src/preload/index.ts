@@ -180,7 +180,8 @@ const api: WispApi = {
     pick: () => ipcRenderer.invoke(IPC.skillsPick),
     install: () => ipcRenderer.invoke(IPC.skillsInstall),
     remove: (name) => ipcRenderer.invoke(IPC.skillsRemove, name),
-    openFolder: () => ipcRenderer.send(IPC.skillsOpenFolder)
+    openFolder: () => ipcRenderer.send(IPC.skillsOpenFolder),
+    text: (name) => ipcRenderer.invoke(IPC.skillsText, name)
   },
   openrouter: {
     models: () => ipcRenderer.invoke(IPC.openrouterModels),

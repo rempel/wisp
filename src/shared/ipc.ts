@@ -420,6 +420,8 @@ export const IPC = {
   skillsRemove: 'skills:remove',
   /** chat → main: abrir a pasta das skills pessoais no gerenciador de arquivos. */
   skillsOpenFolder: 'skills:open-folder',
+  /** chat → main (invoke): o SKILL.md de uma skill pessoal, para o card da propose_skill. */
+  skillsText: 'skills:text',
   /** main → chat: o humor do mascote mudou (o avatar do cabeçalho acompanha). Arg: MascotState. */
   chatMood: 'chat:mood',
   /** main → chat: o painel acabou de aparecer (para a animação de abertura). */
@@ -765,6 +767,8 @@ export interface WispApi {
     install(): Promise<SkillResult>
     remove(name: string): Promise<SkillResult>
     openFolder(): void
+    /** O SKILL.md de agora de uma skill pessoal (null: não existe), para o card (Fase 86). */
+    text(name: string): Promise<{ path: string; text: string | null } | null>
   }
   /** A voz: o botão do microfone do painel. */
   voice: {

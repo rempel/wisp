@@ -220,6 +220,10 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   (Piper); `/agenda`, `/tarefas`, `/memoria`, `/lembrar` e `/novo`. Os cards chegam com Permitir
   uma vez e Negar, com as regras do ntfy. O que chegou com o Wisp fechado é respondido ao abrir
   (até 12 horas; o mais velho vira um resumo). As tarefas e o batimento também avisam por lá.
+- **As skills que ele aprende** (Fase 86): "transforma isso numa skill" vira a `propose_skill`, que
+  sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
+  da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
+  sugere skills na tela Memória, para você criar com um clique.
 
 ### Mudou
 

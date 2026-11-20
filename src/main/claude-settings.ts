@@ -59,9 +59,15 @@ export const SAFE_TOOLS = [
 
 /**
  * As ferramentas que sempre pedem o card, em qualquer modo (a regra "ask" vale até no
- * Automático): agendar e cancelar uma tarefa (Fase 83), que agem no futuro sem ninguém olhando.
+ * Automático): agendar e cancelar uma tarefa (Fase 83), que agem no futuro sem ninguém olhando, e
+ * propor uma skill (Fase 86).
  */
-export const ALWAYS_ASK = ['mcp__desktop__schedule_task', 'mcp__desktop__cancel_task']
+export const ALWAYS_ASK = [
+  'mcp__desktop__schedule_task',
+  'mcp__desktop__cancel_task',
+  // Fase 86: criar ou mudar uma skill mexe na sua configuração do Claude Code.
+  'mcp__desktop__propose_skill'
+]
 
 /** As regras "ask" das configurações do Claude Code: os arquivos de segredos e o ALWAYS_ASK. */
 const askRules = (): string[] => [...SENSITIVE_PATHS.map((path) => `Read(${path})`), ...ALWAYS_ASK]

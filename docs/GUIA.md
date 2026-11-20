@@ -892,6 +892,12 @@ do Claude Desktop.
   conversando por lá. Com o computador desligado, nada responde; ao abrir, o Wisp responde o que
   chegou nas últimas 12 horas e resume o resto. As tarefas e o batimento também avisam pelo
   Telegram. Só o seu usuário é atendido, e as mensagens passam pelos servidores do Telegram.
+- **As skills que ele aprende** (Fase 86): peça "transforma isso numa skill" e o Claude propõe
+  uma skill do Claude Code (em `~/.claude/skills/<nome>`): o card mostra o texto inteiro e onde
+  ela fica, e ela só existe com o seu OK; depois, vale como `/<nome>` nas conversas novas. Uma
+  skill do Wisp que errou e você corrigiu ganha a proposta de mudança, com o diff (a de antes
+  fica num backup). Uma vez por semana, junto da faxina, o Wisp procura o que você pede sempre do
+  mesmo jeito e sugere skills na tela Memória, com **Criar a skill** e **Descartar**.
 - **Modelos locais** (Fase 66, `localModelsUrl`): em Configurações, **Servidor de modelos local**
   recebe o endereço de um Ollama ou LM Studio (`http://localhost:11434`). Com ele, o outro
   provedor das conversas passa a ser esse servidor (a pílula mostra **Local**), sem chave e sem

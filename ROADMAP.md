@@ -11,7 +11,7 @@ dias), **G** (uma semana ou mais).
 **Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
 confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), as que dizem "pronta"
-estão implementadas e esperam a validação; as outras estão planejadas.
+estão implementadas e esperam a validação (todas, desde novembro de 2026).
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -583,7 +583,9 @@ Notas:
 
 #### Fase 86: as skills que ele aprende
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/skills-aprendidas.test.ts`;
+`e2e/skills-aprendidas.mjs`, com o card). **Só o uso confirma:** o Haiku de verdade achando os
+pedidos repetidos.
 
 - **Perceber (M):** na faxina da semana (Fase 81), o Wisp procura no diário e no histórico os
   pedidos que se repetem com o mesmo jeito de fazer (os mesmos passos, as mesmas ferramentas).
@@ -596,6 +598,16 @@ Notas:
 **Aceite:** depois de pedir três vezes, em dias diferentes, "resume os PRs abertos do wisp em
 tópicos", o resumo da semana sugere a skill `resumo-prs`; com o OK, `/resumo-prs` funciona numa
 conversa nova.
+
+Notas:
+
+- pedir e melhorar são a `propose_skill`, que sempre pede o card (a regra "ask", como a
+  `schedule_task`): o card mostra o SKILL.md inteiro e onde ele fica, ou o diff de uma que já
+  existe (que ganha um backup ao lado);
+- as sugestões da semana vêm junto da faxina: o Haiku lê os seus pedidos dos últimos 7 dias (das
+  conversas que valem para a memória) e o diário, e sugere até duas. Elas esperam na tela Memória,
+  com uma notificação; **Criar a skill** é o OK;
+- uma skill do Wisp leva uma marca no SKILL.md, para ele saber quais pode propor melhorar.
 
 ## O que vem depois
 

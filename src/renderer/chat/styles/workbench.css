@@ -689,3 +689,15 @@
   font-size: 18px;
   letter-spacing: 0.15em;
 }
+
+/* As skills sugeridas (Fase 86): o SKILL.md fica recolhido até você abrir. */
+.memory-skill {
+  margin-top: 10px;
+}
+
+.memory-skill pre {
+  max-height: 260px;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+}

@@ -58,6 +58,7 @@ src/
 │  ├─ chat-runs.ts   # o que o painel acompanha: as tarefas que rodam, o fim dos turnos e o dia da Wisp (Fases 82 a 85)
 │  ├─ telegram.ts    # o bot do Telegram: a Bot API, o pareamento, as mensagens, os áudios e os cards (Fase 85)
 │  ├─ telegram-setup.ts # o Telegram no app: a ficha no chaveiro, a Wisp, o ffmpeg, o IPC (Fase 85)
+│  ├─ learned-skills.ts # as skills que ele aprende: gravar o SKILL.md (com o backup) e a propose_skill (Fase 86)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1455,3 +1456,20 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     diz isso;
   - **os avisos:** o `channels.telegram` da `delivery.ts` manda o título e o texto das tarefas e
     do batimento (Fases 83 e 84) para o usuário pareado.
+- **As skills que ele aprende (Fase 86):**
+  - **o texto** (`shared/skill-text.ts`): o `skillDraftOf` confere o pedido (`nome` em
+    minúsculas e hífens, até 40; a `descricao`, até 300; as `instrucoes`, até 8 mil) e o
+    `skillText` monta o SKILL.md: o cabeçalho (`name` e `description`), a marca do Wisp (um
+    comentário) e as instruções. O card (`SkillBody.tsx`) e a gravação usam o mesmo, então o card
+    mostra o que vai ser gravado; com uma skill que já existe (`skills:text`), o diff;
+  - **gravar** (`learned-skills.ts`): em `<CLAUDE_CONFIG_DIR ou ~/.claude>/skills/<nome>/SKILL.md`,
+    pelo temporário e o `rename`; uma que já existe ganha o backup datado ao lado. Um texto com
+    cara de segredo (`looksSecret`) é recusado;
+  - **a ferramenta** `propose_skill`: no `ALWAYS_ASK` (o card em qualquer modo). A descrição diz
+    quando usar: quando você pede, ou para melhorar uma skill do Wisp que errou;
+  - **as sugestões:** na faxina da semana (e no **Fazer a faxina agora**), o `suggestSkills` do
+    `distill.ts` manda ao Haiku os seus pedidos dos últimos 7 dias (`recentRequests`: as suas
+    mensagens das conversas que valem para a memória, com o dia, até 300) e o diário de hoje, com
+    as skills que já existem; ele devolve até duas. As válidas e novas esperam em
+    `destilacao.json` (até 6), com uma notificação; a tela Memória mostra o SKILL.md de cada uma,
+    e **Criar a skill** grava (`memory:cleanup` com `skill-accept:<nome>`).

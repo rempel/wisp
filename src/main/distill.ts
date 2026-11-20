@@ -15,6 +15,8 @@ import type { OnceResult } from './claude-once'
 import type { SavedConversation } from './history'
 import { messagesOf } from './history-search'
 import { memoryAccess } from './personal-memory'
+import { skillDraftOf } from '../shared/skill-text'
+import type { SkillDraft } from '../shared/skill-text'
 import type { PersonalMemory } from './personal-memory'
 
 /** Quanto tempo parada uma conversa espera para ser destilada. */
@@ -44,6 +46,19 @@ export interface DistillDeps {
   now?: () => number
   /** A faxina ficou pronta: avisa (uma notificação). */
   cleanupReady?: () => void
+  /**
+   * As skills que ele aprende (Fase 86): os seus pedidos dos últimos 7 dias ("AAAA-MM-DD: texto"),
+   * as skills que você já tem e o aviso de uma sugestão nova.
+   */
+  recentRequests?: () => string[]
+  skillNames?: () => string[]
+  skillsReady?: (names: string[]) => void
+}
+
+/** Uma skill sugerida pela faxina (Fase 86), esperando o seu clique na tela Memória. */
+export interface SkillSuggestion extends SkillDraft {
+  reason: string
+  at: number
 }
 
 interface Run {
@@ -68,6 +83,8 @@ interface State {
   runs: Run[]
   lastCleanup?: number
   pending?: Pending
+  /** As skills sugeridas que esperam (Fase 86). */
+  skills?: SkillSuggestion[]
 }
 
 export const fingerprintOf = (text: string): string =>
@@ -106,6 +123,23 @@ export function distillPrompt(
   ].join('\n')
 }
 
+/** O pedido das skills (Fase 86): os pedidos da semana, o diário e as skills que já existem. */
+export function skillsPrompt(requests: string[], diary: string, existing: string[]): string {
+  return [
+    'Estes são os pedidos que o usuário fez ao assistente nos últimos 7 dias (um por linha, com o dia):',
+    `<pedidos>\n${requests.join('\n')}\n</pedidos>`,
+    diary ? `<diario>\n${diary}\n</diario>` : '',
+    `As skills que ele já tem: ${existing.length ? existing.join(', ') : 'nenhuma'}.`,
+    '',
+    'Ache os pedidos que se repetem (3 vezes ou mais, em dias diferentes) e que se fazem sempre do mesmo jeito (os mesmos passos). Para cada um (no máximo 2), devolva uma skill do Claude Code:',
+    '{"skills": [{"nome": "...", "descricao": "...", "instrucoes": "...", "motivo": "..."}]}',
+    '- nome: minúsculas e hífens (vira o /comando); descricao: quando usar, numa frase; instrucoes: o passo a passo em Markdown, que se entenda sozinho; motivo: quais pedidos e em que dias.',
+    'Sem uma repetição clara, devolva {"skills": []}. Nunca ponha segredos.'
+  ]
+    .filter((line) => line !== '')
+    .join('\n')
+}
+
 /** O pedido da faxina: o MEMORIA.md inteiro, para devolver arrumado. */
 export function cleanupPrompt(memoria: string, today: string): string {
   return [
@@ -137,7 +171,8 @@ export class Distiller {
         waiting: data.waiting && typeof data.waiting === 'object' ? data.waiting : {},
         runs: Array.isArray(data.runs) ? data.runs : [],
         ...(typeof data.lastCleanup === 'number' ? { lastCleanup: data.lastCleanup } : {}),
-        ...(data.pending && typeof data.pending.text === 'string' ? { pending: data.pending } : {})
+        ...(data.pending && typeof data.pending.text === 'string' ? { pending: data.pending } : {}),
+        ...(Array.isArray(data.skills) ? { skills: data.skills } : {})
       }
     } catch {
       // Sem arquivo (ou estragado): começa do zero.
@@ -185,6 +220,7 @@ export class Distiller {
         this.save()
       } else {
         await this.cleanup()
+        await this.suggestSkills()
       }
     }
   }
@@ -318,6 +354,60 @@ export class Distiller {
       // Sumiu: a proposta fica velha.
     }
     return { ...pending, current, stale: fingerprintOf(current) !== pending.fingerprint }
+  }
+
+  /**
+   * Procura nos seus pedidos da semana os que se repetem do mesmo jeito e sugere até duas skills
+   * (Fase 86). Elas esperam o seu clique na tela Memória; nada é criado aqui.
+   */
+  async suggestSkills(): Promise<SkillSuggestion[]> {
+    const requests = this.deps.recentRequests?.() ?? []
+    if (requests.length < 3 || !this.deps.enabled()) return []
+    const have = new Set([
+      ...(this.deps.skillNames?.() ?? []),
+      ...(this.state.skills ?? []).map((item) => item.name)
+    ])
+    let diary = ''
+    try {
+      diary = readFileSync(this.deps.memory.path('diario'), 'utf8')
+    } catch {
+      // Sem diário hoje: só os pedidos.
+    }
+    const answer = await this.deps.ask(
+      skillsPrompt(requests, withoutComments(diary), [...have]),
+      CLEANUP_SYSTEM
+    )
+    this.state.runs = [
+      ...this.state.runs,
+      { at: this.now(), cost: answer.cost, kind: 'faxina' as const }
+    ].slice(-MAX_RUNS)
+    const parsed = answer.ok ? (jsonOf(answer.text) as { skills?: unknown } | null) : null
+    const found: SkillSuggestion[] = []
+    for (const item of Array.isArray(parsed?.skills) ? parsed.skills.slice(0, 2) : []) {
+      const draft = skillDraftOf(item)
+      if ('error' in draft || have.has(draft.name)) continue
+      const reason =
+        typeof (item as { motivo?: unknown }).motivo === 'string'
+          ? (item as { motivo: string }).motivo.slice(0, 300)
+          : ''
+      found.push({ ...draft, reason, at: this.now() })
+      have.add(draft.name)
+    }
+    this.state.skills = [...(this.state.skills ?? []), ...found].slice(-6)
+    this.save()
+    if (found.length) this.deps.skillsReady?.(found.map((item) => item.name))
+    return found
+  }
+
+  /** As skills sugeridas que esperam. */
+  skillSuggestions(): SkillSuggestion[] {
+    return this.state.skills ?? []
+  }
+
+  /** Tira uma sugestão (criada ou descartada). */
+  dropSkill(name: string): void {
+    this.state.skills = (this.state.skills ?? []).filter((item) => item.name !== name)
+    this.save()
   }
 
   /** Tira a proposta (depois de gravada, ou recusada). */

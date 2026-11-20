@@ -15,6 +15,8 @@ import { usableFolder } from './folders'
 import { DATA_DIR, expandHome } from './paths'
 import { getConfig } from './config'
 import type { Distiller } from './distill'
+import { currentSkill, writeSkill } from './learned-skills'
+import { skillText } from '../shared/skill-text'
 import { claudeConfigDir } from './skills'
 import { personalMemory } from './personal-memory'
 import { downloadModel, EMBEDDING_MODEL, modelStatus, removeModel } from './embeddings'
@@ -241,8 +243,25 @@ export async function cleanupAction(
   dataDir = DATA_DIR
 ): Promise<MemoryCleanupInfo> {
   let message: string | undefined
-  if (action === 'run') {
+  const skill = typeof action === 'string' ? /^skill-(accept|discard):(.+)$/.exec(action) : null
+  if (skill) {
+    const suggestion = source.skillSuggestions().find((item) => item.name === skill[2])
+    if (suggestion && skill[1] === 'accept') {
+      const written = writeSkill(suggestion, configDir)
+      message = written.ok
+        ? t('Skill criada em {path}: vale nas conversas novas, como /{name}.', {
+            path: written.path,
+            name: suggestion.name
+          })
+        : written.error
+      if (written.ok) source.dropSkill(suggestion.name)
+    } else if (suggestion) {
+      source.dropSkill(suggestion.name)
+      message = t('A sugestão foi descartada.')
+    }
+  } else if (action === 'run') {
     const result = await source.cleanup()
+    await source.suggestSkills()
     message =
       result.message === 'pending'
         ? t('A faxina sugere mudanças: veja abaixo.')
@@ -268,6 +287,13 @@ export async function cleanupAction(
     distill: getConfig().memoryDistill,
     waiting: source.waiting(),
     ...source.costs(),
+    skills: source.skillSuggestions().map((item) => ({
+      name: item.name,
+      description: item.description,
+      reason: item.reason,
+      text: skillText(item),
+      exists: currentSkill(item.name, configDir) !== null
+    })),
     ...(pending && preview && !('error' in preview)
       ? { pending: { at: pending.at, preview, stale: pending.stale } }
       : {}),

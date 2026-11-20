@@ -1323,3 +1323,14 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Os avisos:** com o Telegram ligado, uma tarefa agendada e o batimento com algo a dizer
       chegam lá também.
 - [ ] **Esquecer:** **Esquecer o bot** tira a ficha do chaveiro e desliga.
+
+## As skills que ele aprende (Fase 86)
+
+- [ ] **Pedir:** depois de um pedido que você faz sempre, "transforma isso numa skill": o card
+      mostra o SKILL.md inteiro e a pasta; **Permitir** cria, e `/<nome>` funciona numa conversa
+      nova.
+- [ ] **Melhorar:** use a skill, corrija o que ela fez errado e diga para ela aprender: o card
+      mostra o diff, e a de antes fica num backup.
+- [ ] **Perceber:** peça três vezes, em dias diferentes, "resume os PRs abertos do wisp em
+      tópicos"; **Fazer a faxina agora** na tela Memória: aparece a sugestão de `resumo-prs`, e
+      **Criar a skill** a cria.

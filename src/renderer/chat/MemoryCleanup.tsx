@@ -20,7 +20,9 @@ export function MemoryCleanup({ onChanged }: { onChanged: () => void }): JSX.Ele
     }
   }, [])
 
-  const act = async (action: 'run' | 'accept' | 'discard'): Promise<void> => {
+  const act = async (
+    action: 'run' | 'accept' | 'discard' | `skill-${'accept' | 'discard'}:${string}`
+  ): Promise<void> => {
     setBusy(true)
     try {
       setInfo(await window.wisp.memory.cleanup(action))
@@ -115,6 +117,44 @@ export function MemoryCleanup({ onChanged }: { onChanged: () => void }): JSX.Ele
           </div>
         </div>
       )}
+      {info?.skills.map((skill) => (
+        <div
+          key={skill.name}
+          className="agent-preview memory-skill"
+          role="region"
+          aria-label={t('Skill sugerida: {name}', { name: skill.name })}
+        >
+          <strong>{t('O Wisp sugere a skill /{name}', { name: skill.name })}</strong>
+          <p>{skill.description}</p>
+          {skill.reason && <p className="settings-hint">{skill.reason}</p>}
+          <details>
+            <summary>
+              {skill.exists
+                ? t('O SKILL.md (substitui o de agora, com um backup ao lado)')
+                : t('O SKILL.md, em ~/.claude/skills/{name}', { name: skill.name })}
+            </summary>
+            <pre>{skill.text}</pre>
+          </details>
+          <div className="rewind-actions">
+            <button
+              type="button"
+              className="settings-button"
+              disabled={busy}
+              onClick={() => void act(`skill-accept:${skill.name}`)}
+            >
+              {t('Criar a skill')}
+            </button>
+            <button
+              type="button"
+              className="link"
+              disabled={busy}
+              onClick={() => void act(`skill-discard:${skill.name}`)}
+            >
+              {t('Descartar')}
+            </button>
+          </div>
+        </div>
+      ))}
     </section>
   )
 }
