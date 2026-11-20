@@ -1334,3 +1334,17 @@ fazendo?`: a caixinha responde, e a resposta longa continua sem parar.
 - [ ] **Perceber:** peça três vezes, em dias diferentes, "resume os PRs abertos do wisp em
       tópicos"; **Fazer a faxina agora** na tela Memória: aparece a sugestão de `resumo-prs`, e
       **Criar a skill** a cria.
+
+## A interface completa (Fases 87 a 91)
+
+- [ ] **Os modos:** o botão ao lado do maximizar abre a janela completa; feche e abra o Wisp: ela
+      volta, no mesmo lugar e tamanho; o botão de compactar volta ao painel ao lado do mascote.
+- [ ] **A sidebar:** "deploy" na busca lista as conversas em que se falou disso, com o trecho; o
+      clique reabre. Os projetos abrem uma conversa na pasta deles. O botão do topo recolhe e
+      reabre, e o Wisp lembra.
+- [ ] **O Início:** de manhã, no modo completo, o primeiro abrir mostra o Início com a sua agenda,
+      as tarefas do dia, o GitHub e o uso do plano; cada **Ver todas** leva ao lugar certo.
+- [ ] **As configurações:** cada categoria mostra só as dela; a busca acha em qualquer uma; no
+      compacto, o seletor troca a categoria.
+- [ ] **O desenho:** a conversa no modo completo fica numa coluna no meio; os três temas (claro,
+      escuro, alto contraste) ficam legíveis na sidebar, no Início e nas configurações.

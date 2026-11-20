@@ -6,7 +6,7 @@ import { AvatarContext } from './avatar-context'
 
 // Ícones de traço simples (16×16, cor do texto) e o avatar do Wisp. Sem assets externos.
 
-function Icon({ children, ...props }: SVGProps<SVGSVGElement>): JSX.Element {
+export function Icon({ children, ...props }: SVGProps<SVGSVGElement>): JSX.Element {
   return (
     <svg
       viewBox="0 0 16 16"

@@ -18,7 +18,15 @@ import { distiller } from './memory-setup'
 import { promptValues, registerLibrary } from './chat-library'
 import type { Chat, ChatOptions } from './chat-types'
 import { ClipboardChip } from './clipboard'
-import { CONFIG_PATH, configProblems, getConfig, onConfigChange, onConfigProblems } from './config'
+import {
+  CONFIG_PATH,
+  configProblems,
+  getConfig,
+  notifyConfigChange,
+  onConfigChange,
+  onConfigProblems,
+  updateConfig
+} from './config'
 import { Conversation } from './conversation'
 import type { ConversationHost } from './conversation'
 import { History } from './history'
@@ -230,7 +238,7 @@ export function setupChat({
     saveTimer = null
     try {
       mkdirSync(DATA_DIR, { recursive: true })
-      writeFileSync(TABS_FILE, JSON.stringify(tabs.snapshot(placement.window)), { mode: 0o600 })
+      writeFileSync(TABS_FILE, JSON.stringify(tabs.snapshot(placement.saved())), { mode: 0o600 })
     } catch (err) {
       console.warn('[wisp] não consegui guardar as abas:', err)
     }
@@ -264,6 +272,7 @@ export function setupChat({
       return conversation
     })
     placement.restore(saved?.window)
+    placement.mode = getConfig().windowMode
   }
 
   restoreTabs()
@@ -280,6 +289,12 @@ export function setupChat({
   // O modo demonstração ligou ou desligou (no menu, na tela de configurações, no arquivo): as
   // conversas recomeçam, para respostas gravadas e de verdade não se misturarem.
   let demoOn = getConfig().demo
+  // O modo mudou (o botão, a paleta ou o config.json): a janela vai para o lugar do modo novo.
+  onConfigChange((config) => {
+    if (config.windowMode === placement.mode) return
+    placement.setMode(win, config.windowMode, tabs.layout)
+    sendWindow()
+  })
   onConfigChange((config) => {
     if (config.demo === demoOn) return
     demoOn = config.demo
@@ -461,6 +476,12 @@ export function setupChat({
   ipcMain.on(IPC.windowDock, (event) => {
     if (fromChat(event) && win) placement.dock(win, tabs.layout)
   })
+  // O modo da janela (Fase 87): compacto, ao lado do mascote, ou completo, com a sidebar.
+  ipcMain.on(IPC.windowMode, (event, mode: unknown) => {
+    if (!fromChat(event) || (mode !== 'compact' && mode !== 'full')) return
+    updateConfig({ windowMode: mode })
+    notifyConfigChange()
+  })
   ipcMain.on(IPC.tabsUnsplit, (event, pane: unknown) => {
     if (fromChat(event) && Number.isInteger(pane)) tabs.unsplit(pane as number)
   })
@@ -539,7 +560,11 @@ export function setupChat({
   /** O estado da janela para a página (o botão de maximizar e o de voltar para perto do mascote). */
   function sendWindow(): void {
     if (!win || !pageReady) return
-    const state: WindowState = { maximized: win.isMaximized(), detached: placement.window.detached }
+    const state: WindowState = {
+      maximized: win.isMaximized(),
+      detached: placement.window.detached,
+      mode: placement.mode
+    }
     win.webContents.send(IPC.windowState, state)
   }
 

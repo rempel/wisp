@@ -653,6 +653,8 @@ export interface TabsState {
 export interface WindowState {
   maximized: boolean
   detached: boolean
+  /** O painel compacto ou a janela completa, com a sidebar (Fase 87). */
+  mode: 'compact' | 'full'
 }
 
 export type NoticeLevel = 'info' | 'warning' | 'error'

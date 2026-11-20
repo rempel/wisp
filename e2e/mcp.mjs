@@ -6,7 +6,17 @@
 // Uso: node e2e/mcp.mjs (veja e2e/run.sh).
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { checks, connect, sleep, startApp, stopApp, testHome, waitFor, wisp } from './lib.mjs'
+import {
+  checks,
+  connect,
+  settingsCategory,
+  sleep,
+  startApp,
+  stopApp,
+  testHome,
+  waitFor,
+  wisp
+} from './lib.mjs'
 
 const { check, failed } = checks()
 const projects = 'projetos'
@@ -78,6 +88,7 @@ const send = async (text) => {
 const openSettings = async () => {
   await ev(`document.querySelector('.header .icon-button[aria-label="Configurações"]').click()`)
   await waitFor(() => ev(`!!document.querySelector('.mcp')`), 5000)
+  await settingsCategory(ev, 'Claude Code')
 }
 const backToChat = async () => {
   await key('Escape', 'Escape', 27)

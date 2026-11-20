@@ -163,6 +163,18 @@ export function paletteActions(ctx: PaletteContext): PaletteItem[] {
       run: () => api.tabs.create()
     },
     {
+      id: 'window-mode',
+      group: 'action',
+      title: t('Alternar entre a janela completa e o painel compacto'),
+      keywords: t('sidebar barra lateral modo janela maximizar dashboard'),
+      run: () =>
+        void api.settings
+          .get()
+          .then((snapshot) =>
+            api.chat.setWindowMode(snapshot?.values.windowMode === 'full' ? 'compact' : 'full')
+          )
+    },
+    {
       id: 'tab-anonymous',
       group: 'action',
       title: t('Nova conversa anônima'),

@@ -12,7 +12,7 @@ dias), **G** (uma semana ou mais).
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
 confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), as que dizem "pronta"
 estão implementadas e esperam a validação (todas, desde novembro de 2026). As Fases 87 a 91 (a
-interface completa) estão planejadas.
+interface completa) também estão prontas e esperam a validação.
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -627,7 +627,8 @@ identidade dele: o mascote, o ciano e os três temas. As abas das conversas cont
 
 #### Fase 87: os dois modos
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `e2e/interface-completa.mjs`, que troca de modo,
+fecha e abre o Wisp). **Só o uso confirma:** a janela completa em monitores e escalas de verdade.
 
 - **O modo completo (M):** uma janela grande (da primeira vez, uns 1200 × 800, no meio da tela do
   mascote), que lembra o lugar e o tamanho dela à parte do painel compacto, e pode maximizar. A
@@ -640,7 +641,8 @@ nela, no mesmo lugar; o botão de compactar volta ao painel ao lado do mascote.
 
 #### Fase 88: a sidebar
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `e2e/interface-completa.mjs`, com a busca pelo que
+foi dito).
 
 - **A estrutura (M):** no modo completo, à esquerda: o Wisp (o mascote e o nome), **Nova
   conversa**, a **busca**, a navegação (Início, a Wisp, Conversas, Tarefas, Memória, Sessões, Uso)
@@ -654,9 +656,13 @@ nela, no mesmo lugar; o botão de compactar volta ao painel ao lado do mascote.
 **Aceite:** no modo completo, digitar "deploy" na busca da sidebar lista as conversas em que se
 falou de deploy; o clique abre uma numa aba.
 
+Nota: a sidebar também leva ao quadro de tarefas, à bancada e às tarefas agendadas (que abrem as
+configurações na categoria Assistente). Recolhida ou aberta, ela lembra.
+
 #### Fase 89: o Início
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `e2e/interface-completa.mjs`). **Só o uso
+confirma:** os cartões com a sua agenda e o seu GitHub de verdade.
 
 - **O painel (M):** a saudação e o dia; a agenda de hoje; as próximas tarefas e lembretes; o
   GitHub (o CI e as revisões); o uso do plano; o último batimento e as anotações recentes da
@@ -669,7 +675,8 @@ das 17h e o CI vermelho; o clique na tarefa abre as tarefas agendadas.
 
 #### Fase 90: as configurações em categorias
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (testes: `test/interface.test.ts`, que confere que toda
+seção tem uma categoria; `e2e/interface-completa.mjs`).
 
 - **As categorias (M):** uma tela com a lista à esquerda, cada uma abrindo sozinha: Geral,
   Assistente (o batimento, as tarefas, os prompts), Aparência, Mascote e sons, Voz, Atalhos e
@@ -681,9 +688,12 @@ das 17h e o CI vermelho; o clique na tarefa abre as tarefas agendadas.
 **Aceite:** "telegram" na busca das configurações mostra só a seção do Telegram; o clique em Voz
 mostra só as opções de voz.
 
+Nota: além das categorias do plano, Integrações ficou à parte (o GitHub, o GitLab e a agenda). A
+última categoria aberta volta na próxima vez.
+
 #### Fase 91: o acabamento
 
-**Status:** planejada.
+**Status:** pronta, esperando validação (os prints saem de `scripts/prints-interface.mjs`).
 
 - **A conversa no modo completo (M):** centralizada numa coluna de leitura, com a caixa de mensagem
   larga e arredondada, como no Claude desktop.

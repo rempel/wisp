@@ -59,6 +59,7 @@ src/
 │  ├─ telegram.ts    # o bot do Telegram: a Bot API, o pareamento, as mensagens, os áudios e os cards (Fase 85)
 │  ├─ telegram-setup.ts # o Telegram no app: a ficha no chaveiro, a Wisp, o ffmpeg, o IPC (Fase 85)
 │  ├─ learned-skills.ts # as skills que ele aprende: gravar o SKILL.md (com o backup) e a propose_skill (Fase 86)
+│  ├─ home-ipc.ts    # o Início: a agenda, as tarefas, os lembretes, o GitHub e a memória num pedido só (Fase 89)
 │  ├─ delivery.ts    # a entrega do resultado de uma tarefa: a Wisp, a notificação, o mascote, o Telegram e o diário (Fase 83)
 │  ├─ distill.ts     # o diário e a faxina: destilar as conversas paradas e arrumar o MEMORIA.md (Fase 81)
 │  ├─ memory-setup.ts # a destilação no app: o Haiku, o relógio de minuto em minuto e o aviso da faxina (Fase 81)
@@ -1473,3 +1474,27 @@ remove`, com a aba fechada antes). Um cartão que rodava quando o Wisp fechou vo
     as skills que já existem; ele devolve até duas. As válidas e novas esperam em
     `destilacao.json` (até 6), com uma notificação; a tela Memória mostra o SKILL.md de cada uma,
     e **Criar a skill** grava (`memory:cleanup` com `skill-accept:<nome>`).
+
+- **A interface completa (Fases 87 a 91):**
+  - **os dois modos** (`chat-window.ts`): o `PanelPlacement` ganhou o `mode` (o `windowMode` do
+    config) e um lugar só da janela completa (`full`, guardado no `abas.json` junto do compacto). No
+    completo, a janela abre onde estava (se ainda couber num monitor) ou com 1200 × 800 no meio da
+    tela do mascote, com o mínimo de 760 × 480; a grade e a bancada repartem o espaço sem mudar o
+    tamanho dela; maximizar, mover e redimensionar valem só para o modo dela. Trocar de modo
+    desfaz o maximizado sem contar como seu e põe a janela no lugar do modo novo;
+  - **a página:** o cabeçalho saiu para o `ChatHeader.tsx` (o título da tela, a faixa de ícones do
+    compacto, o botão da sidebar por cima e o alternar do modo). A `Sidebar.tsx` fica fixa no
+    completo (recolhida ou não, lembrado no `localStorage`) e por cima no compacto (fecha ao
+    escolher). As recentes vêm do `history.list` (relido quando as abas mudam); a busca, com duas
+    letras ou mais, do `history.search` da Fase 29;
+  - **o Início** (`HomeView.tsx` e `home-ipc.ts`): um pedido só traz a agenda de hoje (o
+    `between` da agenda), as próximas cinco tarefas (as suas e o batimento, pelo `nextRun`), os
+    próximos lembretes, o `describe` do GitHub (com 4 s de espera, no máximo), a última linha do
+    batimento no diário e as anotações recentes. Aberto, ele se atualiza de minuto em minuto;
+  - **as configurações** (`SettingsNav.tsx` e `settings-categories.ts`): cada categoria lista os
+    títulos das seções dela; o filtro esconde as seções de fora (ou, com a busca, as que não têm o
+    texto). O `test/interface.test.ts` lê os `<Section>` do código e confere que cada um está em uma
+    categoria, e só uma;
+  - **o desenho** (`styles/shell.css`): a sidebar, a gaveta, o Início, a lista das categorias e a
+    coluna de leitura da conversa no modo completo (as mensagens com folga para caber em 800 px no
+    meio). Os prints do README saem de `scripts/prints-interface.mjs`, no modo demonstração.

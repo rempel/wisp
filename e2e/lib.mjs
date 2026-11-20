@@ -39,6 +39,17 @@ export async function waitFor(fn, ms = 10000, every = 100) {
   return null
 }
 
+/**
+ * Abre uma categoria das configurações (Fase 90), pelo nome: as seções das outras ficam escondidas,
+ * e o innerText delas não traz as quebras de linha.
+ */
+export async function settingsCategory(ev, label) {
+  await ev(
+    `[...document.querySelectorAll('.settings-category')].find(b => b.textContent === ${JSON.stringify(label)})?.click()`
+  )
+  await sleep(300)
+}
+
 /** As verificações de um roteiro: todas rodam, e a saída diz quais falharam. */
 export function checks() {
   let failed = 0

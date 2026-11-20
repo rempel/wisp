@@ -86,7 +86,8 @@ import type {
   TaskResult,
   WeekSummaries,
   RemoteChatState,
-  TelegramBridge
+  TelegramBridge,
+  HomeSnapshot
 } from './ipc-settings'
 
 export * from './ipc-chat'
@@ -389,6 +390,10 @@ export const IPC = {
   windowMaximize: 'window:maximize',
   /** chat → main: a janela volta para perto do mascote. */
   windowDock: 'window:dock',
+  /** chat → main (invoke): o Início (Fase 89) → HomeSnapshot. */
+  homeSnapshot: 'home:snapshot',
+  /** chat → main: troca o modo da janela (Fase 87). Arg: 'compact' ou 'full'. */
+  windowMode: 'window:mode',
   /** main → chat: a janela mudou (maximizada, solta). Arg: WindowState. */
   windowState: 'window:state',
   /** chat → main: fechar um painel (as abas continuam abertas). Arg: índice. */
@@ -663,6 +668,10 @@ export interface WispApi {
     hide(): void
     /** Maximiza ou restaura a janela do painel. */
     maximize(): void
+    /** O painel compacto ou a janela completa (Fase 87). */
+    setWindowMode(mode: 'compact' | 'full'): void
+    /** O Início (Fase 89): a agenda, as tarefas, o GitHub, a memória. */
+    home(): Promise<HomeSnapshot | null>
     /** A janela volta para perto do mascote (e para de lembrar onde você a deixou). */
     dock(): void
     onWindowState(listener: (state: WindowState) => void): () => void

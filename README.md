@@ -77,13 +77,40 @@
   </tr>
 </table>
 
-Also: up to **8 conversations side by side**, conversations in their own **Git worktree**, a **task board**
+Also: a **full window** with a sidebar, **Home** and categorized settings, **personal memory** that
+Wisp keeps on its own (with search by meaning), a daily **Wisp** conversation, a **heartbeat** that checks
+your day, **Telegram**, skills it learns from your habits, up to **8 conversations side by side**, conversations in their own **Git worktree**, a **task board**
 that runs each card in its own copy, **review & undo** at the end of each reply, a **command palette**,
 **saved prompts** and **scheduled tasks**, **approve from your phone** (ntfy) or **chat from your phone** on
 your home network, **31 emotions** and **11 dances** for the mascot, a **demo mode** to try it without
 Claude Code, and the whole interface in **English** and **Português do Brasil**.
 
 ## 📸 A tour
+
+### The full window
+
+Two modes, your choice: the **compact panel** beside the mascot, or a **full window** with a sidebar —
+new conversation, search across everything you've said, Home, the Wisp conversation, your projects and
+recent conversations. **Home** puts your day in one place (calendar, upcoming tasks and reminders,
+GitHub, plan usage, the last heartbeat and what Wisp remembered), and the settings open one category at
+a time, with search.
+
+<p align="center"><img src="docs/full-home-light.png" alt="The full window: the sidebar with search, projects and recents, and Home with today's calendar, upcoming tasks, GitHub, plan usage, memory and recent conversations" width="100%"></p>
+
+<table>
+  <tr>
+    <td width="50%"><img src="docs/full-chat-dark.png" alt="A conversation in the full window, dark theme, with an edit waiting for permission"></td>
+    <td width="50%"><img src="docs/full-settings-light.png" alt="Settings in categories: the list on the left and the Assistant category open"></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="33%"><img src="docs/full-chat-light.png" alt="The full window in the light theme"></td>
+    <td width="33%"><img src="docs/full-home-dark.png" alt="Home in the dark theme"></td>
+    <td width="33%"><img src="docs/full-chat-dark-contrast.png" alt="The full window in high contrast"></td>
+  </tr>
+</table>
 
 ### Chat and workbench
 
@@ -570,6 +597,8 @@ computador — com o seu `claude`, a sua assinatura e um clique seu antes de qua
 - 🖥️ **Assistente de desktop:** apps, links, janelas, print, música, lembretes, agenda e o CI dos seus PRs, no GNOME, no KDE e no Windows.
 - 🗂️ **Em paralelo:** até 8 conversas lado a lado, conversas em cópias do Git e um **quadro de tarefas**.
 - 🔒 **Seu, e só seu:** sem telemetria, voz transcrita na sua máquina, segredos no chaveiro do sistema.
+- 🗃️ **A janela completa:** o painel compacto ao lado do mascote ou uma janela grande com a barra lateral (busca, Início, a Wisp, projetos e recentes), o **Início** com o seu dia e as configurações em categorias.
+- 🧭 **Um assistente que lembra:** a memória pessoal, a conversa **Wisp** de cada dia, o **batimento**, a agenda que ele marca, o **Telegram** e as skills que ele aprende.
 
 ### Instalação
 

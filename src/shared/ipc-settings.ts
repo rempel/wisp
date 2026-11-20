@@ -58,6 +58,8 @@ export interface Settings {
   /** O Telegram (Fase 85): ligado e como responder (o usuário e a ficha vêm pelo telegram:*). */
   telegram: boolean
   telegramVoiceReply: 'text' | 'audio' | 'both'
+  /** O modo da janela (Fase 87). */
+  windowMode: 'compact' | 'full'
   editorCommand: string
   terminalCommand: string | null
   model: string | null
@@ -129,6 +131,7 @@ export const SETTINGS_KEYS: readonly (keyof Settings)[] = [
   'heartbeatDays',
   'telegram',
   'telegramVoiceReply',
+  'windowMode',
   'editorCommand',
   'terminalCommand',
   'model',
@@ -413,4 +416,19 @@ export interface TelegramBridge {
   token(token: string): Promise<{ ok: boolean; message: string }>
   pair(): Promise<string | null>
   forget(): Promise<boolean>
+}
+
+/** O Início (Fase 89): o seu dia num lugar só. */
+export interface HomeSnapshot {
+  /** A agenda de hoje (null: ela está desligada). */
+  events: (AgendaItem & { allDay: boolean })[] | null
+  /** As próximas tarefas agendadas (as suas e o batimento), com a próxima vez. */
+  tasks: { id: string; name: string; at: number; schedule: string }[]
+  reminders: { text: string; at: number }[]
+  /** Os seus PRs, em texto (null: o GitHub desligado ou sem resposta a tempo). */
+  github: string | null
+  /** A linha do último batimento no diário de hoje. */
+  heartbeat: string | null
+  /** As anotações recentes da memória. */
+  notes: { text: string; at: number }[]
 }

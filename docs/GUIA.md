@@ -823,6 +823,23 @@ do Claude Desktop.
 - Com a paleta, um arquivo ou um Markdown abertos por cima, a página do navegador sai da frente
   e volta quando eles fecham.
 
+### A interface completa (Fases 87 a 91)
+
+- **Dois modos:** o botão ao lado do maximizar (ou **Alternar entre a janela completa e o painel
+  compacto**, na paleta) troca o painel compacto, ao lado do mascote, por uma janela grande, e o
+  Wisp lembra o modo, o lugar e o tamanho de cada um (`windowMode`).
+- **A barra lateral:** no modo completo, à esquerda: **Nova conversa**, a busca (pelo título
+  enquanto você digita e, com duas letras, pelo que foi dito, com o trecho), o **Início**, a
+  **Wisp**, as conversas, o quadro, a memória, as sessões, o uso e a bancada; os projetos e as
+  conversas recentes; embaixo, as tarefas agendadas, as configurações e o modo. O botão do topo a
+  recolhe em ícones. No compacto, o primeiro ícone da faixa a abre por cima.
+- **O Início:** a saudação e o dia, a agenda de hoje, as próximas tarefas e lembretes, o GitHub, o
+  uso do plano, o último batimento e as anotações recentes da memória, e as conversas recentes. No
+  modo completo, é o que o primeiro abrir do dia mostra.
+- **As configurações:** em categorias (Geral, Assistente, Aparência, Mascote e sons, Voz, Atalhos e
+  sistema, Integrações, Claude Code, Fora de casa e Avançado), uma por vez, com a busca que acha em
+  qualquer uma. No compacto, a categoria é um seletor no alto.
+
 ### Memória, modelos locais e o sistema
 
 - **Memória** (Fase 65): na paleta, **Memória** mostra os `CLAUDE.md` que o Claude lê antes de

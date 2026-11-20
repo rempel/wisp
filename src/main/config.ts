@@ -81,6 +81,8 @@ export interface WispConfig {
   telegramUser: number | null
   telegramUserName: string | null
   telegramVoiceReply: 'text' | 'audio' | 'both'
+  /** O painel compacto, ao lado do mascote, ou a janela completa, com a sidebar (Fase 87). */
+  windowMode: 'compact' | 'full'
   mascotPosition: Point | null
   extraAllowedTools: string[]
   /**
@@ -284,6 +286,7 @@ function defaults(): WispConfig {
     telegramUser: null,
     telegramUserName: null,
     telegramVoiceReply: 'audio',
+    windowMode: 'compact',
     mascotPosition: null,
     extraAllowedTools: [],
     enabledMcpServers: [],
@@ -433,6 +436,7 @@ const FIELDS: { [K in keyof WispConfig]: z.ZodType<WispConfig[K]> } = {
   telegramUser: z.number().int().positive().nullable(),
   telegramUserName: z.string().max(100).nullable(),
   telegramVoiceReply: z.enum(['text', 'audio', 'both']),
+  windowMode: z.enum(['compact', 'full']),
   mascotPosition: PointSchema.nullable(),
   extraAllowedTools: z.array(z.string()),
   enabledMcpServers: z.array(z.string().regex(MCP_SERVER_NAME)),

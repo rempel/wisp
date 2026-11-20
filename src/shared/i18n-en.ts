@@ -2579,8 +2579,6 @@ export const EN: Record<string, string> = {
   'Antes era a {previous}. Clique para ver o que mudou.':
     'It was {previous} before. Click to see what changed.',
   'Salvar o resumo da semana': "Save the week's summary",
-  'Buscar nas configurações (ex.: som, atalho, voz)':
-    'Search the settings (e.g. sound, shortcut, voice)',
   'Buscar nas configurações': 'Search the settings',
   'Os seus sons': 'Your sounds',
   'Abrir a pasta dos sons': 'Open the sounds folder',
@@ -3163,5 +3161,64 @@ export const EN: Record<string, string> = {
   'Cria {path}.': 'Creates {path}.',
   'Muda {path} (a de antes ganha um backup ao lado):':
     'Changes {path} (the old one gets a backup next to it):',
-  'Criar ou mudar uma skill': 'Create or change a skill'
+  'Criar ou mudar uma skill': 'Create or change a skill',
+  'o seu dia num lugar só': 'your day in one place',
+  'Abrir a barra lateral: a busca, as recentes e os projetos':
+    'Open the sidebar: search, recents and projects',
+  'Abrir a barra lateral': 'Open the sidebar',
+  'Voltar ao painel compacto': 'Back to the compact panel',
+  'Abrir a janela completa': 'Open the full window',
+  'Bom dia': 'Good morning',
+  'Boa tarde': 'Good afternoon',
+  'Boa noite': 'Good evening',
+  'reinicia {when}': 'resets {when}',
+  'Agenda de hoje': "Today's calendar",
+  'A agenda está desligada (Configurações → Integrações).':
+    'The calendar is off (Settings → Integrations).',
+  'dia todo': 'all day',
+  'Nada marcado para hoje.': 'Nothing scheduled for today.',
+  'Carregando…': 'Loading…',
+  'Próximas tarefas e lembretes': 'Upcoming tasks and reminders',
+  'Ver todas': 'See all',
+  'Nada agendado. Peça ao Wisp: "toda segunda às 8h…".':
+    'Nothing scheduled. Ask Wisp: "every Monday at 8am…".',
+  'Nada do GitHub agora (ou ele está desligado).': 'Nothing from GitHub right now (or it is off).',
+  Detalhes: 'Details',
+  'O uso aparece depois da primeira resposta do dia.':
+    'Usage shows up after the first answer of the day.',
+  'Nada anotado ainda. Conte algo ao Wisp ("lembra que…").':
+    'Nothing noted yet. Tell Wisp something ("remember that…").',
+  'Conversas recentes': 'Recent conversations',
+  'As conversas aparecem aqui.': 'Conversations show up here.',
+  'Categorias das configurações': 'Settings categories',
+  Categoria: 'Category',
+  'Busca: "{query}"': 'Search: "{query}"',
+  Navegação: 'Navigation',
+  'Recolher a barra lateral': 'Collapse the sidebar',
+  Telas: 'Screens',
+  Recentes: 'Recents',
+  '{count} conversas com "{query}"': '{count} conversations with "{query}"',
+  fixada: 'pinned',
+  'Nada achado.': 'Nothing found.',
+  'Painel compacto': 'Compact panel',
+  'Janela completa': 'Full window',
+  'Alternar entre a janela completa e o painel compacto':
+    'Switch between the full window and the compact panel',
+  'sidebar barra lateral modo janela maximizar dashboard': 'sidebar mode window maximize dashboard',
+  Geral: 'General',
+  'O modelo, o modo, as pastas e os projetos': 'The model, the mode, folders and projects',
+  Assistente: 'Assistant',
+  'O batimento, as tarefas agendadas e os prompts': 'The heartbeat, scheduled tasks and prompts',
+  Aparência: 'Appearance',
+  'O tema, o tamanho e a acessibilidade': 'Theme, size and accessibility',
+  'O avatar, as danças e os sons': 'The avatar, dances and sounds',
+  'Falar com o Wisp e ouvir as respostas': 'Talk to Wisp and hear the answers',
+  'Os atalhos, o início com o sistema e as integrações com o desktop':
+    'Shortcuts, starting with the system and desktop integrations',
+  'O GitHub, o GitLab, a agenda e os avisos': 'GitHub, GitLab, the calendar and alerts',
+  'As skills, os subagentes, os servidores MCP e a OpenRouter':
+    'Skills, subagents, MCP servers and OpenRouter',
+  'Fora de casa': 'Away from home',
+  'O Telegram e o celular': 'Telegram and the phone',
+  'Levar o Wisp junto, o config.json e o registro': 'Taking Wisp along, config.json and the log'
 }

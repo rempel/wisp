@@ -224,6 +224,12 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **A interface completa** (Fases 87 a 91): dois modos, o **painel compacto** de sempre e a **janela
+  completa**, com uma barra lateral no estilo do Claude desktop (nova conversa, a busca pelo que foi
+  dito, o Início, a Wisp, os projetos e as recentes; recolhe em ícones). O **Início** junta o seu dia:
+  a agenda, as tarefas e lembretes, o GitHub, o uso do plano, o batimento e a memória. As
+  **configurações** abrem uma categoria por vez, com a busca. No compacto, a barra lateral abre por
+  cima. A conversa, no modo completo, fica numa coluna de leitura.
 
 ### Mudou
 

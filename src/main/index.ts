@@ -65,6 +65,7 @@ import {
 import { startDesktopServer } from './mcp-server'
 import { memoryServerOptions, setupMemory } from './memory-setup'
 import { setupTelegram } from './telegram-setup'
+import { setupHomeIpc } from './home-ipc'
 import { DANCE_MS, FEEL_MS, holdMs, isDance, isEmotion } from '../shared/emotions'
 import type { DesktopServer } from './mcp-server'
 import { Media } from './media'
@@ -734,6 +735,13 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
   })
   // A tela de agora, se o D-Bus já respondeu (senão, o watch acima avisa quando responder).
   phone.approvals.setLocked(screenLock.locked)
+  // O Início (Fase 89): a agenda, as tarefas, o GitHub e a memória num pedido só.
+  setupHomeIpc({
+    isSender: (sender) => chat?.isSender(sender) ?? false,
+    agenda: () => (calendar.agenda.enabled ? calendar.agenda : null),
+    reminders: () => reminders.list(),
+    github: () => (getConfig().github ? github.describe() : null)
+  })
   // O Wisp no Telegram (Fase 85): desligado até você guardar a ficha de um bot e parear.
   telegram = setupTelegram({
     chat: () => chat,

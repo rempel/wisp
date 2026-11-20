@@ -67,6 +67,8 @@ export interface SavedWindow {
   detached: boolean
   maximized: boolean
   bounds?: Rectangle
+  /** A janela completa (Fase 87): onde ela fica e se está maximizada. */
+  full?: { bounds?: Rectangle; maximized: boolean }
 }
 
 /** O que as abas pedem ao painel. */
