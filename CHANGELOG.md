@@ -228,7 +228,7 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   imagem dele (o serviço `mcp` do compose); os achados vêm do `findings.json` que ele grava a cada
   fase (sem o Python nesta máquina); e, mesmo no modo Automático, rodar o pipeline, o agente ou o
   `make run` pelo Bash pede o card. O lado do pentester (o estado no modo MCP, os alertas a cada
-  fase, o Docker e as permissões) está no branch `wisp-integracao` dele.
+  fase, o Docker e as permissões) já está na main dele.
 - **O clima para o Claude** (Fase 108): a ferramenta `weather` dá o agora e até sete dias, com a
   chance de chuva, para a sua cidade ou outra pelo nome (a Open-Meteo, sem conta). Uma tarefa
   agendada que responde só "NADA" não entrega nada, e assim "me avisa se for chover" só avisa quando
