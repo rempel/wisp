@@ -11,7 +11,8 @@ dias), **G** (uma semana ou mais).
 **Onde estamos:** as Fases 59 a 78 (abaixo) estão implementadas, com testes, e esperam a
 validação com o uso. Cada uma diz o que os testes cobrem e o que só o uso num sistema de verdade
 confirma. Das Fases 79 a 86 (o Wisp que lembra e cuida da agenda), as que dizem "pronta"
-estão implementadas e esperam a validação (todas, desde novembro de 2026).
+estão implementadas e esperam a validação (todas, desde novembro de 2026). As Fases 87 a 91 (a
+interface completa) estão planejadas.
 
 ## Fases 59 a 72: a bancada que trabalha, o sistema por perto (novembro de 2026)
 
@@ -608,6 +609,88 @@ Notas:
   conversas que valem para a memória) e o diário, e sugere até duas. Elas esperam na tela Memória,
   com uma notificação; **Criar a skill** é o OK;
 - uma skill do Wisp leva uma marca no SKILL.md, para ele saber quais pode propor melhorar.
+
+## Fases 87 a 91: a interface completa (planejadas, novembro de 2026)
+
+O Wisp ganha uma cara de aplicativo completo, com a estrutura do Claude desktop (uma sidebar com a
+busca, a navegação e as conversas recentes; as configurações em categorias), mantendo a
+identidade dele: o mascote, o ciano e os três temas. As abas das conversas continuam.
+
+**O que foi decidido** (alinhado com o uso, em novembro de 2026):
+
+- **Dois modos, à sua escolha:** o **compacto** (o painel de hoje, ao lado do mascote) e o
+  **completo** (uma janela grande, com a sidebar). Um botão alterna, e o Wisp lembra.
+- **Um Início:** um painel com o seu dia num lugar só.
+- **O visual:** a estrutura do Claude desktop, a cara do Wisp. Sem logos nem marca da Anthropic.
+- **As configurações:** categorias numa sidebar própria, com uma busca; cada categoria abre
+  sozinha.
+
+#### Fase 87: os dois modos
+
+**Status:** planejada.
+
+- **O modo completo (M):** uma janela grande (da primeira vez, uns 1200 × 800, no meio da tela do
+  mascote), que lembra o lugar e o tamanho dela à parte do painel compacto, e pode maximizar. A
+  grade e a bancada repartem o espaço dela, sem a janela crescer.
+- **Alternar (P):** um botão no cabeçalho, uma ação na paleta e o `windowMode` do `config.json`.
+  O modo compacto continua como hoje.
+
+**Aceite:** no compacto, o botão de expandir abre a janela completa; fechar e abrir o Wisp volta
+nela, no mesmo lugar; o botão de compactar volta ao painel ao lado do mascote.
+
+#### Fase 88: a sidebar
+
+**Status:** planejada.
+
+- **A estrutura (M):** no modo completo, à esquerda: o Wisp (o mascote e o nome), **Nova
+  conversa**, a **busca**, a navegação (Início, a Wisp, Conversas, Tarefas, Memória, Sessões, Uso)
+  e, embaixo, as configurações e o alternar do modo. Ela recolhe num botão (só os ícones).
+- **As recentes (M):** as conversas fixadas e as últimas, com a cor do projeto, um clique para
+  reabrir; e os projetos (Fase 77), para abrir uma conversa num deles.
+- **A busca (M):** filtra as recentes pelo título enquanto você digita e, com duas letras ou mais,
+  acha também pelo que foi dito (a busca da Fase 29), com o trecho.
+- **No compacto (P):** a faixa de ícones de hoje, mais o botão que abre a sidebar por cima.
+
+**Aceite:** no modo completo, digitar "deploy" na busca da sidebar lista as conversas em que se
+falou de deploy; o clique abre uma numa aba.
+
+#### Fase 89: o Início
+
+**Status:** planejada.
+
+- **O painel (M):** a saudação e o dia; a agenda de hoje; as próximas tarefas e lembretes; o
+  GitHub (o CI e as revisões); o uso do plano; o último batimento e as anotações recentes da
+  memória; as conversas recentes. Cada bloco leva ao lugar dele.
+- **Onde (P):** o primeiro item da sidebar; no modo completo, é o que o Wisp mostra no primeiro
+  abrir do dia (em vez da Wisp).
+
+**Aceite:** de manhã, abrir o Wisp no modo completo mostra o Início com a reunião das 9h, a tarefa
+das 17h e o CI vermelho; o clique na tarefa abre as tarefas agendadas.
+
+#### Fase 90: as configurações em categorias
+
+**Status:** planejada.
+
+- **As categorias (M):** uma tela com a lista à esquerda, cada uma abrindo sozinha: Geral,
+  Assistente (o batimento, as tarefas, os prompts), Aparência, Mascote e sons, Voz, Atalhos e
+  sistema, Claude Code (as skills, os subagentes, os servidores MCP, a OpenRouter), Fora de casa
+  (o Telegram e o celular) e Avançado.
+- **A busca (P):** acha uma opção em qualquer categoria pelo nome, mostrando só o que bate.
+- **No compacto (P):** a lista vira um seletor no alto.
+
+**Aceite:** "telegram" na busca das configurações mostra só a seção do Telegram; o clique em Voz
+mostra só as opções de voz.
+
+#### Fase 91: o acabamento
+
+**Status:** planejada.
+
+- **A conversa no modo completo (M):** centralizada numa coluna de leitura, com a caixa de mensagem
+  larga e arredondada, como no Claude desktop.
+- **O desenho (M):** a tipografia, os espaçamentos, os ícones e os estados vazios revistos nas
+  telas, nos três temas; os prints do README refeitos.
+
+**Aceite:** os prints do README mostram o modo completo nos três temas.
 
 ## O que vem depois
 
