@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/banner.png" alt="Wisp — a little light on your desktop: Claude Code with a mascot, a chat panel and permission cards" width="100%">
+  <img src="docs/banner.png" alt="Wisp — Claude Code, out of the terminal: the full window with the Home dashboard, and the mascot" width="100%">
 </p>
 
 <p align="center">
@@ -77,7 +77,8 @@
   </tr>
 </table>
 
-Also: up to **8 conversations side by side**, conversations in their own **Git worktree**, a **task board**
+Also: a **full window** with a **Home** you arrange yourself, up to **8 conversations side by side**,
+conversations in their own **Git worktree**, a **task board**
 that runs each card in its own copy, **review & undo** at the end of each reply, a **command palette**,
 **saved prompts** and **scheduled tasks**, **approve from your phone** (ntfy) or **chat from your phone** on
 your home network, **31 emotions** and **11 dances** for the mascot, a **demo mode** to try it without
@@ -85,18 +86,37 @@ Claude Code, and the whole interface in **English** and **Português do Brasil**
 
 ## 📸 A tour
 
+### Two ways to open it
+
+A **compact panel** beside the mascot, for a quick question, or the **full window**: a rail of icons on
+the left (it opens into the full side bar, with search, projects and recent conversations), the Home,
+your conversations, the task board, memory, terminal sessions and plan usage. Switch with the button in
+the header, from the palette, or with `windowMode` in `config.json`; Wisp remembers where each one was.
+
+### Home — your day in one place
+
+A greeting and a big clock, an **Ask Wisp** box that sends straight to the conversation, and blocks you
+arrange: **Needs you** (permission requests and questions waiting in any tab, with Allow and Deny right
+there), the month and the week from your **calendar**, today's agenda and what's next, **your tasks**,
+**habits**, a **focus** timer, scheduled tasks and reminders, **notes**, the **heartbeat**, **plan
+usage**, recent conversations, the task board, GitHub, what Wisp did today, the music player and the
+weather (the only block that uses the internet, and only if you turn it on). **Edit Home** lets you
+drag, resize, hide and bring back any block.
+
+<p align="center"><img src="docs/tour-home.png" alt="The Home screen of the full window in the dark theme: greeting and clock, an edit waiting in Needs you, the month calendar, today's agenda, heartbeat, plan usage, tasks, reminders and notes" width="100%"></p>
+
 ### Chat and workbench
 
 The conversation on the left, the workbench on the right. Here Claude found a bug and is waiting for
 your OK on the edit, while the browser shows the project running on `localhost`.
 
-<p align="center"><img src="docs/tour-workbench.png" alt="The Wisp panel: a conversation with an edit waiting for permission, and the workbench browser showing a landing page on localhost" width="100%"></p>
+<p align="center"><img src="docs/tour-workbench.png" alt="The full window: a conversation with an edit waiting for permission, and the workbench browser showing a landing page on localhost:5173" width="100%"></p>
 
 ### You decide
 
 <table>
   <tr>
-    <td width="55%"><img src="docs/permission-cards.png" alt="Permission cards: an edit with its diff, and opening an app"></td>
+    <td width="55%"><img src="docs/permission-cards.png" alt="A permission card for editing a file, with the diff and the Allow, Deny and Always allow in this conversation buttons"></td>
     <td valign="top">
       <p>Anything that changes your machine stops at a card:</p>
       <ul>
@@ -123,16 +143,19 @@ Tabs, and up to 8 panes in a grid — split with <b>Ctrl+\\</b> — in the light
 
 <table>
   <tr>
-    <td width="50%" valign="top">
-      <img src="docs/tour-palette.png" alt="The command palette over the conversation">
-      <p align="center"><b>Command palette</b> (<b>Ctrl+P</b> in the panel, <b>Ctrl+Alt+P</b> anywhere): actions, conversations, modes, models and saved prompts.</p>
-    </td>
-    <td width="50%" valign="top">
-      <img src="docs/tour-board.png" alt="The task board with To do, Running, Review and Done columns">
-      <p align="center"><b>Task board</b>: each card runs in its own Git copy of the project; review, then <b>Merge</b> or <b>Discard</b>.</p>
+    <td width="60%"><img src="docs/tour-palette.png" alt="The command palette over the conversation, with actions, shortcuts and permission modes"></td>
+    <td valign="top">
+      <p>The <b>command palette</b> — <b>Ctrl+P</b> in the window, <b>Ctrl+Alt+P</b> from anywhere — finds
+      actions, tabs, conversations, modes, models, saved prompts, scheduled tasks, terminal sessions and
+      projects in one search, from the keyboard.</p>
     </td>
   </tr>
 </table>
+
+The **task board**: each card runs in its own Git copy of the project; when the reply ends it moves to
+**Review**, where you **Merge** the changes into the original folder or **Discard** them.
+
+<p align="center"><img src="docs/tour-board.png" alt="The task board with To do, Running, Review and Done columns and cards from two projects" width="100%"></p>
 
 ### A mascot with personality
 
@@ -145,7 +168,8 @@ music, naps without using CPU, and wears a hat at Christmas.
 <p align="center"><img src="docs/themes.png" alt="The same conversation in the dark, light and high-contrast themes" width="100%"></p>
 
 <sub>All screenshots were taken in <b>demo mode</b> (the <b>Demo</b> badge in the header): the replies are
-recorded, and the projects, skills and servers shown are examples.</sub>
+recorded, and the projects, events, tasks and notes shown are examples. <code>scripts/prints-readme.mjs</code>
+takes them again.</sub>
 
 ## 📦 Install
 
@@ -229,18 +253,29 @@ end-to-end test dependencies are in the [full guide](docs/GUIA.md#compilar-a-par
 
 ## ⚙️ Settings
 
-Click the **sliders icon** at the bottom of the side bar (or search for it in the palette). It's one
-scrolling page with a search box and 16 sections; everything is optional, and the defaults just work.
-Everything is saved in `~/.config/wisp/config.json` (`%APPDATA%\Wisp` on Windows).
+Click the **sliders icon** at the bottom of the side bar (or search for it in the palette). The
+categories are on the left, with a search box that finds any option by name; everything is optional,
+and the defaults just work. Everything is saved in `~/.config/wisp/config.json` (`%APPDATA%\Wisp` on Windows).
 
-### Conversations — model, permissions and folders
+### General — model, permissions, folders and projects
 
 The model and permission mode new conversations start with (each tab changes its own in the pills
 below the text box), the folders where your projects live, the command that opens your editor, the
 terminal Claude opens, after how long an idle tab's Claude Code process goes to sleep, and tools
-that may run without a card.
+that may run without a card. **Projects** give a folder a name, a color for its tabs and its usual
+permission mode.
 
-<p align="center"><img src="docs/settings-conversations.png" alt="Conversations settings" width="80%"></p>
+<p align="center"><img src="docs/settings-general.png" alt="General settings: conversations and projects" width="80%"></p>
+
+### Assistant — saved prompts, scheduled tasks and the heartbeat
+
+**Saved prompts** appear in the <code>/</code> menu, with variables filled in for you: <code>{folder}</code>,
+<code>{clipboard}</code>, <code>{date}</code> and <code>{time}</code>. A **scheduled task** runs a prompt at a time or
+when something happens (a review, a red CI, a new file, the screen unlocked), always in a new tab in Ask
+mode — anything that changes your computer waits for your click. The **heartbeat** checks your checklist
+(calendar, GitHub, reminders, email) with Haiku at the times you pick, and only speaks up if there is something.
+
+<p align="center"><img src="docs/settings-assistant.png" alt="Assistant settings: saved prompts, scheduled tasks and the heartbeat" width="80%"></p>
 
 ### Mascot and sounds — make it yours
 
@@ -250,7 +285,7 @@ seasonal **accessory**, and the small helpers around the chat: the _use what you
 **review at the end of each reply**, internet pages in the workbench, _Ask Wisp_ in the file manager,
 Wisp in the **desktop search** (KRunner, GNOME) and the GNOME Shell extension.
 
-<p align="center"><img src="docs/settings-mascot.png" alt="Mascot and sounds settings" width="80%"></p>
+<p align="center"><img src="docs/settings-mascot-and-sounds.png" alt="Mascot and sounds settings" width="80%"></p>
 
 To replace a sound, drop a file named after it in `~/.config/wisp/sounds/` — `abrir`, `fechar`,
 `enviar`, `pronto`, `pedido`, `erro`, `cutucada`, `tonto`, `carinho`, `oi`, `absorver` or `lembrete`
@@ -269,18 +304,7 @@ Every global shortcut — open the panel, talk, palette, ask from the island, cr
 selection, show the front window, dictate into any program — plus dictation replacements, answering
 from the notification, staying quiet with _Do not disturb_, **quiet hours** and starting with the system.
 
-<p align="center"><img src="docs/settings-shortcuts.png" alt="Shortcuts and system settings" width="80%"></p>
-
-<details>
-<summary><b>Saved prompts and scheduled tasks</b> — <code>/diff</code>, <code>/commit</code>, <code>/explain</code>… and prompts on a timer</summary>
-<br>
-Saved prompts appear in the <code>/</code> menu, with variables filled in for you: <code>{folder}</code>,
-<code>{clipboard}</code>, <code>{date}</code> and <code>{time}</code>. A scheduled task runs a prompt at a time or when
-something happens (a review, a red CI, a new file, the screen unlocked), always in a new tab in Ask mode —
-anything that changes your computer waits for your click.
-<p align="center"><img src="docs/settings-prompts.png" alt="Saved prompts settings" width="80%"></p>
-<p align="center"><img src="docs/settings-tasks.png" alt="Scheduled tasks settings" width="80%"></p>
-</details>
+<p align="center"><img src="docs/settings-shortcuts-and-system.png" alt="Shortcuts and system settings" width="80%"></p>
 
 <details>
 <summary><b>Voice</b> — speech language, review before sending, quick commands, spoken replies</summary>
@@ -289,30 +313,6 @@ Quick commands for music, volume and opening apps (in Portuguese: “pausa a mú
 “abre o Firefox”) work without Claude and without the internet.
 <b>Test voice</b> records 3 s and shows what whisper.cpp understood, how loud it was and how long it took.
 <p align="center"><img src="docs/settings-voice.png" alt="Voice settings" width="80%"></p>
-</details>
-
-<details>
-<summary><b>Projects, skills, subagents and MCP servers</b> — what Claude Code brings to each conversation</summary>
-<br>
-<b>Projects</b> give a folder a name, a color for its tabs and its usual permission mode.
-<b>Skills</b> lists your personal and plugin skills and installs one from a folder.
-<b>Subagents</b> lists, previews, edits and removes your Claude Code subagents.
-<b>MCP servers</b> lists the servers in your Claude Code and lets you choose which ones join Wisp's
-conversations; adding or removing one shows the diff of <code>~/.claude.json</code> first and keeps a backup.
-<p align="center"><img src="docs/settings-projects.png" alt="Projects settings" width="80%"></p>
-<p align="center"><img src="docs/settings-skills.png" alt="Skills settings" width="80%"></p>
-<p align="center"><img src="docs/settings-subagents.png" alt="Subagents settings" width="80%"></p>
-<p align="center"><img src="docs/settings-mcp.png" alt="MCP servers settings" width="80%"></p>
-</details>
-
-<details>
-<summary><b>OpenRouter (experimental)</b> — other models through Claude Code, or a local model server</summary>
-<br>
-New conversations can go through your Claude subscription (the default) or through
-<a href="https://openrouter.ai">OpenRouter</a> with your key — kept in the system keyring, never in
-<code>config.json</code>. A <b>local model server</b> (Ollama, LM Studio) with an Anthropic-compatible API works too.
-Claude Code is still the brain; tools, permissions and cards work the same.
-<p align="center"><img src="docs/settings-openrouter.png" alt="OpenRouter settings" width="80%"></p>
 </details>
 
 <details>
@@ -325,27 +325,46 @@ All off by default except the summary and the usage alert.
 </details>
 
 <details>
-<summary><b>Phone</b> — approve from your phone, or chat from it on your home network</summary>
+<summary><b>Claude Code</b> — skills, subagents, MCP servers and OpenRouter</summary>
 <br>
+<b>Skills</b> lists your personal and plugin skills and installs one from a folder.
+<b>Subagents</b> lists, previews, edits and removes your Claude Code subagents.
+<b>MCP servers</b> lists the servers in your Claude Code and lets you choose which ones join Wisp's
+conversations; adding or removing one shows the diff of <code>~/.claude.json</code> first and keeps a backup.
+<b>OpenRouter (experimental)</b>: new conversations can go through your Claude subscription (the default) or
+through <a href="https://openrouter.ai">OpenRouter</a> with your key — kept in the system keyring, never in
+<code>config.json</code>. A <b>local model server</b> (Ollama, LM Studio) with an Anthropic-compatible API works too.
+Claude Code is still the brain; tools, permissions and cards work the same.
+<p align="center"><img src="docs/settings-claude-code.png" alt="Claude Code settings: skills, subagents, MCP servers and OpenRouter" width="80%"></p>
+</details>
+
+<details>
+<summary><b>Pentest</b> — your pentester project, its approval and the lab</summary>
+<br>
+For your own authorized engagements: the folder of the pentester project (its pipeline and MCP server; it
+stays out of personal memory, so client data doesn't go there), whether the direct pipeline runs in Docker
+or on the host, which phases ask with a card (the start and scope expansion always do), what goes over
+Telegram (only counts and severity, never the target, payloads or evidence) and where the lab's Docker runs.
+<p align="center"><img src="docs/settings-pentest.png" alt="Pentest settings" width="80%"></p>
+</details>
+
+<details>
+<summary><b>Away from home</b> — Telegram, approve from your phone, or chat from it on your home network</summary>
+<br>
+Talk to Wisp from anywhere through a <b>Telegram</b> bot of your own (its token goes to the system keyring).
 Pair a phone with a QR code and the waiting card goes to it through <a href="https://ntfy.sh">ntfy</a> when the
 screen is locked or after N seconds, with <b>Allow</b> and <b>Deny</b>. One request at a time, only a summary in
 the channel, denied after 2 minutes with no answer, never “always”. Separately, <b>chat from the phone</b> opens a
 page on your local network with the conversations, the cards and new chats.
-<p align="center"><img src="docs/settings-phone.png" alt="Phone settings" width="80%"></p>
+<p align="center"><img src="docs/settings-away-from-home.png" alt="Away from home settings: Telegram and phone" width="80%"></p>
 </details>
 
 <details>
-<summary><b>Take Wisp with you</b> — export and import</summary>
+<summary><b>Advanced</b> — take Wisp with you, diagnostics, first steps, updates, Claude's browser, demo mode</summary>
 <br>
-One file with your settings, saved prompts, tasks and (if you tick it) your conversations. Never the keys:
-the OpenRouter key and the phone pairing stay in the keyring. Importing shows what will change first and
-backs up your <code>config.json</code>.
-<p align="center"><img src="docs/settings-export.png" alt="Take Wisp with you settings" width="80%"></p>
-</details>
-
-<details>
-<summary><b>Advanced</b> — diagnostics, first steps, updates, Claude's browser, demo mode</summary>
-<br>
+<b>Take Wisp with you</b> exports one file with your settings, saved prompts, tasks and (if you tick it) your
+conversations. Never the keys: the OpenRouter key and the phone pairing stay in the keyring. Importing shows
+what will change first and backs up your <code>config.json</code>.
 <b>Diagnostics</b> checks Claude Code, the shortcut, the tray, the keyring and the voice, and copies a
 report with no personal data. <b>First steps</b> walks you through setup again. Also: a daily check for a
 new version (off by default), a separate browser Claude can control (with permission per site),
@@ -408,7 +427,7 @@ checks everything. For spoken replies, install Piper (<code>pipx install piper-t
 <details>
 <summary><b>Approve from your phone while you're away</b></summary>
 <br>
-Install the ntfy app on your phone. In Settings → Phone, click <b>Pair a phone</b>, scan the QR code, subscribe, and
+Install the ntfy app on your phone. In Settings → Away from home, click <b>Pair a phone</b>, scan the QR code, subscribe, and
 confirm the test notification — only then it turns on. From now on, a card that waits longer than
 <b>Send after</b> (60 s by default), or any card while the screen is locked, reaches your phone. Use your own ntfy
 server if you don't want requests passing through ntfy.sh.
@@ -563,6 +582,7 @@ that reaches someone, modified or not, comes with its source code.
 **O Claude Code fora do terminal.** Um fogo-fátuo que flutua na sua tela, conversa com você e age no seu
 computador — com o seu `claude`, a sua assinatura e um clique seu antes de qualquer mudança.
 
+- 🏠 **Duas formas:** o painel compacto ao lado do mascote ou a **janela completa**, com o trilho de ícones e o **Início**: a agenda, as tarefas, os hábitos, as anotações e o que precisa de você, em blocos que você arrasta, redimensiona e esconde.
 - 🔥 **Sempre à mão:** um clique no mascote, **Ctrl+Alt+W** ou a voz abrem a conversa; o mascote mostra se está pensando, falando ou esperando você. Ou troque-o pela **ilha** no topo da tela.
 - 🧠 **O Claude Code de verdade:** ferramentas, modos, skills, plugins, `CLAUDE.md` e sessões são os mesmos do terminal, e uma aba pode virar o **modo terminal**.
 - 🛡️ **Nada muda sem um clique seu:** cada comando, edição ou app vira um card com **Permitir** e **Negar** (e o diff). Pular as permissões não existe.
@@ -589,9 +609,8 @@ npm start
 ```
 
 Tenha o [Claude Code](https://docs.claude.com/en/docs/claude-code) instalado e logado (`claude` no terminal); sem ele, o Wisp abre no **modo demonstração**.
-As configurações ficam no ícone de ajustes, no pé da barra lateral: Conversas, Prompts salvos, Tarefas agendadas, Mascote e sons,
-Aparência e acessibilidade, Atalhos e sistema, Voz, Projetos, Skills, Subagentes, Servidores MCP, OpenRouter, Integrações,
-Celular, Levar o Wisp junto e Avançado.
+As configurações ficam no ícone de ajustes, no pé da barra lateral, em categorias com uma busca: Geral, Assistente, Aparência,
+Mascote e sons, Voz, Atalhos e sistema, Integrações, Claude Code, Pentest, Fora de casa e Avançado.
 
 O **guia completo, em português**, com cada recurso, cada chave do `config.json`, os atalhos e os problemas comuns, está em
 [docs/GUIA.md](docs/GUIA.md).

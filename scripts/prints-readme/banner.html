@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+      }
+      html,
+      body {
+        width: 1600px;
+        height: 860px;
+        overflow: hidden;
+      }
+      body {
+        font-family: Inter, 'Noto Sans', 'DejaVu Sans', sans-serif;
+        color: #f8fafc;
+        background:
+          radial-gradient(ellipse 900px 600px at 0% 0%, rgba(14, 116, 144, 0.55), transparent 70%),
+          radial-gradient(
+            ellipse 800px 600px at 100% 100%,
+            rgba(109, 40, 217, 0.55),
+            transparent 70%
+          ),
+          radial-gradient(
+            ellipse 700px 500px at 85% 20%,
+            rgba(34, 211, 238, 0.12),
+            transparent 70%
+          ),
+          linear-gradient(135deg, #0b1a2e 0%, #141432 55%, #22164a 100%);
+        position: relative;
+      }
+      .copy {
+        position: absolute;
+        left: 92px;
+        top: 86px;
+        width: 620px;
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 34px;
+      }
+      .brand img {
+        width: 114px;
+        height: 114px;
+        border-radius: 26px;
+        box-shadow: 0 0 40px rgba(34, 211, 238, 0.25);
+      }
+      .brand h1 {
+        font-size: 128px;
+        font-weight: 800;
+        letter-spacing: -4px;
+        line-height: 1;
+      }
+      h2 {
+        margin-top: 38px;
+        font-size: 37px;
+        font-weight: 700;
+        letter-spacing: -0.8px;
+        white-space: nowrap;
+      }
+      p.lead {
+        max-width: 580px;
+        margin-top: 14px;
+        font-size: 25px;
+        line-height: 1.45;
+        color: rgba(226, 232, 240, 0.72);
+      }
+      .pills {
+        margin-top: 34px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+      }
+      .pills span {
+        padding: 8px 17px;
+        border-radius: 999px;
+        font-size: 21px;
+        font-weight: 600;
+        color: #fff;
+      }
+      .foot {
+        position: absolute;
+        left: 92px;
+        bottom: 56px;
+        font-size: 22px;
+        color: rgba(226, 232, 240, 0.7);
+      }
+      .foot b {
+        color: #f1f5f9;
+        font-weight: 700;
+      }
+      .shot {
+        position: absolute;
+        left: 740px;
+        top: 150px;
+        width: 816px;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(148, 163, 184, 0.28);
+        box-shadow:
+          0 40px 90px rgba(0, 0, 0, 0.55),
+          0 0 0 1px rgba(0, 0, 0, 0.4),
+          0 0 80px rgba(34, 211, 238, 0.08);
+      }
+      .shot img {
+        display: block;
+        width: 100%;
+      }
+      .mascot {
+        position: absolute;
+        left: 600px;
+        top: 520px;
+        width: 260px;
+        height: 260px;
+        filter: drop-shadow(0 0 30px rgba(34, 211, 238, 0.45));
+      }
+    </style>
+  </head>
+  <body>
+    <div class="copy">
+      <div class="brand">
+        <img src="LOGO" alt="" />
+        <h1>Wisp</h1>
+      </div>
+      <h2>Claude Code, out of the terminal.</h2>
+      <p class="lead">
+        Your day, your conversations and a workbench in one window — and a click from you before
+        anything changes.
+      </p>
+      <div class="pills">
+        <span style="background: #0e7490">Linux · Windows</span>
+        <span style="background: #15803d">Your own Claude Code</span>
+        <span style="background: #c2410c">Permission cards</span>
+        <span style="background: #be185d">Home dashboard</span>
+        <span style="background: #6d28d9">Browser + terminal</span>
+        <span style="background: #475569">Local voice · No telemetry</span>
+      </div>
+    </div>
+    <div class="shot"><img src="SHOT" alt="" /></div>
+    <img class="mascot" src="MASCOT" alt="" />
+    <div class="foot">
+      <b>GNOME</b> · <b>KDE Plasma</b> · <b>Windows 10/11</b> &nbsp;—&nbsp; English · Português
+    </div>
+  </body>
+</html>

@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lumen — notes that glow</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: system-ui, sans-serif;
+        color: #e2e8f0;
+        background:
+          radial-gradient(circle at 80% 10%, #4c1d95 0, transparent 45%),
+          radial-gradient(circle at 10% 90%, #155e75 0, transparent 40%), #0b1020;
+      }
+      nav {
+        display: flex;
+        justify-content: space-between;
+        padding: 22px 36px;
+        font-size: 14px;
+      }
+      nav b {
+        font-size: 16px;
+      }
+      nav span {
+        margin-left: 22px;
+        opacity: 0.75;
+      }
+      main {
+        padding: 48px 36px;
+        max-width: 760px;
+      }
+      h1 {
+        font-size: 42px;
+        line-height: 1.1;
+        margin: 0 0 16px;
+        background: linear-gradient(90deg, #22d3ee, #a78bfa);
+        -webkit-background-clip: text;
+        color: transparent;
+      }
+      p {
+        font-size: 17px;
+        line-height: 1.6;
+        opacity: 0.85;
+      }
+      a.cta {
+        display: inline-block;
+        margin-top: 18px;
+        padding: 12px 22px;
+        border-radius: 999px;
+        background: #22d3ee;
+        color: #0b1020;
+        font-weight: 700;
+        text-decoration: none;
+      }
+      .cards {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 14px;
+        margin-top: 48px;
+      }
+      .card {
+        padding: 16px;
+        border-radius: 14px;
+        background: rgba(255, 255, 255, 0.06);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        font-size: 14px;
+      }
+      .card b {
+        display: block;
+        margin-bottom: 6px;
+      }
+    </style>
+  </head>
+  <body>
+    <nav>
+      <b>✦ Lumen</b>
+      <div><span>Features</span><span>Pricing</span><span>Docs</span></div>
+    </nav>
+    <main>
+      <h1>Notes that glow when you need them.</h1>
+      <p>
+        Lumen keeps your ideas, links and to-dos in one quiet place, and lights up the right one at
+        the right time.
+      </p>
+      <a class="cta" href="#">Get started — it's free</a>
+      <div class="cards">
+        <div class="card"><b>⚡ Instant</b>Opens in a blink, even offline.</div>
+        <div class="card"><b>🔒 Private</b>Your notes stay on your device.</div>
+        <div class="card"><b>🌙 Calm</b>A dark mode that's easy on the eyes.</div>
+      </div>
+    </main>
+  </body>
+</html>

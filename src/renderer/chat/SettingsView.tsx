@@ -168,7 +168,7 @@ export function SettingsView({
           </Row>
           <Row
             label={t('Permissões')}
-            hint={`${MODE_TEXT[values.permissionMode].hint}. O das conversas novas; cada aba troca o seu.`}
+            hint={`${MODE_TEXT[values.permissionMode].hint}. ${t('O das conversas novas; cada aba troca o seu na pílula.')}`}
             error={errors.permissionMode}
           >
             <select
@@ -723,7 +723,7 @@ export function SettingsView({
           >
             <TextInput
               value={values.openrouterModel ?? ''}
-              placeholder="provedor/modelo"
+              placeholder={t('provedor/modelo')}
               onCommit={(model) => save({ openrouterModel: model || null })}
             />
           </Row>

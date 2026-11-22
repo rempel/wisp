@@ -1,0 +1,7 @@
+{"wait": 300}
+{"type": "stream_event", "event": {"type": "message_start", "message": {"id": "msg_w1"}}}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_w1", "name": "WebSearch", "input": {}}}}
+{"type": "assistant", "message": {"id": "msg_w1", "content": [{"type": "tool_use", "id": "toolu_w1", "name": "WebSearch", "input": {"query": "weather forecast tomorrow"}}]}}
+{"wait": 900}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_w1", "content": "Results recorded for the demo: tomorrow, partly cloudy, high of 27 °C, low of 18 °C, 20% chance of rain.", "is_error": false}]}}
+{"say": "Tomorrow (recorded demo data):\n\n| Time | Weather | Temperature |\n| --- | --- | --- |\n| Morning | Sun and clouds | 18 °C |\n| Afternoon | Partly cloudy | 27 °C |\n| Night | Clear sky | 21 °C |\n\nLow chance of rain, about **20%**. Searching the web doesn't ask for permission: it only reads."}
