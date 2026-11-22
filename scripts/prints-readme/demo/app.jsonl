@@ -1,0 +1,7 @@
+{"wait": 300}
+{"type": "stream_event", "event": {"type": "message_start", "message": {"id": "msg_a1"}}}
+{"type": "stream_event", "event": {"type": "content_block_start", "index": 0, "content_block": {"type": "tool_use", "id": "toolu_a1", "name": "mcp__desktop__list_apps", "input": {}}}}
+{"type": "assistant", "message": {"id": "msg_a1", "content": [{"type": "tool_use", "id": "toolu_a1", "name": "mcp__desktop__list_apps", "input": {"busca": "firefox"}}]}}
+{"wait": 500}
+{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "toolu_a1", "content": "[{\"id\":\"firefox\",\"name\":\"Firefox\",\"description\":\"Web browser\"}]", "is_error": false}]}}
+{"approve": {"tool": "mcp__desktop__open_app", "input": {"id": "firefox"}}, "allow": [{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "TOOL_USE_ID", "content": "Demo: nothing was really opened.", "is_error": false}]}}, {"say": "Done! In a real conversation, Firefox would open now. In the demo I only show the request: nothing was opened."}], "deny": [{"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "TOOL_USE_ID", "content": "User denied", "is_error": true}]}}, {"say": "All right, I won't open it. Nothing that changes your computer happens without your click."}]}

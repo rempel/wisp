@@ -1,0 +1,18 @@
+{
+  "model": "demo",
+  "fallback": "edit.jsonl",
+  "recordings": [
+    {
+      "file": "app.jsonl",
+      "keywords": ["firefox", "open"]
+    },
+    {
+      "file": "edit.jsonl",
+      "keywords": ["bug", "counter", "fix"]
+    },
+    {
+      "file": "web.jsonl",
+      "keywords": ["weather", "search", "forecast"]
+    }
+  ]
+}

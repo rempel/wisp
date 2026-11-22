@@ -38,7 +38,9 @@ if (args[0] === 'auth') {
 const DIR = process.env.WISP_DEMO_DIR ?? join(__dirname, '../../resources/demo')
 const index = JSON.parse(readFileSync(join(DIR, 'index.json'), 'utf8')) as RecordingIndex
 const sessionId = flag('--session-id') ?? flag('--resume') ?? randomUUID()
-let model = flag('--model') ?? 'demonstração'
+// O nome do modelo na pílula: o das gravações (as em inglês dos prints dizem "demo").
+const DEMO_MODEL = index.model ?? 'demonstração'
+let model = flag('--model') ?? DEMO_MODEL
 let mode = flag('--permission-mode') ?? 'default'
 const mcpConfig = flag('--mcp-config')
 
@@ -197,8 +199,7 @@ function control(message: Line): void {
   const id = message.request_id
   const request = message.request as Line
   if (request.subtype === 'interrupt' && current) current.aborted = true
-  if (request.subtype === 'set_model')
-    model = (request.model as string | undefined) ?? 'demonstração'
+  if (request.subtype === 'set_model') model = (request.model as string | undefined) ?? DEMO_MODEL
   out({ type: 'control_response', response: { subtype: 'success', request_id: id } })
   if (request.subtype === 'set_permission_mode') {
     mode = String(request.mode)

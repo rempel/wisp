@@ -2660,6 +2660,7 @@ export const EN: Record<string, string> = {
   'Enviando…': 'Sending…',
   'o modelo padrão do Claude Code': "Claude Code's default model",
   'provedor/modelo': 'provider/model',
+  'ssh://usuario@servidor': 'ssh://user@server',
   'Por onde a conversa vai': 'Where the conversation goes',
   Ações: 'Actions',
   'Voltar para o chat': 'Back to the chat',

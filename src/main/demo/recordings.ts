@@ -11,6 +11,8 @@ export interface RecordingIndex {
   /** A gravação de quando nenhuma palavra bate (a de ajuda). */
   fallback: string
   recordings: Recording[]
+  /** O nome do modelo que o reprodutor diz usar (por padrão, "demonstração"). */
+  model?: string
 }
 
 /** Minúsculas e sem acentos: "Previsão" e "previsao" valem igual. */

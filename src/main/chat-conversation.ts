@@ -26,10 +26,13 @@ import { t } from '../shared/i18n'
 
 /** A pasta de trabalho do Claude Code nas conversas sem pasta, com a persona do Wisp. */
 export const WORKSPACE_DIR = join(DATA_DIR, 'workspace')
-/** O Claude Code gravado do modo demonstração e as gravações dele. */
+/**
+ * O Claude Code gravado do modo demonstração e as gravações dele. O WISP_DEMO_DIR troca a pasta
+ * das gravações (os prints do README usam umas em inglês, em scripts/prints-readme/demo).
+ */
 export const DEMO: DemoPlayer = {
   player: join(__dirname, 'wisp-demo.js'),
-  recordings: join(__dirname, '../../resources/demo')
+  recordings: process.env.WISP_DEMO_DIR || join(__dirname, '../../resources/demo')
 }
 
 export const APPEND_SYSTEM_PROMPT =
