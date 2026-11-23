@@ -81,6 +81,8 @@ export function ChatHeader({
   onDrawer: () => void
 }): JSX.Element {
   const full = windowState.mode === 'full'
+  // As telas que mostram a bancada ao lado: a conversa e o Pentest (a conversa do run).
+  const withWorkbench = view === 'chat' || view === 'pentest'
   return (
     <header className="header">
       {view !== 'chat' ? (
@@ -185,14 +187,14 @@ export function ChatHeader({
         </button>
         <button
           type="button"
-          className={`icon-button workbench-toggle nav-end${view === 'chat' && workbench?.open ? ' active' : ''}`}
+          className={`icon-button workbench-toggle nav-end${withWorkbench && workbench?.open ? ' active' : ''}`}
           onClick={() => {
-            if (view !== 'chat') setView('chat')
-            if (view === 'chat' || !workbench?.open) toggleWorkbench(workbench)
+            if (!withWorkbench) setView('chat')
+            if (withWorkbench || !workbench?.open) toggleWorkbench(workbench)
           }}
           title={t('Bancada: navegador e terminal ao lado da conversa (Ctrl+Shift+B)')}
           aria-label={t('Bancada: navegador e terminal')}
-          aria-pressed={view === 'chat' && !!workbench?.open}
+          aria-pressed={withWorkbench && !!workbench?.open}
         >
           <WorkbenchIcon />
         </button>
