@@ -38,6 +38,7 @@ import type { ChatView } from './ChatHeader'
 import { Sidebar } from './Sidebar'
 import { HomeView } from './HomeView'
 import { PentestView } from './pentest/PentestView'
+import type { PentestSession } from './pentest/format'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -99,6 +100,14 @@ export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<ChatView>('chat')
+  /** O pentest pelo Claude: a conversa que a aba Pentest mostra ao lado da telemetria. */
+  const [pentestSession, setPentestSession] = useState<PentestSession | null>(null)
+  const pentestSessionRef = useRef(pentestSession)
+  useEffect(() => {
+    pentestSessionRef.current = pentestSession
+  }, [pentestSession])
+  /** A pasta do pentester (a bancada da aba Pentest abre nela sem uma conversa). */
+  const [pentestFolder, setPentestFolder] = useState<string | null>(null)
   // A sidebar (Fase 88): recolhida (o trilho) ou aberta no modo completo, lembrado; por cima no
   // compacto.
   const [collapsed, setCollapsed] = useState(() => {
@@ -179,12 +188,28 @@ export default function Chat(): JSX.Element {
     soundRef.current = sound
   }, [sound])
 
+  /**
+   * Na aba Pentest com um pentest pelo Claude, a conversa embutida dele: os atalhos, o ditado, os
+   * anexos e a bancada vão para ela, e a tela não troca para o chat.
+   */
+  const pentestConversation = useCallback(
+    (): string | null =>
+      viewRef.current === 'pentest' ? (pentestSessionRef.current?.conversation ?? null) : null,
+    []
+  )
+  /** Ir para a conversa: na aba Pentest com a conversa embutida, fica onde está. */
+  const showConversation = useCallback((): void => {
+    if (!pentestConversation()) setView('chat')
+  }, [pentestConversation])
+
   /** A conversa do painel em foco (null se lá estiver uma sessão do terminal). */
   const focusedConversation = useCallback((): string | null => {
+    const embedded = pentestConversation()
+    if (embedded) return embedded
     const state = tabsRef.current
     const id = state.panes[state.focused]
     return state.tabs.find((tab) => tab.id === id)?.kind === 'chat' ? id : null
-  }, [])
+  }, [pentestConversation])
 
   // A pasta da conversa em foco (os subagentes do projeto, Fase 50).
   const focusedPane = tabs.panes[tabs.focused]
@@ -216,6 +241,10 @@ export default function Chat(): JSX.Element {
         if ([...current.keys()].every((id) => open.has(id))) return current
         return new Map([...current].filter(([id]) => open.has(id)))
       })
+      // A conversa do pentest é uma aba do workspace: fechada lá, sai da aba Pentest também.
+      setPentestSession((current) =>
+        current && !state.tabs.some((tab) => tab.id === current.conversation) ? null : current
+      )
     })
     const offVoice = window.wisp.voice.onStatus((status) => {
       voiceRef.current = status
@@ -279,7 +308,7 @@ export default function Chat(): JSX.Element {
     })
     const offSound = window.wisp.sound.onChanged(setSound)
     const offAttach = window.wisp.chat.onAttach((dropped) => {
-      setView('chat')
+      showConversation()
       const conversation = focusedConversation()
       if (conversation) bus.emit(conversation, { type: 'attach', dropped })
     })
@@ -288,7 +317,7 @@ export default function Chat(): JSX.Element {
       offSound()
       offAttach()
     }
-  }, [bus, focusedConversation])
+  }, [bus, focusedConversation, showConversation])
 
   // Mexer no painel (teclas, cliques, rolagem) conta como atividade: o mascote não cochila com o
   // usuário escrevendo ou lendo. O aviso vai no máximo a cada ACTIVITY_EVERY_MS.
@@ -412,20 +441,26 @@ export default function Chat(): JSX.Element {
         event.preventDefault()
         setPalette(true)
       } else if (ctrl && event.shiftKey && key === 'b') {
-        // A bancada (Fase 55): abre e fecha.
+        // A bancada (Fase 55): abre e fecha (na aba Pentest, ali mesmo).
         event.preventDefault()
-        setView('chat')
+        if (viewRef.current !== 'pentest') setView('chat')
         toggleWorkbench(workbenchRef.current)
       } else if (event.key === 'Escape') {
         // Ouvindo, transcrevendo ou falando, o Esc só desiste disso.
         if (voiceRef.current.state !== 'idle') window.wisp.voice.cancel()
+        // Na conversa ou na bancada da aba Pentest, o Esc não tira você de lá.
+        else if (
+          viewRef.current === 'pentest' &&
+          (event.target as Element | null)?.closest?.('.pentest-conversation, .workbench')
+        )
+          return
         else if (viewRef.current !== 'chat') setView('chat')
         else window.wisp.chat.hide()
       } else if (plain && key === 'k') {
         event.preventDefault()
         const conversation = focusedConversation()
         if (conversation) window.wisp.chat.newConversation(conversation)
-        setView('chat')
+        showConversation()
       } else if (ctrl && ['=', '+', '-', '0'].includes(event.key)) {
         // O tamanho do painel (Fase 22): Ctrl+mais, Ctrl+menos e Ctrl+0 volta ao normal.
         event.preventDefault()
@@ -438,7 +473,7 @@ export default function Chat(): JSX.Element {
       } else if (plain && key === 'f') {
         // A busca na conversa em foco (Fase 21).
         event.preventDefault()
-        setView('chat')
+        showConversation()
         const conversation = focusedConversation()
         if (conversation) bus.emit(conversation, { type: 'find' })
       } else if (ctrl && event.shiftKey && key === 'e') {
@@ -500,7 +535,7 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('focus', onFocus)
     }
-  }, [bus, focusedConversation, toggleSound, exportConversation])
+  }, [bus, focusedConversation, showConversation, toggleSound, exportConversation])
 
   // Arquivos arrastados para qualquer ponto da janela viram anexos do painel em foco. Sem o
   // preventDefault, soltar um arquivo faria a janela navegar até ele.
@@ -532,7 +567,7 @@ export default function Chat(): JSX.Element {
       // Soltou em cima de um painel: ele é o destino (e passa a ser o do foco).
       const pane = (event.target as Element | null)?.closest?.('[data-conversation]')
       const target = pane?.getAttribute('data-conversation') ?? focusedConversation()
-      setView('chat')
+      showConversation()
       if (target) bus.emit(target, { type: 'drop', data: event.dataTransfer })
     }
     window.addEventListener('dragenter', onEnter)
@@ -545,7 +580,7 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('dragleave', onLeave)
       window.removeEventListener('drop', onDrop)
     }
-  }, [bus, focusedConversation])
+  }, [bus, focusedConversation, showConversation])
 
   const onSent = useCallback(
     (conversation: string) =>
@@ -622,6 +657,8 @@ export default function Chat(): JSX.Element {
   const focusedState =
     focusedTab?.kind === 'chat' ? (conversations.get(focusedTab.id) ?? initialState) : null
   const split = tabs.panes.length > 1
+  // A conversa do pentest (a bancada da aba Pentest acompanha o plano e o estado dela).
+  const pentestState = pentestSession ? conversations.get(pentestSession.conversation) : undefined
 
   /** Um painel da grade: a conversa (ou a sessão do terminal) da aba. */
   const renderPane = (id: string): ReactNode => {
@@ -661,39 +698,69 @@ export default function Chat(): JSX.Element {
         </section>
       )
     }
-    return (
-      <Pane
-        key={id}
-        conversation={id}
-        state={conversations.get(id) ?? initialState}
-        index={index}
-        focused={focused}
-        split={split}
-        title={tab.title}
-        mood={mood}
-        sound={sound}
-        onToggleSound={toggleSound}
-        clip={focused ? clip : null}
-        onClipDone={() => setClip(null)}
-        voice={focused ? voice : { state: 'idle' }}
-        bus={bus}
-        demo={demo}
-        local={!!settings?.values.localModelsUrl}
-        agenda={agendaNext}
-        main={tab.kind === 'chat' && !!tab.main}
-        onSent={onSent(id)}
-        onBroadcast={broadcast}
-      />
-    )
+    return renderConversation(id, {
+      index,
+      focused,
+      split,
+      title: tab.title,
+      main: tab.kind === 'chat' && !!tab.main
+    })
   }
+
+  /**
+   * Uma conversa (o <Pane>): na grade, ou embutida na aba Pentest ao lado da telemetria. Os eventos
+   * chegam por id, então ela anda (streaming, cards, slash) onde quer que esteja montada.
+   */
+  const renderConversation = (
+    id: string,
+    pane: { index: number; focused: boolean; split: boolean; title: string; main: boolean }
+  ): ReactNode => (
+    <Pane
+      key={id}
+      conversation={id}
+      state={conversations.get(id) ?? initialState}
+      index={pane.index}
+      focused={pane.focused}
+      split={pane.split}
+      title={pane.title}
+      mood={mood}
+      sound={sound}
+      onToggleSound={toggleSound}
+      clip={pane.focused ? clip : null}
+      onClipDone={() => setClip(null)}
+      voice={pane.focused ? voice : { state: 'idle' }}
+      bus={bus}
+      demo={demo}
+      local={!!settings?.values.localModelsUrl}
+      agenda={agendaNext}
+      main={pane.main}
+      onSent={onSent(id)}
+      onBroadcast={broadcast}
+    />
+  )
+
+  /** A conversa do pentest, embutida na aba Pentest (sem a cabeça do painel da grade). */
+  const renderPentestConversation = (id: string, focused: boolean): ReactNode =>
+    renderConversation(id, {
+      index: tabs.panes.indexOf(id),
+      focused,
+      split: false,
+      title: tabs.tabs.find((tab) => tab.id === id)?.title ?? '',
+      main: false
+    })
 
   // As ações da paleta, para a aba em foco (refeitas se algo muda com ela aberta).
   const actions = useMemo((): PaletteItem[] => {
     if (!palette) return []
-    const focusedTab = tabs.panes[tabs.focused] ?? null
+    // Na aba Pentest com a conversa embutida, as ações são dela (e a tela não troca).
+    const embedded = view === 'pentest' ? (pentestSession?.conversation ?? null) : null
+    const focusedTab = embedded ?? tabs.panes[tabs.focused] ?? null
     const conversation =
       tabs.tabs.find((tab) => tab.id === focusedTab)?.kind === 'chat' ? focusedTab : null
     const state = conversation ? conversations.get(conversation) : undefined
+    const toConversation = (): void => {
+      if (!embedded) setView('chat')
+    }
     return paletteActions({
       conversation,
       state: state ? { mode: state.mode, provider: state.provider, view: state.view } : null,
@@ -704,13 +771,13 @@ export default function Chat(): JSX.Element {
       sound: sound?.enabled ?? null,
       canSplit: tabs.panes.length < MAX_PANES,
       workbench: (tab) => {
-        setView('chat')
+        if (view !== 'pentest') setView('chat')
         toggleWorkbench(workbench, tab)
       },
       workbenchOpen: workbench?.open ? workbench.tab : null,
       setView,
       find: (id) => {
-        setView('chat')
+        toConversation()
         bus.emit(id, { type: 'find' })
       },
       exportMarkdown: (id) => void exportConversation(id),
@@ -718,7 +785,7 @@ export default function Chat(): JSX.Element {
         if (sound) toggleSound(sound)
       },
       usePrompt: (id, name) => {
-        setView('chat')
+        toConversation()
         bus.emit(id, { type: 'prompt', name })
       },
       notice: (text, warning = false) => {
@@ -740,7 +807,9 @@ export default function Chat(): JSX.Element {
     bus,
     exportConversation,
     toggleSound,
-    apply
+    apply,
+    view,
+    pentestSession
   ])
   const closePalette = useCallback(
     (ran: boolean): void => {
@@ -841,7 +910,32 @@ export default function Chat(): JSX.Element {
             ) : view === 'board' ? (
               <BoardView onShow={() => setView('chat')} />
             ) : view === 'pentest' ? (
-              <PentestView onView={setView} />
+              <div className="workspace pentest-workspace">
+                <PentestView
+                  onView={setView}
+                  session={pentestSession}
+                  onSession={setPentestSession}
+                  onFolder={setPentestFolder}
+                  renderConversation={renderPentestConversation}
+                />
+                {workbench?.open && (
+                  <Workbench
+                    state={workbench}
+                    folder={
+                      (pentestSession && conversations.get(pentestSession.conversation)?.folder) ??
+                      pentestFolder
+                    }
+                    conversation={pentestSession?.conversation ?? null}
+                    busy={!!pentestState?.busy}
+                    items={pentestState?.items ?? NO_ITEMS}
+                    covered={palette || dragging}
+                    onCompose={(text) => {
+                      const conversation = focusedConversation()
+                      if (conversation) bus.emit(conversation, { type: 'compose', text })
+                    }}
+                  />
+                )}
+              </div>
             ) : view === 'memory' ? (
               <MemoryView folder={focusedFolder} />
             ) : view === 'agents' ? (

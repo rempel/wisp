@@ -287,13 +287,15 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     }
   )
   // O pentester (Fase 100): o Novo pentest pelo Claude abre a conversa na pasta dele, com o pedido
-  // pronto na caixa, para você revisar e mandar.
+  // pronto na caixa, para você revisar e mandar. O id volta para a aba Pentest, que mostra a
+  // conversa ao lado da telemetria (a aba do workspace continua existindo).
   pentestChat.open = (folder, prompt) => {
     const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
     conversation.setDraft(prompt)
     toPage(conversation.id, { type: 'draft', text: conversation.draft })
     ctx.show()
     void conversation.checkFolder()
+    return conversation.id
   }
   return index
 }

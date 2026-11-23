@@ -224,6 +224,19 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   sempre passa pelo card com o SKILL.md inteiro (ou o diff, ao melhorar uma do Wisp, com o backup
   da de antes). E, na faxina da semana, o Haiku procura os pedidos que se repetem do mesmo jeito e
   sugere skills na tela Memória, para você criar com um clique.
+- **O pentest pelo Claude numa aba só:** o Novo pentest pelo Claude não leva mais para uma aba de
+  chat à parte. A conversa (inteira, com os cards de permissão) abre **ao lado da telemetria** na
+  própria tela Pentest, com o pedido em rascunho para você conferir e mandar; a telemetria espera o
+  agente criar o run e o vincula sozinha (um run novo no host pedido). Um campo de **runbook** (colar
+  ou **Carregar .md**) vira um arquivo em `.wisp/runbooks/` na pasta do pentester, e o pedido de
+  abertura manda o agente segui-lo. A conversa recolhe para uma faixa e, na janela compacta, fica
+  embaixo da telemetria. A **bancada** (navegador, terminal, alterações e plano) abre ali mesmo, à
+  direita: o "Abrir na bancada" de um achado mostra a página sem sair da tela, e o print da
+  evidência sai do que você está vendo. Os atalhos (Esc, Ctrl+F, Alt+P, Ctrl+Shift+B, a paleta, o
+  ditado e os arquivos soltos) vão para a conversa embutida. Sem largura para tudo lado a lado, a
+  conversa vai para baixo da telemetria.
+- **O Parar do pipeline direto vale:** um run parado não volta mais a aparecer rodando dez segundos
+  depois, e dois pipelines seguidos no mesmo host não se confundem.
 - **O pentester, mais redondo:** com o pentester no Docker, o servidor MCP da conversa roda na
   imagem dele (o serviço `mcp` do compose); os achados vêm do `findings.json` que ele grava a cada
   fase (sem o Python nesta máquina); e, mesmo no modo Automático, rodar o pipeline, o agente ou o
