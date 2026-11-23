@@ -38,6 +38,7 @@ import type { ChatView } from './ChatHeader'
 import { Sidebar } from './Sidebar'
 import { HomeView } from './HomeView'
 import { PentestView } from './pentest/PentestView'
+import type { PentestSession } from './pentest/format'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -99,6 +100,8 @@ export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
   const [view, setView] = useState<ChatView>('chat')
+  /** O pentest pelo Claude: a conversa que a aba Pentest mostra ao lado da telemetria. */
+  const [pentestSession, setPentestSession] = useState<PentestSession | null>(null)
   // A sidebar (Fase 88): recolhida (o trilho) ou aberta no modo completo, lembrado; por cima no
   // compacto.
   const [collapsed, setCollapsed] = useState(() => {
@@ -216,6 +219,10 @@ export default function Chat(): JSX.Element {
         if ([...current.keys()].every((id) => open.has(id))) return current
         return new Map([...current].filter(([id]) => open.has(id)))
       })
+      // A conversa do pentest é uma aba do workspace: fechada lá, sai da aba Pentest também.
+      setPentestSession((current) =>
+        current && !state.tabs.some((tab) => tab.id === current.conversation) ? null : current
+      )
     })
     const offVoice = window.wisp.voice.onStatus((status) => {
       voiceRef.current = status
@@ -661,31 +668,56 @@ export default function Chat(): JSX.Element {
         </section>
       )
     }
-    return (
-      <Pane
-        key={id}
-        conversation={id}
-        state={conversations.get(id) ?? initialState}
-        index={index}
-        focused={focused}
-        split={split}
-        title={tab.title}
-        mood={mood}
-        sound={sound}
-        onToggleSound={toggleSound}
-        clip={focused ? clip : null}
-        onClipDone={() => setClip(null)}
-        voice={focused ? voice : { state: 'idle' }}
-        bus={bus}
-        demo={demo}
-        local={!!settings?.values.localModelsUrl}
-        agenda={agendaNext}
-        main={tab.kind === 'chat' && !!tab.main}
-        onSent={onSent(id)}
-        onBroadcast={broadcast}
-      />
-    )
+    return renderConversation(id, {
+      index,
+      focused,
+      split,
+      title: tab.title,
+      main: tab.kind === 'chat' && !!tab.main
+    })
   }
+
+  /**
+   * Uma conversa (o <Pane>): na grade, ou embutida na aba Pentest ao lado da telemetria. Os eventos
+   * chegam por id, então ela anda (streaming, cards, slash) onde quer que esteja montada.
+   */
+  const renderConversation = (
+    id: string,
+    pane: { index: number; focused: boolean; split: boolean; title: string; main: boolean }
+  ): ReactNode => (
+    <Pane
+      key={id}
+      conversation={id}
+      state={conversations.get(id) ?? initialState}
+      index={pane.index}
+      focused={pane.focused}
+      split={pane.split}
+      title={pane.title}
+      mood={mood}
+      sound={sound}
+      onToggleSound={toggleSound}
+      clip={pane.focused ? clip : null}
+      onClipDone={() => setClip(null)}
+      voice={pane.focused ? voice : { state: 'idle' }}
+      bus={bus}
+      demo={demo}
+      local={!!settings?.values.localModelsUrl}
+      agenda={agendaNext}
+      main={pane.main}
+      onSent={onSent(id)}
+      onBroadcast={broadcast}
+    />
+  )
+
+  /** A conversa do pentest, embutida na aba Pentest (sem a cabeça do painel da grade). */
+  const renderPentestConversation = (id: string, focused: boolean): ReactNode =>
+    renderConversation(id, {
+      index: tabs.panes.indexOf(id),
+      focused,
+      split: false,
+      title: tabs.tabs.find((tab) => tab.id === id)?.title ?? '',
+      main: false
+    })
 
   // As ações da paleta, para a aba em foco (refeitas se algo muda com ela aberta).
   const actions = useMemo((): PaletteItem[] => {
@@ -841,7 +873,12 @@ export default function Chat(): JSX.Element {
             ) : view === 'board' ? (
               <BoardView onShow={() => setView('chat')} />
             ) : view === 'pentest' ? (
-              <PentestView onView={setView} />
+              <PentestView
+                onView={setView}
+                session={pentestSession}
+                onSession={setPentestSession}
+                renderConversation={renderPentestConversation}
+              />
             ) : view === 'memory' ? (
               <MemoryView folder={focusedFolder} />
             ) : view === 'agents' ? (

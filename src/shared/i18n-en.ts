@@ -3525,5 +3525,30 @@ export const EN: Record<string, string> = {
   'prompt responda só NADA quando não houver o que avisar: aí nada é entregue.':
     'prompt answers just NADA when there is nothing to report: then nothing is delivered.',
   '{name}: conferiu, nada a avisar.': '{name}: checked, nothing to report.',
-  'O Wisp pede aprovação para rodar o pentester.': 'Wisp asks for approval to run the pentester.'
+  'O Wisp pede aprovação para rodar o pentester.': 'Wisp asks for approval to run the pentester.',
+  'Siga o runbook em {path}.': 'Follow the runbook at {path}.',
+  'O runbook passa de 512 KB.': 'The runbook is over 512 KB.',
+  'Não deu para gravar o runbook: {error}': "Couldn't save the runbook: {error}",
+  'Carregar o runbook': 'Load the runbook',
+  'Markdown ou texto': 'Markdown or text',
+  'Não deu para ler o arquivo: {error}': "Couldn't read the file: {error}",
+  'Instruções / runbook': 'Instructions / runbook',
+  'Carregar .md': 'Load .md',
+  'Opcional. Cole o runbook (ou carregue um .md): o Wisp grava num arquivo na pasta do pentester, e o pedido de abertura manda o agente seguir.':
+    'Optional. Paste the runbook (or load a .md): Wisp saves it to a file in the pentester folder, and the opening request tells the agent to follow it.',
+  'Carregado de {name}.': 'Loaded from {name}.',
+  'Aguardando o agente criar o run…': 'Waiting for the agent to create the run…',
+  'Confira o pedido na conversa ao lado e mande. Quando o agente começar o run em {host}, a telemetria aparece aqui, ao vivo.':
+    'Check the request in the conversation alongside and send it. When the agent starts the run on {host}, the telemetry shows up here, live.',
+  'Conversa do pentest': 'Pentest conversation',
+  'Mostrar a conversa': 'Show the conversation',
+  'Recolher a conversa': 'Collapse the conversation',
+  'Conversa do run': 'Run conversation',
+  'Conversa · aguardando o run': 'Conversation · waiting for the run',
+  'Abrir esta conversa na aba dela, no workspace':
+    'Open this conversation in its own tab, in the workspace',
+  'Abrir na aba': 'Open in tab',
+  'Tirar a conversa daqui (ela continua na aba do workspace)':
+    'Remove the conversation from here (it stays in its workspace tab)',
+  Desacoplar: 'Detach'
 }
