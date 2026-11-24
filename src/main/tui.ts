@@ -130,6 +130,11 @@ export class TerminalProcess {
    * Encerra o processo (SIGTERM, e SIGKILL se não sair a tempo; no Windows, fecha o ConPTY, e o
    * taskkill na árvore se não sair a tempo). Resolve quando ele sai.
    */
+  /** O pid do Claude Code do terminal, ou null sem processo. */
+  get pid(): number | null {
+    return this.pty?.pid ?? null
+  }
+
   async kill(): Promise<void> {
     const pty = this.pty
     if (!pty) return

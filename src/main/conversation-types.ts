@@ -3,7 +3,26 @@
 
 import type { ClaudeOptions } from './claude'
 import type { Conversation } from './conversation'
-import type { ChatEvent, PermissionMode, Provider } from '../shared/ipc'
+import type {
+  AttachmentPreview,
+  ChatEvent,
+  OutgoingAttachment,
+  PermissionMode,
+  Provider
+} from '../shared/ipc'
+
+/** De onde vem uma conversa ramificada (Fase 46). */
+export interface ForkSource {
+  sessionId: string
+  at: string
+  folder: string | null
+  provider: Provider
+  title: string
+  events: ChatEvent[]
+}
+
+/** Uma prévia de anexo, para a conversa mostrar o que foi enviado. */
+export type PreviewOf = (attachment: OutgoingAttachment) => AttachmentPreview
 
 /** Para onde vão os eventos de uma conversa e o que ela pede ao painel. */
 export interface ConversationHost {

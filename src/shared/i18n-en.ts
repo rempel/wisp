@@ -3550,5 +3550,16 @@ export const EN: Record<string, string> = {
   'Abrir na aba': 'Open in tab',
   'Tirar a conversa daqui (ela continua na aba do workspace)':
     'Remove the conversation from here (it stays in its workspace tab)',
-  Desacoplar: 'Detach'
+  Desacoplar: 'Detach',
+  'Pentest cancelado: o Wisp parou o Claude, o servidor do pentester e a fase que rodava. A conversa continua aqui; se mandar outra mensagem, diga ao agente o que fazer (ele não sabe do cancelamento).':
+    "Pentest cancelled: Wisp stopped Claude, the pentester server and the running phase. The conversation stays here; if you send another message, tell the agent what to do (it doesn't know about the cancellation).",
+  'Cancelado às {time}': 'Cancelled at {time}',
+  '{n} container(s) do MCP parados': '{n} MCP container(s) stopped',
+  'Parar o agente, o servidor do pentester e a fase em andamento (a conversa continua)':
+    'Stop the agent, the pentester server and the running phase (the conversation continues)',
+  'Cancelando…': 'Cancelling…',
+  'Cancelar pentest': 'Cancel pentest',
+  'Parar o pipeline': 'Stop the pipeline',
+  'Parar o agente, o servidor do pentester e a fase em andamento':
+    'Stop the agent, the pentester server and the running phase'
 }

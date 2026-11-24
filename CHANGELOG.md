@@ -235,6 +235,11 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   evidência sai do que você está vendo. Os atalhos (Esc, Ctrl+F, Alt+P, Ctrl+Shift+B, a paleta, o
   ditado e os arquivos soltos) vão para a conversa embutida. Sem largura para tudo lado a lado, a
   conversa vai para baixo da telemetria.
+- **Cancelar o pentest pelo Claude:** o **Parar** do run do agente e o **Cancelar pentest** da
+  coluna da conversa param tudo: o turno do Claude, o Claude Code, o servidor MCP do pentester, a
+  fase que ele rodava e o que ela abriu (no Docker, o container do MCP também). O run fica parado
+  (o Wisp anota em `wisp-run.json`, ao lado dele), e a conversa avisa e continua: a próxima
+  mensagem retoma a mesma sessão.
 - **O Parar do pipeline direto vale:** um run parado não volta mais a aparecer rodando dez segundos
   depois, e dois pipelines seguidos no mesmo host não se confundem.
 - **O pentester, mais redondo:** com o pentester no Docker, o servidor MCP da conversa roda na

@@ -281,7 +281,8 @@ const api: WispApi = {
     lab: () => ipcRenderer.invoke(IPC_PENTEST.lab),
     labAction: (action, service) => ipcRenderer.invoke(IPC_PENTEST.labAction, action, service),
     detect: (folder) => ipcRenderer.invoke(IPC_PENTEST.detect, folder),
-    pickRunbook: () => ipcRenderer.invoke(IPC_PENTEST.pickRunbook)
+    pickRunbook: () => ipcRenderer.invoke(IPC_PENTEST.pickRunbook),
+    cancel: (conversation, run) => ipcRenderer.invoke(IPC_PENTEST.cancel, conversation, run)
   },
   memory: {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),

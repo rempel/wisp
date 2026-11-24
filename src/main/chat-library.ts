@@ -297,5 +297,18 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     void conversation.checkFolder()
     return conversation.id
   }
+  // O Cancelar do pentest: para tudo, e a conversa explica o que aconteceu.
+  pentestChat.halt = async (id) => {
+    const conversation = tabs.conversationById(id)
+    if (!conversation) return false
+    await conversation.halt()
+    conversation.notice(
+      'warning',
+      t(
+        'Pentest cancelado: o Wisp parou o Claude, o servidor do pentester e a fase que rodava. A conversa continua aqui; se mandar outra mensagem, diga ao agente o que fazer (ele não sabe do cancelamento).'
+      )
+    )
+    return true
+  }
   return index
 }
