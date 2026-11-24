@@ -10,6 +10,7 @@ import type {
   ChatEvent,
   ClipboardOffer,
   MascotState,
+  PentestSession,
   PlanUsage,
   SettingsSnapshot,
   SoundSettings,
@@ -38,7 +39,6 @@ import type { ChatView } from './ChatHeader'
 import { Sidebar } from './Sidebar'
 import { HomeView } from './HomeView'
 import { PentestView } from './pentest/PentestView'
-import type { PentestSession } from './pentest/format'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -241,10 +241,6 @@ export default function Chat(): JSX.Element {
         if ([...current.keys()].every((id) => open.has(id))) return current
         return new Map([...current].filter(([id]) => open.has(id)))
       })
-      // A conversa do pentest é uma aba do workspace: fechada lá, sai da aba Pentest também.
-      setPentestSession((current) =>
-        current && !state.tabs.some((tab) => tab.id === current.conversation) ? null : current
-      )
     })
     const offVoice = window.wisp.voice.onStatus((status) => {
       voiceRef.current = status
@@ -525,8 +521,9 @@ export default function Chat(): JSX.Element {
         if (current) toggleSound(current)
       }
     }
+    // A janela ganhou o foco: a caixa da conversa o recebe (na aba Pentest, não: há outros campos).
     const onFocus = (): void => {
-      const conversation = focusedConversation()
+      const conversation = pentestConversation() ? null : focusedConversation()
       if (conversation) bus.emit(conversation, { type: 'focus' })
     }
     window.addEventListener('keydown', onKey)
@@ -535,7 +532,14 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('focus', onFocus)
     }
-  }, [bus, focusedConversation, showConversation, toggleSound, exportConversation])
+  }, [
+    bus,
+    focusedConversation,
+    pentestConversation,
+    showConversation,
+    toggleSound,
+    exportConversation
+  ])
 
   // Arquivos arrastados para qualquer ponto da janela viram anexos do painel em foco. Sem o
   // preventDefault, soltar um arquivo faria a janela navegar até ele.
@@ -913,8 +917,9 @@ export default function Chat(): JSX.Element {
               <div className="workspace pentest-workspace">
                 <PentestView
                   onView={setView}
-                  session={pentestSession}
                   onSession={setPentestSession}
+                  onCompose={(id, text) => bus.emit(id, { type: 'compose', text })}
+                  waitingIn={(id) => awaitingPermission(conversations.get(id) ?? initialState)}
                   onFolder={setPentestFolder}
                   renderConversation={renderPentestConversation}
                 />

@@ -235,6 +235,17 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   evidência sai do que você está vendo. Os atalhos (Esc, Ctrl+F, Alt+P, Ctrl+Shift+B, a paleta, o
   ditado e os arquivos soltos) vão para a conversa embutida. Sem largura para tudo lado a lado, a
   conversa vai para baixo da telemetria.
+- **A aba Pentest, revisada:** a conversa do pentest **volta depois de reabrir o Wisp** (a sessão
+  fica no disco, e o run anota a conversa dele: a lista marca os runs com conversa, e "Abrir a
+  conversa" ou "Conversar sobre este run" põe uma ao lado). Com a conversa recolhida, um **card**
+  a abre sozinho. O agente pode criar o run quando quiser (o Wisp espera até 6 horas) e, se ele
+  testar outro host, você **vincula o run à mão**. Depois do Cancelar, a caixa fica com um **aviso
+  para o agente** não retomar sozinho. Num achado, **Pedir ao agente** (confirmar, explicar, como
+  corrigir) leva o pedido à conversa do run; o **Print da evidência** abre a URL do achado na
+  bancada e fotografa num clique; um **alerta** ou uma **fase** levam ao log dela; o **relatório**
+  abre na bancada (↗ para o navegador). A conversa se chama "Pentest · alvo", vai **embaixo** ou ao
+  lado da telemetria, e o Novo pentest oferece os **runbooks recentes** e o **padrão do
+  engajamento** (um campo novo).
 - **Cancelar o pentest pelo Claude:** o **Parar** do run do agente e o **Cancelar pentest** da
   coluna da conversa param tudo: o turno do Claude, o Claude Code, o servidor MCP do pentester, a
   fase que ele rodava e o que ela abriu (no Docker, o container do MCP também). O run fica parado

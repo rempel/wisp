@@ -1,6 +1,6 @@
 // O idioma antes de tudo: os textos guardados em constantes já saem nele (Fase 25).
 import './locale-init'
-import { app, ipcMain, nativeTheme, powerMonitor, screen, session, shell } from 'electron'
+import { app, ipcMain, nativeTheme, powerMonitor, screen, shell } from 'electron'
 import type { Point } from 'electron'
 import { basename, join } from 'path'
 import appIcon from '../../resources/icon.png?asset'
@@ -125,6 +125,8 @@ import { t } from '../shared/i18n'
 import { setSelfCommand } from './self-command'
 import { IS_LINUX, IS_WINDOWS } from './platform'
 import { TOAST_SCHEME } from './toast'
+import { pentestEvents } from './pentest'
+import { guardPermissions } from './permissions-guard'
 
 // O cache e os dados internos do Chromium ficam fora de ~/.config/wisp, que guarda só o
 // config.json. Precisa ser definido antes do app ficar pronto.
@@ -379,6 +381,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     sessionTitle: (id) => sessions.get(id)?.project ?? null,
     onEvent: (event, conversation) => {
       presence.activity()
+      pentestEvents.activity?.(conversation)
       activity.onChatEvent(event, conversation)
       mood.onEvent(event, conversation)
       island?.onChatEvent(event, conversation)
@@ -396,6 +399,7 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     onClose: (conversation) => {
       mood.forget(conversation)
       island?.forget(conversation)
+      pentestEvents.closed?.(conversation)
     },
     onPanel: (change) => {
       presence.activity()
@@ -969,28 +973,6 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
     integrations.dispose()
     chat?.dispose()
     desktop?.close()
-  })
-}
-
-/**
- * As permissões que as páginas do Wisp podem pedir ao Chromium: o microfone, só para a página do
- * mascote (onde roda a captura de voz) e só o áudio; e escrever na área de transferência (o botão
- * de copiar do painel). Câmera, tela, localização, notificações e o resto são negados.
- */
-function guardPermissions(): void {
-  const isMascot = (contents: Electron.WebContents | null): boolean =>
-    contents !== null && contents === getMascotWindow()?.webContents
-  session.defaultSession.setPermissionRequestHandler((contents, permission, callback, details) => {
-    if (permission === 'media') {
-      const types = (details as { mediaTypes?: string[] }).mediaTypes ?? []
-      callback(isMascot(contents) && types.length > 0 && types.every((type) => type === 'audio'))
-      return
-    }
-    callback(permission === 'clipboard-sanitized-write')
-  })
-  session.defaultSession.setPermissionCheckHandler((contents, permission, _origin, details) => {
-    if (permission !== 'media') return true
-    return isMascot(contents) && (details as { mediaType?: string }).mediaType === 'audio'
   })
 }
 

@@ -289,15 +289,31 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
   // O pentester (Fase 100): o Novo pentest pelo Claude abre a conversa na pasta dele, com o pedido
   // pronto na caixa, para você revisar e mandar. O id volta para a aba Pentest, que mostra a
   // conversa ao lado da telemetria (a aba do workspace continua existindo).
-  pentestChat.open = (folder, prompt) => {
-    const conversation = tabs.addChat(ctx.makeConversation(undefined, undefined, folder))
+  pentestChat.open = (folder, prompt, title) => {
+    const made = ctx.makeConversation(undefined, undefined, folder)
+    // "Pentest · alvo" no lugar do texto do /pentest-run (a 1ª mensagem não troca um título dado).
+    if (title) made.title = title
+    const conversation = tabs.addChat(made)
     conversation.setDraft(prompt)
     toPage(conversation.id, { type: 'draft', text: conversation.draft })
     ctx.show()
     void conversation.checkFolder()
     return conversation.id
   }
-  // O Cancelar do pentest: para tudo, e a conversa explica o que aconteceu.
+  pentestChat.find = (id, history) => {
+    const conversation =
+      tabs.conversationById(id) ??
+      (history ? conversations().find((item) => item.historyId === history) : undefined)
+    return conversation ? { id: conversation.id, history: conversation.historyId } : null
+  }
+  pentestChat.draft = (id, text) => {
+    const conversation = tabs.conversationById(id)
+    if (!conversation) return
+    conversation.setDraft(conversation.draft ? `${conversation.draft}\n\n${text}` : text)
+    toPage(conversation.id, { type: 'draft', text: conversation.draft })
+  }
+  // O Cancelar do pentest: para tudo, a conversa explica o que aconteceu, e a caixa fica com o
+  // aviso para o agente (ele não sabe do cancelamento), para você revisar e mandar quando quiser.
   pentestChat.halt = async (id) => {
     const conversation = tabs.conversationById(id)
     if (!conversation) return false
@@ -305,7 +321,16 @@ export function registerLibrary(ctx: LibraryContext): SearchIndex {
     conversation.notice(
       'warning',
       t(
-        'Pentest cancelado: o Wisp parou o Claude, o servidor do pentester e a fase que rodava. A conversa continua aqui; se mandar outra mensagem, diga ao agente o que fazer (ele não sabe do cancelamento).'
+        'Pentest cancelado: o Wisp parou o Claude, o servidor do pentester e a fase que rodava. A conversa continua aqui; a caixa ficou com um aviso para o agente, para você mandar quando quiser.'
+      )
+    )
+    pentestChat.draft?.(
+      id,
+      t(
+        'Cancelei o pentest às {time}: o Wisp parou você, o servidor do pentester e a fase que rodava. Não retome nenhuma fase sem eu pedir. Resuma o que já foi feito e o que faltou.',
+        {
+          time: new Date().toLocaleTimeString(dateLocale(), { hour: '2-digit', minute: '2-digit' })
+        }
       )
     )
     return true
