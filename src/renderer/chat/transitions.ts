@@ -15,6 +15,15 @@ let runningKind: TransitionKind | null = null
 /** A troca da transição em curso, enquanto ela ainda não aconteceu (o Chromium a chama depois). */
 let pending: (() => void) | null = null
 
+/**
+ * Faz `update` sem transição, mas depois de uma troca com transição que ainda não aconteceu (do
+ * mesmo estado): senão, a de antes viria depois desta e traria o estado velho de volta.
+ */
+export function inOrder(update: () => void): void {
+  pending?.()
+  update()
+}
+
 /** Faz `update` (uma mudança de estado do React) com a transição dos elementos. */
 export function withTransition(update: () => void, kind: TransitionKind): void {
   // As trocas acontecem na ordem: uma de antes que ainda não aconteceu acontece agora (senão,

@@ -44,6 +44,8 @@ check(
   !!(await waitFor(() => ev(`!!document.querySelector('.remote-chat-pair svg')`), 5000))
 )
 await ev(`document.querySelector('.header [aria-label="Voltar para a conversa"]')?.click()`)
+// A troca de tela vem com a transição (um quadro depois): espera a caixa da conversa.
+await waitFor(() => ev(`!!document.querySelector('.pane .composer textarea') || null`), 5000)
 
 console.log('== Parear')
 const base = (link ?? '').replace(/#.*/, '')

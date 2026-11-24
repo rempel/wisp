@@ -39,7 +39,7 @@ import type { ChatView } from './ChatHeader'
 import { Sidebar } from './Sidebar'
 import { HomeView } from './HomeView'
 import { PentestView } from './pentest/PentestView'
-import { panesChanged, useTransitionState, withTransition } from './transitions'
+import { inOrder, panesChanged, useTransitionState, withTransition } from './transitions'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -234,7 +234,7 @@ export default function Chat(): JSX.Element {
       const before = tabsRef.current.panes
       tabsRef.current = state
       if (panesChanged(before, state.panes)) withTransition(() => setTabs(state), 'tab')
-      else setTabs(state)
+      else inOrder(() => setTabs(state))
       // Abas à vista não têm nada "novo"; as fechadas saem da memória.
       setUnread((current) => {
         const next = new Set([...current].filter((id) => !state.panes.includes(id)))
