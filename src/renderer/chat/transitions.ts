@@ -12,9 +12,14 @@ export type TransitionKind = 'view' | 'tab' | 'run' | 'run-tab' | 'layout'
 
 let running: ViewTransition | null = null
 let runningKind: TransitionKind | null = null
+/** A troca da transição em curso, enquanto ela ainda não aconteceu (o Chromium a chama depois). */
+let pending: (() => void) | null = null
 
 /** Faz `update` (uma mudança de estado do React) com a transição dos elementos. */
 export function withTransition(update: () => void, kind: TransitionKind): void {
+  // As trocas acontecem na ordem: uma de antes que ainda não aconteceu acontece agora (senão,
+  // pulada, ela viria depois desta e traria o estado velho de volta).
+  pending?.()
   if (typeof document.startViewTransition !== 'function' || reducedMotion() || document.hidden) {
     update()
     return
@@ -24,7 +29,15 @@ export function withTransition(update: () => void, kind: TransitionKind): void {
   const root = document.documentElement.classList
   const className = `vt-${kind}`
   root.add(className)
-  const transition = document.startViewTransition(() => flushSync(update))
+  let done = false
+  const apply = (): void => {
+    if (done) return
+    done = true
+    if (pending === apply) pending = null
+    flushSync(update)
+  }
+  pending = apply
+  const transition = document.startViewTransition(apply)
   // Pulada (outra começou por cima), ela rejeita as promessas: a troca em si já aconteceu.
   transition.ready.catch(() => undefined)
   transition.updateCallbackDone.catch(() => undefined)
