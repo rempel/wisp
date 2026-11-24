@@ -1,0 +1,160 @@
+/* As transições entre telas e abas (transitions.ts, as View Transitions do Chromium). Cada
+   elemento com um view-transition-name anda do lugar velho para o novo; o resto da janela (a barra
+   lateral, o cabeçalho) fica parado. O tipo da troca vem numa classe do <html> (vt-view, vt-tab,
+   vt-run, vt-run-tab, vt-layout). Com menos animações, o transitions.ts nem começa a transição. */
+
+/* Os nomes: um elemento de cada, sempre (um nome repetido cancela a transição). */
+.chat-body {
+  view-transition-name: wisp-body;
+}
+
+.sidebar-item.active {
+  view-transition-name: wisp-nav;
+}
+
+.tabs .tab.active {
+  view-transition-name: wisp-tab;
+}
+
+.workspace > .panes {
+  view-transition-name: wisp-panes;
+}
+
+.run-item.active {
+  view-transition-name: wisp-run-item;
+}
+
+.run-tabs button.on {
+  view-transition-name: wisp-run-tab;
+}
+
+.pentest-telemetry {
+  view-transition-name: wisp-telemetry;
+}
+
+.pentest-conversation {
+  view-transition-name: wisp-conversation;
+}
+
+/* Na troca de tela, a tela anda inteira: as partes dela não animam soltas. */
+:root.vt-view :is(.run-item.active, .run-tabs button.on, .pentest-telemetry, .pentest-conversation),
+:root.vt-view .workspace > .panes,
+:root.vt-view .tabs .tab.active {
+  view-transition-name: none;
+}
+
+/* Numa troca dentro da tela (outro run, outra aba do run, a coluna da conversa), o corpo fica
+   parado: só as partes com nome se mexem por cima dele. */
+:root:not(.vt-view)::view-transition-old(wisp-body) {
+  display: none;
+}
+
+:root:not(.vt-view)::view-transition-new(wisp-body) {
+  animation: none;
+}
+
+/* O que não tem nome (a moldura da janela) não pisca. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+}
+
+/* Os elementos que trocam de lugar ou de tamanho deslizam até o novo, numa curva que freia no fim. */
+::view-transition-group(*) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+}
+
+/* As áreas grandes mudam de tamanho sem esticar o texto: a imagem fica no canto e é recortada. */
+::view-transition-old(wisp-body),
+::view-transition-new(wisp-body),
+::view-transition-old(wisp-panes),
+::view-transition-new(wisp-panes),
+::view-transition-old(wisp-telemetry),
+::view-transition-new(wisp-telemetry),
+::view-transition-old(wisp-conversation),
+::view-transition-new(wisp-conversation) {
+  height: 100%;
+  object-fit: none;
+  object-position: left top;
+  overflow: clip;
+}
+
+/* Outra tela: a de antes sai subindo um pouco, a nova entra de baixo. */
+:root.vt-view::view-transition-old(wisp-body) {
+  animation: 140ms ease-in both vt-leave-up;
+}
+
+:root.vt-view::view-transition-new(wisp-body) {
+  animation: 300ms cubic-bezier(0.2, 0, 0, 1) 60ms both vt-enter-up;
+}
+
+/* Outra aba: o painel troca de lado, e o destaque da aba desliza até a nova. */
+:root.vt-tab::view-transition-old(wisp-panes) {
+  animation: 140ms ease-in both vt-leave-left;
+}
+
+:root.vt-tab::view-transition-new(wisp-panes) {
+  animation: 260ms cubic-bezier(0.2, 0, 0, 1) 40ms both vt-enter-right;
+}
+
+/* Outro run, outra aba do run: a telemetria troca por cima, sem sair do lugar. */
+:root.vt-run::view-transition-old(wisp-telemetry),
+:root.vt-run-tab::view-transition-old(wisp-telemetry) {
+  animation: 120ms ease-in both vt-fade-out;
+}
+
+:root.vt-run::view-transition-new(wisp-telemetry) {
+  animation: 260ms cubic-bezier(0.2, 0, 0, 1) 40ms both vt-enter-up;
+}
+
+:root.vt-run-tab::view-transition-new(wisp-telemetry) {
+  animation: 200ms cubic-bezier(0.2, 0, 0, 1) both vt-fade-in;
+}
+
+@keyframes vt-leave-up {
+  to {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes vt-enter-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes vt-leave-left {
+  to {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+}
+
+@keyframes vt-enter-right {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+}
+
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+
+/* Por garantia: com menos animações, nada se mexe (o transitions.ts já nem começa). */
+:root.reduce-motion::view-transition-group(*),
+:root.reduce-motion::view-transition-old(*),
+:root.reduce-motion::view-transition-new(*) {
+  animation: none;
+}

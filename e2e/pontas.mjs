@@ -95,6 +95,8 @@ check(
   readdirSync(claude).some((name) => name.startsWith('CLAUDE.md.backup-wisp-'))
 )
 await ev(`document.querySelector('.header button[aria-label="Voltar para a conversa"]').click()`)
+// A troca de tela vem com a transição (um quadro depois): espera a caixa da conversa.
+await waitFor(() => ev(`!!document.querySelector('.pane .composer textarea') || null`), 5000)
 
 console.log('== Rodar no terminal')
 await say('[bloco]')

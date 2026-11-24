@@ -196,6 +196,27 @@ export class ClaudeSession extends StreamReader {
    * Para a resposta em andamento: pede ao CLI que interrompa o turno, e o processo continua
    * vivo para a próxima mensagem. A conversa continua.
    */
+  /** O pid do Claude Code desta conversa, ou null sem processo. */
+  get pid(): number | null {
+    return this.proc?.pid ?? null
+  }
+
+  /**
+   * Para tudo agora (o Cancelar do pentest): o turno acaba como parado e o processo sai sem
+   * esperar o interrupt. A próxima mensagem sobe outro com `--resume`, na mesma sessão.
+   */
+  halt(): void {
+    this.turn++
+    const proc = this.proc
+    if (!proc) {
+      if (this.busy) this.finishTurn('stopped')
+      return
+    }
+    // A saída dele fecha o turno como parado (o onExit vê o stopping).
+    this.stopping = true
+    void killProcess(proc)
+  }
+
   stop(): void {
     this.turn++
     if (!this.busy) return

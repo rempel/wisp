@@ -3550,5 +3550,64 @@ export const EN: Record<string, string> = {
   'Abrir na aba': 'Open in tab',
   'Tirar a conversa daqui (ela continua na aba do workspace)':
     'Remove the conversation from here (it stays in its workspace tab)',
-  Desacoplar: 'Detach'
+  Desacoplar: 'Detach',
+  'Cancelado às {time}': 'Cancelled at {time}',
+  '{n} container(s) do MCP parados': '{n} MCP container(s) stopped',
+  'Parar o agente, o servidor do pentester e a fase em andamento (a conversa continua)':
+    'Stop the agent, the pentester server and the running phase (the conversation continues)',
+  'Cancelando…': 'Cancelling…',
+  'Cancelar pentest': 'Cancel pentest',
+  'Parar o pipeline': 'Stop the pipeline',
+  'Parar o agente, o servidor do pentester e a fase em andamento':
+    'Stop the agent, the pentester server and the running phase',
+  'Pentest cancelado: o Wisp parou o Claude, o servidor do pentester e a fase que rodava. A conversa continua aqui; a caixa ficou com um aviso para o agente, para você mandar quando quiser.':
+    'Pentest cancelled: Wisp stopped Claude, the pentester server and the running phase. The conversation stays here; the box has a note for the agent, for you to send when you want.',
+  'Cancelei o pentest às {time}: o Wisp parou você, o servidor do pentester e a fase que rodava. Não retome nenhuma fase sem eu pedir. Resuma o que já foi feito e o que faltou.':
+    "I cancelled the pentest at {time}: Wisp stopped you, the pentester server and the running phase. Don't resume any phase unless I ask. Summarize what was done and what was left.",
+  'Pentest · {host}': 'Pentest · {host}',
+  'Sobre o run {run} do pentester (a pasta output/{run}):':
+    'About pentester run {run} (the output/{run} folder):',
+  'A bancada ainda não abriu.': "The workbench hasn't opened yet.",
+  'Não deu para abrir na bancada.': "Couldn't open it in the workbench.",
+  'Card esperando': 'Card waiting',
+  'Pôr a conversa ao lado da telemetria': 'Put the conversation beside the telemetry',
+  'Pôr a conversa embaixo da telemetria': 'Put the conversation below the telemetry',
+  'Ao lado': 'Beside',
+  'Runbook padrão (opcional)': 'Default runbook (optional)',
+  'O Novo pentest pelo Claude começa com este runbook na caixa (dá para trocar em cada run).':
+    'A new pentest through Claude starts with this runbook in the box (you can change it for each run).',
+  'Confirmar com o agente': 'Confirm with the agent',
+  Explicar: 'Explain',
+  'Print da evidência': 'Evidence screenshot',
+  'Pedir ao agente:': 'Ask the agent:',
+  'O pedido vai para a caixa da conversa do run, para você revisar e mandar':
+    "The request goes to the run's conversation box, for you to review and send",
+  'Runbook padrão de {name}.': 'Default runbook of {name}.',
+  'Runbooks recentes': 'Recent runbooks',
+  'Recentes…': 'Recent…',
+  'Cancelado antes de o agente criar o run.': 'Cancelled before the agent created the run.',
+  'Runs novos desde o começo (o agente pode ter testado outro host)':
+    'New runs since the start (the agent may have tested another host)',
+  'Vincular à conversa': 'Link to the conversation',
+  'Conversar sobre este run': 'Talk about this run',
+  'runbook padrão': 'default runbook',
+  'Este run tem uma conversa no Wisp': 'This run has a conversation in Wisp',
+  'Abrir o relatório na bancada': 'Open the report in the workbench',
+  'Abrir o relatório no navegador do sistema': 'Open the report in the system browser',
+  'ver o log': 'see the log',
+  'Ver o log da fase {phase}': 'See the log of phase {phase}',
+  'Só a fase {phase}': 'Only phase {phase}',
+  'Log inteiro': 'Whole log',
+  'O log não cita a fase {phase} nas últimas linhas.':
+    "The log doesn't mention phase {phase} in its last lines.",
+  '{type} em {url}': '{type} at {url}',
+  'parâmetro {param}': 'parameter {param}',
+  'payload {payload}': 'payload {payload}',
+  '(achado {id} do run {run}{detail})': '(finding {id} of run {run}{detail})',
+  'Confirme o achado {where} {ref}: reproduza com evidência e diga se é um falso positivo.':
+    "Confirm the finding {where} {ref}: reproduce it with evidence and say whether it's a false positive.",
+  'Explique o achado {where} {ref}: o risco real, o impacto e como ele se explora.':
+    'Explain the finding {where} {ref}: the real risk, the impact and how it is exploited.',
+  'Como corrigir o achado {where} {ref}? Dê o passo a passo para o time de desenvolvimento.':
+    'How to fix the finding {where} {ref}? Give the development team a step by step.'
 }

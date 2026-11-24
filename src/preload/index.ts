@@ -275,13 +275,19 @@ const api: WispApi = {
       ipcRenderer.invoke(IPC_PENTEST.triage, run, finding, triage, note),
     start: (request) => ipcRenderer.invoke(IPC_PENTEST.start, request),
     stop: (run) => ipcRenderer.invoke(IPC_PENTEST.stop, run),
-    evidence: (run, finding) => ipcRenderer.invoke(IPC_PENTEST.evidence, run, finding),
-    openReport: (run) => ipcRenderer.invoke(IPC_PENTEST.openReport, run),
+    evidence: (run, finding, url) => ipcRenderer.invoke(IPC_PENTEST.evidence, run, finding, url),
+    openReport: (run, outside) => ipcRenderer.invoke(IPC_PENTEST.openReport, run, outside),
     openFolder: (run) => ipcRenderer.invoke(IPC_PENTEST.openFolder, run),
     lab: () => ipcRenderer.invoke(IPC_PENTEST.lab),
     labAction: (action, service) => ipcRenderer.invoke(IPC_PENTEST.labAction, action, service),
     detect: (folder) => ipcRenderer.invoke(IPC_PENTEST.detect, folder),
-    pickRunbook: () => ipcRenderer.invoke(IPC_PENTEST.pickRunbook)
+    pickRunbook: () => ipcRenderer.invoke(IPC_PENTEST.pickRunbook),
+    cancel: (conversation, run) => ipcRenderer.invoke(IPC_PENTEST.cancel, conversation, run),
+    detach: () => ipcRenderer.invoke(IPC_PENTEST.detach),
+    attach: (run) => ipcRenderer.invoke(IPC_PENTEST.attach, run),
+    link: (run) => ipcRenderer.invoke(IPC_PENTEST.link, run),
+    runbooks: () => ipcRenderer.invoke(IPC_PENTEST.runbooks),
+    runbook: (name) => ipcRenderer.invoke(IPC_PENTEST.runbook, name)
   },
   memory: {
     list: (folder) => ipcRenderer.invoke(IPC.memoryList, folder),

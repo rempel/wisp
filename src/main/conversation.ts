@@ -5,7 +5,7 @@ import { ClaudeSession } from './claude'
 import { History, pointBefore, rewindPoint, titleOf } from './history'
 import type { ConversationPoint, ConversationSeed, SavedConversation } from './history'
 import type { Approval, ApprovalRequest } from './mcp-server'
-import type { ConversationOptions } from './conversation-types'
+import type { ConversationOptions, ForkSource, PreviewOf } from './conversation-types'
 import { folderRisks, isTrusted, tilde, trustFolder } from './folders'
 import { expandHome } from './paths'
 import { pentestApproval } from './pentest'
@@ -27,6 +27,7 @@ import type {
   Provider
 } from '../shared/ipc'
 import { t } from '../shared/i18n'
+import { haltTree } from './proc-tree'
 
 type PermissionRequestEvent = Extract<ChatEvent, { type: 'permission-request' }>
 
@@ -38,19 +39,6 @@ export const PLAN_TOOL = 'ExitPlanMode'
 export const TRUST_TOOL = 'wisp_trust_folder'
 
 export type { ConversationHost, ConversationOptions } from './conversation-types'
-
-/** De onde vem uma conversa ramificada (Fase 46). */
-export interface ForkSource {
-  sessionId: string
-  at: string
-  folder: string | null
-  provider: Provider
-  title: string
-  events: ChatEvent[]
-}
-
-/** Uma prévia de anexo, para a conversa mostrar o que foi enviado. */
-export type PreviewOf = (attachment: OutgoingAttachment) => AttachmentPreview
 
 /**
  * Uma conversa do painel (uma aba): o processo do Claude Code, o histórico, os cards de
@@ -371,6 +359,17 @@ export class Conversation {
       return
     }
     this.session.stop()
+  }
+
+  /**
+   * O Cancelar do pentest: para o turno e o Claude Code com tudo o que ele abriu (servidores MCP,
+   * fases, ferramentas). A próxima mensagem (ou o terminal, que recomeça) retoma a sessão.
+   */
+  async halt(): Promise<void> {
+    const terminal = this.viewMode === 'terminal'
+    await haltTree(terminal ? this.terminal?.pid : this.session.pid, () =>
+      terminal ? this.restartTerminal(true) : this.session.halt()
+    )
   }
 
   /** Recomeça a conversa da aba (Ctrl+K); o modo e o modelo continuam. */

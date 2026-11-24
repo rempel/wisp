@@ -10,6 +10,7 @@ import type {
   ChatEvent,
   ClipboardOffer,
   MascotState,
+  PentestSession,
   PlanUsage,
   SettingsSnapshot,
   SoundSettings,
@@ -38,7 +39,7 @@ import type { ChatView } from './ChatHeader'
 import { Sidebar } from './Sidebar'
 import { HomeView } from './HomeView'
 import { PentestView } from './pentest/PentestView'
-import type { PentestSession } from './pentest/format'
+import { inOrder, panesChanged, useTransitionState, withTransition } from './transitions'
 import { Pane } from './Pane'
 import { PaneBus } from './paneBus'
 import { paletteActions } from './palette-actions'
@@ -99,7 +100,8 @@ async function zoomPanel(key: string): Promise<void> {
 export default function Chat(): JSX.Element {
   const [conversations, setConversations] = useState<Map<string, ChatState>>(() => new Map())
   const [tabs, setTabs] = useState<TabsState>(EMPTY_TABS)
-  const [view, setView] = useState<ChatView>('chat')
+  // A troca de tela vem com a transição dos elementos (transitions.ts).
+  const [view, setView] = useTransitionState<ChatView>('chat', 'view')
   /** O pentest pelo Claude: a conversa que a aba Pentest mostra ao lado da telemetria. */
   const [pentestSession, setPentestSession] = useState<PentestSession | null>(null)
   const pentestSessionRef = useRef(pentestSession)
@@ -154,7 +156,7 @@ export default function Chat(): JSX.Element {
         }
         setView('home')
       }),
-    []
+    [setView]
   )
   // O chip "usar o que você copiou" (mostrado no painel em foco).
   const [clip, setClip] = useState<ClipboardOffer | null>(null)
@@ -200,7 +202,7 @@ export default function Chat(): JSX.Element {
   /** Ir para a conversa: na aba Pentest com a conversa embutida, fica onde está. */
   const showConversation = useCallback((): void => {
     if (!pentestConversation()) setView('chat')
-  }, [pentestConversation])
+  }, [pentestConversation, setView])
 
   /** A conversa do painel em foco (null se lá estiver uma sessão do terminal). */
   const focusedConversation = useCallback((): string | null => {
@@ -229,8 +231,10 @@ export default function Chat(): JSX.Element {
     const offMood = window.wisp.chat.onMood(setMood)
     const offClipboard = window.wisp.chat.onClipboard(setClip)
     const offTabs = window.wisp.tabs.onState((state) => {
+      const before = tabsRef.current.panes
       tabsRef.current = state
-      setTabs(state)
+      if (panesChanged(before, state.panes)) withTransition(() => setTabs(state), 'tab')
+      else inOrder(() => setTabs(state))
       // Abas à vista não têm nada "novo"; as fechadas saem da memória.
       setUnread((current) => {
         const next = new Set([...current].filter((id) => !state.panes.includes(id)))
@@ -241,10 +245,6 @@ export default function Chat(): JSX.Element {
         if ([...current.keys()].every((id) => open.has(id))) return current
         return new Map([...current].filter(([id]) => open.has(id)))
       })
-      // A conversa do pentest é uma aba do workspace: fechada lá, sai da aba Pentest também.
-      setPentestSession((current) =>
-        current && !state.tabs.some((tab) => tab.id === current.conversation) ? null : current
-      )
     })
     const offVoice = window.wisp.voice.onStatus((status) => {
       voiceRef.current = status
@@ -298,7 +298,7 @@ export default function Chat(): JSX.Element {
       document.removeEventListener('copy', onCopy)
       document.removeEventListener('cut', onCopy)
     }
-  }, [bus, focusedConversation])
+  }, [bus, focusedConversation, setView])
 
   // Os sons (o botão de mudo) e os arquivos soltos no mascote, que viram anexos no painel em foco.
   useEffect(() => {
@@ -525,8 +525,9 @@ export default function Chat(): JSX.Element {
         if (current) toggleSound(current)
       }
     }
+    // A janela ganhou o foco: a caixa da conversa o recebe (na aba Pentest, não: há outros campos).
     const onFocus = (): void => {
-      const conversation = focusedConversation()
+      const conversation = pentestConversation() ? null : focusedConversation()
       if (conversation) bus.emit(conversation, { type: 'focus' })
     }
     window.addEventListener('keydown', onKey)
@@ -535,7 +536,15 @@ export default function Chat(): JSX.Element {
       window.removeEventListener('keydown', onKey)
       window.removeEventListener('focus', onFocus)
     }
-  }, [bus, focusedConversation, showConversation, toggleSound, exportConversation])
+  }, [
+    setView,
+    bus,
+    focusedConversation,
+    pentestConversation,
+    showConversation,
+    toggleSound,
+    exportConversation
+  ])
 
   // Arquivos arrastados para qualquer ponto da janela viram anexos do painel em foco. Sem o
   // preventDefault, soltar um arquivo faria a janela navegar até ele.
@@ -618,7 +627,7 @@ export default function Chat(): JSX.Element {
       window.wisp.tabs.show(main.id)
       setView('chat')
     },
-    [apply]
+    [apply, setView]
   )
 
   // O pontinho de cada aba: esperando você, trabalhando, resposta nova.
@@ -797,6 +806,7 @@ export default function Chat(): JSX.Element {
       }
     })
   }, [
+    setView,
     palette,
     tabs,
     conversations,
@@ -913,8 +923,9 @@ export default function Chat(): JSX.Element {
               <div className="workspace pentest-workspace">
                 <PentestView
                   onView={setView}
-                  session={pentestSession}
                   onSession={setPentestSession}
+                  onCompose={(id, text) => bus.emit(id, { type: 'compose', text })}
+                  waitingIn={(id) => awaitingPermission(conversations.get(id) ?? initialState)}
                   onFolder={setPentestFolder}
                   renderConversation={renderPentestConversation}
                 />

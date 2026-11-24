@@ -204,6 +204,11 @@ class PreviewPage {
     this.layout()
   }
 
+  /** O endereço que a vista mostra agora (null: nenhum). */
+  get url(): string | null {
+    return this.view?.webContents.getURL() || null
+  }
+
   /** A página à vista é da internet (e não desta máquina)? O que vem dela não é de confiança. */
   remote(): boolean {
     const url = this.view?.webContents.getURL()
@@ -635,6 +640,19 @@ export function setupPreview(host: PreviewHost): PreviewControl {
     if (!opened) return { ok: false, message: t('O painel do Wisp está fechado.') }
     host.opened(target.display)
     return { ok: true, kind: target.kind }
+  }
+  // O pentester (o print do achado, o relatório): mostra na bancada, sem recarregar se a página
+  // já é essa (você pode ter navegado nela para reproduzir o achado).
+  workbenchCapture.show = (input) => {
+    const strip = (url: string): string => url.replace(/\/+(?=#|$)/, '')
+    const current = tabs.page?.url
+    if (current && /^https?:/i.test(input) && strip(current) === strip(input)) {
+      // A bancada aparece, na aba do navegador, com a página como está.
+      host.opened(input)
+      return null
+    }
+    const result = open(input, null)
+    return result.ok ? null : (result.message ?? t('Não deu para abrir na bancada.'))
   }
   ipcMain.handle(
     IPC.previewOpen,
