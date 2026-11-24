@@ -235,6 +235,13 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
   evidência sai do que você está vendo. Os atalhos (Esc, Ctrl+F, Alt+P, Ctrl+Shift+B, a paleta, o
   ditado e os arquivos soltos) vão para a conversa embutida. Sem largura para tudo lado a lado, a
   conversa vai para baixo da telemetria.
+- **Transições entre telas e abas:** trocar de tela (Início, conversa, Pentest, Configurações…)
+  desliza a tela nova de baixo, com a barra lateral e o cabeçalho parados, e o destaque do item
+  ativo anda até o novo. Trocar de aba no workspace leva o painel de lado, com o destaque da aba
+  deslizando. Na tela Pentest, o run escolhido, as abas do run (Fases, Achados, Alertas, Log) e a
+  coluna da conversa (recolher, ao lado/embaixo) também se movem em vez de trocar num corte. São as
+  View Transitions do Chromium (`transitions.ts`, `styles/transitions.css`); com **menos
+  animações** (do sistema ou do Wisp), nada se mexe.
 - **A aba Pentest, revisada:** a conversa do pentest **volta depois de reabrir o Wisp** (a sessão
   fica no disco, e o run anota a conversa dele: a lista marca os runs com conversa, e "Abrir a
   conversa" ou "Conversar sobre este run" põe uma ao lado). Com a conversa recolhida, um **card**
