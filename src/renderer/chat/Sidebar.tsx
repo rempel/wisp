@@ -373,7 +373,8 @@ export function Sidebar(props: SidebarProps): JSX.Element {
           label={t('Tarefas agendadas')}
           collapsed={collapsed}
           onClick={() => {
-            openSettingsAt('assistente')
+            // Abre nas configurações, já na seção das tarefas (o Batimento vem antes dela).
+            openSettingsAt('assistente', t('Tarefas agendadas'))
             go('settings')
           }}
         />

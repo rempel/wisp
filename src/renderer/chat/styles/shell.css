@@ -190,9 +190,13 @@
   overflow-y: auto;
 }
 
-.sidebar.collapsed::after {
-  content: '';
-  flex: 1;
+/* No trilho, o rodapé (Tarefas agendadas, Configurações…) fica no fim, com um risco só acima. */
+.sidebar.collapsed .sidebar-nav {
+  border-bottom: 0;
+}
+
+.sidebar.collapsed .sidebar-foot {
+  margin-top: auto;
 }
 
 .sidebar-section h3 {

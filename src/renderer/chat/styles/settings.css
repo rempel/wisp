@@ -25,6 +25,17 @@
   border-bottom: 0;
 }
 
+/* A seção pedida por outra tela (a sidebar, nas Tarefas agendadas) acende por um instante. */
+.settings-section-flash {
+  border-radius: var(--r-sm);
+  background: var(--accent-soft);
+  transition: background 1.2s ease-out;
+}
+
+:root.reduce-motion .settings-section-flash {
+  transition: none;
+}
+
 .settings-section h2 {
   margin: 4px 0 8px;
   color: var(--muted);
