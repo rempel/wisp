@@ -407,6 +407,9 @@ async function start(ready: (run: (command: WispCommand) => void) => void): Prom
       updateAccessory()
     },
     onAttention: (attended) => {
+      // No Windows, o painel que apareceu sem foco (um card do batimento, por exemplo) deixa o
+      // botão da barra de tarefas laranja até ser ativado; ao ganhar o foco, ele apaga.
+      if (attended) chat?.window()?.flashFrame(false)
       if (attended) desktopApprovals.panelShown()
       else desktopApprovals.panelHidden()
       // O painel saiu da frente com um pedido esperando: a ilha abre com ele.

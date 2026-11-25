@@ -69,6 +69,11 @@
   cursor: pointer;
 }
 
+/* Sem o X (a aba da Wisp não fecha), o texto respira à direita como à esquerda. */
+.tab-main:last-child {
+  padding-right: 10px;
+}
+
 .tab-main svg {
   flex: none;
   width: 13px;

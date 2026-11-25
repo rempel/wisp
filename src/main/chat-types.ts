@@ -42,9 +42,15 @@ export interface Chat {
   ask(text: string, options?: { voice?: boolean }): string | null
   /**
    * Manda uma mensagem pela ilha (Fase 38), com os arquivos soltos nela, sem abrir o painel: na
-   * aba em foco, ou numa nova se ela estiver respondendo. Devolve a conversa, ou null se não deu.
+   * aba em foco, ou numa nova se ela estiver respondendo. Com `into`, na conversa dada (a da ilha;
+   * respondendo, a mensagem entra na fila dela) ou, se ela for null ou não existir mais, numa nova.
+   * Devolve a conversa, ou null se não deu.
    */
-  askQuiet(text: string, files: OutgoingAttachment[], options?: { voice?: boolean }): string | null
+  askQuiet(
+    text: string,
+    files: OutgoingAttachment[],
+    options?: { voice?: boolean; into?: string | null }
+  ): string | null
   /** Põe um texto ditado na caixa de mensagem da aba em foco, para revisar e enviar. */
   compose(text: string): void
   /**

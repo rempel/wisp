@@ -333,6 +333,16 @@ O que mudou em cada versão do Wisp. O detalhe de cada fase (e o que ficou de fo
 
 ### Consertado
 
+- **A barra de tarefas do Windows** não fica mais laranja depois de abrir o Wisp: o painel que
+  apareceu sem foco (um card do batimento, por exemplo) apaga o pedido de atenção ao ganhar o foco.
+- **"Tarefas agendadas"** na sidebar abre as configurações já nessa seção (antes caía no topo da
+  categoria Assistente, no Batimento).
+- **O trilho da sidebar** tinha dois riscos seguidos acima do rodapé, que também não ia até o fim:
+  agora há um risco só, e o rodapé fica no fim.
+- **A aba da Wisp**, que não tem o X, ficava com o texto colado na borda direita: agora respira dos
+  dois lados igual.
+- **Uma pergunta pela ilha** abre uma conversa nova, em vez de cair na Wisp; uma pergunta logo
+  depois (em até 10 minutos) segue na mesma conversa.
 - A faixa preta no pé do terminal (o fundo do xterm aparecia no que as linhas não cobriam).
 - No modo demonstração, uma ferramenta aprovada (a edição do contador, abrir o Firefox) ficava
   "executando" para sempre: o resultado dela voltava com outro id.

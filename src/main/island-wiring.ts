@@ -34,6 +34,9 @@ import type {
 } from '../shared/ipc'
 import { t } from '../shared/i18n'
 
+/** Até quanto tempo depois uma pergunta pela ilha segue a conversa da anterior (ms). */
+const ISLAND_THREAD_MS = 10 * 60_000
+
 /** Os eventos das conversas que mudam a ilha (o texto que chega, não: só o fim dele). */
 const ISLAND_EVENTS = new Set<string>([
   'user',
@@ -87,6 +90,8 @@ export class IslandWiring {
   private files: DroppedFile[] = []
   /** A conversa da última pergunta pela ilha. */
   private asked: string | null = null
+  /** Quando foi a última pergunta pela ilha (as seguintes, logo depois, seguem a conversa dela). */
+  private askedAt = 0
   /** O diff aberto: de que passo. */
   private diff: { task: string; step: string } | null = null
   private events: IslandEvent[] = []
@@ -137,13 +142,16 @@ export class IslandWiring {
       path: file.path,
       ...(file.thumbnail ? { thumbnail: file.thumbnail } : {})
     }))
-    const conversation = chat.askQuiet(text, files, { voice })
+    // Pela ilha, uma conversa nova (não a Wisp); uma pergunta logo depois segue nela.
+    const recent = this.asked && Date.now() - this.askedAt < ISLAND_THREAD_MS ? this.asked : null
+    const conversation = chat.askQuiet(text, files, { voice, into: recent })
     if (!conversation) {
       islandMessage(t('Não mandei'), t('Já há abas demais abertas: feche uma no painel.'), 5000)
       return null
     }
     this.files = []
     this.asked = conversation
+    this.askedAt = Date.now()
     this.changed()
     return conversation
   }

@@ -746,9 +746,9 @@ export function setupChat({
       conversation.send(text, [], previewOf, voice)
       return conversation.id
     },
-    askQuiet(text, files, { voice = false } = {}) {
-      let conversation = askTarget()
-      if (!conversation.canSend || conversation.busy) {
+    askQuiet(text, files, { voice = false, into } = {}) {
+      let conversation = into === undefined ? askTarget() : into ? conversationById(into) : null
+      if (!conversation || !conversation.canSend || (conversation.busy && into === undefined)) {
         if (tabs.full) return null
         conversation = tabs.addChat()
       }

@@ -100,8 +100,15 @@ export function savedCategory(): string {
   return SETTINGS_CATEGORIES[0].id
 }
 
-/** Guarda a categoria: a tela de configurações abre nela (o Início e a sidebar usam). */
-export function openSettingsAt(id: string): void {
+/** A seção pedida por outra tela (pelo título): a tela de configurações rola até ela. */
+let pendingSection: string | null = null
+
+/**
+ * Guarda a categoria: a tela de configurações abre nela (o Início e a sidebar usam). Com
+ * `section` (o título dela), abre rolada até essa seção, que acende por um instante.
+ */
+export function openSettingsAt(id: string, section?: string): void {
+  pendingSection = section ?? null
   try {
     localStorage.setItem(STORE, id)
   } catch {
@@ -132,6 +139,19 @@ export function useSettingsFilter(
       section.hidden = wanted
         ? !fold(section.textContent ?? '').includes(wanted)
         : (categoryOf(title) ?? 'avancado') !== category
+    }
+    // Uma seção pedida (a sidebar, nas Tarefas agendadas): rola até ela e a acende.
+    const target = [
+      ...(scroll.current?.querySelectorAll<HTMLElement>('.settings-section') ?? [])
+    ].find(
+      (section) => !section.hidden && section.querySelector('h2')?.textContent === pendingSection
+    )
+    if (!wanted && target) {
+      pendingSection = null
+      target.scrollIntoView({ block: 'start' })
+      target.classList.add('settings-section-flash')
+      setTimeout(() => target.classList.remove('settings-section-flash'), 1600)
+      return
     }
     scroll.current?.scrollTo({ top: 0 })
   }, [scroll, category, query, ready])
